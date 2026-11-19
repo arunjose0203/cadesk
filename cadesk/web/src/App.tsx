@@ -61,53 +61,152 @@ export default function App() {
     setUser(await api<UserProfile>('/api/auth/me'))
   }
 
-  if (checking) return <main className="page"><p className="muted">Loading…</p></main>
-  if (!user) return (
-    <main className="page">
-      <h1>CA Desk</h1>
-      {notice && <p className="notice small">{notice}</p>}
-      <AuthScreens onSignedIn={signedIn} />
-    </main>
-  )
+  if (checking) {
+    return (
+      <main className="page" style={{ display: 'flex', minHeight: '60vh', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div className="brand-icon" style={{ margin: '0 auto 16px', width: '48px', height: '48px', fontSize: '20px' }}>CA</div>
+          <p className="muted" style={{ fontWeight: 500 }}>Loading workspace…</p>
+        </div>
+      </main>
+    )
+  }
 
-  if (user.mfaSetupRequired) return (
-    <main className="page">
-      <header className="top"><h1>CA Desk</h1><button className="ghost" onClick={() => signOut()}>Sign out</button></header>
-      <p className="notice">Your firm requires two-step sign-in for your role. Set it up below to continue.</p>
-      <SecurityPage me={user} onChanged={afterSecurityChange} />
-    </main>
-  )
+  if (!user) {
+    return (
+      <main className="page">
+        <div style={{ textAlign: 'center', margin: '48px 0 24px' }}>
+          <div className="brand-icon" style={{ margin: '0 auto 16px', width: '56px', height: '56px', fontSize: '24px' }}>CA</div>
+          <h1 style={{ fontSize: '2rem', letterSpacing: '-0.03em', marginBottom: '8px' }}>CA Desk</h1>
+          <p className="muted" style={{ fontSize: '1rem', maxWidth: '460px', margin: '0 auto' }}>
+            Multi-Tenant Practice Management & Regulatory Compliance for Accounting Firms
+          </p>
+        </div>
+        {notice && <p className="notice small" style={{ maxWidth: '440px', margin: '0 auto 16px' }}>{notice}</p>}
+        <AuthScreens onSignedIn={signedIn} />
+      </main>
+    )
+  }
+
+  if (user.mfaSetupRequired) {
+    return (
+      <main className="page">
+        <header className="top">
+          <div className="brand-badge">
+            <div className="brand-icon">CA</div>
+            <div className="brand-meta">
+              <h1>CA Desk</h1>
+              <span className="firm-pill">🏢 {user.firmName}</span>
+            </div>
+          </div>
+          <button className="ghost small" onClick={() => signOut()}>Sign out</button>
+        </header>
+        <p className="notice">Your firm requires two-step sign-in for your role. Set it up below to continue.</p>
+        <SecurityPage me={user} onChanged={afterSecurityChange} />
+      </main>
+    )
+  }
 
   const can = (p: string) => user.permissions.includes(p)
+  const initials = user.name.split(' ').map(n => n[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'U'
 
   return (
     <main className="page">
       <header className="top">
-        <div>
-          <h1>CA Desk</h1>
-          <span className="muted">{user.firmName} · {user.name} ({user.roles.join(', ')})</span>
+        <div className="brand-badge">
+          <div className="brand-icon">CA</div>
+          <div className="brand-meta">
+            <h1>CA Desk</h1>
+            <div className="firm-pill">
+              <span>🏢</span>
+              <strong>{user.firmName}</strong>
+            </div>
+          </div>
         </div>
-        <button className="ghost" onClick={() => signOut()}>Sign out</button>
+
+        <div className="row" style={{ gap: '12px' }}>
+          <div className="user-badge">
+            <div className="user-avatar">{initials}</div>
+            <span style={{ fontWeight: 600 }}>{user.name}</span>
+            <span className="role-tag">{user.roles[0] || 'Staff'}</span>
+          </div>
+          <button className="ghost small" onClick={() => signOut()} title="Sign out of your account">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+            Sign out
+          </button>
+        </div>
       </header>
+
       <nav className="tabs">
         {can('tasks.read') && (
-          <button className={page === 'tasks' ? 'active' : ''} onClick={() => setPage('tasks')}>Tasks</button>
+          <button className={page === 'tasks' ? 'active' : ''} onClick={() => setPage('tasks')}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+              <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+              <path d="M9 14l2 2 4-4"></path>
+            </svg>
+            Tasks
+          </button>
         )}
         {can('compliance.read') && (
-          <button className={page === 'deadlines' ? 'active' : ''} onClick={() => setPage('deadlines')}>Deadlines</button>
+          <button className={page === 'deadlines' ? 'active' : ''} onClick={() => setPage('deadlines')}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+            Deadlines
+          </button>
         )}
-        <button className={page === 'clients' ? 'active' : ''} onClick={() => setPage('clients')}>Clients</button>
+        <button className={page === 'clients' ? 'active' : ''} onClick={() => setPage('clients')}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+          </svg>
+          Clients
+        </button>
         {can('users.read') && (
-          <button className={page === 'users' ? 'active' : ''} onClick={() => setPage('users')}>Users</button>
+          <button className={page === 'users' ? 'active' : ''} onClick={() => setPage('users')}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+            Team
+          </button>
         )}
         {can('settings.manage') && (
-          <button className={page === 'settings' ? 'active' : ''} onClick={() => setPage('settings')}>Settings</button>
+          <button className={page === 'settings' ? 'active' : ''} onClick={() => setPage('settings')}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+            Settings
+          </button>
         )}
         {can('audit.read') && (
-          <button className={page === 'audit' ? 'active' : ''} onClick={() => setPage('audit')}>Audit log</button>
+          <button className={page === 'audit' ? 'active' : ''} onClick={() => setPage('audit')}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            </svg>
+            Audit Log
+          </button>
         )}
-        <button className={page === 'security' ? 'active' : ''} onClick={() => setPage('security')}>My account</button>
+        <button className={page === 'security' ? 'active' : ''} onClick={() => setPage('security')}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+          My Account
+        </button>
       </nav>
+
       {page === 'tasks' && can('tasks.read') && <TasksPage can={can} meId={user.id} />}
       {page === 'deadlines' && can('compliance.read') && <DeadlinesPage can={can} />}
       {page === 'clients' && <ClientsPage can={can} meId={user.id} />}

@@ -73,11 +73,17 @@ function Login({ onSignedIn }: Props) {
 
   return (
     <form onSubmit={e => { e.preventDefault(); login() }} className="stack">
-      <input type="email" autoComplete="username" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} />
-      <input type="password" autoComplete="current-password" placeholder="Password" value={password}
-        onChange={e => setPassword(e.target.value)} />
-      <button disabled={busy}>Sign in</button>
-      {error && <p className="error">{error}</p>}
+      <div className="field">
+        <label>Email address</label>
+        <input type="email" autoComplete="username" placeholder="name@firm.com" value={email} onChange={e => setEmail(e.target.value)} required />
+      </div>
+      <div className="field">
+        <label>Password</label>
+        <input type="password" autoComplete="current-password" placeholder="••••••••••••" value={password}
+          onChange={e => setPassword(e.target.value)} required />
+      </div>
+      <button style={{ marginTop: '8px' }} disabled={busy}>Sign in to CA Desk</button>
+      {error && <p className="error small" style={{ margin: 0 }}>{error}</p>}
     </form>
   )
 }
@@ -98,15 +104,29 @@ function SignUp({ onSignedIn }: Props) {
 
   return (
     <form onSubmit={submit} className="stack">
-      <input placeholder="Firm name" value={f.firmName} onChange={e => setF({ ...f, firmName: e.target.value })} />
-      <input placeholder="Your name" value={f.name} onChange={e => setF({ ...f, name: e.target.value })} />
-      <input type="email" autoComplete="username" placeholder="Email" value={f.email}
-        onChange={e => setF({ ...f, email: e.target.value })} />
-      <input type="password" autoComplete="new-password" placeholder="Password (10+ characters)" value={f.password}
-        onChange={e => setF({ ...f, password: e.target.value })} />
-      <button disabled={busy}>Create firm</button>
-      <p className="muted small">India for now. You become the firm's Partner; invite your team next.</p>
-      {error && <p className="error">{error}</p>}
+      <div className="field">
+        <label>Firm Name</label>
+        <input placeholder="e.g. Sharma & Associates" value={f.firmName} onChange={e => setF({ ...f, firmName: e.target.value })} required />
+      </div>
+      <div className="field">
+        <label>Managing Partner Name</label>
+        <input placeholder="e.g. Arun Sharma" value={f.name} onChange={e => setF({ ...f, name: e.target.value })} required />
+      </div>
+      <div className="field">
+        <label>Work Email</label>
+        <input type="email" autoComplete="username" placeholder="partner@firm.com" value={f.email}
+          onChange={e => setF({ ...f, email: e.target.value })} required />
+      </div>
+      <div className="field">
+        <label>Password</label>
+        <input type="password" autoComplete="new-password" placeholder="Min. 10 characters" value={f.password}
+          onChange={e => setF({ ...f, password: e.target.value })} required />
+      </div>
+      <button style={{ marginTop: '8px' }} disabled={busy}>Create Firm Account</button>
+      <p className="muted small" style={{ textAlign: 'center', margin: '4px 0 0' }}>
+        Configured for India (GST/ITR/TDS). You become the firm's initial Partner.
+      </p>
+      {error && <p className="error small" style={{ margin: 0 }}>{error}</p>}
     </form>
   )
 }
