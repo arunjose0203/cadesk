@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\CaDesk.Application\CaDesk.Application.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Plain SQL migrations, applied in file-name order by DbMigrator. -->
+    <EmbeddedResource Include="Persistence\Migrations\*.sql" LogicalName="migrations/%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>

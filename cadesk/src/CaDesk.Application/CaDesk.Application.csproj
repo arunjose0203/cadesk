@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\CaDesk.Domain\CaDesk.Domain.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Only for DbSet / IQueryable / ToListAsync in use cases; no provider here. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <!-- FromSql / SqlQuery for jsonb tax-ID lookups and next_number(); still no provider here. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
+  </ItemGroup>
+</Project>

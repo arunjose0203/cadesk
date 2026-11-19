@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <ItemGroup>
+    <ProjectReference Include="..\CaDesk.Infrastructure\CaDesk.Infrastructure.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+    <!-- Excel import / template (MIT licence) -->
+    <PackageReference Include="ClosedXML" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="CaDesk.IntegrationTests" />
+    <InternalsVisibleTo Include="CaDesk.UnitTests" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,83 @@
+# Local / single-VPS stack:  docker compose up --build
+# Then open https://localhost (accept the local certificate) or set SITE_ADDRESS to your domain.
+# Put real secrets in a .env file next to this one (never commit it).
+
+services:
+  db:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD:-postgres_dev_pw}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./deploy/db-init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    ports:
+      - "5432:5432"   # remove on a server; only needed for local tools
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: src/CaDesk.Api/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${API_ENVIRONMENT:-Development}
+      ConnectionStrings__App: Host=db;Database=cadesk;Username=cadesk_app;Password=${APP_DB_PASSWORD:-app_dev_pw}
+      ConnectionStrings__Owner: Host=db;Database=cadesk;Username=cadesk_owner;Password=${OWNER_DB_PASSWORD:-owner_dev_pw}
+      Jwt__SigningKey: ${JWT_SIGNING_KEY:-dev-only-signing-key-change-me-0123456789}
+      DataProtection__KeysPath: /keys          # protects MFA secrets; keep this volume and back it up
+      # reminders: Log = nothing leaves the server. Set Smtp + host/user/password/from to send real email.
+      Notifications__Email__Mode: ${EMAIL_MODE:-Log}
+      Notifications__Email__Host: ${SMTP_HOST:-}
+      Notifications__Email__Port: ${SMTP_PORT:-587}
+      Notifications__Email__User: ${SMTP_USER:-}
+      Notifications__Email__Password: ${SMTP_PASSWORD:-}
+      Notifications__Email__FromAddress: ${EMAIL_FROM:-}
+      Notifications__WhatsApp__Mode: ${WHATSAPP_MODE:-Log}
+      # document vault: files live in the "documents" volume (back it up with the database); scanned by ClamAV
+      Documents__StoragePath: /documents
+      Documents__Scan__Mode: ${SCAN_MODE:-ClamAv}
+      Documents__Scan__Host: clamav
+      Documents__Scan__Port: 3310
+      ForwardedHeaders__KnownNetworks__0: 172.16.0.0/12   # Docker networks: trust Caddy's X-Forwarded-For
+    volumes:
+      - dpkeys:/keys
+      - documents:/documents
+
+  # virus scanner for uploaded documents. It downloads signatures on first start (a few minutes); until it answers,
+  # new files wait as "waiting for virus scan" and the API scans them every 10 minutes.
+  # clamd refuses streams over its StreamMaxLength (25 MB unless changed): keep doc.max_size_mb at or below it.
+  clamav:
+    image: clamav/clamav:1.4
+    restart: unless-stopped
+    environment:
+      CLAMAV_NO_MILTERD: "true"
+    volumes:
+      - clamav_db:/var/lib/clamav
+
+  web:
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+    restart: unless-stopped
+    depends_on: [api]
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - caddy_data:/data
+
+volumes:
+  pgdata:
+  caddy_data:
+  dpkeys:
+  documents:
+  clamav_db:

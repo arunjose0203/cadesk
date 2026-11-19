@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/CaDesk.Domain/CaDesk.Domain.csproj" />
+    <Project Path="src/CaDesk.Application/CaDesk.Application.csproj" />
+    <Project Path="src/CaDesk.Infrastructure/CaDesk.Infrastructure.csproj" />
+    <Project Path="src/CaDesk.Api/CaDesk.Api.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/CaDesk.UnitTests/CaDesk.UnitTests.csproj" />
+    <Project Path="tests/CaDesk.IntegrationTests/CaDesk.IntegrationTests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,22 @@
+# SITE_ADDRESS: "localhost" for local use; your domain (e.g. app.example.com) on a server,
+# where Caddy gets and renews the HTTPS certificate automatically.
+{$SITE_ADDRESS:localhost} {
+	encode gzip
+
+	handle /api/* {
+		reverse_proxy api:8080
+	}
+
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		X-Frame-Options "DENY"
+	}
+}

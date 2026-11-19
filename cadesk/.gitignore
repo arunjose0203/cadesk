@@ -1,0 +1,12 @@
+bin/
+obj/
+.vs/
+.idea/
+*.user
+TestResults/
+node_modules/
+web/dist/
+.env
+appsettings.*.local.json
+# document files saved by the API in Development
+src/CaDesk.Api/data/
