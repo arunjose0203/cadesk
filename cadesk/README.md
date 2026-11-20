@@ -394,6 +394,53 @@ API:
 - `GET /api/audit/summary`, `GET /api/audit/engagements`, `GET /api/audit/engagements/{id}`, `POST /api/audit/engagements`, `PUT /api/audit/engagements/{id}/materiality`, `PUT /api/audit/engagements/{id}/status`, `DELETE /api/audit/engagements/{id}` (`audit.read`, `audit.manage`, `audit.review`)
 - `GET /api/audit/engagements/{id}/working-papers`, `GET /api/audit/working-papers/{id}`, `POST /api/audit/engagements/{id}/working-papers`, `PUT /api/audit/working-papers/{id}`, `PUT /api/audit/working-papers/{id}/review`, `DELETE /api/audit/working-papers/{id}` (`audit.read`, `audit.manage`, `audit.review`)
 
+## GST 2A / 2B Purchase Register Reconciliation (Sprint 16)
+
+- **Statutory ITC Matching**: Automates Section 16(2)(aa) and Rule 36(4) compliance, preventing wrongful credit claims and penalty notices.
+- **Smart Invoice Number Normalization**: Strips separators, hyphens, slashes, and leading zeroes from numeric groups (e.g. `SIEM/24-25/001` matches `SIEM-24-25-1`, `0042` matches `42`).
+- **Discrepancy Categorization**:
+  - `Exact Match`: 0 difference in invoice number, taxable amount, and GST values.
+  - `Match With Tolerance`: Tax or taxable difference within configurable rounding threshold (default ±₹1.00).
+  - `Tax Mismatch`: Same GSTIN & invoice, but tax values exceed tolerance.
+  - `Missing in 2B (ITC at Risk)`: Present in books but unfiled by supplier in GSTR-1/IFF.
+  - `Missing in Books`: Present in GSTR-2B but unbooked by client accountant.
+- **Two Locks**: Full tenant isolation via RLS and EF Core global query filters (`0015_gst_reconciliation.sql`).
+
+API:
+- `GET /api/gst/summary`, `GET /api/gst/batches`, `GET /api/gst/batches/{id}`, `POST /api/gst/reconcile`, `GET /api/gst/batches/{id}/items`, `DELETE /api/gst/batches/{id}` (`gst.read`, `gst.reconcile`)
+
+## TDS Computation, Lower Deduction Certificates & Form 26Q/27Q Preparation (Sprint 17)
+
+- **Chapter XVII-B Statutory Tax Deduction Engine**: Supports sections 194C (1% individual, 2% company), 194J (2% technical, 10% professional), 194I (10% land/building, 2% plant/machinery), 194Q (0.1%), 194A (10%), 194H (5%), and 195 (payments to non-residents).
+- **Anti-Tax Evasion Penalty Rates**:
+  - **Section 206AA**: Automatic 20% flat withholding when deductee PAN is invalid or missing.
+  - **Section 206AB**: Higher rate (double of standard rate or 5%) for specified non-filers.
+- **Section 197 / 197A Lower Deduction Certificates (LDC)**: Tracks approved certificate numbers, validity windows, specified rates, and cumulative threshold utilization with automatic balance exhaustion warnings.
+- **ITNS 281 Challan Management & Deposit Allocation**: Monthly Challan BSR code, serial number, and tender date registration; FIFO or manual allocation of deductions against deposited tax with unallocated balance accounting.
+- **Section 201(1A) Statutory Interest Calculator**:
+  - `Delay in Deduction`: 1% per month or part of a month from transaction date to deduction date u/s 201(1A)(i).
+  - `Delay in Deposit`: 1.5% per month or part of a month from deduction date to actual bank deposit date u/s 201(1A)(ii).
+- **Two Locks**: EF Core tenant filtering and PostgreSQL Row Level Security (`0016_tds_management.sql`).
+
+API:
+- `GET /api/tds/summary`, `GET /api/tds/ldc`, `POST /api/tds/ldc`, `GET /api/tds/challans`, `POST /api/tds/challans`, `GET /api/tds/deductions`, `POST /api/tds/deductions`, `POST /api/tds/challans/map`, `POST /api/tds/interest/calculate` (`tds.read`, `tds.manage`)
+
+## ROC / MCA Corporate Governance & Secretarial Compliance (Sprint 18)
+
+- **Company Master & Entity Registry**: Validates 21-character Corporate Identification Numbers (CIN regex `^[LU][0-9]{5}[A-Z]{2}[0-9]{4}[A-Z]{3}[0-9]{6}$`), tracks company class (Private, Public, OPC, Section 8, LLP), authorized & paid-up capital, RoC jurisdiction, and AGM calendar.
+- **Director DIN & DIR-3 KYC Management**: 8-digit Director Identification Number (DIN) tracking, appointment/cessation dates, DSC expiry dates, and annual DIR-3 KYC status (`Complied`, `Pending`, `DeactivatedDueToNonFiling`).
+- **Section 403 Statutory Late Fee Engine**:
+  - **Annual Returns (AOC-4 & MGT-7)**: Section 403(1) second proviso calculation of ₹100 per day of delay without upper limit.
+  - **DIR-3 KYC**: Rule 12A flat statutory additional fee of ₹5,000 per DIN for post-due-date filing.
+  - **Event Forms (DIR-12, MGT-14, ADT-1, DPT-3, MSME-1)**: Slab-based multiplier of normal filing fee (2x up to 30 days, 4x up to 60 days, 6x up to 90 days, 10x up to 180 days, 12x beyond 180 days).
+  - **Capital-based Normal Filing Fees**: Graded fee tiers based on authorized / paid-up capital.
+- **Board & Committee Resolutions Register**: Complete secretarial repository for Board Meetings, AGMs, EGMs, and Audit Committees with resolution numbering, unanimous/special classification, verbiage preview, and signatory DIN tracking.
+- **Two Locks**: Database schema and RLS policies on `company_master`, `director_din_records`, `mca_annual_filings`, and `board_resolutions` (`0017_mca_compliance.sql`).
+
+API:
+- `GET /api/mca/summary`, `GET /api/mca/companies`, `GET /api/mca/companies/{id}`, `POST /api/mca/companies`, `GET /api/mca/directors`, `POST /api/mca/directors`, `GET /api/mca/filings`, `POST /api/mca/filings`, `GET /api/mca/resolutions`, `POST /api/mca/resolutions`, `POST /api/mca/late-fee/calculate` (`mca.read`, `mca.manage`)
+
+
 
 
 ## Notes

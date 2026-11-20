@@ -128,4 +128,8 @@ public static class Perms
     public const string AuditReview = "audit.review";
     public const string GstRead = "gst.read";
     public const string GstReconcile = "gst.reconcile";
+    public const string TdsRead = "tds.read";
+    public const string TdsManage = "tds.manage";
+    public const string McaRead = "mca.read";
+    public const string McaManage = "mca.manage";
 }

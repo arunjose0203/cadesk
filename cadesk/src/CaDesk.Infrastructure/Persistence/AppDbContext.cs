@@ -3,6 +3,8 @@ using System.Reflection;
 using CaDesk.Application.Abstractions;
 using CaDesk.Domain.Audit;
 using CaDesk.Domain.Gst;
+using CaDesk.Domain.Tds;
+using CaDesk.Domain.Mca;
 using CaDesk.Domain.Billing;
 using CaDesk.Domain.Clients;
 using CaDesk.Domain.Dsc;
@@ -73,6 +75,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
     public DbSet<AuditWorkingPaper> AuditWorkingPapers => Set<AuditWorkingPaper>();
     public DbSet<GstReconciliationBatch> GstReconciliationBatches => Set<GstReconciliationBatch>();
     public DbSet<GstReconciliationItem> GstReconciliationItems => Set<GstReconciliationItem>();
+    public DbSet<TdsLowerDeductionCertificate> TdsLowerDeductionCertificates => Set<TdsLowerDeductionCertificate>();
+    public DbSet<TdsChallan> TdsChallans => Set<TdsChallan>();
+    public DbSet<TdsDeduction> TdsDeductions => Set<TdsDeduction>();
+    public DbSet<CompanyMaster> Companies => Set<CompanyMaster>();
+    public DbSet<DirectorDinRecord> DirectorDins => Set<DirectorDinRecord>();
+    public DbSet<McaAnnualFiling> McaFilings => Set<McaAnnualFiling>();
+    public DbSet<BoardResolution> BoardResolutions => Set<BoardResolution>();
     public DbSet<ConfigDefinition> ConfigDefinitions => Set<ConfigDefinition>();
     public DbSet<ConfigValue> ConfigValues => Set<ConfigValue>();
     public DbSet<ConfigChangeLog> ConfigChangeLog => Set<ConfigChangeLog>();
@@ -295,6 +304,53 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
         b.Entity<GstReconciliationItem>(e =>
         {
             e.ToTable("gst_reconciliation_items");
+        });
+
+        b.Entity<TdsLowerDeductionCertificate>(e =>
+        {
+            e.ToTable("tds_lower_deduction_certificates");
+            e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<TdsChallan>(e =>
+        {
+            e.ToTable("tds_challans");
+            e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
+            e.HasMany(x => x.Deductions).WithOne(x => x.Challan).HasForeignKey(x => x.ChallanId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        b.Entity<TdsDeduction>(e =>
+        {
+            e.ToTable("tds_deductions");
+            e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Certificate).WithMany().HasForeignKey(x => x.CertificateId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        b.Entity<CompanyMaster>(e =>
+        {
+            e.ToTable("company_master");
+            e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
+            e.HasMany(x => x.Directors).WithOne(x => x.Company).HasForeignKey(x => x.CompanyId).OnDelete(DeleteBehavior.Cascade);
+            e.HasMany(x => x.Filings).WithOne(x => x.Company).HasForeignKey(x => x.CompanyId).OnDelete(DeleteBehavior.Cascade);
+            e.HasMany(x => x.Resolutions).WithOne(x => x.Company).HasForeignKey(x => x.CompanyId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<DirectorDinRecord>(e =>
+        {
+            e.ToTable("director_din_records");
+            e.HasOne(x => x.Company).WithMany(x => x.Directors).HasForeignKey(x => x.CompanyId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<McaAnnualFiling>(e =>
+        {
+            e.ToTable("mca_annual_filings");
+            e.HasOne(x => x.Company).WithMany(x => x.Filings).HasForeignKey(x => x.CompanyId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<BoardResolution>(e =>
+        {
+            e.ToTable("board_resolutions");
+            e.HasOne(x => x.Company).WithMany(x => x.Resolutions).HasForeignKey(x => x.CompanyId).OnDelete(DeleteBehavior.Cascade);
         });
 
         b.Entity<TaskTemplate>(e =>

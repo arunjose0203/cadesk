@@ -968,5 +968,405 @@ export const gstApi = {
   deleteBatch: (id: string) => api<void>(`/api/gst/batches/${id}`, { method: 'DELETE' }),
 }
 
+// -------------------------------------------------------------
+// Sprint 17: TDS Management & Form 26Q/27Q Types
+// -------------------------------------------------------------
+
+export type TdsLowerDeductionCertificateDto = {
+  id: string
+  clientId: string
+  clientName?: string | null
+  deducteePan: string
+  deducteeName: string
+  section: string
+  certificateNumber: string
+  financialYear: string
+  validFrom: string
+  validTo: string
+  specifiedRate: number
+  thresholdAmount: number
+  utilizedAmount: number
+  remainingAmount: number
+  createdAt: string
+}
+
+export type CreateLdcRequest = {
+  clientId: string
+  deducteePan: string
+  deducteeName: string
+  section: string
+  certificateNumber: string
+  financialYear: string
+  validFrom: string
+  validTo: string
+  specifiedRate: number
+  thresholdAmount: number
+}
+
+export type TdsChallanDto = {
+  id: string
+  clientId: string
+  clientName?: string | null
+  quarter: string
+  financialYear: string
+  bsrCode: string
+  challanDate: string
+  challanSerialNumber: string
+  sectionCode: string
+  minorHead: string
+  tdsAmount: number
+  surcharge: number
+  cess: number
+  interest: number
+  lateFee234E: number
+  totalChallanAmount: number
+  allocatedAmount: number
+  unallocatedBalance: number
+  deductionsCount: number
+  notes?: string | null
+  createdAt: string
+}
+
+export type CreateTdsChallanRequest = {
+  clientId: string
+  quarter: string
+  financialYear: string
+  bsrCode: string
+  challanDate: string
+  challanSerialNumber: string
+  sectionCode: string
+  minorHead?: string | null
+  tdsAmount: number
+  surcharge: number
+  cess: number
+  interest: number
+  lateFee234E: number
+  notes?: string | null
+}
+
+export type TdsDeductionDto = {
+  id: string
+  clientId: string
+  clientName?: string | null
+  challanId?: string | null
+  challanBsr?: string | null
+  challanDate?: string | null
+  challanSerial?: string | null
+  formType: string
+  quarter: string
+  financialYear: string
+  deducteePan: string
+  deducteeName: string
+  section: string
+  paymentDate: string
+  amountPaid: number
+  tdsRate: number
+  tdsAmount: number
+  surcharge: number
+  cess: number
+  totalTaxDeducted: number
+  deductionDate: string
+  certificateId?: string | null
+  certificateNumber?: string | null
+  higherRateReason: string
+  bookingStatus: string
+  createdAt: string
+}
+
+export type RecordTdsDeductionRequest = {
+  clientId: string
+  formType?: string | null
+  quarter: string
+  financialYear: string
+  deducteePan: string
+  deducteeName: string
+  section: string
+  paymentDate: string
+  amountPaid: number
+  deductionDate?: string | null
+  certificateId?: string | null
+  forceHigherRate206Ab?: boolean | null
+}
+
+export type MapDeductionsToChallanRequest = {
+  challanId: string
+  deductionIds: string[]
+}
+
+export type CalculateTdsInterestRequest = {
+  deductionDate: string
+  paymentDate?: string | null
+  depositDate: string
+  tdsAmount: number
+}
+
+export type TdsInterestResultDto = {
+  delayDeductionMonths: number
+  delayDeductionInterest: number
+  delayDepositMonths: number
+  delayDepositInterest: number
+  totalInterest: number
+}
+
+export type TdsSummaryDto = {
+  totalDeductionsCount: number
+  totalTaxDeducted: number
+  totalDeposited: number
+  totalPendingDeposit: number
+  activeLdcCount: number
+  totalChallansCount: number
+}
+
+export const tdsApi = {
+  summary: () => api<TdsSummaryDto>('/api/tds/summary'),
+  listLdcs: (clientId?: string, fy?: string) => {
+    const p = new URLSearchParams()
+    if (clientId) p.set('clientId', clientId)
+    if (fy) p.set('financialYear', fy)
+    const qs = p.toString()
+    return api<TdsLowerDeductionCertificateDto[]>(`/api/tds/ldc${qs ? `?${qs}` : ''}`)
+  },
+  createLdc: (req: CreateLdcRequest) => api<TdsLowerDeductionCertificateDto>('/api/tds/ldc', { method: 'POST', body: JSON.stringify(req) }),
+
+  listChallans: (clientId?: string, fy?: string, q?: string) => {
+    const p = new URLSearchParams()
+    if (clientId) p.set('clientId', clientId)
+    if (fy) p.set('financialYear', fy)
+    if (q) p.set('quarter', q)
+    const qs = p.toString()
+    return api<TdsChallanDto[]>(`/api/tds/challans${qs ? `?${qs}` : ''}`)
+  },
+  createChallan: (req: CreateTdsChallanRequest) => api<TdsChallanDto>('/api/tds/challans', { method: 'POST', body: JSON.stringify(req) }),
+
+  listDeductions: (clientId?: string, fy?: string, q?: string, formType?: string, status?: string) => {
+    const p = new URLSearchParams()
+    if (clientId) p.set('clientId', clientId)
+    if (fy) p.set('financialYear', fy)
+    if (q) p.set('quarter', q)
+    if (formType) p.set('formType', formType)
+    if (status) p.set('bookingStatus', status)
+    const qs = p.toString()
+    return api<TdsDeductionDto[]>(`/api/tds/deductions${qs ? `?${qs}` : ''}`)
+  },
+  recordDeduction: (req: RecordTdsDeductionRequest) => api<TdsDeductionDto>('/api/tds/deductions', { method: 'POST', body: JSON.stringify(req) }),
+
+  mapToChallan: (req: MapDeductionsToChallanRequest) => api<TdsChallanDto>('/api/tds/challans/map', { method: 'POST', body: JSON.stringify(req) }),
+
+  calculateInterest: (req: CalculateTdsInterestRequest) => api<TdsInterestResultDto>('/api/tds/interest/calculate', { method: 'POST', body: JSON.stringify(req) }),
+}
+
+// -------------------------------------------------------------
+// Sprint 18: ROC / MCA Company Law & Secretarial Compliance Types
+// -------------------------------------------------------------
+
+export type CompanyMasterDto = {
+  id: string
+  clientId: string
+  clientName?: string | null
+  cin: string
+  companyName: string
+  companyClass: string
+  authorizedCapital: number
+  paidUpCapital: number
+  registeredOfficeAddress: string
+  rocJurisdiction: string
+  incorporationDate: string
+  companyStatus: string
+  lastAgmDate?: string | null
+  financialYearEndMonth: number
+  directorsCount: number
+  pendingFilingsCount: number
+  createdAt: string
+}
+
+export type CreateCompanyRequest = {
+  clientId: string
+  cin: string
+  companyName: string
+  companyClass?: string
+  authorizedCapital: number
+  paidUpCapital: number
+  registeredOfficeAddress: string
+  rocJurisdiction: string
+  incorporationDate: string
+  companyStatus?: string
+  lastAgmDate?: string | null
+  financialYearEndMonth?: number
+}
+
+export type DirectorDinDto = {
+  id: string
+  companyId: string
+  companyName?: string | null
+  din: string
+  directorName: string
+  pan?: string | null
+  designation: string
+  appointmentDate: string
+  cessationDate?: string | null
+  dscExpiryDate?: string | null
+  dir3KycStatus: string
+  dir3KycLastFiledDate?: string | null
+  isSignatory: boolean
+  createdAt: string
+}
+
+export type CreateDirectorRequest = {
+  companyId: string
+  din: string
+  directorName: string
+  pan?: string | null
+  designation?: string
+  appointmentDate: string
+  cessationDate?: string | null
+  dscExpiryDate?: string | null
+  dir3KycStatus?: string
+  dir3KycLastFiledDate?: string | null
+  isSignatory?: boolean
+}
+
+export type McaFilingDto = {
+  id: string
+  companyId: string
+  companyName?: string | null
+  financialYear: string
+  formType: string
+  dueDate: string
+  filingDate?: string | null
+  srn?: string | null
+  status: string
+  normalFee: number
+  lateFee: number
+  totalFee: number
+  remarks?: string | null
+  daysDelayed: number
+  createdAt: string
+}
+
+export type CreateFilingRequest = {
+  companyId: string
+  financialYear: string
+  formType: string
+  dueDate: string
+  filingDate?: string | null
+  srn?: string | null
+  status?: string
+  normalFee?: number
+  remarks?: string | null
+}
+
+export type BoardResolutionDto = {
+  id: string
+  companyId: string
+  companyName?: string | null
+  resolutionNumber: string
+  meetingType: string
+  meetingDate: string
+  category: string
+  subject: string
+  verbiage: string
+  passedUnanimously: boolean
+  signatoryDin?: string | null
+  signatoryName?: string | null
+  createdAt: string
+}
+
+export type CreateResolutionRequest = {
+  companyId: string
+  resolutionNumber: string
+  meetingType: string
+  meetingDate: string
+  category?: string
+  subject: string
+  verbiage: string
+  passedUnanimously?: boolean
+  signatoryDin?: string | null
+  signatoryName?: string | null
+}
+
+export type McaComplianceSummaryDto = {
+  totalCompaniesCount: number
+  activeCompaniesCount: number
+  totalDirectorsCount: number
+  pendingKycCount: number
+  pendingFilingsCount: number
+  approvedFilingsCount: number
+  totalLateFeesAccrued: number
+}
+
+export type CalculateMcaLateFeeRequest = {
+  formType: string
+  dueDate: string
+  filingDate: string
+  paidUpCapital?: number
+}
+
+export type McaLateFeeCalculationResult = {
+  formType: string
+  dueDate: string
+  filingDate: string
+  daysDelayed: number
+  normalFee: number
+  lateFee: number
+  totalFee: number
+  legalProvisionDescription: string
+}
+
+export const mcaApi = {
+  summary: () => api<McaComplianceSummaryDto>('/api/mca/summary'),
+
+  listCompanies: (clientId?: string, status?: string) => {
+    const p = new URLSearchParams()
+    if (clientId) p.set('clientId', clientId)
+    if (status) p.set('status', status)
+    const qs = p.toString()
+    return api<CompanyMasterDto[]>(`/api/mca/companies${qs ? `?${qs}` : ''}`)
+  },
+
+  getCompany: (id: string) => api<CompanyMasterDto>(`/api/mca/companies/${id}`),
+
+  createCompany: (req: CreateCompanyRequest) =>
+    api<CompanyMasterDto>('/api/mca/companies', { method: 'POST', body: JSON.stringify(req) }),
+
+  listDirectors: (companyId?: string, kycStatus?: string) => {
+    const p = new URLSearchParams()
+    if (companyId) p.set('companyId', companyId)
+    if (kycStatus) p.set('kycStatus', kycStatus)
+    const qs = p.toString()
+    return api<DirectorDinDto[]>(`/api/mca/directors${qs ? `?${qs}` : ''}`)
+  },
+
+  createDirector: (req: CreateDirectorRequest) =>
+    api<DirectorDinDto>('/api/mca/directors', { method: 'POST', body: JSON.stringify(req) }),
+
+  listFilings: (companyId?: string, fy?: string, formType?: string, status?: string) => {
+    const p = new URLSearchParams()
+    if (companyId) p.set('companyId', companyId)
+    if (fy) p.set('financialYear', fy)
+    if (formType) p.set('formType', formType)
+    if (status) p.set('status', status)
+    const qs = p.toString()
+    return api<McaFilingDto[]>(`/api/mca/filings${qs ? `?${qs}` : ''}`)
+  },
+
+  createFiling: (req: CreateFilingRequest) =>
+    api<McaFilingDto>('/api/mca/filings', { method: 'POST', body: JSON.stringify(req) }),
+
+  listResolutions: (companyId?: string, meetingType?: string) => {
+    const p = new URLSearchParams()
+    if (companyId) p.set('companyId', companyId)
+    if (meetingType) p.set('meetingType', meetingType)
+    const qs = p.toString()
+    return api<BoardResolutionDto[]>(`/api/mca/resolutions${qs ? `?${qs}` : ''}`)
+  },
+
+  createResolution: (req: CreateResolutionRequest) =>
+    api<BoardResolutionDto>('/api/mca/resolutions', { method: 'POST', body: JSON.stringify(req) }),
+
+  calculateLateFee: (req: CalculateMcaLateFeeRequest) =>
+    api<McaLateFeeCalculationResult>('/api/mca/late-fee/calculate', { method: 'POST', body: JSON.stringify(req) }),
+}
+
+
 
 

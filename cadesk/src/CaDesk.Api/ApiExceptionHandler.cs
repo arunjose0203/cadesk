@@ -17,6 +17,7 @@ public sealed class ApiExceptionHandler(ILogger<ApiExceptionHandler> log) : IExc
                 v.Errors.ToDictionary(e => e.Key, e => e.Value)),
             AuthFailedException a => Results.Problem(statusCode: a.StatusCode, title: a.Message),
             BusinessRuleException b => Results.Problem(statusCode: b.StatusCode, title: b.Message),
+            ArgumentException arg => Results.Problem(statusCode: StatusCodes.Status400BadRequest, title: arg.Message),
             DbUpdateConcurrencyException => Results.Problem(statusCode: StatusCodes.Status409Conflict,
                 title: "Changed by someone else", detail: "Reload and try again."),
             DbUpdateException { InnerException: PostgresException { SqlState: PostgresErrorCodes.UniqueViolation } } =>

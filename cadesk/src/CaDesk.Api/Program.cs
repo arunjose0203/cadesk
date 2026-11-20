@@ -78,6 +78,8 @@ builder.Services.AddScoped<CaDesk.Application.Portal.ClientPortalService>();
 builder.Services.AddScoped<CaDesk.Application.Tax.TaxComputationService>();
 builder.Services.AddScoped<CaDesk.Application.Audit.AuditService>();
 builder.Services.AddScoped<CaDesk.Application.Gst.GstReconciliationService>();
+builder.Services.AddScoped<CaDesk.Application.Tds.TdsService>();
+builder.Services.AddScoped<CaDesk.Application.Mca.IMcaComplianceService, CaDesk.Application.Mca.McaComplianceService>();
 var docOptions = config.GetSection("Documents").Get<CaDesk.Api.Documents.DocumentOptions>() ?? new();
 var storagePath = docOptions.StoragePath;
 if (storagePath.Length == 0)
@@ -223,6 +225,8 @@ app.MapClientPortalEndpoints();
 app.MapTaxComputationEndpoints();
 app.MapStatutoryAuditEndpoints();
 app.MapGstReconciliationEndpoints();
+app.MapTdsEndpoints();
+app.MapMcaComplianceEndpoints();
 app.MapSettingsEndpoints();
 app.MapAuditEndpoints();
 

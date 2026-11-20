@@ -137,7 +137,11 @@ public static class TestData
         "portal.read", "portal.manage", "service_requests.manage",
         "audit.read", "audit.manage", "audit.review",
         "gst.read", "gst.reconcile",
-        "reports.read", "audit.read", "tasks.review",
+        "tds.read", "tds.manage",
+        "mca.read", "mca.manage",
+        "engagement.read", "engagement.manage",
+        "kyc.read", "kyc.manage",
+        "reports.read", "tasks.review",
     ];
 
     /// <summary>Value of the cadesk_rt cookie from a response, or null.</summary>
