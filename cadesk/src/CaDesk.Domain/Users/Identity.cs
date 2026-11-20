@@ -181,4 +181,7 @@ public static class Perms
     public const string AuditCommitteeRead = "auditcommittee.read";
     public const string AuditCommitteeManage = "auditcommittee.manage";
     public const string AuditCommitteeSignOff = "auditcommittee.signoff";
+    public const string ForeignRemittanceRead = "foreignremittance.read";
+    public const string ForeignRemittanceManage = "foreignremittance.manage";
+    public const string ForeignRemittanceCertify = "foreignremittance.certify";
 }

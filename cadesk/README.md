@@ -37,6 +37,7 @@ Multi-tenant SaaS for CA and accounting firms (India first, GCC later).
 | 32 | Schedule III Financial Ratios & Mandatory Corporate Disclosures Engine: Companies Act 2013 Schedule III 11 mandatory analytical ratios, mandatory variance explanations for changes &ge; 25%, statutory ageing schedules (Trade Receivables, Trade Payables, CWIP), and ₹100 Cr turnover rounding off compliance engine | Full-stack Schedule III corporate reporting desk with 11 financial ratios, variance threshold guards, interactive ageing buckets, audited disclosure note compiler, and two-lock multi-tenancy |
 | 33 | Multi-Firm Collaborative Audit & Branch Audit Consolidation Desk (Companies Act Sec 143(8) / ICAI SA 600): Branch auditor tracking, delegated portal token access, Head Office vs Branch consolidation matrix, SA 600 magnitude calculations (% Assets/Revenues), and statutory Other Matter paragraph generator | Full-stack multi-firm branch audit workbench with Section 143(8) branch auditor registry, external token submissions, consolidation engine, and ICAI SA 600 Other Matter legal text draft; two-lock multi-tenancy |
 | 34 | Audit Committee & Board Governance Desk (ICAI SA 260 / SA 265 / Companies Act Sec 177): Section 177 Audit Committee mandate, SA 260 communication with Those Charged with Governance (TCWG), SA 265 formal internal control deficiency letter generator, SA 450 schedule of uncorrected misstatements, Section 144 non-audit services independence affirmation | Full-stack Audit Committee and Board governance workbench with Section 177 compliance checks, SA 265 deficiency communications (design vs operating defect), SA 450 misstatement evaluation table, and SA 260 governance pack auto-generator; two-lock multi-tenancy |
+| 35 | Foreign Remittance & Form 15CA / 15CB Certification Engine (Income Tax Rule 37BB / Section 195 / DTAA): Section 195 non-resident withholding evaluation, Section 90(2) DTAA treaty relief comparison, Rule 37BB(3) 33-item exempt list checker, Form 15CA automated Part A/B/C/D routing, Form 15CB CA certification generator with 18-digit UDIN, and Section 195A net-of-tax grossing up engine | Full-stack international tax and foreign remittance certification desk with Section 195/90(2) tax calculators, DTAA prerequisite documentation tracker (TRC, Form 10F, No-PE), official Form 15CB certificate generator, and Form 15CA e-Filing XML exporter; two-lock multi-tenancy |
 
 ## What's inside
 
@@ -969,6 +970,49 @@ API:
 - `POST /api/auditcommittee/engagements/{id}/matters`, `PUT /api/auditcommittee/engagements/{id}/matters/{matterId}`, `DELETE /api/auditcommittee/engagements/{id}/matters/{matterId}` (`auditcommittee.manage`)
 - `POST /api/auditcommittee/engagements/{id}/misstatements`, `PUT /api/auditcommittee/engagements/{id}/misstatements/{misstatementId}`, `DELETE /api/auditcommittee/engagements/{id}/misstatements/{misstatementId}` (`auditcommittee.manage`)
 - `POST /api/auditcommittee/engagements/{id}/generate-letters`, `POST /api/auditcommittee/engagements/{id}/signoff` (`auditcommittee.manage`, `auditcommittee.signoff`)
+
+## Foreign Remittance & Form 15CA / 15CB Certification Engine (Sprint 35)
+
+- **Income Tax Act, 1961 - Section 195 Withholding Mandate**:
+  - Evaluation of taxability on payments made to non-residents / foreign companies.
+  - Covers Royalties (Sec 9(1)(vi)), Fees for Technical Services (FTS / Sec 9(1)(vii)), Dividends, Interest, Capital Gains, and Business Profits.
+  - Automatic calculation of domestic base tax rates, applicable surcharges, and 4% Health & Education Cess ($T_{\text{effective}} = \text{Tax} \times (1 + S) \times (1 + C)$).
+- **Double Taxation Avoidance Agreement (DTAA) & Section 90(2) Relief Engine**:
+  - "Whichever is more beneficial" principle: compares effective domestic rate against DTAA treaty rates.
+  - Verifies mandatory treaty preconditions under Section 90(4) and 90(5):
+    - Valid Tax Residency Certificate (TRC) issued by foreign revenue authority.
+    - Electronic Form 10F self-declaration verified on the e-filing portal.
+    - Non-existence of Permanent Establishment (PE) / Business Connection in India declaration.
+    - Beneficial ownership of income confirmation.
+    - Multilateral Instrument (MLI) Principal Purpose Test (PPT) compliance.
+  - Fallback to domestic rate if any mandatory treaty prerequisite is missing or invalid.
+- **Section 195A Net-of-Tax Grossing-Up Calculator**:
+  - Automatically gross-up payments when the agreement stipulates that tax is borne by the Indian remitter:
+    - $\text{Grossed-Up INR} = \frac{\text{INR Equivalent}}{1 - (\text{Withholding Rate} / 100)}$
+    - $\text{TDS INR} = \text{Grossed-Up INR} - \text{INR Equivalent}$
+- **Income Tax Rule 37BB Automated Form 15CA Routing**:
+  - **Rule 37BB(3) Specified List**: Identifies 33 exempt payment purpose codes (e.g., P0103 import of goods, S0001 travel, S0005 education) where no Form 15CA/15CB is required.
+  - **Part A**: Remittance is chargeable to tax and aggregate payments do not exceed ₹5,00,000 in the financial year.
+  - **Part B**: Remittance is chargeable to tax and an order/certificate under Section 195(2), 195(3), or 197 has been obtained from the Assessing Officer.
+  - **Part C**: Remittance is chargeable to tax and exceeds ₹5,00,000 in the financial year (MANDATORY Form 15CB CA Certificate).
+  - **Part D**: Remittance is not chargeable to tax under the provisions of the Act.
+- **Form 15CB Chartered Accountant Certification Engine**:
+  - Compiles standard Form 15CB statutory certificate with remitter details, non-resident beneficiary particulars, invoice/contract details, domestic chargeability analysis, DTAA article justification, and TDS calculations.
+  - Enforces mandatory 18-digit ICAI Unique Document Identification Number (UDIN).
+  - Blocks certification until all mandatory documentation checklist items (TRC, Form 10F, No-PE, Invoice, Agreement) are verified or waived.
+- **Form 15CA XML / JSON Schema Generator & Filing Tracker**:
+  - Generates schema-compliant XML payload ready for direct upload to the Income Tax Department e-Filing portal.
+  - Records portal filing with statutory Acknowledgement Number, sealing the record.
+- **Two Locks**: EF Core global query filters and PostgreSQL Row Level Security on `foreign_remittance_assessments` and `foreign_remittance_checklists` (`0034_foreign_remittance_15ca_15cb.sql`).
+
+API:
+- `GET /api/foreign-remittance/summary` (`foreignremittance.read`)
+- `GET /api/foreign-remittance/assessments`, `GET /api/foreign-remittance/assessments/{id}` (`foreignremittance.read`)
+- `POST /api/foreign-remittance/assessments`, `PUT /api/foreign-remittance/assessments/{id}`, `DELETE /api/foreign-remittance/assessments/{id}` (`foreignremittance.manage`)
+- `PUT /api/foreign-remittance/assessments/{id}/checklist/{itemId}` (`foreignremittance.manage`)
+- `POST /api/foreign-remittance/assessments/{id}/generate-artifacts` (`foreignremittance.manage`)
+- `POST /api/foreign-remittance/assessments/{id}/certify` (`foreignremittance.certify`)
+- `POST /api/foreign-remittance/assessments/{id}/file` (`foreignremittance.manage`)
 
 ## Notes
 

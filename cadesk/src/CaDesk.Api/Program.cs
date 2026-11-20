@@ -95,6 +95,7 @@ builder.Services.AddScoped<CaDesk.Application.TaxAudit.Form3CdService>();
 builder.Services.AddScoped<CaDesk.Application.Schedule3.Schedule3Service>();
 builder.Services.AddScoped<CaDesk.Application.BranchAudit.BranchAuditService>();
 builder.Services.AddScoped<CaDesk.Application.AuditCommittee.AuditCommitteeService>();
+builder.Services.AddScoped<CaDesk.Application.ForeignRemittance.ForeignRemittanceService>();
 var docOptions = config.GetSection("Documents").Get<CaDesk.Api.Documents.DocumentOptions>() ?? new();
 var storagePath = docOptions.StoragePath;
 if (storagePath.Length == 0)
@@ -257,6 +258,7 @@ app.MapForm3CdEndpoints();
 app.MapSchedule3Endpoints();
 app.MapBranchAuditEndpoints();
 app.MapAuditCommitteeEndpoints();
+app.MapForeignRemittanceEndpoints();
 app.MapSettingsEndpoints();
 app.MapAuditEndpoints();
 

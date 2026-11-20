@@ -4235,6 +4235,264 @@ export const auditCommitteeApi = {
     api<AuditCommitteeEngagementDto>(`/api/auditcommittee/engagements/${engagementId}/signoff`, { method: 'POST', body: JSON.stringify(req) })
 }
 
+// ----------------------------------------------------------------------
+// Foreign Remittance & Form 15CA / 15CB Certification Engine (Sprint 35)
+// ----------------------------------------------------------------------
+
+export interface ForeignRemittanceChecklistItemDto {
+  id: string
+  assessmentId: string
+  itemCode: string
+  itemDescription: string
+  isMandatory: boolean
+  status: 'Pending' | 'Verified' | 'Rejected' | 'Waived'
+  verificationNotes: string
+  verifiedAt?: string
+  createdAt: string
+  updatedAt?: string
+}
+
+export interface ForeignRemittanceAssessmentDto {
+  id: string
+  clientId: string
+  clientName?: string
+  clientPan?: string
+  financialYear: string
+  remittanceReference: string
+  remitterPan: string
+  remitterTan: string
+  remitterName: string
+  remitterStatus: string
+  remitterAddress: string
+  remitterEmail: string
+  remitterPhone: string
+  beneficiaryName: string
+  beneficiaryCountry: string
+  beneficiaryCountryCode: string
+  beneficiaryAddress: string
+  beneficiaryTaxId: string
+  beneficiaryEntityType: string
+  remittanceCurrency: string
+  foreignAmount: number
+  exchangeRate: number
+  inrEquivalent: number
+  proposedRemittanceDate?: string
+  rbiPurposeCode: string
+  purposeDescription: string
+  natureOfRemittance: string
+  contractDescription: string
+  invoiceNumber: string
+  invoiceDate?: string
+  isChargeableToTax: boolean
+  chargeabilityReason: string
+  domesticSection: string
+  domesticTaxRate: number
+  surchargeRate: number
+  cessRate: number
+  effectiveDomesticRate: number
+  treatyBenefitClaimed: boolean
+  treatyCountry: string
+  treatyArticle: string
+  treatyTaxRate: number
+  hasTrc: boolean
+  trcPeriodFrom?: string
+  trcPeriodTo?: string
+  hasForm10F: boolean
+  noPeDeclaration: boolean
+  beneficialOwnershipConfirmed: boolean
+  mliPptPassed: boolean
+  applicableRateType: string
+  finalWithholdingRate: number
+  taxBorneByRemitter: boolean
+  grossedUpAmountInr: number
+  tdsAmountInr: number
+  tdsAmountFc: number
+  netRemittanceFc: number
+  netRemittanceInr: number
+  form15CaPart: 'PartA' | 'PartB' | 'PartC' | 'PartD' | 'ExemptRule37BB'
+  form15CaRoutingReason: string
+  aoOrderSection?: string
+  aoOrderNumber?: string
+  aoOrderDate?: string
+  aoCertificateRate?: number
+  requiresForm15Cb: boolean
+  caMembershipNumber: string
+  caName: string
+  caFirmName: string
+  caFrn: string
+  udin: string
+  certifiedAt?: string
+  certifierUserId?: string
+  generated15CbCertificateText?: string
+  generated15CaXmlPayload?: string
+  acknowledgementNumber?: string
+  status: 'Draft' | 'Assessed' | 'Certified' | 'Filed'
+  checklist: ForeignRemittanceChecklistItemDto[]
+  createdAt: string
+  updatedAt?: string
+}
+
+export interface ForeignRemittanceSummaryDto {
+  totalAssessments: number
+  totalRemittanceInr: number
+  totalTdsInr: number
+  draftCount: number
+  certifiedCount: number
+  filedCount: number
+  partACount: number
+  partBCount: number
+  partCCount: number
+  partDCount: number
+  exemptCount: number
+}
+
+export interface CreateForeignRemittanceRequest {
+  clientId: string
+  financialYear: string
+  remittanceReference?: string
+  remitterPan: string
+  remitterTan?: string
+  remitterName: string
+  remitterStatus?: string
+  remitterAddress?: string
+  remitterEmail?: string
+  remitterPhone?: string
+  beneficiaryName: string
+  beneficiaryCountry: string
+  beneficiaryCountryCode?: string
+  beneficiaryAddress?: string
+  beneficiaryTaxId?: string
+  beneficiaryEntityType?: string
+  remittanceCurrency: string
+  foreignAmount: number
+  exchangeRate: number
+  proposedRemittanceDate?: string
+  rbiPurposeCode?: string
+  purposeDescription?: string
+  natureOfRemittance?: string
+  contractDescription?: string
+  invoiceNumber?: string
+  invoiceDate?: string
+  isChargeableToTax: boolean
+  chargeabilityReason?: string
+  domesticSection?: string
+  domesticTaxRate: number
+  surchargeRate: number
+  cessRate: number
+  treatyBenefitClaimed: boolean
+  treatyCountry?: string
+  treatyArticle?: string
+  treatyTaxRate: number
+  hasTrc: boolean
+  trcPeriodFrom?: string
+  trcPeriodTo?: string
+  hasForm10F: boolean
+  noPeDeclaration: boolean
+  beneficialOwnershipConfirmed: boolean
+  mliPptPassed: boolean
+  taxBorneByRemitter: boolean
+  aoOrderSection?: string
+  aoOrderNumber?: string
+  aoOrderDate?: string
+  aoCertificateRate?: number
+}
+
+export interface UpdateForeignRemittanceRequest {
+  remittanceReference?: string
+  remitterPan: string
+  remitterTan?: string
+  remitterName: string
+  remitterStatus?: string
+  remitterAddress?: string
+  remitterEmail?: string
+  remitterPhone?: string
+  beneficiaryName: string
+  beneficiaryCountry: string
+  beneficiaryCountryCode?: string
+  beneficiaryAddress?: string
+  beneficiaryTaxId?: string
+  beneficiaryEntityType?: string
+  remittanceCurrency: string
+  foreignAmount: number
+  exchangeRate: number
+  proposedRemittanceDate?: string
+  rbiPurposeCode?: string
+  purposeDescription?: string
+  natureOfRemittance?: string
+  contractDescription?: string
+  invoiceNumber?: string
+  invoiceDate?: string
+  isChargeableToTax: boolean
+  chargeabilityReason?: string
+  domesticSection?: string
+  domesticTaxRate: number
+  surchargeRate: number
+  cessRate: number
+  treatyBenefitClaimed: boolean
+  treatyCountry?: string
+  treatyArticle?: string
+  treatyTaxRate: number
+  hasTrc: boolean
+  trcPeriodFrom?: string
+  trcPeriodTo?: string
+  hasForm10F: boolean
+  noPeDeclaration: boolean
+  beneficialOwnershipConfirmed: boolean
+  mliPptPassed: boolean
+  taxBorneByRemitter: boolean
+  aoOrderSection?: string
+  aoOrderNumber?: string
+  aoOrderDate?: string
+  aoCertificateRate?: number
+}
+
+export interface UpdateChecklistItemRequest {
+  status: string
+  verificationNotes?: string
+}
+
+export interface CertifyRemittanceRequest {
+  caMembershipNumber: string
+  caName: string
+  caFirmName: string
+  caFrn: string
+  udin: string
+}
+
+export interface FileRemittanceRequest {
+  acknowledgementNumber: string
+}
+
+export const foreignRemittanceApi = {
+  getSummary: (fy?: string) =>
+    api<ForeignRemittanceSummaryDto>(`/api/foreign-remittance/summary${fy ? `?fy=${encodeURIComponent(fy)}` : ''}`),
+  list: (clientId?: string, fy?: string, status?: string) => {
+    const params = new URLSearchParams()
+    if (clientId) params.set('clientId', clientId)
+    if (fy) params.set('fy', fy)
+    if (status) params.set('status', status)
+    const qs = params.toString()
+    return api<ForeignRemittanceAssessmentDto[]>(`/api/foreign-remittance/assessments${qs ? `?${qs}` : ''}`)
+  },
+  get: (id: string) =>
+    api<ForeignRemittanceAssessmentDto>(`/api/foreign-remittance/assessments/${id}`),
+  create: (req: CreateForeignRemittanceRequest) =>
+    api<ForeignRemittanceAssessmentDto>('/api/foreign-remittance/assessments', { method: 'POST', body: JSON.stringify(req) }),
+  update: (id: string, req: UpdateForeignRemittanceRequest) =>
+    api<ForeignRemittanceAssessmentDto>(`/api/foreign-remittance/assessments/${id}`, { method: 'PUT', body: JSON.stringify(req) }),
+  delete: (id: string) =>
+    api<void>(`/api/foreign-remittance/assessments/${id}`, { method: 'DELETE' }),
+  updateChecklist: (assessmentId: string, itemId: string, req: UpdateChecklistItemRequest) =>
+    api<ForeignRemittanceChecklistItemDto>(`/api/foreign-remittance/assessments/${assessmentId}/checklist/${itemId}`, { method: 'PUT', body: JSON.stringify(req) }),
+  generateArtifacts: (id: string) =>
+    api<ForeignRemittanceAssessmentDto>(`/api/foreign-remittance/assessments/${id}/generate-artifacts`, { method: 'POST' }),
+  certify: (id: string, req: CertifyRemittanceRequest) =>
+    api<ForeignRemittanceAssessmentDto>(`/api/foreign-remittance/assessments/${id}/certify`, { method: 'POST', body: JSON.stringify(req) }),
+  file: (id: string, req: FileRemittanceRequest) =>
+    api<ForeignRemittanceAssessmentDto>(`/api/foreign-remittance/assessments/${id}/file`, { method: 'POST', body: JSON.stringify(req) })
+}
+
+
 
 
 
