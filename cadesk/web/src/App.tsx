@@ -18,8 +18,9 @@ import { TdsPage } from './TdsPage'
 import { McaCompliancePage } from './McaCompliancePage'
 import { EngagementKycPage } from './EngagementKycPage'
 import { BankFeedsPage } from './BankFeedsPage'
+import { ReportsPage } from './ReportsPage'
 
-type Page = 'tasks' | 'deadlines' | 'clients' | 'billing' | 'tax' | 'audit-workspace' | 'gst-reconcile' | 'tds' | 'mca' | 'engagement' | 'banking' | 'dsc' | 'portal' | 'users' | 'settings' | 'audit' | 'security'
+type Page = 'tasks' | 'deadlines' | 'clients' | 'billing' | 'tax' | 'audit-workspace' | 'gst-reconcile' | 'tds' | 'mca' | 'engagement' | 'banking' | 'reports' | 'dsc' | 'portal' | 'users' | 'settings' | 'audit' | 'security'
 
 export default function App() {
   const [user, setUser] = useState<UserProfile | null>(null)
@@ -272,6 +273,16 @@ export default function App() {
             Bank Feeds & BRS
           </button>
         )}
+        {can('reports.read') && (
+          <button className={page === 'reports' ? 'active' : ''} onClick={() => setPage('reports')}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="20" x2="18" y2="10"></line>
+              <line x1="12" y1="20" x2="12" y2="4"></line>
+              <line x1="6" y1="20" x2="6" y2="14"></line>
+            </svg>
+            MIS & Reports
+          </button>
+        )}
         {can('dsc.read') && (
           <button className={page === 'dsc' ? 'active' : ''} onClick={() => setPage('dsc')}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -337,6 +348,7 @@ export default function App() {
       {page === 'mca' && can('mca.read') && <McaCompliancePage />}
       {page === 'engagement' && can('engagement.read') && <EngagementKycPage />}
       {page === 'banking' && can('bank.read') && <BankFeedsPage />}
+      {page === 'reports' && can('reports.read') && <ReportsPage can={can} />}
       {page === 'dsc' && can('dsc.read') && <DscPage can={can} meId={user.id} />}
       {page === 'portal' && can('portal.read') && <PortalPage can={can} meId={user.id} />}
       {page === 'users' && can('users.read') && <UsersPage can={can} me={user} />}

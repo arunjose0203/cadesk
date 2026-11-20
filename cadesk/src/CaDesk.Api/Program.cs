@@ -82,6 +82,7 @@ builder.Services.AddScoped<CaDesk.Application.Tds.TdsService>();
 builder.Services.AddScoped<CaDesk.Application.Mca.IMcaComplianceService, CaDesk.Application.Mca.McaComplianceService>();
 builder.Services.AddScoped<CaDesk.Application.Engagements.IEngagementService, CaDesk.Application.Engagements.EngagementService>();
 builder.Services.AddScoped<CaDesk.Application.BankFeeds.IBankFeedService, CaDesk.Application.BankFeeds.BankFeedService>();
+builder.Services.AddScoped<CaDesk.Application.Reports.IPracticeReportService, CaDesk.Application.Reports.PracticeReportService>();
 var docOptions = config.GetSection("Documents").Get<CaDesk.Api.Documents.DocumentOptions>() ?? new();
 var storagePath = docOptions.StoragePath;
 if (storagePath.Length == 0)
@@ -231,6 +232,7 @@ app.MapTdsEndpoints();
 app.MapMcaComplianceEndpoints();
 app.MapEngagementEndpoints();
 app.MapBankFeedEndpoints();
+app.MapPracticeReportEndpoints();
 app.MapSettingsEndpoints();
 app.MapAuditEndpoints();
 

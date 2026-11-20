@@ -16,7 +16,7 @@ using CaDesk.Domain.Compliance;
 using CaDesk.Domain.Documents;
 using CaDesk.Domain.Tasks;
 using CaDesk.Domain.Notifications;
-using CaDesk.Domain.Audit;
+using CaDesk.Domain.Reports;
 using CaDesk.Domain.Common;
 using CaDesk.Domain.Configuration;
 using CaDesk.Domain.Firms;
@@ -90,6 +90,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
     public DbSet<BankStatement> BankStatements => Set<BankStatement>();
     public DbSet<BankTransaction> BankTransactions => Set<BankTransaction>();
     public DbSet<BankReconciliationRule> BankReconciliationRules => Set<BankReconciliationRule>();
+    public DbSet<PracticeTarget> PracticeTargets => Set<PracticeTarget>();
     public DbSet<ConfigDefinition> ConfigDefinitions => Set<ConfigDefinition>();
     public DbSet<ConfigValue> ConfigValues => Set<ConfigValue>();
     public DbSet<ConfigChangeLog> ConfigChangeLog => Set<ConfigChangeLog>();
@@ -398,6 +399,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
         b.Entity<BankReconciliationRule>(e =>
         {
             e.ToTable("bank_reconciliation_rules");
+        });
+
+        b.Entity<PracticeTarget>(e =>
+        {
+            e.ToTable("practice_targets");
+            e.HasIndex(x => new { x.FirmId, x.FinancialYear }).IsUnique().HasDatabaseName("ux_practice_targets_firm_fy");
         });
 
         b.Entity<TaskTemplate>(e =>

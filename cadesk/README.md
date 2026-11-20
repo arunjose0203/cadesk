@@ -23,6 +23,7 @@ Multi-tenant SaaS for CA and accounting firms (India first, GCC later).
 | 18 | ROC / MCA Corporate Governance & Secretarial Compliance: CIN/DIN registry, DIR-3 KYC tracking, Section 403 statutory late fee engine (₹100/day AOC-4/MGT-7, ₹5,000 DIR-3 KYC), board resolutions repository | Company registry with DIN compliance countdown, automated late fee calculator, and secretarial resolutions register |
 | 19 | Digital Engagement Letters & KYC Compliance: ICAI SA 210 standard audit terms generator, digital acceptance audit trail, PMLA risk profiling (Low/Medium/High/PEP), UBO (≥10%/≥15%) beneficial ownership | Engagement letter sent and digitally accepted by client; periodic KYC review cycle; strict multi-tenant isolation |
 | 20 | Cash & Bank Feeds, Multi-Bank Statement Parser & BRS Auto-Matcher: Bank accounts master (Current, Savings, OD, CC), CSV/OFX statement parsing, auto-categorization heuristics & custom rules, transaction-to-ledger matching, statutory Bank Reconciliation Statement (BRS) calculation engine | Bank accounts registered; CSV statements parsed into debit/credit streams; rules auto-classify UPI/salary/charges; BRS report computes timing differences; strict multi-firm isolation |
+| 21 | Practice MIS & Executive Reporting Desk: Executive KPI summary, Client profitability & margins, Staff billable utilization, Aging of receivables (0-30, 31-60, 61-90, 90+ days), Statutory compliance SLAs, FY target setting | Real-time practice financial KPIs, overdue recovery insights, staff capacity analytics, and client margin ranking; two-lock multi-tenancy |
 
 ## What's inside
 
@@ -483,6 +484,38 @@ API:
 - `GET /api/bank/accounts/{id}/transactions`, `POST /api/bank/transactions/{id}/match` (`bank.read`, `bank.reconcile`)
 - `GET /api/bank/accounts/{id}/brs` (`bank.read`)
 - `GET /api/bank/rules`, `POST /api/bank/rules`, `DELETE /api/bank/rules/{id}` (`bank.read`, `bank.manage`)
+
+## Practice MIS & Executive Reporting Desk (Sprint 21)
+
+- **Executive KPI Summary**: Consolidated real-time snapshot of practice health:
+  - Billed vs. collected revenue, outstanding dues, and cash recovery rate (%).
+  - Total tracked hours vs. billable hours and firm-wide billable realization percentage.
+  - Statutory compliance SLA on-time filing index and count of overdue client deadlines.
+  - Annual practice targets tracking with progress against FY goals.
+- **Debtors Aging Analysis (Receivables Aging)**:
+  - Industry-standard aging buckets: Current (0–30 days), 31–60 days, 61–90 days, and Overdue (> 90 days).
+  - Client-wise breakdown of unpaid invoices, days overdue, and risk weighting.
+- **Client Profitability & Realization Matrix**:
+  - Revenue generated per client vs. professional staff cost (calculated from hourly rates and logged time).
+  - Net client margin (₹) and operating margin percentage (%), ranking top-tier vs. loss-making engagements.
+- **Staff Utilization & Capacity Analytics**:
+  - Member-level billable vs. non-billable ratio (utilization rate %).
+  - Individual billing realization value generated for the practice.
+- **Statutory Compliance SLA Performance**:
+  - Category-wise analysis across GST, Income Tax (TDS/ITR), MCA/ROC, and Audit deadlines.
+  - On-time vs. delayed filing ratio, active overdue liabilities, and compliance SLA benchmark compliance.
+- **Annual Practice Target Settings**:
+  - Configurable annual targets for revenue, billable hours, recovery percentage, and SLA benchmarks stored in `practice_targets`.
+- **Two Locks**: EF Core global query filters and PostgreSQL Row Level Security on `practice_targets` (`0020_practice_reports.sql`).
+
+API:
+- `GET /api/reports/executive-summary?fy={fy}` (`reports.read`)
+- `GET /api/reports/receivables-aging` (`reports.read`)
+- `GET /api/reports/client-profitability?fy={fy}` (`reports.read`)
+- `GET /api/reports/staff-utilization?fy={fy}` (`reports.read`)
+- `GET /api/reports/compliance-sla?fy={fy}` (`reports.read`)
+- `GET /api/reports/revenue-breakdown?fy={fy}` (`reports.read`)
+- `POST /api/reports/targets` (`reports.manage`)
 
 
 

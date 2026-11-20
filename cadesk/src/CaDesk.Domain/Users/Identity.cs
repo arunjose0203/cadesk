@@ -139,4 +139,6 @@ public static class Perms
     public const string BankRead = "bank.read";
     public const string BankManage = "bank.manage";
     public const string BankReconcile = "bank.reconcile";
+    public const string ReportsRead = "reports.read";
+    public const string ReportsManage = "reports.manage";
 }

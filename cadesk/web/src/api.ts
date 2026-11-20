@@ -1698,6 +1698,157 @@ export const bankFeedApi = {
   deleteRule: (id: string) => api<void>(`/api/bank/rules/${id}`, { method: 'DELETE' }),
 }
 
+// -------------------------------------------------------------
+// Sprint 21: Practice MIS & Executive Reporting Desk Types
+// -------------------------------------------------------------
+
+export type PracticeTargetDto = {
+  id: string
+  financialYear: string
+  targetAnnualRevenue: number
+  targetBillableHours: number
+  targetRecoveryPercentage: number
+  targetComplianceSlaPct: number
+  createdAt: string
+  updatedAt?: string | null
+}
+
+export type SetPracticeTargetRequest = {
+  financialYear: string
+  targetAnnualRevenue: number
+  targetBillableHours: number
+  targetRecoveryPercentage: number
+  targetComplianceSlaPct: number
+}
+
+export type PracticeExecutiveSummaryDto = {
+  financialYear: string
+  totalBilledYtd: number
+  totalCollectedYtd: number
+  totalOutstandingReceivables: number
+  overallRealizationRatePct: number
+  totalBillableHoursLogged: number
+  totalNonBillableHoursLogged: number
+  staffUtilizationPct: number
+  totalDeadlinesCount: number
+  filedOnTimeCount: number
+  filedLateCount: number
+  overdueCount: number
+  slaCompliancePct: number
+  activeClientsCount: number
+  averageRevenuePerClient: number
+  targets?: PracticeTargetDto | null
+}
+
+export type ClientProfitabilityDto = {
+  clientId: string
+  clientName: string
+  entityType?: string | null
+  totalInvoiced: number
+  totalPaid: number
+  balanceDue: number
+  totalHoursLogged: number
+  effectiveHourlyRate: number
+  profitabilityRating: string
+}
+
+export type StaffUtilizationDto = {
+  userId: string
+  staffName: string
+  roleName: string
+  billableHours: number
+  nonBillableHours: number
+  totalHours: number
+  utilizationPct: number
+  billedValueGenerated: number
+}
+
+export type AgedInvoiceItemDto = {
+  invoiceId: string
+  invoiceNumber: string
+  clientId: string
+  clientName: string
+  issueDate: string
+  dueDate: string
+  ageDays: number
+  totalAmount: number
+  balanceDue: number
+  agingBucket: string
+}
+
+export type ReceivablesAgingDto = {
+  totalReceivables: number
+  current0To30Days: number
+  bucket31To60Days: number
+  bucket61To90Days: number
+  bucketAbove90Days: number
+  agedInvoices: AgedInvoiceItemDto[]
+}
+
+export type ComplianceTypeSlaDto = {
+  category: string
+  totalCount: number
+  filedOnTime: number
+  filedLate: number
+  overdue: number
+  slaPercentage: number
+}
+
+export type ComplianceSlaReportDto = {
+  financialYear: string
+  totalStatutoryFilings: number
+  filedOnTime: number
+  filedLate: number
+  currentlyOverdue: number
+  overallSlaPercentage: number
+  categoryBreakdown: ComplianceTypeSlaDto[]
+}
+
+export type RevenueBreakdownDto = {
+  serviceCategory: string
+  amount: number
+  percentageOfTotal: number
+}
+
+export const reportsApi = {
+  getExecutiveSummary: (fy?: string) => {
+    const p = new URLSearchParams()
+    if (fy) p.set('financialYear', fy)
+    const qs = p.toString()
+    return api<PracticeExecutiveSummaryDto>(`/api/reports/executive-summary${qs ? `?${qs}` : ''}`)
+  },
+  getClientProfitability: (fy?: string) => {
+    const p = new URLSearchParams()
+    if (fy) p.set('financialYear', fy)
+    const qs = p.toString()
+    return api<ClientProfitabilityDto[]>(`/api/reports/client-profitability${qs ? `?${qs}` : ''}`)
+  },
+  getStaffUtilization: (from?: string, to?: string) => {
+    const p = new URLSearchParams()
+    if (from) p.set('from', from)
+    if (to) p.set('to', to)
+    const qs = p.toString()
+    return api<StaffUtilizationDto[]>(`/api/reports/staff-utilization${qs ? `?${qs}` : ''}`)
+  },
+  getReceivablesAging: () => api<ReceivablesAgingDto>('/api/reports/receivables-aging'),
+  getComplianceSla: (fy?: string) => {
+    const p = new URLSearchParams()
+    if (fy) p.set('financialYear', fy)
+    const qs = p.toString()
+    return api<ComplianceSlaReportDto>(`/api/reports/compliance-sla${qs ? `?${qs}` : ''}`)
+  },
+  getRevenueBreakdown: (fy?: string) => {
+    const p = new URLSearchParams()
+    if (fy) p.set('financialYear', fy)
+    const qs = p.toString()
+    return api<RevenueBreakdownDto[]>(`/api/reports/revenue-breakdown${qs ? `?${qs}` : ''}`)
+  },
+  getTarget: (fy: string) => api<PracticeTargetDto>(`/api/reports/targets/${fy}`),
+  setTarget: (req: SetPracticeTargetRequest) =>
+    api<PracticeTargetDto>('/api/reports/targets', { method: 'POST', body: JSON.stringify(req) }),
+}
+
+
 
 
 
