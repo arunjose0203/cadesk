@@ -32,6 +32,7 @@ Multi-tenant SaaS for CA and accounting firms (India first, GCC later).
 | 27 | GSTR-9 / 9C Annual Return & Audit Reconciliation Desk: Section 44 annual return compilation (Tables 4, 5, 6, 7, 8, 9, 10-14), turnover threshold gating (Exempt < ₹2 Cr, Mandatory GSTR-9 > ₹2 Cr, Mandatory GSTR-9 & 9C > ₹5 Cr), Table 5 gross turnover & Table 7 taxable turnover reconciliation, Table 8 ITC 2A/2B vs 3B difference detection, audit discrepancy manager with statutory reason codes, CA certification with UDIN, and Form GST DRC-03 voluntary payment tracking | Full-stack GSTR-9 annual return tables, interactive GSTR-9C gross & taxable reconciliation workbench, discrepancy log with auditor recommendations, UDIN certification, and DRC-03 electronic cash ledger payment recording; two-lock multi-tenancy |
 | 28 | Digital Workpapers & Engagement Quality Review (EQR) Desk (ICAI SQC 1 / SA 220): 60-day archival lock, immutable workpaper freeze, 10-point SA pre-issuance quality checklist, EQR hot/cold reviews, multi-tier review notes (Manager, EQR, Lead Partner) with gate-checked sign-off | Full-stack digital workpapers with ICAI SQC 1 60-day archival deadline countdown, mandatory EQR clearance gating, review query resolution workflow, and two-lock multi-tenancy |
 | 29 | Presumptive Taxation & Minimal Financials Generator (Section 44AD / 44ADA / 44AE): Enhanced 5% cash turnover gating (₹3 Cr / ₹75 L), 6%/8% and 50% deemed profit split, Section 44AE heavy/light vehicle fleet register, Section 44AD(4) 5-year lockout penalty engine, Section 44AB mandatory tax audit warnings, and Section 44AA minimal balance sheet particulars | Full-stack presumptive tax desk with digital/cash ratio checks, vehicle fleet manager, ITR-4 balance sheet coherence analyzer, and two-lock multi-tenancy |
+| 30 | CARO 2020 Automated Audit Checklist & Disclosures Generator: Companies Act Sec 143(11) 3-pillar applicability test, 21 statutory clauses verification workbench, discrepancy tracker, and official Annexure 'A' to Auditor's Report auto-drafting | Full-stack CARO 2020 audit workbench with statutory limit evaluation, clause templates, qualification/adverse remarks drafting, and two-lock multi-tenancy |
 
 ## What's inside
 
@@ -757,6 +758,50 @@ API:
 
 
 
+
+## CARO 2020 Automated Audit Checklist & Disclosures Generator (Sprint 30)
+
+- **Statutory Applicability Engine (Companies (Auditor's Report) Order, 2020 / Sec 143(11))**:
+  - **Unconditional Statutory Exemptions**: One Person Companies (OPC), Small Companies (Sec 2(85)), Banking companies, Insurance companies, Section 8 not-for-profit companies.
+  - **Deemed Public Company Gating (Sec 2(71))**: Any private company that is a subsidiary or holding company of a public company is disqualified from private company exemption.
+  - **3-Pillar Cumulative Exemption Rule for Private Limited Companies**: Must satisfy ALL 3 conditions throughout the entire financial year:
+    1. Paid-up share capital + Reserves & Surplus &le; ₹1 Crore as on balance sheet date.
+    2. Total borrowings from banks & financial institutions &le; ₹1 Crore at any time during the financial year.
+    3. Total revenue (including revenue from discontinuing operations) per Schedule III &le; ₹10 Crores during the financial year.
+    - If any single threshold is breached, CARO 2020 is flagged as mandatory with precise breach citations.
+- **21 Statutory Clauses Verification Workbench (Clauses i to xxi)**:
+  - Clause (i): PPE & Intangible assets records, physical verification, title deeds held in company's name, revaluation (&ge; 10%), and Benami proceedings under PBPT Act.
+  - Clause (ii): Physical verification of inventory (&ge; 10% discrepancy) & quarterly returns/statements filed with banks for sanctioned working capital limits &gt; ₹5 Crores.
+  - Clause (iii): Investments, guarantees, security, and loans/advances granted to parties (terms not prejudicial, repayment schedule stipulation, overdue &gt; 90 days, renewal/fresh loans, repayable on demand/without terms).
+  - Clause (iv): Compliance with Sections 185 and 186 (Loans & investments by company).
+  - Clause (v): Public deposits & deemed deposits compliance with Sections 73 to 76 and RBI directives.
+  - Clause (vi): Maintenance of cost records prescribed under Section 148(1).
+  - Clause (vii): Undisputed statutory dues (GST, PF, ESI, Income-tax, Customs, Cess) outstanding &gt; 6 months, and disputed statutory dues with forums.
+  - Clause (viii): Unrecorded transactions surrendered/disclosed in income tax assessments under Section 132/133A.
+  - Clause (ix): Default in repayment of borrowings/interest, declared wilful defaulter, diversion of term loans, funds raised on short-term basis used for long-term purposes, funds taken to meet obligations of subsidiaries/associates/JVs.
+  - Clause (x): Moneys raised by IPO/FPO and preferential allotment/private placement (Sec 42/62 compliance).
+  - Clause (xi): Fraud by or on the company, Form ADT-4 filed with Central Govt under Sec 143(12), and whistle-blower complaints considered.
+  - Clause (xii): Nidhi company net owned funds to deposit ratio (1:20) and 10% unencumbered term deposits.
+  - Clause (xiii): Related party transactions compliance with Sections 177 and 188 with financial statement disclosures.
+  - Clause (xiv): Internal audit system commensurate with size and nature, and consideration of internal audit reports.
+  - Clause (xv): Non-cash transactions with directors/connected persons (Section 192 compliance).
+  - Clause (xvi): Registration under Section 45-IA of RBI Act 1934, Core Investment Company (CIC) status, and group CIC limits.
+  - Clause (xvii): Cash losses incurred in financial year and immediately preceding financial year.
+  - Clause (xviii): Resignation of statutory auditors, issues/concerns raised considered.
+  - Clause (xix): Material uncertainty on capability of company to meet liabilities falling due within 1 year from balance sheet date (financial ratios, ageing, expected dates of realization).
+  - Clause (xx): Transfer of unspent CSR funds under Section 135(5) and Section 135(6) to Fund specified in Schedule VII or special account.
+  - Clause (xxi): Qualifications or adverse remarks by respective auditors in CARO reports of group companies included in consolidated financial statements.
+- **Formal Annexure 'A' to Independent Auditor's Report Generator**:
+  - Automatically compiles standard legal Annexure 'A' text adhering to ICAI Guidance Note on CARO 2020.
+  - Formats clean standard paragraphs for favorable clauses and structured qualification / adverse remark wording for modified clauses.
+  - Exports ready-to-sign annexure draft into audit engagement file.
+- **Two Locks**: EF Core global query filters and PostgreSQL Row Level Security on `caro_assessments` and `caro_clause_responses` (`0029_caro2020.sql`).
+
+API:
+- `GET /api/caro/summary`, `GET /api/caro/clauses-template` (`caro.read`)
+- `GET /api/caro/assessments`, `GET /api/caro/assessments/{id}`, `POST /api/caro/assessments` (`caro.read`, `caro.manage`)
+- `PUT /api/caro/assessments/{assessmentId}/clauses/{clauseId}` (`caro.manage`)
+- `POST /api/caro/assessments/{id}/generate-annexure`, `POST /api/caro/assessments/{id}/finalize` (`caro.manage`, `caro.finalize`)
 
 ## Notes
 

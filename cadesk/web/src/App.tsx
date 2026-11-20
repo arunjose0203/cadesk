@@ -26,8 +26,9 @@ import { FixedAssetsPage } from './FixedAssetsPage'
 import { AdvanceTaxPage } from './AdvanceTaxPage'
 import { Gstr9Page } from './Gstr9Page'
 import { PresumptiveTaxPage } from './PresumptiveTaxPage'
+import { CaroAuditDeskPage } from './CaroAuditDeskPage'
 
-type Page = 'tasks' | 'deadlines' | 'clients' | 'billing' | 'tax' | 'audit-workspace' | 'gst-reconcile' | 'tds' | 'mca' | 'engagement' | 'banking' | 'reports' | 'tax-notices' | 'payroll' | 'einvoicing' | 'fixed-assets' | 'advance-tax' | 'gstr9' | 'presumptive' | 'dsc' | 'portal' | 'users' | 'settings' | 'audit' | 'security'
+type Page = 'tasks' | 'deadlines' | 'clients' | 'billing' | 'tax' | 'audit-workspace' | 'gst-reconcile' | 'tds' | 'mca' | 'engagement' | 'banking' | 'reports' | 'tax-notices' | 'payroll' | 'einvoicing' | 'fixed-assets' | 'advance-tax' | 'gstr9' | 'presumptive' | 'caro' | 'dsc' | 'portal' | 'users' | 'settings' | 'audit' | 'security'
 
 export default function App() {
   const [user, setUser] = useState<UserProfile | null>(null)
@@ -363,6 +364,16 @@ export default function App() {
             Presumptive Tax (44AD)
           </button>
         )}
+        {can('caro.read') && (
+          <button className={page === 'caro' ? 'active' : ''} onClick={() => setPage('caro')}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="9" y1="15" x2="15" y2="15"></line>
+            </svg>
+            CARO 2020 Desk
+          </button>
+        )}
         {can('dsc.read') && (
           <button className={page === 'dsc' ? 'active' : ''} onClick={() => setPage('dsc')}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -436,6 +447,7 @@ export default function App() {
       {page === 'advance-tax' && can('advancetax.read') && <AdvanceTaxPage can={can} />}
       {page === 'gstr9' && can('gstr9.read') && <Gstr9Page />}
       {page === 'presumptive' && can('presumptive.read') && <PresumptiveTaxPage can={can} />}
+      {page === 'caro' && can('caro.read') && <CaroAuditDeskPage can={can} />}
       {page === 'dsc' && can('dsc.read') && <DscPage can={can} meId={user.id} />}
       {page === 'portal' && can('portal.read') && <PortalPage can={can} meId={user.id} />}
       {page === 'users' && can('users.read') && <UsersPage can={can} me={user} />}

@@ -3387,6 +3387,116 @@ export const presumptiveApi = {
     api<PresumptiveSummaryDto>('/api/presumptive/summary')
 }
 
+// -------------------------------------------------------------
+// Sprint 30: CARO 2020 Automated Audit Checklist & Disclosures Generator
+// -------------------------------------------------------------
+
+export type CaroClauseResponseDto = {
+  id: string
+  assessmentId: string
+  clauseNumber: string
+  clauseTitle: string
+  category: string
+  status: string
+  auditorRemark: string
+  hasDiscrepancy: boolean
+  discrepancyAmount?: number | null
+  supportingWpsRef?: string | null
+  verifiedByUserId?: string | null
+  verifiedByName?: string | null
+  verifiedAt?: string | null
+  updatedAt?: string | null
+}
+
+export type CaroAssessmentDto = {
+  id: string
+  clientId: string
+  clientName?: string | null
+  engagementId?: string | null
+  engagementTitle?: string | null
+  financialYear: string
+  companyType: string
+  isHoldingOrSubsidiaryOfPublic: boolean
+  paidUpCapitalAndReserves: number
+  totalBorrowings: number
+  totalRevenue: number
+  isCaroApplicable: boolean
+  exemptionReason?: string | null
+  status: string
+  qualificationsCount: number
+  adverseRemarksCount: number
+  generatedAnnexureText?: string | null
+  auditorConclusion?: string | null
+  finalizedByUserId?: string | null
+  finalizedByName?: string | null
+  finalizedAt?: string | null
+  createdAt: string
+  updatedAt?: string | null
+  clauseResponses: CaroClauseResponseDto[]
+}
+
+export type SaveCaroAssessmentRequest = {
+  clientId: string
+  engagementId?: string | null
+  financialYear: string
+  companyType: string
+  isHoldingOrSubsidiaryOfPublic: boolean
+  paidUpCapitalAndReserves: number
+  totalBorrowings: number
+  totalRevenue: number
+  auditorConclusion?: string | null
+}
+
+export type UpdateClauseResponseRequest = {
+  status: string
+  auditorRemark: string
+  hasDiscrepancy: boolean
+  discrepancyAmount?: number | null
+  supportingWpsRef?: string | null
+}
+
+export type CaroSummaryDto = {
+  totalAssessments: number
+  applicableCount: number
+  exemptCount: number
+  finalizedCount: number
+  totalQualifications: number
+  totalAdverseRemarks: number
+}
+
+export type CaroClauseTemplateDto = {
+  clauseNumber: string
+  title: string
+  category: string
+  standardRemark: string
+}
+
+export const caroApi = {
+  getAssessments: (clientId?: string, fy?: string, status?: string) => {
+    const p = new URLSearchParams()
+    if (clientId) p.set('clientId', clientId)
+    if (fy) p.set('fy', fy)
+    if (status) p.set('status', status)
+    const qs = p.toString()
+    return api<CaroAssessmentDto[]>(`/api/caro/assessments${qs ? `?${qs}` : ''}`)
+  },
+  getAssessmentById: (id: string) => api<CaroAssessmentDto>(`/api/caro/assessments/${id}`),
+  createAssessment: (req: SaveCaroAssessmentRequest) =>
+    api<CaroAssessmentDto>('/api/caro/assessments', { method: 'POST', body: JSON.stringify(req) }),
+  updateAssessment: (id: string, req: SaveCaroAssessmentRequest) =>
+    api<CaroAssessmentDto>(`/api/caro/assessments/${id}`, { method: 'PUT', body: JSON.stringify(req) }),
+  updateClause: (assessmentId: string, clauseId: string, req: UpdateClauseResponseRequest) =>
+    api<CaroAssessmentDto>(`/api/caro/assessments/${assessmentId}/clauses/${clauseId}`, { method: 'PUT', body: JSON.stringify(req) }),
+  generateAnnexure: (assessmentId: string) =>
+    api<{ annexureText: string }>(`/api/caro/assessments/${assessmentId}/generate-annexure`, { method: 'POST' }),
+  finalizeAssessment: (assessmentId: string, conclusion?: string) =>
+    api<CaroAssessmentDto>(`/api/caro/assessments/${assessmentId}/finalize`, { method: 'POST', body: JSON.stringify({ conclusion }) }),
+  getClauseTemplates: () =>
+    api<CaroClauseTemplateDto[]>('/api/caro/clauses-template'),
+  getSummary: () =>
+    api<CaroSummaryDto>('/api/caro/summary')
+}
+
 
 
 

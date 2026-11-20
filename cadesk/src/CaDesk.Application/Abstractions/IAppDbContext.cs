@@ -12,6 +12,7 @@ using CaDesk.Domain.FixedAssets;
 using CaDesk.Domain.AdvanceTax;
 using CaDesk.Domain.Gstr9;
 using CaDesk.Domain.Presumptive;
+using CaDesk.Domain.Caro;
 using CaDesk.Domain.Billing;
 using CaDesk.Domain.Clients;
 using CaDesk.Domain.Dsc;
@@ -117,6 +118,8 @@ public interface IAppDbContext
     DbSet<Gstr9cDiscrepancy> Gstr9cDiscrepancies { get; }
     DbSet<PresumptiveTaxComputation> PresumptiveTaxComputations { get; }
     DbSet<Presumptive44AeVehicle> Presumptive44AeVehicles { get; }
+    DbSet<CaroAssessment> CaroAssessments { get; }
+    DbSet<CaroClauseResponse> CaroClauseResponses { get; }
     /// <summary>For transactions and the few raw SQL calls (numbering, jsonb lookups). RLS still applies.</summary>
     DatabaseFacade Database { get; }
     Task<int> SaveChangesAsync(CancellationToken ct = default);

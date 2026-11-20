@@ -24,6 +24,7 @@ using CaDesk.Domain.FixedAssets;
 using CaDesk.Domain.AdvanceTax;
 using CaDesk.Domain.Gstr9;
 using CaDesk.Domain.Presumptive;
+using CaDesk.Domain.Caro;
 using CaDesk.Domain.Common;
 using CaDesk.Domain.Configuration;
 using CaDesk.Domain.Firms;
@@ -121,6 +122,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
     public DbSet<Gstr9cDiscrepancy> Gstr9cDiscrepancies => Set<Gstr9cDiscrepancy>();
     public DbSet<PresumptiveTaxComputation> PresumptiveTaxComputations => Set<PresumptiveTaxComputation>();
     public DbSet<Presumptive44AeVehicle> Presumptive44AeVehicles => Set<Presumptive44AeVehicle>();
+    public DbSet<CaroAssessment> CaroAssessments => Set<CaroAssessment>();
+    public DbSet<CaroClauseResponse> CaroClauseResponses => Set<CaroClauseResponse>();
     public DbSet<ConfigDefinition> ConfigDefinitions => Set<ConfigDefinition>();
     public DbSet<ConfigValue> ConfigValues => Set<ConfigValue>();
     public DbSet<ConfigChangeLog> ConfigChangeLog => Set<ConfigChangeLog>();
@@ -627,6 +630,24 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
             e.ToTable("presumptive_44ae_vehicles");
             e.HasOne(x => x.Computation).WithMany(x => x.Vehicles).HasForeignKey(x => x.ComputationId).OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(x => new { x.FirmId, x.ComputationId }).HasDatabaseName("ix_presumptive_44ae_vehicles_computation");
+        });
+
+        b.Entity<CaroAssessment>(e =>
+        {
+            e.ToTable("caro_assessments");
+            e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Engagement).WithMany().HasForeignKey(x => x.EngagementId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.FinalizedByUser).WithMany().HasForeignKey(x => x.FinalizedByUserId).OnDelete(DeleteBehavior.SetNull);
+            e.HasMany(x => x.ClauseResponses).WithOne(x => x.Assessment).HasForeignKey(x => x.AssessmentId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.FirmId, x.ClientId, x.FinancialYear }).HasDatabaseName("ix_caro_assessments_client_fy");
+        });
+
+        b.Entity<CaroClauseResponse>(e =>
+        {
+            e.ToTable("caro_clause_responses");
+            e.HasOne(x => x.Assessment).WithMany(x => x.ClauseResponses).HasForeignKey(x => x.AssessmentId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.VerifiedByUser).WithMany().HasForeignKey(x => x.VerifiedByUserId).OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(x => new { x.FirmId, x.AssessmentId }).HasDatabaseName("ix_caro_clause_responses_assessment");
         });
 
         b.Entity<TaskTemplate>(e =>

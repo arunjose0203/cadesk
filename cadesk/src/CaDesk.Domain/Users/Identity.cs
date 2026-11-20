@@ -166,4 +166,7 @@ public static class Perms
     public const string PresumptiveRead = "presumptive.read";
     public const string PresumptiveManage = "presumptive.manage";
     public const string PresumptiveApprove = "presumptive.approve";
+    public const string CaroRead = "caro.read";
+    public const string CaroManage = "caro.manage";
+    public const string CaroFinalize = "caro.finalize";
 }

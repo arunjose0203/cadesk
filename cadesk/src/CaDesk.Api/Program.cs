@@ -90,6 +90,7 @@ builder.Services.AddScoped<CaDesk.Application.FixedAssets.IFixedAssetService, Ca
 builder.Services.AddScoped<CaDesk.Application.AdvanceTax.IAdvanceTaxService, CaDesk.Application.AdvanceTax.AdvanceTaxService>();
 builder.Services.AddScoped<CaDesk.Application.Gstr9.IGstr9Service, CaDesk.Application.Gstr9.Gstr9Service>();
 builder.Services.AddScoped<CaDesk.Application.Presumptive.PresumptiveTaxService>();
+builder.Services.AddScoped<CaDesk.Application.Caro.CaroService>();
 var docOptions = config.GetSection("Documents").Get<CaDesk.Api.Documents.DocumentOptions>() ?? new();
 var storagePath = docOptions.StoragePath;
 if (storagePath.Length == 0)
@@ -247,6 +248,7 @@ app.MapFixedAssetEndpoints();
 app.MapAdvanceTaxEndpoints();
 app.MapGstr9Endpoints();
 app.MapPresumptiveTaxEndpoints();
+app.MapCaroEndpoints();
 app.MapSettingsEndpoints();
 app.MapAuditEndpoints();
 
