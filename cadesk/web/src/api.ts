@@ -2832,6 +2832,255 @@ export const advanceTaxApi = {
     api<TaxInterestComputationDto[]>(`/api/advance-tax/plans/${planId}/interest-computations`),
 }
 
+export type Gstr9ReturnDto = {
+  id: string
+  clientId: string
+  clientName: string
+  financialYear: string
+  gstin: string
+  legalName: string
+  tradeName?: string | null
+  aggregateTurnover: number
+  isGstr9Mandatory: boolean
+  isGstr9cMandatory: boolean
+  exemptionStatus: string
+  status: 'Draft' | 'Reconciled' | 'Certified' | 'Filed'
+  outwardTaxableSupplies: number
+  outwardExemptedSupplies: number
+  totalTurnover: number
+  itcAvailed3b: number
+  itcCategorizedB2b: number
+  itcReversed: number
+  netItcAvailed: number
+  itcAsPer2a: number
+  itcReconciledVariance: number
+  totalTaxPayable: number
+  taxPaidCash: number
+  taxPaidItc: number
+  shortfallTax: number
+  previousFyAmendmentsTax: number
+  arn?: string | null
+  filedAt?: string | null
+  notes?: string | null
+  tableEntriesCount: number
+  hasGstr9c: boolean
+  gstr9cStatus?: 'Draft' | 'UnderReview' | 'Certified' | null
+  drc03Pending: boolean
+  createdAt: string
+}
+
+export type Gstr9TableEntryDto = {
+  id: string
+  gstr9ReturnId: string
+  tableSection: string
+  rowCode: string
+  description: string
+  taxableValue: number
+  igstAmount: number
+  cgstAmount: number
+  sgstAmount: number
+  cessAmount: number
+  totalTax: number
+}
+
+export type Gstr9cDiscrepancyDto = {
+  id: string
+  gstr9cId: string
+  category: string
+  tableRef: string
+  description: string
+  discrepancyAmount: number
+  taxImpact: number
+  auditorRecommendation?: string | null
+  isResolved: boolean
+  resolutionNotes?: string | null
+  createdAt: string
+}
+
+export type Gstr9cReconciliationDto = {
+  id: string
+  gstr9ReturnId: string
+  clientId: string
+  financialYear: string
+  auditedGrossTurnover: number
+  unbilledRevenueStart: number
+  unadjustedAdvancesEnd: number
+  deemedSupplies: number
+  creditNotesAfterFy: number
+  tradeDiscountsDisallowed: number
+  unbilledRevenueEnd: number
+  unadjustedAdvancesStart: number
+  otherTurnoverAdjustments: number
+  reconciledTurnover: number
+  turnoverAsPerGstr9: number
+  unreconciledTurnoverVariance: number
+  exemptedNilTurnover: number
+  zeroRatedWopTurnover: number
+  rcmOutwardTurnover: number
+  reconciledTaxableTurnover: number
+  taxableTurnoverGstr9: number
+  unreconciledTaxableVariance: number
+  additionalTaxPayable: number
+  additionalInterestPayable: number
+  additionalPenaltyPayable: number
+  totalAdditionalPayable: number
+  bookItcTotal: number
+  gstr9ItcTotal: number
+  unreconciledItcVariance: number
+  certificationStatus: 'Draft' | 'UnderReview' | 'Certified'
+  auditorName?: string | null
+  auditorMembershipNo?: string | null
+  auditorFirmRegNo?: string | null
+  udin?: string | null
+  certifiedAt?: string | null
+  auditorRemarks?: string | null
+  drc03Arn?: string | null
+  drc03Date?: string | null
+  drc03PaidAmount: number
+  drc03PaymentMode?: string | null
+  isDrc03Completed: boolean
+  discrepancies: Gstr9cDiscrepancyDto[]
+}
+
+export type CompileGstr9ReturnRequest = {
+  clientId: string
+  financialYear: string
+  aggregateTurnover: number
+  outwardTaxableSupplies: number
+  outwardExemptedSupplies: number
+  rcmInwardSupplies: number
+  itcAvailed3b: number
+  itcCategorizedB2b: number
+  itcReversed: number
+  itcAsPer2a: number
+  itcSubsequentFy: number
+  totalTaxPayable: number
+  taxPaidCash: number
+  taxPaidItc: number
+  previousFyAmendmentsTax: number
+  notes?: string | null
+}
+
+export type UpdateGstr9ReturnRequest = {
+  aggregateTurnover: number
+  outwardTaxableSupplies: number
+  outwardExemptedSupplies: number
+  rcmInwardSupplies: number
+  itcAvailed3b: number
+  itcCategorizedB2b: number
+  itcReversed: number
+  itcAsPer2a: number
+  itcSubsequentFy: number
+  totalTaxPayable: number
+  taxPaidCash: number
+  taxPaidItc: number
+  previousFyAmendmentsTax: number
+  notes?: string | null
+}
+
+export type ReconcileGstr9cRequest = {
+  auditedGrossTurnover: number
+  unbilledRevenueStart: number
+  unadjustedAdvancesEnd: number
+  deemedSupplies: number
+  creditNotesAfterFy: number
+  tradeDiscountsDisallowed: number
+  unbilledRevenueEnd: number
+  unadjustedAdvancesStart: number
+  otherTurnoverAdjustments: number
+  exemptedNilTurnover: number
+  zeroRatedWopTurnover: number
+  rcmOutwardTurnover: number
+  additionalTaxPayable: number
+  additionalInterestPayable: number
+  additionalPenaltyPayable: number
+  bookItcTotal: number
+  auditorRemarks?: string | null
+}
+
+export type AddDiscrepancyRequest = {
+  category: string
+  tableRef: string
+  description: string
+  discrepancyAmount: number
+  taxImpact: number
+  auditorRecommendation?: string | null
+}
+
+export type ResolveDiscrepancyRequest = {
+  resolutionNotes: string
+}
+
+export type CertifyGstr9cRequest = {
+  auditorName: string
+  auditorMembershipNo: string
+  auditorFirmRegNo: string
+  udin?: string | null
+  auditorRemarks?: string | null
+}
+
+export type RecordDrc03PaymentRequest = {
+  drc03Arn: string
+  drc03Date: string
+  drc03PaidAmount: number
+  drc03PaymentMode?: string | null
+}
+
+export type FileGstr9ReturnRequest = {
+  arn: string
+  notes?: string | null
+}
+
+export type Gstr9SummaryDto = {
+  totalReturns: number
+  mandatoryGstr9Count: number
+  mandatoryGstr9cCount: number
+  certifiedGstr9cCount: number
+  filedReturnsCount: number
+  totalTurnoverReconciled: number
+  totalTaxPayable: number
+  totalTaxShortfall: number
+  totalDrc03Paid: number
+}
+
+export const gstr9Api = {
+  getReturns: (clientId?: string, financialYear?: string) => {
+    const p = new URLSearchParams()
+    if (clientId) p.set('clientId', clientId)
+    if (financialYear) p.set('financialYear', financialYear)
+    const qs = p.toString()
+    return api<Gstr9ReturnDto[]>(`/api/gstr9/returns${qs ? `?${qs}` : ''}`)
+  },
+  getReturnById: (id: string) => api<Gstr9ReturnDto>(`/api/gstr9/returns/${id}`),
+  compileReturn: (req: CompileGstr9ReturnRequest) =>
+    api<Gstr9ReturnDto>('/api/gstr9/returns/compile', { method: 'POST', body: JSON.stringify(req) }),
+  updateReturn: (id: string, req: UpdateGstr9ReturnRequest) =>
+    api<Gstr9ReturnDto>(`/api/gstr9/returns/${id}`, { method: 'PUT', body: JSON.stringify(req) }),
+  fileReturn: (id: string, req: FileGstr9ReturnRequest) =>
+    api<Gstr9ReturnDto>(`/api/gstr9/returns/${id}/file`, { method: 'POST', body: JSON.stringify(req) }),
+
+  getGstr9c: (returnId: string) =>
+    api<Gstr9cReconciliationDto>(`/api/gstr9/returns/${returnId}/gstr9c`),
+  reconcileGstr9c: (returnId: string, req: ReconcileGstr9cRequest) =>
+    api<Gstr9cReconciliationDto>(`/api/gstr9/returns/${returnId}/gstr9c/reconcile`, { method: 'POST', body: JSON.stringify(req) }),
+  addDiscrepancy: (returnId: string, req: AddDiscrepancyRequest) =>
+    api<Gstr9cDiscrepancyDto>(`/api/gstr9/returns/${returnId}/gstr9c/discrepancies`, { method: 'POST', body: JSON.stringify(req) }),
+  resolveDiscrepancy: (id: string, req: ResolveDiscrepancyRequest) =>
+    api<Gstr9cDiscrepancyDto>(`/api/gstr9/discrepancies/${id}/resolve`, { method: 'POST', body: JSON.stringify(req) }),
+  certifyGstr9c: (returnId: string, req: CertifyGstr9cRequest) =>
+    api<Gstr9cReconciliationDto>(`/api/gstr9/returns/${returnId}/gstr9c/certify`, { method: 'POST', body: JSON.stringify(req) }),
+  recordDrc03: (returnId: string, req: RecordDrc03PaymentRequest) =>
+    api<Gstr9cReconciliationDto>(`/api/gstr9/returns/${returnId}/gstr9c/drc03`, { method: 'POST', body: JSON.stringify(req) }),
+
+  getSummary: (financialYear?: string) => {
+    const p = new URLSearchParams()
+    if (financialYear) p.set('financialYear', financialYear)
+    const qs = p.toString()
+    return api<Gstr9SummaryDto>(`/api/gstr9/summary${qs ? `?${qs}` : ''}`)
+  }
+}
+
+
 
 
 

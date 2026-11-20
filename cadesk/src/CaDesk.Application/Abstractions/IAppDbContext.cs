@@ -10,6 +10,7 @@ using CaDesk.Domain.Payroll;
 using CaDesk.Domain.EInvoicing;
 using CaDesk.Domain.FixedAssets;
 using CaDesk.Domain.AdvanceTax;
+using CaDesk.Domain.Gstr9;
 using CaDesk.Domain.Billing;
 using CaDesk.Domain.Clients;
 using CaDesk.Domain.Dsc;
@@ -107,6 +108,10 @@ public interface IAppDbContext
     DbSet<AdvanceTaxPlan> AdvanceTaxPlans { get; }
     DbSet<AdvanceTaxInstallment> AdvanceTaxInstallments { get; }
     DbSet<TaxInterestComputation> TaxInterestComputations { get; }
+    DbSet<Gstr9Return> Gstr9Returns { get; }
+    DbSet<Gstr9TableEntry> Gstr9TableEntries { get; }
+    DbSet<Gstr9cReconciliation> Gstr9cReconciliations { get; }
+    DbSet<Gstr9cDiscrepancy> Gstr9cDiscrepancies { get; }
     /// <summary>For transactions and the few raw SQL calls (numbering, jsonb lookups). RLS still applies.</summary>
     DatabaseFacade Database { get; }
     Task<int> SaveChangesAsync(CancellationToken ct = default);

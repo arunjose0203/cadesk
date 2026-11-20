@@ -29,6 +29,7 @@ Multi-tenant SaaS for CA and accounting firms (India first, GCC later).
 | 24 | Automated E-Invoicing & E-Way Bill Integration Desk: Direct Invoice Registration Portal (IRP) simulation, 64-character SHA-256 IRN generation, digitally signed QR codes, Rule 138(10) E-Way Bill validity calculator, Part-B multi-modal vehicle updater, 24-hour statutory cancellation engine | Direct IRP schema generation, dynamic distance-based validity countdowns, vehicle transshipment updates, and multi-tenant firm isolation |
 | 25 | Fixed Asset Register & Dual Depreciation Engine: Companies Act 2013 Schedule II (useful life, SLM/WDV, single/double/triple shift) vs. Income Tax Act Section 32 (block of assets, 180-day 50% rule, additional depr @ 20%), AS 22 / Ind AS 12 deferred tax engine, and physical verification audit trail | Side-by-side dual depreciation schedule, automated 180-day cutoff, DTA/DTL quantification, physical verification logs; two-lock multi-tenancy |
 | 26 | Advance Tax Planner, Self-Assessment & Section 234A/B/C Interest Engine: Section 208 statutory ₹10,000 liability threshold, Section 211 quarterly milestones (15%, 45%, 75%, 100%) and Sec 44AD/ADA presumptive schedule, Section 234C installment deferment interest with safe harbors (12%, 36%), Section 234B shortfall (< 90%) interest from April 1, Section 234A late filing interest, ITNS 280 challan BSR tracking | Quarterly advance tax schedule with automatic deferment interest, safe harbor rules, 234A/B/C interest breakdowns, and ITNS 280 challan recording; two-lock multi-tenancy |
+| 27 | GSTR-9 / 9C Annual Return & Audit Reconciliation Desk: Section 44 annual return compilation (Tables 4, 5, 6, 7, 8, 9, 10-14), turnover threshold gating (Exempt < ₹2 Cr, Mandatory GSTR-9 > ₹2 Cr, Mandatory GSTR-9 & 9C > ₹5 Cr), Table 5 gross turnover & Table 7 taxable turnover reconciliation, Table 8 ITC 2A/2B vs 3B difference detection, audit discrepancy manager with statutory reason codes, CA certification with UDIN, and Form GST DRC-03 voluntary payment tracking | Full-stack GSTR-9 annual return tables, interactive GSTR-9C gross & taxable reconciliation workbench, discrepancy log with auditor recommendations, UDIN certification, and DRC-03 electronic cash ledger payment recording; two-lock multi-tenancy |
 
 ## What's inside
 
@@ -658,6 +659,38 @@ API:
 - `POST /api/advance-tax/plans/{id}/pay-installment` (`advancetax.manage`)
 - `POST /api/advance-tax/plans/{id}/calculate-interest`, `GET /api/advance-tax/computations` (`advancetax.calculate`, `advancetax.read`)
 - `GET /api/advance-tax/summary` (`advancetax.read`)
+
+## GSTR-9 / 9C Annual Return & Audit Reconciliation Desk (Sprint 27)
+
+- **Section 44 Statutory Turnover Threshold Gating**:
+  - Automatically assesses aggregate turnover across pan-India operations.
+  - Categorizes client statutory mandate:
+    - **Aggregate Turnover &le; ₹2 Crores**: Exempt from mandatory filing (optional filing under CBIC notifications).
+    - **Aggregate Turnover &gt; ₹2 Crores &le; ₹5 Crores**: Mandatory GSTR-9 Annual Return (exempt from GSTR-9C reconciliation statement).
+    - **Aggregate Turnover &gt; ₹5 Crores**: Mandatory GSTR-9 and GSTR-9C Reconciliation Statement.
+- **Form GSTR-9 Annual Return Compilation**:
+  - **Part II Outward Supplies**: Table 4N (outward supplies on which tax is payable - B2C 4A, B2B 4B, RCM 4G) and Table 5M (supplies on which tax is not payable - Zero-rated 5A, Exempt 5C) to derive Table 5N Total Turnover (`4N + 5M - 4G`).
+  - **Part III Input Tax Credit**: Table 6A (ITC in GSTR-3B), Table 6B (B2B inputs/services), Table 7I (Total ITC reversed under Rule 37/42/43 & Sec 17(5)), Table 7J (Net ITC availed), and Table 8A (auto-drafted 2A/2B).
+  - **Table 8 ITC Variance Engine**: Automatically calculates `8D = 8A - (8B + 8C)`. Flags excess claims ($8D < 0$) with red alerts for recovery/DRC-03 demands.
+  - **Part IV Tax Paid & Shortfall**: Table 9 tax payable vs. cash and ITC paid; quantifies net shortfall tax for voluntary DRC-03 recovery.
+- **Form GSTR-9C Reconciliation Statement**:
+  - **Table 5 Gross Turnover Reconciliation**: Reconciles audited annual gross turnover (5A) with unbilled revenue (5B/5H), unadjusted advances (5C/5I), deemed supplies (5D), credit notes after FY (5E), and trade discounts (5F) to derive Reconciled Turnover (5P) and Unreconciled Turnover Variance (5R).
+  - **Table 7 Taxable Turnover Reconciliation**: Adjusts Reconciled Turnover (5P) for exempt/nil (7B), zero-rated (7C), and outward RCM (7D) to compute Reconciled Taxable Turnover (7E) against GSTR-9 Taxable Turnover (7F) and Variance (7G).
+  - **Table 12 & 14 Net ITC Reconciliation**: Compares Book ITC (12A) against GSTR-9 Net ITC (12E) to isolate unreconciled credit differences (12F).
+- **Audit Discrepancy Manager with Statutory Reason Codes**:
+  - Categorizes reconciliation issues (`TurnoverTimingDifference`, `UnbilledRevenue`, `AdvanceAdjustment`, `CreditNoteAdjustment`, `RateMismatch`, `ItcBookVsReturnMismatch`, `ExpenseItcUnclaimed`, etc.).
+  - Tracks discrepancy amounts, tax impact, and auditor recommendations with full resolution workflow.
+- **Auditor Certification & Form GST DRC-03 Payment**:
+  - Validates CA membership number, firm registration number (FRN), and ICAI UDIN for statutory certification.
+  - Gated filing: Blocks filing of GSTR-9 returns with turnover &gt; ₹5 Crores if GSTR-9C is uncertified.
+  - Records DRC-03 electronic cash ledger payments (ARN, date, amount, cash ledger).
+- **Two Locks**: EF Core global query filters and PostgreSQL Row Level Security on `gstr9_returns`, `gstr9_table_entries`, `gstr9c_reconciliations`, and `gstr9c_discrepancies` (`0026_gstr9_reconciliation.sql`).
+
+API:
+- `GET /api/gstr9/returns`, `GET /api/gstr9/returns/{id}`, `POST /api/gstr9/returns/compile`, `PUT /api/gstr9/returns/{id}`, `POST /api/gstr9/returns/{id}/file` (`gstr9.read`, `gstr9.manage`)
+- `GET /api/gstr9/returns/{id}/gstr9c`, `POST /api/gstr9/returns/{id}/gstr9c/reconcile`, `POST /api/gstr9/returns/{id}/gstr9c/certify`, `POST /api/gstr9/returns/{id}/gstr9c/drc03` (`gstr9.read`, `gstr9.manage`, `gstr9.certify`)
+- `POST /api/gstr9/returns/{id}/gstr9c/discrepancies`, `POST /api/gstr9/discrepancies/{id}/resolve` (`gstr9.manage`)
+- `GET /api/gstr9/summary` (`gstr9.read`)
 
 
 

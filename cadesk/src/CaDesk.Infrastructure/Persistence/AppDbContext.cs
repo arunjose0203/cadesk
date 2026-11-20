@@ -22,6 +22,7 @@ using CaDesk.Domain.Payroll;
 using CaDesk.Domain.EInvoicing;
 using CaDesk.Domain.FixedAssets;
 using CaDesk.Domain.AdvanceTax;
+using CaDesk.Domain.Gstr9;
 using CaDesk.Domain.Common;
 using CaDesk.Domain.Configuration;
 using CaDesk.Domain.Firms;
@@ -111,6 +112,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
     public DbSet<AdvanceTaxPlan> AdvanceTaxPlans => Set<AdvanceTaxPlan>();
     public DbSet<AdvanceTaxInstallment> AdvanceTaxInstallments => Set<AdvanceTaxInstallment>();
     public DbSet<TaxInterestComputation> TaxInterestComputations => Set<TaxInterestComputation>();
+    public DbSet<Gstr9Return> Gstr9Returns => Set<Gstr9Return>();
+    public DbSet<Gstr9TableEntry> Gstr9TableEntries => Set<Gstr9TableEntry>();
+    public DbSet<Gstr9cReconciliation> Gstr9cReconciliations => Set<Gstr9cReconciliation>();
+    public DbSet<Gstr9cDiscrepancy> Gstr9cDiscrepancies => Set<Gstr9cDiscrepancy>();
     public DbSet<ConfigDefinition> ConfigDefinitions => Set<ConfigDefinition>();
     public DbSet<ConfigValue> ConfigValues => Set<ConfigValue>();
     public DbSet<ConfigChangeLog> ConfigChangeLog => Set<ConfigChangeLog>();
@@ -551,6 +556,37 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
         b.Entity<TaxInterestComputation>(e =>
         {
             e.ToTable("tax_interest_computations");
+        });
+
+        b.Entity<Gstr9Return>(e =>
+        {
+            e.ToTable("gstr9_returns");
+            e.Property(x => x.Status).HasConversion<string>();
+            e.HasIndex(x => new { x.FirmId, x.ClientId, x.FinancialYear }).IsUnique().HasDatabaseName("ux_gstr9_returns_client_fy");
+            e.HasMany(x => x.TableEntries).WithOne().HasForeignKey(x => x.Gstr9ReturnId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Reconciliation).WithOne().HasForeignKey<Gstr9cReconciliation>(x => x.Gstr9ReturnId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<Gstr9TableEntry>(e =>
+        {
+            e.ToTable("gstr9_table_entries");
+            e.Property(x => x.TableSection).HasConversion<string>();
+            e.HasIndex(x => new { x.FirmId, x.Gstr9ReturnId }).HasDatabaseName("ix_gstr9_table_entries_return");
+        });
+
+        b.Entity<Gstr9cReconciliation>(e =>
+        {
+            e.ToTable("gstr9c_reconciliations");
+            e.Property(x => x.CertificationStatus).HasConversion<string>();
+            e.HasIndex(x => new { x.FirmId, x.Gstr9ReturnId }).IsUnique().HasDatabaseName("ux_gstr9c_returns");
+            e.HasMany(x => x.Discrepancies).WithOne().HasForeignKey(x => x.Gstr9cId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<Gstr9cDiscrepancy>(e =>
+        {
+            e.ToTable("gstr9c_discrepancies");
+            e.Property(x => x.Category).HasConversion<string>();
+            e.HasIndex(x => new { x.FirmId, x.Gstr9cId }).HasDatabaseName("ix_gstr9c_discrepancies_rec");
         });
 
         b.Entity<TaskTemplate>(e =>

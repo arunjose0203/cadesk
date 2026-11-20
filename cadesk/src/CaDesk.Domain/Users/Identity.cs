@@ -156,4 +156,7 @@ public static class Perms
     public const string AdvanceTaxRead = "advancetax.read";
     public const string AdvanceTaxManage = "advancetax.manage";
     public const string AdvanceTaxCalculate = "advancetax.calculate";
+    public const string Gstr9Read = "gstr9.read";
+    public const string Gstr9Manage = "gstr9.manage";
+    public const string Gstr9Certify = "gstr9.certify";
 }
