@@ -16,6 +16,13 @@ Multi-tenant SaaS for CA and accounting firms (India first, GCC later).
 | 11 | Billing, Invoicing & Timesheets: CA fee billing, GST invoices, SAC codes, payment receipts, staff billable time, unbilled timesheets imported to invoices, multi-tenant isolation | Staff log billable hours; invoices calculate 18% GST; payments update balances to paid; Firm B cannot read or pay Firm A invoices |
 | 12 | Digital Signature Certificates (DSC) & Token Management: Hardware USB token tracking, signer PAN validation, expiry countdowns & alerts, custody transfer audit trail (vault, staff, client, in-transit) | Register Class 3 token; status auto-calculated (active/expiring soon/expired); custody movement logged with handler user and remarks; strict firm isolation |
 | 13 | Client Self-Service Portal & External Auth: Client portal user login, customer service requests / helpdesk tickets, filing status & ARN viewer, invoice balances, DSC tracking, staff ticket desk | Client users log in securely, view filings and invoices, submit inquiries with 2-way messaging; firm staff resolve tickets; strict multi-firm isolation |
+| 14 | Direct Tax Computation & Regime Comparison: 5 heads of income, Old vs New 115BAC comparison, revised AY 2025-26 slab rates, Sec 87A rebate, surcharge, and Chapter VI-A deductions | Dual-regime side-by-side computation with recommended tax regime, automated savings quantification, and draft/approved lifecycle |
+| 15 | Statutory Audit Workspace & Audit Working Papers: ICAI SA 200/300/320/500/530/700, automated materiality benchmarks, standard working paper templates, multi-tier review workflow | Preparer draft -> Manager review -> Partner sign-off with audit opinions; strict multi-tenant isolation |
+| 16 | GST 2A / 2B Purchase Register Reconciliation: Section 16(2)(aa) & Rule 36(4) compliance, smart invoice number normalization, discrepancy categorization (exact, tolerance, tax mismatch, missing in 2B) | Auto-matching supplier invoices against GSTR-2B; ITC at risk flagged; multi-firm isolation |
+| 17 | TDS Computation, Lower Deduction Certificates & Form 26Q/27Q: Chapter XVII-B withholding, Sec 206AA/206AB penalty rates, Sec 197 LDC tracking, ITNS 281 challans, Sec 201(1A) interest calculator | Monthly TDS calculation with challan FIFO mapping, quarterly 26Q return prep, and firm isolation |
+| 18 | ROC / MCA Corporate Governance & Secretarial Compliance: CIN/DIN registry, DIR-3 KYC tracking, Section 403 statutory late fee engine (₹100/day AOC-4/MGT-7, ₹5,000 DIR-3 KYC), board resolutions repository | Company registry with DIN compliance countdown, automated late fee calculator, and secretarial resolutions register |
+| 19 | Digital Engagement Letters & KYC Compliance: ICAI SA 210 standard audit terms generator, digital acceptance audit trail, PMLA risk profiling (Low/Medium/High/PEP), UBO (≥10%/≥15%) beneficial ownership | Engagement letter sent and digitally accepted by client; periodic KYC review cycle; strict multi-tenant isolation |
+| 20 | Cash & Bank Feeds, Multi-Bank Statement Parser & BRS Auto-Matcher: Bank accounts master (Current, Savings, OD, CC), CSV/OFX statement parsing, auto-categorization heuristics & custom rules, transaction-to-ledger matching, statutory Bank Reconciliation Statement (BRS) calculation engine | Bank accounts registered; CSV statements parsed into debit/credit streams; rules auto-classify UPI/salary/charges; BRS report computes timing differences; strict multi-firm isolation |
 
 ## What's inside
 
@@ -456,6 +463,26 @@ API:
 API:
 - `GET /api/engagements/summary`, `GET /api/engagements`, `GET /api/engagements/{id}`, `POST /api/engagements`, `PUT /api/engagements/{id}/status`, `POST /api/engagements/preview-template` (`engagement.read`, `engagement.manage`)
 - `GET /api/kyc`, `GET /api/kyc/{id}`, `POST /api/kyc`, `PUT /api/kyc/{id}/status` (`kyc.read`, `kyc.manage`)
+
+## Cash & Bank Feed Integration & BRS Auto-Matcher (Sprint 20)
+
+- **Bank Account Master**: Current, Savings, Overdraft, and Cash Credit accounts tracking with IFSC code validation (`^[A-Z]{4}0[A-Z0-9]{6}$`), live balance monitoring, and client linkage.
+- **Multi-Bank Statement Parser**: Automatic detection of standard bank formats (Date, Narration, Reference, Debit, Credit, Balance or Amount/Type columns); supports varying date conventions (`dd/MM/yyyy`, `yyyy-MM-dd`, `dd-MMM-yyyy`).
+- **Smart Categorization Engine**: High-priority user-defined keyword rules combined with built-in heuristics (SALARY -> Payroll, GST -> Tax, UPI -> Collections, CHARGES -> Bank Fees, ITAX -> Advance Tax).
+- **Statutory Bank Reconciliation Statement (BRS)**:
+  - Balance as per Bank Statement
+  - (+) Cheques issued / Outward debits not yet presented in bank (Uncleared Debits)
+  - (-) Cheques deposited / Inward credits not yet cleared by bank (Uncredited Credits)
+  - Direct bank charges and interest adjustments
+  - (=) Balance as per Books of Account (Adjusted Ledger Balance)
+- **Two Locks**: EF Core global query filters and PostgreSQL Row Level Security on `bank_accounts`, `bank_statements`, `bank_transactions`, and `bank_reconciliation_rules` (`0019_bank_feeds.sql`).
+
+API:
+- `GET /api/bank/accounts`, `GET /api/bank/accounts/{id}`, `POST /api/bank/accounts`, `PUT /api/bank/accounts/{id}`, `DELETE /api/bank/accounts/{id}` (`bank.read`, `bank.manage`)
+- `GET /api/bank/accounts/{id}/statements`, `POST /api/bank/accounts/{id}/statements` (`bank.read`, `bank.manage`)
+- `GET /api/bank/accounts/{id}/transactions`, `POST /api/bank/transactions/{id}/match` (`bank.read`, `bank.reconcile`)
+- `GET /api/bank/accounts/{id}/brs` (`bank.read`)
+- `GET /api/bank/rules`, `POST /api/bank/rules`, `DELETE /api/bank/rules/{id}` (`bank.read`, `bank.manage`)
 
 
 

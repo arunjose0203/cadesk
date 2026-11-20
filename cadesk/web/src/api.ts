@@ -1520,6 +1520,185 @@ export const engagementApi = {
     api<ClientKycRecordDto>('/api/kyc', { method: 'POST', body: JSON.stringify(req) }),
 }
 
+// -------------------------------------------------------------
+// Sprint 20: Bank Feeds & Automated BRS Auto-Matcher Types
+// -------------------------------------------------------------
+
+export type BankAccountDto = {
+  id: string
+  clientId: string
+  clientName: string
+  accountName: string
+  bankName: string
+  branchName?: string | null
+  accountNumber: string
+  ifscCode: string
+  accountType: string
+  openingBalance: number
+  currentBalance: number
+  currency: string
+  isActive: boolean
+  createdAt: string
+}
+
+export type CreateBankAccountRequest = {
+  clientId: string
+  accountName: string
+  bankName: string
+  branchName?: string | null
+  accountNumber: string
+  ifscCode: string
+  accountType: string
+  openingBalance: number
+  currency?: string | null
+}
+
+export type UpdateBankAccountRequest = {
+  accountName: string
+  bankName: string
+  branchName?: string | null
+  accountNumber: string
+  ifscCode: string
+  accountType: string
+  isActive: boolean
+}
+
+export type BankStatementDto = {
+  id: string
+  bankAccountId: string
+  statementDate: string
+  startDate: string
+  endDate: string
+  fileName: string
+  format: string
+  openingBalance: number
+  closingBalance: number
+  totalDebits: number
+  totalCredits: number
+  totalTransactions: number
+  status: string
+  createdAt: string
+}
+
+export type UploadStatementRequest = {
+  fileName: string
+  csvContent: string
+  statementDate?: string | null
+}
+
+export type BankTransactionDto = {
+  id: string
+  statementId: string
+  bankAccountId: string
+  transactionDate: string
+  valueDate?: string | null
+  narration: string
+  referenceNumber?: string | null
+  transactionType: string
+  amount: number
+  runningBalance?: number | null
+  category?: string | null
+  matchStatus: string
+  matchedEntityType?: string | null
+  matchedEntityId?: string | null
+  notes?: string | null
+}
+
+export type MatchTransactionRequest = {
+  matchStatus: string
+  matchedEntityType?: string | null
+  matchedEntityId?: string | null
+  notes?: string | null
+}
+
+export type BankReconciliationSummaryDto = {
+  bankAccountId: string
+  accountName: string
+  bankName: string
+  accountNumber: string
+  asOfDate: string
+  bankStatementBalance: number
+  totalUnclearedDebits: number
+  totalUncreditedCredits: number
+  directDebitsNotBooked: number
+  directCreditsNotBooked: number
+  balanceAsPerBooks: number
+  reconciledDifference: number
+  unmatchedCount: number
+  matchedCount: number
+}
+
+export type BankReconciliationRuleDto = {
+  id: string
+  ruleName: string
+  matchKeyword: string
+  transactionType: string
+  assignCategory: string
+  priority: number
+  isActive: boolean
+}
+
+export type CreateBankReconciliationRuleRequest = {
+  ruleName: string
+  matchKeyword: string
+  transactionType: string
+  assignCategory: string
+  priority: number
+}
+
+export const bankFeedApi = {
+  getAccounts: (clientId?: string) => {
+    const p = new URLSearchParams()
+    if (clientId) p.set('clientId', clientId)
+    const qs = p.toString()
+    return api<BankAccountDto[]>(`/api/bank/accounts${qs ? `?${qs}` : ''}`)
+  },
+  getAccount: (id: string) => api<BankAccountDto>(`/api/bank/accounts/${id}`),
+  createAccount: (req: CreateBankAccountRequest) =>
+    api<BankAccountDto>('/api/bank/accounts', { method: 'POST', body: JSON.stringify(req) }),
+  updateAccount: (id: string, req: UpdateBankAccountRequest) =>
+    api<BankAccountDto>(`/api/bank/accounts/${id}`, { method: 'PUT', body: JSON.stringify(req) }),
+  deleteAccount: (id: string) => api<void>(`/api/bank/accounts/${id}`, { method: 'DELETE' }),
+
+  getStatements: (accountId: string) => api<BankStatementDto[]>(`/api/bank/accounts/${accountId}/statements`),
+  uploadStatement: (accountId: string, req: UploadStatementRequest) =>
+    api<BankStatementDto>(`/api/bank/accounts/${accountId}/statements`, { method: 'POST', body: JSON.stringify(req) }),
+
+  getTransactions: (
+    accountId: string,
+    statementId?: string,
+    matchStatus?: string,
+    fromDate?: string,
+    toDate?: string
+  ) => {
+    const p = new URLSearchParams()
+    if (statementId) p.set('statementId', statementId)
+    if (matchStatus) p.set('matchStatus', matchStatus)
+    if (fromDate) p.set('fromDate', fromDate)
+    if (toDate) p.set('toDate', toDate)
+    const qs = p.toString()
+    return api<BankTransactionDto[]>(`/api/bank/accounts/${accountId}/transactions${qs ? `?${qs}` : ''}`)
+  },
+  matchTransaction: (transactionId: string, req: MatchTransactionRequest) =>
+    api<BankTransactionDto>(`/api/bank/transactions/${transactionId}/match`, {
+      method: 'POST',
+      body: JSON.stringify(req),
+    }),
+
+  getBrsSummary: (accountId: string, asOfDate?: string) => {
+    const p = new URLSearchParams()
+    if (asOfDate) p.set('asOfDate', asOfDate)
+    const qs = p.toString()
+    return api<BankReconciliationSummaryDto>(`/api/bank/accounts/${accountId}/brs${qs ? `?${qs}` : ''}`)
+  },
+
+  getRules: () => api<BankReconciliationRuleDto[]>('/api/bank/rules'),
+  createRule: (req: CreateBankReconciliationRuleRequest) =>
+    api<BankReconciliationRuleDto>('/api/bank/rules', { method: 'POST', body: JSON.stringify(req) }),
+  deleteRule: (id: string) => api<void>(`/api/bank/rules/${id}`, { method: 'DELETE' }),
+}
+
+
 
 
 
