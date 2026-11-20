@@ -84,6 +84,7 @@ builder.Services.AddScoped<CaDesk.Application.Engagements.IEngagementService, Ca
 builder.Services.AddScoped<CaDesk.Application.BankFeeds.IBankFeedService, CaDesk.Application.BankFeeds.BankFeedService>();
 builder.Services.AddScoped<CaDesk.Application.Reports.IPracticeReportService, CaDesk.Application.Reports.PracticeReportService>();
 builder.Services.AddScoped<CaDesk.Application.TaxNotices.ITaxNoticeService, CaDesk.Application.TaxNotices.TaxNoticeService>();
+builder.Services.AddScoped<CaDesk.Application.Payroll.IPayrollService, CaDesk.Application.Payroll.PayrollService>();
 var docOptions = config.GetSection("Documents").Get<CaDesk.Api.Documents.DocumentOptions>() ?? new();
 var storagePath = docOptions.StoragePath;
 if (storagePath.Length == 0)
@@ -235,6 +236,7 @@ app.MapEngagementEndpoints();
 app.MapBankFeedEndpoints();
 app.MapPracticeReportEndpoints();
 app.MapTaxNoticeEndpoints();
+app.MapPayrollEndpoints();
 app.MapSettingsEndpoints();
 app.MapAuditEndpoints();
 

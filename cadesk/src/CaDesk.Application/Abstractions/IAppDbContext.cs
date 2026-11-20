@@ -6,6 +6,7 @@ using CaDesk.Domain.Engagements;
 using CaDesk.Domain.BankFeeds;
 using CaDesk.Domain.Reports;
 using CaDesk.Domain.TaxNotices;
+using CaDesk.Domain.Payroll;
 using CaDesk.Domain.Billing;
 using CaDesk.Domain.Clients;
 using CaDesk.Domain.Dsc;
@@ -92,6 +93,9 @@ public interface IAppDbContext
     DbSet<NoticeHearing> NoticeHearings { get; }
     DbSet<NoticeResponse> NoticeResponses { get; }
     DbSet<TaxDemand> TaxDemands { get; }
+    DbSet<PayrollEmployee> PayrollEmployees { get; }
+    DbSet<PayrollRun> PayrollRuns { get; }
+    DbSet<PayrollPayslip> PayrollPayslips { get; }
     /// <summary>For transactions and the few raw SQL calls (numbering, jsonb lookups). RLS still applies.</summary>
     DatabaseFacade Database { get; }
     Task<int> SaveChangesAsync(CancellationToken ct = default);

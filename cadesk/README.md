@@ -25,6 +25,7 @@ Multi-tenant SaaS for CA and accounting firms (India first, GCC later).
 | 20 | Cash & Bank Feeds, Multi-Bank Statement Parser & BRS Auto-Matcher: Bank accounts master (Current, Savings, OD, CC), CSV/OFX statement parsing, auto-categorization heuristics & custom rules, transaction-to-ledger matching, statutory Bank Reconciliation Statement (BRS) calculation engine | Bank accounts registered; CSV statements parsed into debit/credit streams; rules auto-classify UPI/salary/charges; BRS report computes timing differences; strict multi-firm isolation |
 | 21 | Practice MIS & Executive Reporting Desk: Executive KPI summary, Client profitability & margins, Staff billable utilization, Aging of receivables (0-30, 31-60, 61-90, 90+ days), Statutory compliance SLAs, FY target setting | Real-time practice financial KPIs, overdue recovery insights, staff capacity analytics, and client margin ranking; two-lock multi-tenancy |
 | 22 | Tax Notice & Faceless Assessment Management Desk: CBDT/CBIC DIN verification (non-est notices), Faceless Video Conference & hearing appointments, Maker-checker written submission workflows with partner sign-off, Outstanding tax demand ledger & CIT(A) 30-day appeal countdowns | Statutory notice tracking, faceless hearing room management, partner-approved portal submissions, and stay/demand tracking; two-lock multi-tenancy |
+| 23 | Payroll, Salary TDS & Statutory PF / ESIC Engine: Client employee master, Automated EPF (12% + EPS 8.33% / EPF 3.67% split), ESIC (0.75% / 3.25%), State Professional Tax (PT), Section 192 Salary TDS, Monthly salary register & EPFO ECR text export | Automated statutory wage ceilings, payslip generation, and official ECR file formatting; two-lock multi-tenancy |
 
 ## What's inside
 
@@ -543,6 +544,30 @@ API:
 - `GET /api/tax-notices/{id}/responses`, `POST /api/tax-notices/{id}/responses`, `POST /api/tax-notices/responses/{id}/approve`, `POST /api/tax-notices/responses/{id}/submit` (`notices.read`, `notices.manage`, `notices.approve`)
 - `GET /api/tax-notices/demands`, `POST /api/tax-notices/demands`, `POST /api/tax-notices/demands/{id}/payment`, `PUT /api/tax-notices/demands/{id}/appeal` (`notices.read`, `notices.manage`)
 - `GET /api/tax-notices/summary` (`notices.read`)
+
+## Payroll, Salary TDS & Statutory PF / ESIC Engine (Sprint 23)
+
+- **Client Employee Master & Salary Structures**:
+  - Employee records linked to client firms: Employee code, PAN, UAN (Universal Account Number), ESIC insurance number, and designation.
+  - Multi-component salary structure: Basic Salary, HRA, Special Allowance, Other Allowances, and Monthly CTC.
+  - Dual tax regime preference: New Regime (Section 115BAC) vs. Old Regime.
+- **Automated Statutory Deductions Engine**:
+  - **EPF (Employees' Provident Fund)**: 12% employee contribution on PF wage (Basic) subject to the ₹15,000 statutory wage ceiling. Automated employer split: EPS (Pension) 8.33% (capped at ₹1,250/mo) and EPF 3.67%.
+  - **ESIC (Employees' State Insurance)**: Automatic wage threshold evaluation (gross salary &le; ₹21,000/mo). Calculates employee contribution (0.75%) and employer contribution (3.25%).
+  - **State Professional Tax (PT)**: Built-in state slab rules (e.g. Maharashtra ₹175/₹200 and ₹300 February balance, Karnataka ₹200 for gross > ₹15,000).
+  - **Salary TDS (Section 192)**: Projected annual tax with standard deduction (₹75,000 in New Regime, ₹50,000 in Old Regime), Section 87A rebate (&le; ₹7,00,000 taxable), and monthly withholding.
+- **Monthly Payroll Processing & Register**:
+  - Executes batch monthly salary runs with pro-rata attendance calculations (`DaysWorked / DaysInMonth`) and bonus/incentive overrides.
+  - Full itemized payslips storing earnings, statutory deductions, employer contributions, and net take-home salary.
+- **EPFO ECR Text Export**:
+  - One-click generation of the standard `#~#` delimited Electronic Challan cum Return (ECR) text file ready for direct upload to the EPFO unified employer portal.
+- **Two Locks**: EF Core global query filters and PostgreSQL Row Level Security on `payroll_employees`, `payroll_runs`, and `payroll_payslips` (`0022_payroll_statutory.sql`).
+
+API:
+- `GET /api/payroll/employees`, `GET /api/payroll/employees/{id}`, `POST /api/payroll/employees`, `PUT /api/payroll/employees/{id}`, `DELETE /api/payroll/employees/{id}` (`payroll.read`, `payroll.manage`)
+- `GET /api/payroll/runs`, `GET /api/payroll/runs/{id}`, `POST /api/payroll/runs`, `PUT /api/payroll/runs/{id}/status` (`payroll.read`, `payroll.process`)
+- `GET /api/payroll/runs/{id}/payslips`, `GET /api/payroll/runs/{id}/ecr` (`payroll.read`)
+- `GET /api/payroll/summary` (`payroll.read`)
 
 
 

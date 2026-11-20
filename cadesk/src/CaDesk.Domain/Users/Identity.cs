@@ -144,4 +144,7 @@ public static class Perms
     public const string NoticesRead = "notices.read";
     public const string NoticesManage = "notices.manage";
     public const string NoticesApprove = "notices.approve";
+    public const string PayrollRead = "payroll.read";
+    public const string PayrollManage = "payroll.manage";
+    public const string PayrollProcess = "payroll.process";
 }

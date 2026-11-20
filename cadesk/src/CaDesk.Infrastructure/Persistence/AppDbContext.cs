@@ -18,6 +18,7 @@ using CaDesk.Domain.Tasks;
 using CaDesk.Domain.Notifications;
 using CaDesk.Domain.Reports;
 using CaDesk.Domain.TaxNotices;
+using CaDesk.Domain.Payroll;
 using CaDesk.Domain.Common;
 using CaDesk.Domain.Configuration;
 using CaDesk.Domain.Firms;
@@ -96,6 +97,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
     public DbSet<NoticeHearing> NoticeHearings => Set<NoticeHearing>();
     public DbSet<NoticeResponse> NoticeResponses => Set<NoticeResponse>();
     public DbSet<TaxDemand> TaxDemands => Set<TaxDemand>();
+    public DbSet<PayrollEmployee> PayrollEmployees => Set<PayrollEmployee>();
+    public DbSet<PayrollRun> PayrollRuns => Set<PayrollRun>();
+    public DbSet<PayrollPayslip> PayrollPayslips => Set<PayrollPayslip>();
     public DbSet<ConfigDefinition> ConfigDefinitions => Set<ConfigDefinition>();
     public DbSet<ConfigValue> ConfigValues => Set<ConfigValue>();
     public DbSet<ConfigChangeLog> ConfigChangeLog => Set<ConfigChangeLog>();
@@ -443,6 +447,30 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
             e.ToTable("tax_demands");
             e.Property(x => x.AppealStatus).HasConversion<string>();
             e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<PayrollEmployee>(e =>
+        {
+            e.ToTable("payroll_employees");
+            e.Property(x => x.TaxRegime).HasConversion<string>();
+            e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.FirmId, x.ClientId, x.EmployeeCode }).IsUnique().HasDatabaseName("ux_payroll_employees_client_code");
+        });
+
+        b.Entity<PayrollRun>(e =>
+        {
+            e.ToTable("payroll_runs");
+            e.Property(x => x.Status).HasConversion<string>();
+            e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
+            e.HasMany(x => x.Payslips).WithOne(x => x.PayrollRun).HasForeignKey(x => x.PayrollRunId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.FirmId, x.ClientId, x.PayrollPeriod }).IsUnique().HasDatabaseName("ux_payroll_runs_client_period");
+        });
+
+        b.Entity<PayrollPayslip>(e =>
+        {
+            e.ToTable("payroll_payslips");
+            e.HasOne(x => x.PayrollRun).WithMany(x => x.Payslips).HasForeignKey(x => x.PayrollRunId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Employee).WithMany().HasForeignKey(x => x.EmployeeId).OnDelete(DeleteBehavior.Cascade);
         });
 
         b.Entity<TaskTemplate>(e =>

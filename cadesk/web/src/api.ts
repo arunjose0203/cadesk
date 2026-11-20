@@ -2120,6 +2120,195 @@ export const taxNoticesApi = {
     api<TaxDemandDto>(`/api/tax-notices/demands/${demandId}/appeal`, { method: 'PUT', body: JSON.stringify(req) }),
 }
 
+// ---------------------------------------------------------------------------
+// Sprint 23: Payroll, Salary TDS & Statutory PF / ESIC Engine
+// ---------------------------------------------------------------------------
+export type PayrollTaxRegime = 'NewRegime' | 'OldRegime'
+export type PayrollRunStatus = 'Draft' | 'Approved' | 'Disbursed' | 'Cancelled'
+
+export type PayrollEmployeeDto = {
+  id: string
+  clientId: string
+  clientName: string
+  clientCode: string
+  employeeCode: string
+  name: string
+  pan?: string | null
+  uan?: string | null
+  esicNumber?: string | null
+  dateOfJoining: string
+  designation: string
+  department?: string | null
+  state: string
+  taxRegime: PayrollTaxRegime
+  monthlyCtc: number
+  basicSalary: number
+  hra: number
+  specialAllowance: number
+  otherAllowances: number
+  grossSalary: number
+  isPfEligible: boolean
+  isEsiEligible: boolean
+  isPtEligible: boolean
+  isActive: boolean
+  estimatedPf: number
+  estimatedEsi: number
+  estimatedPt: number
+  estimatedTds: number
+  estimatedNet: number
+}
+
+export type PayrollRunDto = {
+  id: string
+  clientId: string
+  clientName: string
+  clientCode: string
+  payrollPeriod: string
+  month: number
+  year: number
+  status: PayrollRunStatus
+  totalEmployees: number
+  totalGrossPay: number
+  totalNetPay: number
+  totalEmployeePf: number
+  totalEmployerPf: number
+  totalEmployeeEsi: number
+  totalEmployerEsi: number
+  totalPt: number
+  totalTds: number
+  processedAt: string
+  notes?: string | null
+}
+
+export type PayrollPayslipDto = {
+  id: string
+  payrollRunId: string
+  employeeId: string
+  employeeCode: string
+  employeeName: string
+  pan?: string | null
+  uan?: string | null
+  daysWorked: number
+  daysInMonth: number
+  basicSalary: number
+  hra: number
+  specialAllowance: number
+  bonusIncentive: number
+  grossSalary: number
+  employeePf: number
+  employeeEsi: number
+  professionalTax: number
+  salaryTds: number
+  otherDeductions: number
+  totalDeductions: number
+  employerEps: number
+  employerEpf: number
+  employerEsi: number
+  netSalary: number
+}
+
+export type PayrollSummaryDto = {
+  totalEmployees: number
+  activeEmployees: number
+  totalMonthlyGross: number
+  totalMonthlyPfLiability: number
+  totalMonthlyEsiLiability: number
+  totalMonthlyPt: number
+  totalMonthlyTds: number
+  latestPayrollPeriod?: string | null
+}
+
+export type EpfoEcrExportDto = {
+  payrollRunId: string
+  payrollPeriod: string
+  clientName: string
+  employeeCount: number
+  totalWages: number
+  totalEmployeePf: number
+  totalEmployerEps: number
+  totalEmployerEpf: number
+  ecrText: string
+}
+
+export type SavePayrollEmployeeRequest = {
+  clientId: string
+  employeeCode: string
+  name: string
+  pan?: string | null
+  uan?: string | null
+  esicNumber?: string | null
+  dateOfJoining: string
+  designation: string
+  department?: string | null
+  state: string
+  taxRegime: PayrollTaxRegime
+  monthlyCtc: number
+  basicSalary: number
+  hra: number
+  specialAllowance: number
+  otherAllowances: number
+  isPfEligible: boolean
+  isEsiEligible: boolean
+  isPtEligible: boolean
+  isActive: boolean
+}
+
+export type EmployeeBonusOverride = {
+  employeeId: string
+  bonusIncentive: number
+  daysWorked?: number | null
+}
+
+export type ProcessPayrollRunRequest = {
+  clientId: string
+  year: number
+  month: number
+  notes?: string | null
+  overrides?: EmployeeBonusOverride[] | null
+}
+
+export type UpdatePayrollRunStatusRequest = {
+  status: PayrollRunStatus
+  notes?: string | null
+}
+
+export const payrollApi = {
+  getSummary: (clientId?: string) => {
+    const p = new URLSearchParams()
+    if (clientId) p.set('clientId', clientId)
+    const qs = p.toString()
+    return api<PayrollSummaryDto>(`/api/payroll/summary${qs ? `?${qs}` : ''}`)
+  },
+  getEmployees: (clientId?: string, activeOnly?: boolean) => {
+    const p = new URLSearchParams()
+    if (clientId) p.set('clientId', clientId)
+    if (activeOnly) p.set('activeOnly', 'true')
+    const qs = p.toString()
+    return api<PayrollEmployeeDto[]>(`/api/payroll/employees${qs ? `?${qs}` : ''}`)
+  },
+  getEmployeeById: (id: string) => api<PayrollEmployeeDto>(`/api/payroll/employees/${id}`),
+  createEmployee: (req: SavePayrollEmployeeRequest) =>
+    api<PayrollEmployeeDto>('/api/payroll/employees', { method: 'POST', body: JSON.stringify(req) }),
+  updateEmployee: (id: string, req: SavePayrollEmployeeRequest) =>
+    api<PayrollEmployeeDto>(`/api/payroll/employees/${id}`, { method: 'PUT', body: JSON.stringify(req) }),
+  deleteEmployee: (id: string) => api(`/api/payroll/employees/${id}`, { method: 'DELETE' }),
+
+  getRuns: (clientId?: string, year?: number) => {
+    const p = new URLSearchParams()
+    if (clientId) p.set('clientId', clientId)
+    if (year) p.set('year', year.toString())
+    const qs = p.toString()
+    return api<PayrollRunDto[]>(`/api/payroll/runs${qs ? `?${qs}` : ''}`)
+  },
+  getRunById: (id: string) => api<PayrollRunDto>(`/api/payroll/runs/${id}`),
+  processRun: (req: ProcessPayrollRunRequest) =>
+    api<PayrollRunDto>('/api/payroll/runs', { method: 'POST', body: JSON.stringify(req) }),
+  updateRunStatus: (id: string, req: UpdatePayrollRunStatusRequest) =>
+    api<PayrollRunDto>(`/api/payroll/runs/${id}/status`, { method: 'PUT', body: JSON.stringify(req) }),
+  getPayslips: (runId: string) => api<PayrollPayslipDto[]>(`/api/payroll/runs/${runId}/payslips`),
+  exportEcr: (runId: string) => api<EpfoEcrExportDto>(`/api/payroll/runs/${runId}/ecr`),
+}
+
 
 
 
