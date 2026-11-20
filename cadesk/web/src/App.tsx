@@ -21,8 +21,9 @@ import { BankFeedsPage } from './BankFeedsPage'
 import { ReportsPage } from './ReportsPage'
 import { TaxNoticesPage } from './TaxNoticesPage'
 import { PayrollPage } from './PayrollPage'
+import { EInvoicingPage } from './EInvoicingPage'
 
-type Page = 'tasks' | 'deadlines' | 'clients' | 'billing' | 'tax' | 'audit-workspace' | 'gst-reconcile' | 'tds' | 'mca' | 'engagement' | 'banking' | 'reports' | 'tax-notices' | 'payroll' | 'dsc' | 'portal' | 'users' | 'settings' | 'audit' | 'security'
+type Page = 'tasks' | 'deadlines' | 'clients' | 'billing' | 'tax' | 'audit-workspace' | 'gst-reconcile' | 'tds' | 'mca' | 'engagement' | 'banking' | 'reports' | 'tax-notices' | 'payroll' | 'einvoicing' | 'dsc' | 'portal' | 'users' | 'settings' | 'audit' | 'security'
 
 export default function App() {
   const [user, setUser] = useState<UserProfile | null>(null)
@@ -307,6 +308,17 @@ export default function App() {
             Payroll & PF/ESI
           </button>
         )}
+        {can('einvoice.read') && (
+          <button className={page === 'einvoicing' ? 'active' : ''} onClick={() => setPage('einvoicing')}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="1" y="3" width="15" height="13"></rect>
+              <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+              <circle cx="5.5" cy="18.5" r="2.5"></circle>
+              <circle cx="18.5" cy="18.5" r="2.5"></circle>
+            </svg>
+            E-Invoice & EWB
+          </button>
+        )}
         {can('dsc.read') && (
           <button className={page === 'dsc' ? 'active' : ''} onClick={() => setPage('dsc')}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -375,6 +387,7 @@ export default function App() {
       {page === 'reports' && can('reports.read') && <ReportsPage can={can} />}
       {page === 'tax-notices' && can('notices.read') && <TaxNoticesPage can={can} />}
       {page === 'payroll' && can('payroll.read') && <PayrollPage can={can} />}
+      {page === 'einvoicing' && can('einvoice.read') && <EInvoicingPage can={can} />}
       {page === 'dsc' && can('dsc.read') && <DscPage can={can} meId={user.id} />}
       {page === 'portal' && can('portal.read') && <PortalPage can={can} meId={user.id} />}
       {page === 'users' && can('users.read') && <UsersPage can={can} me={user} />}

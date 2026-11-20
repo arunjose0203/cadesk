@@ -2309,6 +2309,197 @@ export const payrollApi = {
   exportEcr: (runId: string) => api<EpfoEcrExportDto>(`/api/payroll/runs/${runId}/ecr`),
 }
 
+// ---------------------------------------------------------------------------
+// Sprint 24: Automated E-Invoicing & E-Way Bill Integration Desk
+// ---------------------------------------------------------------------------
+export type EInvoiceDocType = 1 | 2 | 3 | 'INV' | 'CRN' | 'DBN'
+export type EInvoiceSupplyType = 1 | 2 | 3 | 4 | 5 | 6 | 'B2B' | 'SEZWP' | 'SEZWOP' | 'EXPWP' | 'EXPWOP' | 'DEXP'
+export type EInvoiceStatus = 1 | 2 | 3 | 4 | 'Draft' | 'Generated' | 'Cancelled' | 'Failed'
+
+export type EwbSupplyType = 1 | 2 | 'Outward' | 'Inward'
+export type EwbSubSupplyType = 1 | 2 | 3 | 4 | 5 | 6 | 99 | 'Supply' | 'Export' | 'JobWork' | 'SKD_CKD' | 'LineSale' | 'Exhibition' | 'Others'
+export type EwbTransportMode = 1 | 2 | 3 | 4 | 'Road' | 'Rail' | 'Air' | 'Ship'
+export type EwbVehicleType = 1 | 2 | 'Regular' | 'OverDimensionalCargo'
+export type EwbStatus = 1 | 2 | 3 | 4 | 'Active' | 'Extended' | 'Cancelled' | 'Expired'
+
+export type EInvoiceDto = {
+  id: string
+  clientId: string
+  clientName: string
+  clientCode: string
+  invoiceId?: string | null
+  docType: EInvoiceDocType
+  docNumber: string
+  docDate: string
+  financialYear: string
+  supplierGstin: string
+  supplierTradeName: string
+  recipientGstin: string
+  recipientLegalName: string
+  supplyType: EInvoiceSupplyType
+  totalTaxableValue: number
+  cgstAmount: number
+  sgstAmount: number
+  igstAmount: number
+  cessAmount: number
+  totalInvoiceValue: number
+  irn?: string | null
+  signedQrCode?: string | null
+  ackNo?: string | null
+  ackDate?: string | null
+  status: EInvoiceStatus
+  cancelReason?: string | null
+  cancelRemarks?: string | null
+  cancelledAt?: string | null
+  createdAt: string
+}
+
+export type EWayBillDto = {
+  id: string
+  clientId: string
+  clientName: string
+  clientCode: string
+  eInvoiceId?: string | null
+  ewbNumber: string
+  ewbDate: string
+  validUntil: string
+  remainingHours: number
+  supplyType: EwbSupplyType
+  subSupplyType: EwbSubSupplyType
+  docType: string
+  docNumber: string
+  docDate: string
+  fromGstin: string
+  fromTradeName: string
+  fromPincode: string
+  fromStateCode: number
+  toGstin: string
+  toTradeName: string
+  toPincode: string
+  toStateCode: number
+  totalValue: number
+  hsnCode: string
+  distanceKm: number
+  transportMode: EwbTransportMode
+  vehicleType: EwbVehicleType
+  vehicleNumber?: string | null
+  transporterId?: string | null
+  transporterName?: string | null
+  status: EwbStatus
+  cancelReason?: string | null
+  cancelledAt?: string | null
+  createdAt: string
+}
+
+export type EInvoicingSummaryDto = {
+  totalEInvoices: number
+  activeIrnCount: number
+  cancelledIrnCount: number
+  totalEInvoicedValue: number
+  activeEWayBills: number
+  expiringSoonEwbCount: number
+  totalEwbValue: number
+}
+
+export type GenerateEInvoiceRequest = {
+  clientId: string
+  invoiceId?: string | null
+  docType: EInvoiceDocType
+  docNumber: string
+  docDate: string
+  financialYear: string
+  supplierGstin: string
+  supplierTradeName: string
+  recipientGstin: string
+  recipientLegalName: string
+  supplyType: EInvoiceSupplyType
+  totalTaxableValue: number
+  cgstAmount: number
+  sgstAmount: number
+  igstAmount: number
+  cessAmount: number
+  mainHsnCode: string
+  itemCount: number
+}
+
+export type CancelEInvoiceRequest = {
+  reason: string
+  remarks?: string | null
+}
+
+export type GenerateEWayBillRequest = {
+  clientId: string
+  eInvoiceId?: string | null
+  supplyType: EwbSupplyType
+  subSupplyType: EwbSubSupplyType
+  docType: string
+  docNumber: string
+  docDate: string
+  fromGstin: string
+  fromTradeName: string
+  fromPincode: string
+  fromStateCode: number
+  toGstin: string
+  toTradeName: string
+  toPincode: string
+  toStateCode: number
+  totalValue: number
+  hsnCode: string
+  distanceKm: number
+  transportMode: EwbTransportMode
+  vehicleType: EwbVehicleType
+  vehicleNumber?: string | null
+  transporterId?: string | null
+  transporterName?: string | null
+}
+
+export type UpdateEWayBillPartBRequest = {
+  vehicleNumber: string
+  transporterId?: string | null
+  transporterName?: string | null
+  reason: string
+}
+
+export type CancelEWayBillRequest = {
+  reason: string
+}
+
+export const eInvoicingApi = {
+  getSummary: (clientId?: string) => {
+    const p = new URLSearchParams()
+    if (clientId) p.set('clientId', clientId)
+    const qs = p.toString()
+    return api<EInvoicingSummaryDto>(`/api/einvoicing/summary${qs ? `?${qs}` : ''}`)
+  },
+  getInvoices: (clientId?: string, status?: EInvoiceStatus) => {
+    const p = new URLSearchParams()
+    if (clientId) p.set('clientId', clientId)
+    if (status !== undefined) p.set('status', status.toString())
+    const qs = p.toString()
+    return api<EInvoiceDto[]>(`/api/einvoicing/invoices${qs ? `?${qs}` : ''}`)
+  },
+  getInvoiceById: (id: string) => api<EInvoiceDto>(`/api/einvoicing/invoices/${id}`),
+  generateInvoice: (req: GenerateEInvoiceRequest) =>
+    api<EInvoiceDto>('/api/einvoicing/invoices', { method: 'POST', body: JSON.stringify(req) }),
+  cancelInvoice: (id: string, req: CancelEInvoiceRequest) =>
+    api<EInvoiceDto>(`/api/einvoicing/invoices/${id}/cancel`, { method: 'POST', body: JSON.stringify(req) }),
+
+  getEWayBills: (clientId?: string, status?: EwbStatus) => {
+    const p = new URLSearchParams()
+    if (clientId) p.set('clientId', clientId)
+    if (status !== undefined) p.set('status', status.toString())
+    const qs = p.toString()
+    return api<EWayBillDto[]>(`/api/einvoicing/ewaybills${qs ? `?${qs}` : ''}`)
+  },
+  getEWayBillById: (id: string) => api<EWayBillDto>(`/api/einvoicing/ewaybills/${id}`),
+  generateEWayBill: (req: GenerateEWayBillRequest) =>
+    api<EWayBillDto>('/api/einvoicing/ewaybills', { method: 'POST', body: JSON.stringify(req) }),
+  updatePartB: (id: string, req: UpdateEWayBillPartBRequest) =>
+    api<EWayBillDto>(`/api/einvoicing/ewaybills/${id}/part-b`, { method: 'PUT', body: JSON.stringify(req) }),
+  cancelEWayBill: (id: string, req: CancelEWayBillRequest) =>
+    api<EWayBillDto>(`/api/einvoicing/ewaybills/${id}/cancel`, { method: 'POST', body: JSON.stringify(req) }),
+}
+
 
 
 

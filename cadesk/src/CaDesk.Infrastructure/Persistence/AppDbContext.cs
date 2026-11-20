@@ -19,6 +19,7 @@ using CaDesk.Domain.Notifications;
 using CaDesk.Domain.Reports;
 using CaDesk.Domain.TaxNotices;
 using CaDesk.Domain.Payroll;
+using CaDesk.Domain.EInvoicing;
 using CaDesk.Domain.Common;
 using CaDesk.Domain.Configuration;
 using CaDesk.Domain.Firms;
@@ -100,6 +101,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
     public DbSet<PayrollEmployee> PayrollEmployees => Set<PayrollEmployee>();
     public DbSet<PayrollRun> PayrollRuns => Set<PayrollRun>();
     public DbSet<PayrollPayslip> PayrollPayslips => Set<PayrollPayslip>();
+    public DbSet<EInvoiceRecord> EInvoices => Set<EInvoiceRecord>();
+    public DbSet<EWayBillRecord> EWayBills => Set<EWayBillRecord>();
     public DbSet<ConfigDefinition> ConfigDefinitions => Set<ConfigDefinition>();
     public DbSet<ConfigValue> ConfigValues => Set<ConfigValue>();
     public DbSet<ConfigChangeLog> ConfigChangeLog => Set<ConfigChangeLog>();
@@ -471,6 +474,30 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
             e.ToTable("payroll_payslips");
             e.HasOne(x => x.PayrollRun).WithMany(x => x.Payslips).HasForeignKey(x => x.PayrollRunId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(x => x.Employee).WithMany().HasForeignKey(x => x.EmployeeId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<EInvoiceRecord>(e =>
+        {
+            e.ToTable("einvoice_records");
+            e.Property(x => x.DocType).HasConversion<string>();
+            e.Property(x => x.SupplyType).HasConversion<string>();
+            e.Property(x => x.Status).HasConversion<string>();
+            e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Invoice).WithMany().HasForeignKey(x => x.InvoiceId).OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(x => new { x.FirmId, x.SupplierGstin, x.FinancialYear, x.DocType, x.DocNumber }).IsUnique().HasDatabaseName("ux_einvoice_records_supplier_doc");
+        });
+
+        b.Entity<EWayBillRecord>(e =>
+        {
+            e.ToTable("eway_bill_records");
+            e.Property(x => x.SupplyType).HasConversion<string>();
+            e.Property(x => x.SubSupplyType).HasConversion<string>();
+            e.Property(x => x.TransportMode).HasConversion<string>();
+            e.Property(x => x.VehicleType).HasConversion<string>();
+            e.Property(x => x.Status).HasConversion<string>();
+            e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.EInvoice).WithMany().HasForeignKey(x => x.EInvoiceId).OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(x => new { x.FirmId, x.EwbNumber }).IsUnique().HasDatabaseName("ux_eway_bill_records_ewb_num");
         });
 
         b.Entity<TaskTemplate>(e =>

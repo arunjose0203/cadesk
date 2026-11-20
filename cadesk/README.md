@@ -26,6 +26,7 @@ Multi-tenant SaaS for CA and accounting firms (India first, GCC later).
 | 21 | Practice MIS & Executive Reporting Desk: Executive KPI summary, Client profitability & margins, Staff billable utilization, Aging of receivables (0-30, 31-60, 61-90, 90+ days), Statutory compliance SLAs, FY target setting | Real-time practice financial KPIs, overdue recovery insights, staff capacity analytics, and client margin ranking; two-lock multi-tenancy |
 | 22 | Tax Notice & Faceless Assessment Management Desk: CBDT/CBIC DIN verification (non-est notices), Faceless Video Conference & hearing appointments, Maker-checker written submission workflows with partner sign-off, Outstanding tax demand ledger & CIT(A) 30-day appeal countdowns | Statutory notice tracking, faceless hearing room management, partner-approved portal submissions, and stay/demand tracking; two-lock multi-tenancy |
 | 23 | Payroll, Salary TDS & Statutory PF / ESIC Engine: Client employee master, Automated EPF (12% + EPS 8.33% / EPF 3.67% split), ESIC (0.75% / 3.25%), State Professional Tax (PT), Section 192 Salary TDS, Monthly salary register & EPFO ECR text export | Automated statutory wage ceilings, payslip generation, and official ECR file formatting; two-lock multi-tenancy |
+| 24 | Automated E-Invoicing & E-Way Bill Integration Desk: Direct Invoice Registration Portal (IRP) simulation, 64-character SHA-256 IRN generation, digitally signed QR codes, Rule 138(10) E-Way Bill validity calculator, Part-B multi-modal vehicle updater, 24-hour statutory cancellation engine | Direct IRP schema generation, dynamic distance-based validity countdowns, vehicle transshipment updates, and multi-tenant firm isolation |
 
 ## What's inside
 
@@ -568,6 +569,31 @@ API:
 - `GET /api/payroll/runs`, `GET /api/payroll/runs/{id}`, `POST /api/payroll/runs`, `PUT /api/payroll/runs/{id}/status` (`payroll.read`, `payroll.process`)
 - `GET /api/payroll/runs/{id}/payslips`, `GET /api/payroll/runs/{id}/ecr` (`payroll.read`)
 - `GET /api/payroll/summary` (`payroll.read`)
+
+## Automated E-Invoicing & E-Way Bill Integration Desk (Sprint 24)
+
+- **Direct IRP E-Invoice & IRN Generation**:
+  - Full support for GST e-invoicing schema (INV tax invoice, CRN credit note, DBN debit note).
+  - SHA-256 Invoice Reference Number (IRN) hash synthesis (`SupplierGSTIN + FY + DocType + DocNumber`) generating official 64-character lowercase hexadecimal IRNs.
+  - Generates digitally signed QR code payloads carrying supplier GSTIN, recipient GSTIN, document number, document date, total invoice value, HSN, IRN, and IRP digital signature.
+  - Real-time IRP acknowledgement number and timestamp assignment.
+- **Rule 138(10) E-Way Bill Validity Engine**:
+  - Automatically calculates statutory movement validity based on consignment distance:
+    - **Regular Cargo**: 1 day for every 200 km (or part thereof); minimum 1 day.
+    - **Over Dimensional Cargo (ODC)**: 1 day for every 20 km (or part thereof); minimum 1 day.
+  - Live countdown meter calculating hours remaining before transit expiration, highlighting expiring-soon consignments (< 24h).
+- **Part-B Vehicle & Multi-Modal Transit Updater**:
+  - Update vehicle registration numbers dynamically for transshipment or vehicle breakdowns during transit.
+  - Multi-modal support (Road, Rail, Air, Ship) with transporter assignment tracking.
+- **Statutory 24-Hour IRN Cancellation Desk**:
+  - Enforces the statutory 24-hour cancellation rule on the IRP with official cancellation codes (Duplicate, Data Entry Mistake, Order Cancelled, Others).
+  - Flags and blocks attempts to cancel IRNs past the 24-hour threshold, prompting the user to issue a Credit Note (CRN) instead.
+- **Two Locks**: EF Core global query filters and PostgreSQL Row Level Security on `einvoice_records` and `eway_bill_records` (`0023_einvoicing_ewaybill.sql`).
+
+API:
+- `GET /api/einvoicing/invoices`, `GET /api/einvoicing/invoices/{id}`, `POST /api/einvoicing/invoices`, `POST /api/einvoicing/invoices/{id}/cancel` (`einvoice.read`, `einvoice.generate`, `einvoice.cancel`)
+- `GET /api/einvoicing/ewaybills`, `GET /api/einvoicing/ewaybills/{id}`, `POST /api/einvoicing/ewaybills`, `PUT /api/einvoicing/ewaybills/{id}/part-b`, `POST /api/einvoicing/ewaybills/{id}/cancel` (`einvoice.read`, `einvoice.generate`, `einvoice.cancel`)
+- `GET /api/einvoicing/summary` (`einvoice.read`)
 
 
 

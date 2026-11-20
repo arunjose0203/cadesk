@@ -147,4 +147,7 @@ public static class Perms
     public const string PayrollRead = "payroll.read";
     public const string PayrollManage = "payroll.manage";
     public const string PayrollProcess = "payroll.process";
+    public const string EInvoiceRead = "einvoice.read";
+    public const string EInvoiceGenerate = "einvoice.generate";
+    public const string EInvoiceCancel = "einvoice.cancel";
 }
