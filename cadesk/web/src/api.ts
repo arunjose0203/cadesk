@@ -4055,6 +4055,186 @@ export const branchAuditApi = {
     api<BranchAuditEngagementDto>(`/api/branchaudit/engagements/${engagementId}/finalize`, { method: 'POST' })
 }
 
+export type InternalControlDeficiencyDto = {
+  id: string
+  committeeEngagementId: string
+  deficiencyCode: string
+  title: string
+  processArea: string
+  deficiencyType: string
+  severity: string
+  description: string
+  potentialFinancialEffect: string
+  estimatedRiskAmount?: number | null
+  auditorRecommendation: string
+  managementResponse?: string | null
+  remediationTargetDate?: string | null
+  status: string
+  createdAt: string
+  updatedAt?: string | null
+}
+
+export type SignificantAuditMatterDto = {
+  id: string
+  committeeEngagementId: string
+  matterCode: string
+  subject: string
+  category: string
+  details: string
+  auditorAssessment: string
+  auditCommitteeFeedback?: string | null
+  createdAt: string
+  updatedAt?: string | null
+}
+
+export type UncorrectedMisstatementDto = {
+  id: string
+  committeeEngagementId: string
+  accountDescription: string
+  misstatementAmount: number
+  nature: string
+  isMaterial: boolean
+  managementJustificationForNonAdjustment?: string | null
+  createdAt: string
+  updatedAt?: string | null
+}
+
+export type AuditCommitteeEngagementDto = {
+  id: string
+  clientId: string
+  clientName?: string | null
+  clientPan?: string | null
+  auditEngagementId?: string | null
+  auditEngagementTitle?: string | null
+  financialYear: string
+  title: string
+  meetingType: string
+  meetingDate?: string | null
+  meetingLocation?: string | null
+  committeeChairName: string
+  leadPartnerName: string
+  status: string
+  meetingMinutes?: string | null
+  generatedGovernancePackText?: string | null
+  generatedSa265LetterText?: string | null
+  signedOffByUserId?: string | null
+  signedOffByUserName?: string | null
+  signedOffAt?: string | null
+  createdAt: string
+  updatedAt?: string | null
+  totalDeficienciesCount: number
+  significantDeficienciesCount: number
+  totalEstimatedRiskAmount: number
+  significantMattersCount: number
+  uncorrectedMisstatementsCount: number
+  totalUncorrectedMisstatementAmount: number
+  deficiencies: InternalControlDeficiencyDto[]
+  significantMatters: SignificantAuditMatterDto[]
+  uncorrectedMisstatements: UncorrectedMisstatementDto[]
+}
+
+export type SaveCommitteeEngagementRequest = {
+  clientId: string
+  auditEngagementId?: string | null
+  financialYear: string
+  title: string
+  meetingType: string
+  meetingDate?: string | null
+  meetingLocation?: string | null
+  committeeChairName: string
+  leadPartnerName: string
+  meetingMinutes?: string | null
+}
+
+export type SaveDeficiencyRequest = {
+  deficiencyCode: string
+  title: string
+  processArea: string
+  deficiencyType: string
+  severity: string
+  description: string
+  potentialFinancialEffect: string
+  estimatedRiskAmount?: number | null
+  auditorRecommendation: string
+  managementResponse?: string | null
+  remediationTargetDate?: string | null
+  status: string
+}
+
+export type SaveSignificantMatterRequest = {
+  matterCode: string
+  subject: string
+  category: string
+  details: string
+  auditorAssessment: string
+  auditCommitteeFeedback?: string | null
+}
+
+export type SaveUncorrectedMisstatementRequest = {
+  accountDescription: string
+  misstatementAmount: number
+  nature: string
+  isMaterial: boolean
+  managementJustificationForNonAdjustment?: string | null
+}
+
+export type SignOffCommitteeEngagementRequest = {
+  minutes?: string | null
+}
+
+export type AuditCommitteeSummaryDto = {
+  totalEngagements: number
+  packGeneratedCount: number
+  signedOffCount: number
+  totalDeficiencies: number
+  totalSignificantDeficiencies: number
+  totalEstimatedRiskAmount: number
+  totalSignificantMatters: number
+  totalUncorrectedMisstatements: number
+  totalUncorrectedMisstatementValue: number
+}
+
+export const auditCommitteeApi = {
+  getSummary: () => api<AuditCommitteeSummaryDto>('/api/auditcommittee/summary'),
+  getEngagements: (clientId?: string, fy?: string, status?: string) => {
+    const p = new URLSearchParams()
+    if (clientId) p.set('clientId', clientId)
+    if (fy) p.set('fy', fy)
+    if (status) p.set('status', status)
+    const qs = p.toString()
+    return api<AuditCommitteeEngagementDto[]>(`/api/auditcommittee/engagements${qs ? `?${qs}` : ''}`)
+  },
+  getEngagementById: (id: string) => api<AuditCommitteeEngagementDto>(`/api/auditcommittee/engagements/${id}`),
+  createEngagement: (req: SaveCommitteeEngagementRequest) =>
+    api<AuditCommitteeEngagementDto>('/api/auditcommittee/engagements', { method: 'POST', body: JSON.stringify(req) }),
+  updateEngagement: (id: string, req: SaveCommitteeEngagementRequest) =>
+    api<AuditCommitteeEngagementDto>(`/api/auditcommittee/engagements/${id}`, { method: 'PUT', body: JSON.stringify(req) }),
+  deleteEngagement: (id: string) =>
+    api<void>(`/api/auditcommittee/engagements/${id}`, { method: 'DELETE' }),
+  addDeficiency: (engagementId: string, req: SaveDeficiencyRequest) =>
+    api<InternalControlDeficiencyDto>(`/api/auditcommittee/engagements/${engagementId}/deficiencies`, { method: 'POST', body: JSON.stringify(req) }),
+  updateDeficiency: (engagementId: string, deficiencyId: string, req: SaveDeficiencyRequest) =>
+    api<InternalControlDeficiencyDto>(`/api/auditcommittee/engagements/${engagementId}/deficiencies/${deficiencyId}`, { method: 'PUT', body: JSON.stringify(req) }),
+  deleteDeficiency: (engagementId: string, deficiencyId: string) =>
+    api<void>(`/api/auditcommittee/engagements/${engagementId}/deficiencies/${deficiencyId}`, { method: 'DELETE' }),
+  addMatter: (engagementId: string, req: SaveSignificantMatterRequest) =>
+    api<SignificantAuditMatterDto>(`/api/auditcommittee/engagements/${engagementId}/matters`, { method: 'POST', body: JSON.stringify(req) }),
+  updateMatter: (engagementId: string, matterId: string, req: SaveSignificantMatterRequest) =>
+    api<SignificantAuditMatterDto>(`/api/auditcommittee/engagements/${engagementId}/matters/${matterId}`, { method: 'PUT', body: JSON.stringify(req) }),
+  deleteMatter: (engagementId: string, matterId: string) =>
+    api<void>(`/api/auditcommittee/engagements/${engagementId}/matters/${matterId}`, { method: 'DELETE' }),
+  addMisstatement: (engagementId: string, req: SaveUncorrectedMisstatementRequest) =>
+    api<UncorrectedMisstatementDto>(`/api/auditcommittee/engagements/${engagementId}/misstatements`, { method: 'POST', body: JSON.stringify(req) }),
+  updateMisstatement: (engagementId: string, misstatementId: string, req: SaveUncorrectedMisstatementRequest) =>
+    api<UncorrectedMisstatementDto>(`/api/auditcommittee/engagements/${engagementId}/misstatements/${misstatementId}`, { method: 'PUT', body: JSON.stringify(req) }),
+  deleteMisstatement: (engagementId: string, misstatementId: string) =>
+    api<void>(`/api/auditcommittee/engagements/${engagementId}/misstatements/${misstatementId}`, { method: 'DELETE' }),
+  generatePack: (engagementId: string) =>
+    api<AuditCommitteeEngagementDto>(`/api/auditcommittee/engagements/${engagementId}/generate-pack`, { method: 'POST' }),
+  signOff: (engagementId: string, req: SignOffCommitteeEngagementRequest) =>
+    api<AuditCommitteeEngagementDto>(`/api/auditcommittee/engagements/${engagementId}/signoff`, { method: 'POST', body: JSON.stringify(req) })
+}
+
 
 
 

@@ -28,6 +28,7 @@ using CaDesk.Domain.Caro;
 using CaDesk.Domain.TaxAudit;
 using CaDesk.Domain.Schedule3;
 using CaDesk.Domain.BranchAudit;
+using CaDesk.Domain.AuditCommittee;
 using CaDesk.Domain.Common;
 using CaDesk.Domain.Configuration;
 using CaDesk.Domain.Firms;
@@ -134,6 +135,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
     public DbSet<Schedule3AgeingItem> Schedule3AgeingItems => Set<Schedule3AgeingItem>();
     public DbSet<BranchAuditEngagement> BranchAuditEngagements => Set<BranchAuditEngagement>();
     public DbSet<BranchAuditOffice> BranchAuditOffices => Set<BranchAuditOffice>();
+    public DbSet<AuditCommitteeEngagement> AuditCommitteeEngagements => Set<AuditCommitteeEngagement>();
+    public DbSet<InternalControlDeficiency> InternalControlDeficiencies => Set<InternalControlDeficiency>();
+    public DbSet<SignificantAuditMatter> SignificantAuditMatters => Set<SignificantAuditMatter>();
+    public DbSet<UncorrectedMisstatement> UncorrectedMisstatements => Set<UncorrectedMisstatement>();
     public DbSet<ConfigDefinition> ConfigDefinitions => Set<ConfigDefinition>();
     public DbSet<ConfigValue> ConfigValues => Set<ConfigValue>();
     public DbSet<ConfigChangeLog> ConfigChangeLog => Set<ConfigChangeLog>();
@@ -720,6 +725,39 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
             e.HasOne(x => x.ReviewedByUser).WithMany().HasForeignKey(x => x.ReviewedByUserId).OnDelete(DeleteBehavior.SetNull);
             e.HasIndex(x => new { x.FirmId, x.EngagementId }).HasDatabaseName("ix_branch_audit_offices_engagement");
             e.HasIndex(x => x.AccessTokenHash).HasDatabaseName("ix_branch_audit_offices_token");
+        });
+
+        b.Entity<AuditCommitteeEngagement>(e =>
+        {
+            e.ToTable("audit_committee_engagements");
+            e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.AuditEngagement).WithMany().HasForeignKey(x => x.AuditEngagementId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.SignedOffByUser).WithMany().HasForeignKey(x => x.SignedOffByUserId).OnDelete(DeleteBehavior.SetNull);
+            e.HasMany(x => x.Deficiencies).WithOne(x => x.Engagement).HasForeignKey(x => x.CommitteeEngagementId).OnDelete(DeleteBehavior.Cascade);
+            e.HasMany(x => x.SignificantMatters).WithOne(x => x.Engagement).HasForeignKey(x => x.CommitteeEngagementId).OnDelete(DeleteBehavior.Cascade);
+            e.HasMany(x => x.UncorrectedMisstatements).WithOne(x => x.Engagement).HasForeignKey(x => x.CommitteeEngagementId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.FirmId, x.ClientId, x.FinancialYear }).HasDatabaseName("ix_audit_committee_engagements_client_fy");
+        });
+
+        b.Entity<InternalControlDeficiency>(e =>
+        {
+            e.ToTable("internal_control_deficiencies");
+            e.HasOne(x => x.Engagement).WithMany(x => x.Deficiencies).HasForeignKey(x => x.CommitteeEngagementId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.FirmId, x.CommitteeEngagementId }).HasDatabaseName("ix_internal_control_deficiencies_engagement");
+        });
+
+        b.Entity<SignificantAuditMatter>(e =>
+        {
+            e.ToTable("significant_audit_matters");
+            e.HasOne(x => x.Engagement).WithMany(x => x.SignificantMatters).HasForeignKey(x => x.CommitteeEngagementId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.FirmId, x.CommitteeEngagementId }).HasDatabaseName("ix_significant_audit_matters_engagement");
+        });
+
+        b.Entity<UncorrectedMisstatement>(e =>
+        {
+            e.ToTable("uncorrected_misstatements");
+            e.HasOne(x => x.Engagement).WithMany(x => x.UncorrectedMisstatements).HasForeignKey(x => x.CommitteeEngagementId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.FirmId, x.CommitteeEngagementId }).HasDatabaseName("ix_uncorrected_misstatements_engagement");
         });
 
         b.Entity<TaskTemplate>(e =>

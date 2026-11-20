@@ -130,6 +130,10 @@ public interface IAppDbContext
     DbSet<Schedule3AgeingItem> Schedule3AgeingItems { get; }
     DbSet<BranchAuditEngagement> BranchAuditEngagements { get; }
     DbSet<BranchAuditOffice> BranchAuditOffices { get; }
+    DbSet<CaDesk.Domain.AuditCommittee.AuditCommitteeEngagement> AuditCommitteeEngagements { get; }
+    DbSet<CaDesk.Domain.AuditCommittee.InternalControlDeficiency> InternalControlDeficiencies { get; }
+    DbSet<CaDesk.Domain.AuditCommittee.SignificantAuditMatter> SignificantAuditMatters { get; }
+    DbSet<CaDesk.Domain.AuditCommittee.UncorrectedMisstatement> UncorrectedMisstatements { get; }
     /// <summary>For transactions and the few raw SQL calls (numbering, jsonb lookups). RLS still applies.</summary>
     DatabaseFacade Database { get; }
     Task<int> SaveChangesAsync(CancellationToken ct = default);

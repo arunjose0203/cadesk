@@ -178,4 +178,7 @@ public static class Perms
     public const string BranchAuditRead = "branchaudit.read";
     public const string BranchAuditManage = "branchaudit.manage";
     public const string BranchAuditConsolidate = "branchaudit.consolidate";
+    public const string AuditCommitteeRead = "auditcommittee.read";
+    public const string AuditCommitteeManage = "auditcommittee.manage";
+    public const string AuditCommitteeSignOff = "auditcommittee.signoff";
 }

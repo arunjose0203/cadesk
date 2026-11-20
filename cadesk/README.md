@@ -36,6 +36,7 @@ Multi-tenant SaaS for CA and accounting firms (India first, GCC later).
 | 31 | Form 3CD Tax Audit Statement & Clause-by-Clause Disclosure Desk: Section 44AB limits (₹1 Cr / ₹10 Cr 5% cash rule; ₹50L / ₹75L profession), Form 3CA vs 3CB selection, Clause 1-44 workbench (ICDS, Sec 40(a)(ia) 30%, Sec 40A(3), Sec 43B & 43B(h) MSME 45-day overdue, Sec 269SS/ST/T, Clause 44 GST), disallowance aggregator, and auditor observation generator | Full-stack Form 3CD tax audit workbench with 5% cash test, MSME overdue calculator, quantified disallowance schedules, Form 3CA/3CB legal text draft, and two-lock multi-tenancy |
 | 32 | Schedule III Financial Ratios & Mandatory Corporate Disclosures Engine: Companies Act 2013 Schedule III 11 mandatory analytical ratios, mandatory variance explanations for changes &ge; 25%, statutory ageing schedules (Trade Receivables, Trade Payables, CWIP), and ₹100 Cr turnover rounding off compliance engine | Full-stack Schedule III corporate reporting desk with 11 financial ratios, variance threshold guards, interactive ageing buckets, audited disclosure note compiler, and two-lock multi-tenancy |
 | 33 | Multi-Firm Collaborative Audit & Branch Audit Consolidation Desk (Companies Act Sec 143(8) / ICAI SA 600): Branch auditor tracking, delegated portal token access, Head Office vs Branch consolidation matrix, SA 600 magnitude calculations (% Assets/Revenues), and statutory Other Matter paragraph generator | Full-stack multi-firm branch audit workbench with Section 143(8) branch auditor registry, external token submissions, consolidation engine, and ICAI SA 600 Other Matter legal text draft; two-lock multi-tenancy |
+| 34 | Audit Committee & Board Governance Desk (ICAI SA 260 / SA 265 / Companies Act Sec 177): Section 177 Audit Committee mandate, SA 260 communication with Those Charged with Governance (TCWG), SA 265 formal internal control deficiency letter generator, SA 450 schedule of uncorrected misstatements, Section 144 non-audit services independence affirmation | Full-stack Audit Committee and Board governance workbench with Section 177 compliance checks, SA 265 deficiency communications (design vs operating defect), SA 450 misstatement evaluation table, and SA 260 governance pack auto-generator; two-lock multi-tenancy |
 
 ## What's inside
 
@@ -924,6 +925,50 @@ API:
 - `GET /api/branchaudit/portal/branch`, `POST /api/branchaudit/portal/submit` (anonymous token-gated)
 - `POST /api/branchaudit/engagements/{id}/branches/{branchId}/review` (`branchaudit.manage`)
 - `POST /api/branchaudit/engagements/{id}/consolidate`, `POST /api/branchaudit/engagements/{id}/finalize` (`branchaudit.consolidate`)
+
+## Audit Committee & Board Governance Desk (Sprint 34)
+
+- **Companies Act, 2013, Section 177 Mandate**:
+  - Examination of financial statements and the auditor's report thereon.
+  - Review and monitoring of auditor's independence and performance, and effectiveness of the audit process.
+  - Monitoring internal financial controls (IFC) and risk management systems.
+  - Verification of Section 144 prohibited non-audit services compliance (accounting/bookkeeping, internal audit, design and implementation of any financial information system, actuarial services, investment advisory/banking, management services).
+  - Tracking Audit Committee composition: minimum 3 directors, majority independent directors, financial literacy prerequisites.
+- **ICAI SA 265 Internal Control Deficiency Letter Generator**:
+  - "Communicating Deficiencies in Internal Control to Those Charged with Governance and Management".
+  - Standardized statutory communication emphasizing that the audit's purpose is not to express an opinion on the effectiveness of internal control, but to design audit procedures.
+  - Defect categorization:
+    - *Design Defect*: Control missing or poorly designed to prevent or detect misstatements.
+    - *Operating Effectiveness Defect*: Properly designed control failed in operation or personnel lacked authority/competence.
+  - Severity classification: *Significant Deficiency* (merits attention of TCWG) vs. *Other Deficiency* (communicated to management).
+  - Direct quantification of potential financial exposure and risk impact (e.g. ₹ Lakhs).
+  - Structured auditor recommendation and management formal remediation commitment with target resolution dates.
+- **ICAI SA 450 Evaluation of Uncorrected Misstatements**:
+  - "Evaluation of Misstatements Identified during the Audit".
+  - Schedule of uncorrected misstatements broken down into *Factual*, *Judgmental*, and *Projected* misstatements.
+  - Quantification of aggregate misstatement impact across Balance Sheet and Statement of Profit & Loss.
+  - Automated materiality threshold benchmarking (comparing against Planning Materiality and Performance Materiality).
+  - Management justification tracking for non-adjustment and auditor concurrence.
+- **ICAI SA 260 (Revised) Governance Communication Pack**:
+  - "Communication with Those Charged with Governance".
+  - Comprehensive governance presentation pack compilation:
+    - Section 1: Auditor Independence Affirmation (ICAI Code of Ethics, Section 177(4)(i), Section 144 non-audit services limits, safeguards against threats, audit vs non-audit fee disclosures).
+    - Section 2: Audit Scope, Planned Timing & Key Milestones.
+    - Section 3: Significant Qualitative Findings & Accounting Policies (revenue recognition, provisioning, estimates, unusual transactions).
+    - Section 4: Key Audit Matters (KAM - SA 701) preliminary discussion points.
+    - Section 5: Annexure A - Formal SA 265 Internal Control Deficiencies Report.
+    - Section 6: Annexure B - Schedule of Uncorrected Misstatements under SA 450.
+  - Formal partner sign-off and lock mechanism (`auditcommittee.signoff`).
+- **Two Locks**: EF Core global query filters and PostgreSQL Row Level Security on `audit_committee_engagements`, `internal_control_deficiencies`, `significant_audit_matters`, and `uncorrected_misstatements` (`0033_audit_committee_governance.sql`).
+
+API:
+- `GET /api/auditcommittee/summary` (`auditcommittee.read`)
+- `GET /api/auditcommittee/engagements`, `GET /api/auditcommittee/engagements/{id}` (`auditcommittee.read`)
+- `POST /api/auditcommittee/engagements`, `PUT /api/auditcommittee/engagements/{id}`, `DELETE /api/auditcommittee/engagements/{id}` (`auditcommittee.manage`)
+- `POST /api/auditcommittee/engagements/{id}/deficiencies`, `PUT /api/auditcommittee/engagements/{id}/deficiencies/{deficiencyId}`, `DELETE /api/auditcommittee/engagements/{id}/deficiencies/{deficiencyId}` (`auditcommittee.manage`)
+- `POST /api/auditcommittee/engagements/{id}/matters`, `PUT /api/auditcommittee/engagements/{id}/matters/{matterId}`, `DELETE /api/auditcommittee/engagements/{id}/matters/{matterId}` (`auditcommittee.manage`)
+- `POST /api/auditcommittee/engagements/{id}/misstatements`, `PUT /api/auditcommittee/engagements/{id}/misstatements/{misstatementId}`, `DELETE /api/auditcommittee/engagements/{id}/misstatements/{misstatementId}` (`auditcommittee.manage`)
+- `POST /api/auditcommittee/engagements/{id}/generate-letters`, `POST /api/auditcommittee/engagements/{id}/signoff` (`auditcommittee.manage`, `auditcommittee.signoff`)
 
 ## Notes
 

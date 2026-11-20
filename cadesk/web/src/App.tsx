@@ -30,8 +30,9 @@ import { CaroAuditDeskPage } from './CaroAuditDeskPage'
 import { TaxAuditDeskPage } from './TaxAuditDeskPage'
 import { Schedule3DeskPage } from './Schedule3DeskPage'
 import { BranchAuditDeskPage } from './BranchAuditDeskPage'
+import { AuditCommitteeDeskPage } from './AuditCommitteeDeskPage'
 
-type Page = 'tasks' | 'deadlines' | 'clients' | 'billing' | 'tax' | 'audit-workspace' | 'gst-reconcile' | 'tds' | 'mca' | 'engagement' | 'banking' | 'reports' | 'tax-notices' | 'payroll' | 'einvoicing' | 'fixed-assets' | 'advance-tax' | 'gstr9' | 'presumptive' | 'caro' | 'taxaudit' | 'schedule3' | 'branchaudit' | 'dsc' | 'portal' | 'users' | 'settings' | 'audit' | 'security'
+type Page = 'tasks' | 'deadlines' | 'clients' | 'billing' | 'tax' | 'audit-workspace' | 'gst-reconcile' | 'tds' | 'mca' | 'engagement' | 'banking' | 'reports' | 'tax-notices' | 'payroll' | 'einvoicing' | 'fixed-assets' | 'advance-tax' | 'gstr9' | 'presumptive' | 'caro' | 'taxaudit' | 'schedule3' | 'branchaudit' | 'auditcommittee' | 'dsc' | 'portal' | 'users' | 'settings' | 'audit' | 'security'
 
 export default function App() {
   const [user, setUser] = useState<UserProfile | null>(null)
@@ -408,6 +409,18 @@ export default function App() {
             Branch Audit (SA 600)
           </button>
         )}
+        {can('auditcommittee.read') && (
+          <button className={page === 'auditcommittee' ? 'active' : ''} onClick={() => setPage('auditcommittee')}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 21h18"></path>
+              <path d="M5 21V7l8-4v18"></path>
+              <path d="M19 21V11l-6-4"></path>
+              <circle cx="9" cy="9" r="1"></circle>
+              <circle cx="9" cy="13" r="1"></circle>
+            </svg>
+            Audit Committee (SA 260)
+          </button>
+        )}
         {can('dsc.read') && (
           <button className={page === 'dsc' ? 'active' : ''} onClick={() => setPage('dsc')}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -485,6 +498,7 @@ export default function App() {
       {page === 'taxaudit' && can('taxaudit.read') && <TaxAuditDeskPage can={can} />}
       {page === 'schedule3' && can('schedule3.read') && <Schedule3DeskPage can={can} />}
       {page === 'branchaudit' && can('branchaudit.read') && <BranchAuditDeskPage can={can} />}
+      {page === 'auditcommittee' && can('auditcommittee.read') && <AuditCommitteeDeskPage can={can} />}
       {page === 'dsc' && can('dsc.read') && <DscPage can={can} meId={user.id} />}
       {page === 'portal' && can('portal.read') && <PortalPage can={can} meId={user.id} />}
       {page === 'users' && can('users.read') && <UsersPage can={can} me={user} />}
