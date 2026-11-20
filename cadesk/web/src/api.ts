@@ -2500,6 +2500,197 @@ export const eInvoicingApi = {
     api<EWayBillDto>(`/api/einvoicing/ewaybills/${id}/cancel`, { method: 'POST', body: JSON.stringify(req) }),
 }
 
+// ---------------------------------------------------------------------------
+// Sprint 25: Fixed Asset Register & Dual Depreciation Engine
+// ---------------------------------------------------------------------------
+export type AssetClass =
+  | 'Building'
+  | 'PlantAndMachinery'
+  | 'ComputersAndSoftware'
+  | 'FurnitureAndFixtures'
+  | 'OfficeEquipment'
+  | 'Vehicles'
+  | 'Intangibles'
+
+export type CompanyDepreciationMethod = 'SLM' | 'WDV'
+export type ShiftType = 'SingleShift' | 'DoubleShift' | 'TripleShift'
+export type AssetStatus = 'Active' | 'Disposed' | 'Scrapped' | 'WrittenOff'
+export type PhysicalVerificationStatus = 'FoundAndGood' | 'Damaged' | 'Missing' | 'NeedsMaintenance'
+
+export type FixedAssetDto = {
+  id: string
+  clientId: string
+  clientName: string
+  clientCode: string
+  assetTag: string
+  name: string
+  assetClass: AssetClass
+  purchaseDate: string
+  capitalizationDate: string
+  purchaseCost: number
+  inwardFreight: number
+  installationCost: number
+  preOperatingCost: number
+  gstItcClaimed: number
+  grossCost: number
+  salvageValue: number
+  usefulLifeYears: number
+  companyDepreciationMethod: CompanyDepreciationMethod
+  shiftType: ShiftType
+  incomeTaxBlockRatePercent: number
+  isEligibleForAdditionalDepreciation: boolean
+  location?: string | null
+  department?: string | null
+  custodianName?: string | null
+  status: AssetStatus
+  disposalDate?: string | null
+  disposalProceeds?: number | null
+  disposalRemarks?: string | null
+  latestBookValue: number
+  latestTaxWdv: number
+  createdAt: string
+}
+
+export type AssetDepreciationEntryDto = {
+  id: string
+  fixedAssetId: string
+  assetTag: string
+  assetName: string
+  assetClass: AssetClass
+  financialYear: string
+  openingBookValue: number
+  bookDepreciation: number
+  closingBookValue: number
+  openingTaxWdv: number
+  taxDepreciation: number
+  closingTaxWdv: number
+  timingDifference: number
+  deferredTaxImpact: number
+  daysPutToUseInYear: number
+  isUnder180Days: boolean
+  calculatedAt: string
+}
+
+export type AssetPhysicalVerificationDto = {
+  id: string
+  fixedAssetId: string
+  assetTag: string
+  assetName: string
+  verificationDate: string
+  verifiedBy: string
+  status: PhysicalVerificationStatus
+  remarks?: string | null
+  locationVerified?: string | null
+  createdAt: string
+}
+
+export type FixedAssetSummaryDto = {
+  totalAssets: number
+  activeAssets: number
+  disposedAssets: number
+  totalGrossBlock: number
+  totalBookDepreciation: number
+  totalNetBookValue: number
+  totalTaxDepreciation: number
+  totalTaxWdv: number
+  totalTimingDifference: number
+  netDeferredTaxLiability: number
+  totalVerifications: number
+  verifiedInLast12Months: number
+  verificationCompliancePercent: number
+}
+
+export type SaveFixedAssetRequest = {
+  clientId: string
+  assetTag: string
+  name: string
+  assetClass: AssetClass
+  purchaseDate: string
+  capitalizationDate: string
+  purchaseCost: number
+  inwardFreight: number
+  installationCost: number
+  preOperatingCost: number
+  gstItcClaimed: number
+  salvageValue?: number | null
+  usefulLifeYears: number
+  companyDepreciationMethod: CompanyDepreciationMethod
+  shiftType: ShiftType
+  incomeTaxBlockRatePercent: number
+  isEligibleForAdditionalDepreciation: boolean
+  location?: string | null
+  department?: string | null
+  custodianName?: string | null
+}
+
+export type DisposeAssetRequest = {
+  disposalDate: string
+  disposalProceeds: number
+  remarks?: string | null
+}
+
+export type RunDualDepreciationRequest = {
+  clientId: string
+  financialYear: string
+  assetId?: string | null
+  corporateTaxRate?: number | null
+}
+
+export type RecordPhysicalVerificationRequest = {
+  verificationDate: string
+  verifiedBy: string
+  status: PhysicalVerificationStatus
+  remarks?: string | null
+  locationVerified?: string | null
+}
+
+export const fixedAssetApi = {
+  getSummary: (clientId?: string, financialYear?: string) => {
+    const p = new URLSearchParams()
+    if (clientId) p.set('clientId', clientId)
+    if (financialYear) p.set('financialYear', financialYear)
+    const qs = p.toString()
+    return api<FixedAssetSummaryDto>(`/api/fixed-assets/summary${qs ? `?${qs}` : ''}`)
+  },
+  getAssets: (clientId?: string, assetClass?: AssetClass, status?: AssetStatus) => {
+    const p = new URLSearchParams()
+    if (clientId) p.set('clientId', clientId)
+    if (assetClass) p.set('assetClass', assetClass)
+    if (status) p.set('status', status)
+    const qs = p.toString()
+    return api<FixedAssetDto[]>(`/api/fixed-assets${qs ? `?${qs}` : ''}`)
+  },
+  getAssetById: (id: string) => api<FixedAssetDto>(`/api/fixed-assets/${id}`),
+  createAsset: (req: SaveFixedAssetRequest) =>
+    api<FixedAssetDto>('/api/fixed-assets', { method: 'POST', body: JSON.stringify(req) }),
+  updateAsset: (id: string, req: SaveFixedAssetRequest) =>
+    api<FixedAssetDto>(`/api/fixed-assets/${id}`, { method: 'PUT', body: JSON.stringify(req) }),
+  disposeAsset: (id: string, req: DisposeAssetRequest) =>
+    api<FixedAssetDto>(`/api/fixed-assets/${id}/dispose`, { method: 'POST', body: JSON.stringify(req) }),
+  deleteAsset: (id: string) => api(`/api/fixed-assets/${id}`, { method: 'DELETE' }),
+
+  runDepreciation: (req: RunDualDepreciationRequest) =>
+    api<AssetDepreciationEntryDto[]>('/api/fixed-assets/depreciation', { method: 'POST', body: JSON.stringify(req) }),
+  getDepreciationEntries: (assetId?: string, clientId?: string, financialYear?: string) => {
+    const p = new URLSearchParams()
+    if (assetId) p.set('assetId', assetId)
+    if (clientId) p.set('clientId', clientId)
+    if (financialYear) p.set('financialYear', financialYear)
+    const qs = p.toString()
+    return api<AssetDepreciationEntryDto[]>(`/api/fixed-assets/depreciation${qs ? `?${qs}` : ''}`)
+  },
+
+  recordVerification: (assetId: string, req: RecordPhysicalVerificationRequest) =>
+    api<AssetPhysicalVerificationDto>(`/api/fixed-assets/${assetId}/verifications`, { method: 'POST', body: JSON.stringify(req) }),
+  getVerifications: (assetId?: string, clientId?: string) => {
+    const p = new URLSearchParams()
+    if (assetId) p.set('assetId', assetId)
+    if (clientId) p.set('clientId', clientId)
+    const qs = p.toString()
+    return api<AssetPhysicalVerificationDto[]>(`/api/fixed-assets/verifications${qs ? `?${qs}` : ''}`)
+  }
+}
+
 
 
 

@@ -22,8 +22,9 @@ import { ReportsPage } from './ReportsPage'
 import { TaxNoticesPage } from './TaxNoticesPage'
 import { PayrollPage } from './PayrollPage'
 import { EInvoicingPage } from './EInvoicingPage'
+import { FixedAssetsPage } from './FixedAssetsPage'
 
-type Page = 'tasks' | 'deadlines' | 'clients' | 'billing' | 'tax' | 'audit-workspace' | 'gst-reconcile' | 'tds' | 'mca' | 'engagement' | 'banking' | 'reports' | 'tax-notices' | 'payroll' | 'einvoicing' | 'dsc' | 'portal' | 'users' | 'settings' | 'audit' | 'security'
+type Page = 'tasks' | 'deadlines' | 'clients' | 'billing' | 'tax' | 'audit-workspace' | 'gst-reconcile' | 'tds' | 'mca' | 'engagement' | 'banking' | 'reports' | 'tax-notices' | 'payroll' | 'einvoicing' | 'fixed-assets' | 'dsc' | 'portal' | 'users' | 'settings' | 'audit' | 'security'
 
 export default function App() {
   const [user, setUser] = useState<UserProfile | null>(null)
@@ -319,6 +320,16 @@ export default function App() {
             E-Invoice & EWB
           </button>
         )}
+        {can('assets.read') && (
+          <button className={page === 'fixed-assets' ? 'active' : ''} onClick={() => setPage('fixed-assets')}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+              <line x1="12" y1="22.08" x2="12" y2="12"></line>
+            </svg>
+            Fixed Assets & Depr
+          </button>
+        )}
         {can('dsc.read') && (
           <button className={page === 'dsc' ? 'active' : ''} onClick={() => setPage('dsc')}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -388,6 +399,7 @@ export default function App() {
       {page === 'tax-notices' && can('notices.read') && <TaxNoticesPage can={can} />}
       {page === 'payroll' && can('payroll.read') && <PayrollPage can={can} />}
       {page === 'einvoicing' && can('einvoice.read') && <EInvoicingPage can={can} />}
+      {page === 'fixed-assets' && can('assets.read') && <FixedAssetsPage can={can} />}
       {page === 'dsc' && can('dsc.read') && <DscPage can={can} meId={user.id} />}
       {page === 'portal' && can('portal.read') && <PortalPage can={can} meId={user.id} />}
       {page === 'users' && can('users.read') && <UsersPage can={can} me={user} />}

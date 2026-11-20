@@ -27,6 +27,7 @@ Multi-tenant SaaS for CA and accounting firms (India first, GCC later).
 | 22 | Tax Notice & Faceless Assessment Management Desk: CBDT/CBIC DIN verification (non-est notices), Faceless Video Conference & hearing appointments, Maker-checker written submission workflows with partner sign-off, Outstanding tax demand ledger & CIT(A) 30-day appeal countdowns | Statutory notice tracking, faceless hearing room management, partner-approved portal submissions, and stay/demand tracking; two-lock multi-tenancy |
 | 23 | Payroll, Salary TDS & Statutory PF / ESIC Engine: Client employee master, Automated EPF (12% + EPS 8.33% / EPF 3.67% split), ESIC (0.75% / 3.25%), State Professional Tax (PT), Section 192 Salary TDS, Monthly salary register & EPFO ECR text export | Automated statutory wage ceilings, payslip generation, and official ECR file formatting; two-lock multi-tenancy |
 | 24 | Automated E-Invoicing & E-Way Bill Integration Desk: Direct Invoice Registration Portal (IRP) simulation, 64-character SHA-256 IRN generation, digitally signed QR codes, Rule 138(10) E-Way Bill validity calculator, Part-B multi-modal vehicle updater, 24-hour statutory cancellation engine | Direct IRP schema generation, dynamic distance-based validity countdowns, vehicle transshipment updates, and multi-tenant firm isolation |
+| 25 | Fixed Asset Register & Dual Depreciation Engine: Companies Act 2013 Schedule II (useful life, SLM/WDV, single/double/triple shift) vs. Income Tax Act Section 32 (block of assets, 180-day 50% rule, additional depr @ 20%), AS 22 / Ind AS 12 deferred tax engine, and physical verification audit trail | Side-by-side dual depreciation schedule, automated 180-day cutoff, DTA/DTL quantification, physical verification logs; two-lock multi-tenancy |
 
 ## What's inside
 
@@ -594,6 +595,34 @@ API:
 - `GET /api/einvoicing/invoices`, `GET /api/einvoicing/invoices/{id}`, `POST /api/einvoicing/invoices`, `POST /api/einvoicing/invoices/{id}/cancel` (`einvoice.read`, `einvoice.generate`, `einvoice.cancel`)
 - `GET /api/einvoicing/ewaybills`, `GET /api/einvoicing/ewaybills/{id}`, `POST /api/einvoicing/ewaybills`, `PUT /api/einvoicing/ewaybills/{id}/part-b`, `POST /api/einvoicing/ewaybills/{id}/cancel` (`einvoice.read`, `einvoice.generate`, `einvoice.cancel`)
 - `GET /api/einvoicing/summary` (`einvoice.read`)
+
+## Fixed Asset Register & Dual Depreciation Engine (Sprint 25)
+
+- **Comprehensive Fixed Asset Register**:
+  - Asset tag, asset class (Building, Plant & Machinery, Computers & Software, Furniture, Office Equipment, Vehicles, Intangibles), location, department, custodian, and capitalization date.
+  - Historical cost composition: Purchase cost, inward freight, installation, pre-operating expenses, less GST Input Tax Credit (ITC) availed.
+- **Companies Act 2013 Schedule II Depreciation**:
+  - Useful life-based straight-line (SLM) and written-down value (WDV) methods.
+  - Automatic 5% salvage value ceiling.
+  - Multi-shift depreciation adjustments: Single shift (1.0x), Double shift (1.5x / +50%), Triple shift (2.0x / +100%).
+  - Pro-rata calculation on active days within the financial year.
+- **Income Tax Act Section 32 Block of Assets & 180-Day Rule**:
+  - Automatic classification into statutory Income Tax blocks (15% P&M, 40% Computers, 10% Furniture, etc.).
+  - Statutory 180-day rule under the Proviso to Section 32(1): Assets put to use for < 180 days in the year of acquisition are restricted to 50% of the normal block rate.
+  - Section 32(1)(iia) Additional Depreciation for manufacturing: 20% on actual cost if &ge; 180 days; 10% in Year 1 if < 180 days.
+- **AS 22 / Ind AS 12 Deferred Tax Accounting**:
+  - Quantifies timing differences (`TaxDepreciation - BookDepreciation`) on an asset-by-asset and aggregate client basis.
+  - Calculates net Deferred Tax Liability (DTL) and Deferred Tax Asset (DTA) based on the client corporate tax rate (e.g. 25.17% u/s 115BAA).
+- **Physical Verification Audit Trail**:
+  - Logs periodic physical inspection events: Verification date, inspector/auditor, condition status (`FoundAndGood`, `Damaged`, `Missing`, `NeedsMaintenance`), verified location, and audit notes.
+  - Automatic status updates (e.g. missing assets flagged for write-off).
+- **Two Locks**: EF Core global query filters and PostgreSQL Row Level Security on `fixed_assets`, `asset_depreciation_entries`, and `asset_physical_verifications` (`0024_fixed_assets.sql`).
+
+API:
+- `GET /api/fixed-assets`, `GET /api/fixed-assets/{id}`, `POST /api/fixed-assets`, `PUT /api/fixed-assets/{id}`, `POST /api/fixed-assets/{id}/dispose`, `DELETE /api/fixed-assets/{id}` (`assets.read`, `assets.manage`)
+- `POST /api/fixed-assets/depreciation`, `GET /api/fixed-assets/depreciation` (`assets.depreciate`, `assets.read`)
+- `POST /api/fixed-assets/{id}/verifications`, `GET /api/fixed-assets/verifications` (`assets.manage`, `assets.read`)
+- `GET /api/fixed-assets/summary` (`assets.read`)
 
 
 

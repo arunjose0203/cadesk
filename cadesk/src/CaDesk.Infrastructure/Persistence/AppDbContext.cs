@@ -20,6 +20,7 @@ using CaDesk.Domain.Reports;
 using CaDesk.Domain.TaxNotices;
 using CaDesk.Domain.Payroll;
 using CaDesk.Domain.EInvoicing;
+using CaDesk.Domain.FixedAssets;
 using CaDesk.Domain.Common;
 using CaDesk.Domain.Configuration;
 using CaDesk.Domain.Firms;
@@ -103,6 +104,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
     public DbSet<PayrollPayslip> PayrollPayslips => Set<PayrollPayslip>();
     public DbSet<EInvoiceRecord> EInvoices => Set<EInvoiceRecord>();
     public DbSet<EWayBillRecord> EWayBills => Set<EWayBillRecord>();
+    public DbSet<FixedAsset> FixedAssets => Set<FixedAsset>();
+    public DbSet<AssetDepreciationEntry> AssetDepreciationEntries => Set<AssetDepreciationEntry>();
+    public DbSet<AssetPhysicalVerification> AssetPhysicalVerifications => Set<AssetPhysicalVerification>();
     public DbSet<ConfigDefinition> ConfigDefinitions => Set<ConfigDefinition>();
     public DbSet<ConfigValue> ConfigValues => Set<ConfigValue>();
     public DbSet<ConfigChangeLog> ConfigChangeLog => Set<ConfigChangeLog>();
@@ -498,6 +502,30 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
             e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(x => x.EInvoice).WithMany().HasForeignKey(x => x.EInvoiceId).OnDelete(DeleteBehavior.SetNull);
             e.HasIndex(x => new { x.FirmId, x.EwbNumber }).IsUnique().HasDatabaseName("ux_eway_bill_records_ewb_num");
+        });
+
+        b.Entity<FixedAsset>(e =>
+        {
+            e.ToTable("fixed_assets");
+            e.Property(x => x.AssetClass).HasConversion<string>();
+            e.Property(x => x.CompanyDepreciationMethod).HasConversion<string>();
+            e.Property(x => x.ShiftType).HasConversion<string>();
+            e.Property(x => x.Status).HasConversion<string>();
+            e.HasIndex(x => new { x.FirmId, x.ClientId, x.AssetTag }).IsUnique().HasDatabaseName("ux_fixed_assets_tag");
+            e.HasMany(x => x.DepreciationEntries).WithOne(x => x.FixedAsset).HasForeignKey(x => x.FixedAssetId).OnDelete(DeleteBehavior.Cascade);
+            e.HasMany(x => x.PhysicalVerifications).WithOne(x => x.FixedAsset).HasForeignKey(x => x.FixedAssetId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<AssetDepreciationEntry>(e =>
+        {
+            e.ToTable("asset_depreciation_entries");
+            e.HasIndex(x => new { x.FirmId, x.FixedAssetId, x.FinancialYear }).IsUnique().HasDatabaseName("ux_asset_depr_entries_asset_fy");
+        });
+
+        b.Entity<AssetPhysicalVerification>(e =>
+        {
+            e.ToTable("asset_physical_verifications");
+            e.Property(x => x.Status).HasConversion<string>();
         });
 
         b.Entity<TaskTemplate>(e =>

@@ -150,4 +150,7 @@ public static class Perms
     public const string EInvoiceRead = "einvoice.read";
     public const string EInvoiceGenerate = "einvoice.generate";
     public const string EInvoiceCancel = "einvoice.cancel";
+    public const string AssetsRead = "assets.read";
+    public const string AssetsManage = "assets.manage";
+    public const string AssetsDepreciate = "assets.depreciate";
 }

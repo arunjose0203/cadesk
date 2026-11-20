@@ -8,6 +8,7 @@ using CaDesk.Domain.Reports;
 using CaDesk.Domain.TaxNotices;
 using CaDesk.Domain.Payroll;
 using CaDesk.Domain.EInvoicing;
+using CaDesk.Domain.FixedAssets;
 using CaDesk.Domain.Billing;
 using CaDesk.Domain.Clients;
 using CaDesk.Domain.Dsc;
@@ -99,6 +100,9 @@ public interface IAppDbContext
     DbSet<PayrollPayslip> PayrollPayslips { get; }
     DbSet<EInvoiceRecord> EInvoices { get; }
     DbSet<EWayBillRecord> EWayBills { get; }
+    DbSet<FixedAsset> FixedAssets { get; }
+    DbSet<AssetDepreciationEntry> AssetDepreciationEntries { get; }
+    DbSet<AssetPhysicalVerification> AssetPhysicalVerifications { get; }
     /// <summary>For transactions and the few raw SQL calls (numbering, jsonb lookups). RLS still applies.</summary>
     DatabaseFacade Database { get; }
     Task<int> SaveChangesAsync(CancellationToken ct = default);
