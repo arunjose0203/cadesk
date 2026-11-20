@@ -37,8 +37,9 @@ import { InternalAuditPage } from './InternalAuditPage'
 import { AntiProfiteeringPage } from './AntiProfiteeringPage'
 import { SecretarialAuditPage } from './SecretarialAuditPage'
 import { TransferPricingPage } from './TransferPricingPage'
+import { CostAuditPage } from './CostAuditPage'
 
-type Page = 'tasks' | 'deadlines' | 'clients' | 'billing' | 'tax' | 'audit-workspace' | 'gst-reconcile' | 'tds' | 'mca' | 'engagement' | 'banking' | 'reports' | 'tax-notices' | 'payroll' | 'einvoicing' | 'fixed-assets' | 'advance-tax' | 'gstr9' | 'presumptive' | 'caro' | 'taxaudit' | 'schedule3' | 'branchaudit' | 'auditcommittee' | 'foreignremittance' | 'relatedparty' | 'internalaudit' | 'antiprofiteering' | 'secretarialaudit' | 'transferpricing' | 'dsc' | 'portal' | 'users' | 'settings' | 'audit' | 'security'
+type Page = 'tasks' | 'deadlines' | 'clients' | 'billing' | 'tax' | 'audit-workspace' | 'gst-reconcile' | 'tds' | 'mca' | 'engagement' | 'banking' | 'reports' | 'tax-notices' | 'payroll' | 'einvoicing' | 'fixed-assets' | 'advance-tax' | 'gstr9' | 'presumptive' | 'caro' | 'taxaudit' | 'schedule3' | 'branchaudit' | 'auditcommittee' | 'foreignremittance' | 'relatedparty' | 'internalaudit' | 'antiprofiteering' | 'secretarialaudit' | 'transferpricing' | 'costaudit' | 'dsc' | 'portal' | 'users' | 'settings' | 'audit' | 'security'
 
 export default function App() {
   const [user, setUser] = useState<UserProfile | null>(null)
@@ -487,6 +488,15 @@ export default function App() {
             Transfer Pricing (Form 3CEB)
           </button>
         )}
+        {can('costaudit.read') && (
+          <button className={page === 'costaudit' ? 'active' : ''} onClick={() => setPage('costaudit')}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M2 20h20"></path>
+              <path d="M5 20V8l5 4V8l5 4V4l5 4v12"></path>
+            </svg>
+            Cost Audit (CRA 1-4)
+          </button>
+        )}
         {can('dsc.read') && (
           <button className={page === 'dsc' ? 'active' : ''} onClick={() => setPage('dsc')}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -571,6 +581,7 @@ export default function App() {
       {page === 'antiprofiteering' && can('antiprofiteering.read') && <AntiProfiteeringPage />}
       {page === 'secretarialaudit' && can('secretarialaudit.read') && <SecretarialAuditPage />}
       {page === 'transferpricing' && can('transferpricing.read') && <TransferPricingPage />}
+      {page === 'costaudit' && can('costaudit.read') && <CostAuditPage />}
       {page === 'dsc' && can('dsc.read') && <DscPage can={can} meId={user.id} />}
       {page === 'portal' && can('portal.read') && <PortalPage can={can} meId={user.id} />}
       {page === 'users' && can('users.read') && <UsersPage can={can} me={user} />}

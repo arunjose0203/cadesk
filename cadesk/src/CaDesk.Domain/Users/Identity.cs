@@ -199,4 +199,7 @@ public static class Perms
     public const string TransferPricingRead = "transferpricing.read";
     public const string TransferPricingManage = "transferpricing.manage";
     public const string TransferPricingCertify = "transferpricing.certify";
+    public const string CostAuditRead = "costaudit.read";
+    public const string CostAuditManage = "costaudit.manage";
+    public const string CostAuditCertify = "costaudit.certify";
 }

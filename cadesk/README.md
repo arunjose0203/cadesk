@@ -43,6 +43,7 @@ Multi-tenant SaaS for CA and accounting firms (India first, GCC later).
 | 38 | GST Annual Audit & Anti-Profiteering / Rate Notification Engine (CGST Act Section 171 / Rule 122–137): Landmark GST rate notification registry, SKU-level commensurate price reduction engine, base price hike tracking, customer credit note refund logger, 50:50 Central/State Consumer Welfare Fund (CWF) split with 18% p.a. statutory interest under Section 171(3A), and official CA Anti-Profiteering Audit Certificate with 18-digit UDIN | Full-stack GST anti-profiteering desk with automatic baseline rate notification seeding, SKU price reduction evaluator, customer refund and CWF tracking, statutory certificate generator, and two-lock multi-tenancy |
 | 39 | Secretarial Audit & Form MR-3 Compliance Engine (Companies Act 2013 Sec 204 / Rule 9): Statutory applicability calculator (Listed, Public capital ≥ ₹50 Cr / turnover ≥ ₹250 Cr, Borrowings ≥ ₹100 Cr), multi-statute verification checklist (Companies Act, SEBI LODR/PIT/SAST, FEMA FDI/ODI/ECB, Depositories, SCRA), MCA e-filing audits (AOC-4, MGT-7, DIR-12, CHG-1/4, DPT-3) with delay penalty calculator, Board & Committee meetings audit (120-day interval gap, 7-day notice, quorum, SS-1/SS-2), and official Form MR-3 Secretarial Audit Report generator with 18-character UDIN | Full-stack secretarial audit desk with automated statutory applicability gating, baseline checklist seeding, MCA return delay tracking, meeting interval compliance, Form MR-3 drafting, and two-lock multi-tenancy |
 | 40 | Transfer Pricing Study & Form 3CEB Certification Desk (Income Tax Act Sec 92E / Rule 10D & 10E): Section 92A Associated Enterprises (AEs) registry, Clauses 11–20 international transactions & Clauses 21–25 Specified Domestic Transactions (SDT), Most Appropriate Method (MAM) benchmarking engine (CUP, RPM, CPM, PSM, TNMM, Other Method), Rule 10CA 35th–65th percentile range calculator with +/- 3% tolerance band, automated Section 92CA primary TP adjustment quantification, and official Form No. 3CEB Accountant's Report generator with 18-digit ICAI UDIN | Full-stack transfer pricing desk with Rule 10CA percentile range engine, tolerance band checks, AE register, primary TP adjustment calculator, official Form 3CEB compilation, and two-lock multi-tenancy |
+| 41 | Cost Audit & Form CRA-1 to CRA-4 Desk (Companies Act 2013 Sec 148 / Cost Records and Audit Rules 2014): Rule 3 cost records applicability (≥ ₹35 Cr) & Rule 4 cost audit thresholds (Table A Regulated: ≥ ₹50 Cr overall & ≥ ₹25 Cr product; Table B Non-Regulated: ≥ ₹100 Cr overall & ≥ ₹35 Cr product; > 75% export / SEZ / captive power exemptions), 30 standard Form CRA-1 cost record heads verification matrix, Annexure Part B manufacturing product-wise cost statements with capacity utilization, prime/works/production/sales cost breakdowns, Material Cost/Price/Usage variance calculator, Annexure Part D profit reconciliation between cost accounts and audited P&L, Form CRA-2 auditor appointment tracking (earlier of 30 days from Board meeting or 180 days of FY), Form CRA-4 MCA XBRL filing tracker, and official Form CRA-3 Cost Audit Report generator with 18-digit ICMAI / ICAI UDIN | Full-stack statutory cost audit and CRA-1 to CRA-4 workbench with automated applicability gating, baseline 30 heads seeding, product costing sheets, material variance analytics, P&L profit reconciliation, MCA filing timeline monitors, CRA-3 report auto-drafting, and two-lock multi-tenancy |
 
 ## What's inside
 
@@ -1235,6 +1236,51 @@ API:
 - `GET /api/transfer-pricing/studies/{id}/enterprises`, `POST /api/transfer-pricing/studies/{id}/enterprises`, `PUT /api/transfer-pricing/studies/{id}/enterprises/{aeId}`, `DELETE /api/transfer-pricing/studies/{id}/enterprises/{aeId}` (`transferpricing.read`, `transferpricing.manage`)
 - `GET /api/transfer-pricing/studies/{id}/transactions`, `POST /api/transfer-pricing/studies/{id}/transactions`, `PUT /api/transfer-pricing/studies/{id}/transactions/{txId}`, `DELETE /api/transfer-pricing/studies/{id}/transactions/{txId}` (`transferpricing.read`, `transferpricing.manage`)
 - `GET /api/transfer-pricing/studies/{id}/comparables`, `POST /api/transfer-pricing/studies/{id}/comparables`, `PUT /api/transfer-pricing/studies/{id}/comparables/{compId}`, `DELETE /api/transfer-pricing/studies/{id}/comparables/{compId}` (`transferpricing.read`, `transferpricing.manage`)
+
+### Sprint 41: Cost Audit & Form CRA-1 to CRA-4 Desk (Companies Act, 2013, Section 148 / Cost Records and Audit Rules, 2014)
+
+End-to-end statutory Cost Audit and Form CRA-1 to CRA-4 compliance workbench for Cost and Management Accountants (CMAs) and Chartered Accountants:
+- **Statutory Applicability Engine (Rule 3 & Rule 4)**:
+  - **Rule 3 (Cost Records in Form CRA-1)**: Mandated for specified domestic and foreign companies with overall turnover from all products/services $\ge$ **₹35 Crore** in the immediately preceding financial year.
+  - **Rule 4 (Cost Audit in Form CRA-3)**:
+    - **Table A (Regulated Sectors)**: Telecommunication, Electricity, Petroleum, Drugs & Pharmaceuticals, Fertilizers, Sugar & Industrial Alcohol. Thresholds: Overall turnover $\ge$ **₹50 Crore** AND product turnover $\ge$ **₹25 Crore**.
+    - **Table B (Non-Regulated Sectors)**: Steel, Cement, Chemicals, Textiles, Automotive Components, Capital Goods, Paper, Mining, etc. Thresholds: Overall turnover $\ge$ **₹100 Crore** AND product turnover $\ge$ **₹35 Crore**.
+    - **Rule 4(3) Statutory Exemptions**: Automated exemption checks for companies whose export revenue in foreign exchange exceeds 75% of total revenue, companies operating from Special Economic Zones (SEZs), and electricity generation for captive consumption.
+- **Form CRA-1: 30 Standard Heads of Cost Records Matrix**:
+  - Pre-seeded baseline of 30 standard statutory heads under Rule 3 (Direct Materials, Wages, Utilities, Service Departments, Depreciation, Factory/Admin/Selling Overheads, R&D, Royalties, Quality Control, Pollution Control, Abnormal Costs, Packing, By-Products, WIP/FG Valuation, Reconciliation, Related Party Transactions, etc.).
+  - Tracks compliance status (`Compliant`, `PartiallyCompliant`, `NonCompliant`, `NotApplicable`), ERP system of record, auditor verification test notes, deficiencies, and corrective action recommendations.
+  - Live compliance score calculation across applicable heads.
+- **Form CRA-3 Annexure Part B / Part C Product Cost Statements & Variance Engine**:
+  - Captures quantitative capacity data: Installed capacity, available capacity, actual production, and capacity utilization percentage.
+  - Full cost sheet breakdown: Direct Materials, Direct Labor, Utilities, Other Direct Expenses, Prime Cost, Works Overheads, Works Cost, Quality Control, R&D, Admin Overheads, WIP adjustments, Cost of Production, FG adjustments, Selling & Distribution Overheads, Cost of Sales, Net Sales Realization, and Product Margins (amount and %).
+  - Automated per-unit metrics: Unit Cost of Sales, Unit Sales Realization, and Unit Margin.
+  - Material Cost Variance calculator: Material Price Variance, Material Usage Variance, and Total Cost Variance with favorable/adverse classification.
+- **Form CRA-3 Annexure Part D Profit Reconciliation with Audited Financial Accounts**:
+  - Bridges Profit as per Cost Records with Audited Profit as per Financial Accounts (P&L).
+  - Categorizes additions (Incomes not costed, cost expenses overcharged) and deductions (Expenses not costed like penalties/CSR/goodwill, financial expenses overcharged, stock valuation variances).
+  - Displays instant balanced vs discrepancy variance status.
+- **Statutory Filing Deadlines & Monitors (Form CRA-2 & Form CRA-4)**:
+  - **Form CRA-2 (Auditor Appointment Intimation)**: Automatically calculates statutory due date as earlier of 30 days from Board meeting or 180 days of FY commencement, tracks MCA SRN, and flags overdue status.
+  - **Form CRA-4 (Filing Cost Audit Report with MCA)**: Tracks 30-day statutory window from the date of receipt of the Cost Audit Report by the Board, logs MCA SRN, and tracks XBRL schema pre-validation.
+- **Official Form CRA-3 Cost Audit Report Generator & UDIN Sign-Off**:
+  - Auto-drafts complete statutory Cost Audit Report in MCA CRA-3 format (Cost Auditor's Report, qualifications/adverse remarks, Annexure Part A General Information, Part B Manufacturing Cost Statements, Part D Profit Reconciliation Statement).
+  - Sign-off gated by mandatory 18-digit ICMAI / ICAI Unique Document Identification Number (UDIN).
+- **Two Locks**: EF Core global query filters and PostgreSQL Row Level Security on `cost_audit_engagements`, `cost_record_heads`, `product_cost_statements`, and `cost_audit_reconciliation_items` (`0040_cost_audit_cra.sql`).
+
+API:
+- `GET /api/cost-audit/summary` (`costaudit.read`)
+- `POST /api/cost-audit/applicability-check` (`costaudit.read`)
+- `POST /api/cost-audit/variance-calculate` (`costaudit.read`)
+- `GET /api/cost-audit/engagements`, `GET /api/cost-audit/engagements/{id}` (`costaudit.read`)
+- `POST /api/cost-audit/engagements`, `PUT /api/cost-audit/engagements/{id}`, `DELETE /api/cost-audit/engagements/{id}` (`costaudit.manage`)
+- `POST /api/cost-audit/engagements/{id}/seed-heads` (`costaudit.manage`)
+- `PUT /api/cost-audit/engagements/{id}/heads/{headId}` (`costaudit.manage`)
+- `POST /api/cost-audit/engagements/{id}/products`, `PUT /api/cost-audit/engagements/{id}/products/{productId}`, `DELETE /api/cost-audit/engagements/{id}/products/{productId}` (`costaudit.manage`)
+- `POST /api/cost-audit/engagements/{id}/reconciliation`, `PUT /api/cost-audit/engagements/{id}/reconciliation/{itemId}`, `DELETE /api/cost-audit/engagements/{id}/reconciliation/{itemId}` (`costaudit.manage`)
+- `POST /api/cost-audit/engagements/{id}/cra2-filing` (`costaudit.manage`)
+- `POST /api/cost-audit/engagements/{id}/cra4-filing` (`costaudit.manage`)
+- `POST /api/cost-audit/engagements/{id}/generate-cra3` (`costaudit.manage`)
+- `POST /api/cost-audit/engagements/{id}/certify` (`costaudit.certify`)
 
 ## Notes
 

@@ -101,6 +101,7 @@ builder.Services.AddScoped<CaDesk.Application.InternalAudit.InternalAuditService
 builder.Services.AddScoped<CaDesk.Application.AntiProfiteering.AntiProfiteeringService>();
 builder.Services.AddScoped<CaDesk.Application.SecretarialAudit.SecretarialAuditService>();
 builder.Services.AddScoped<CaDesk.Application.TransferPricing.TransferPricingService>();
+builder.Services.AddScoped<CaDesk.Application.CostAudit.CostAuditService>();
 var docOptions = config.GetSection("Documents").Get<CaDesk.Api.Documents.DocumentOptions>() ?? new();
 var storagePath = docOptions.StoragePath;
 if (storagePath.Length == 0)
@@ -269,6 +270,7 @@ app.MapInternalAuditEndpoints();
 app.MapAntiProfiteeringEndpoints();
 app.MapSecretarialAuditEndpoints();
 app.MapTransferPricingEndpoints();
+app.MapCostAuditEndpoints();
 app.MapSettingsEndpoints();
 app.MapAuditEndpoints();
 

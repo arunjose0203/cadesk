@@ -5775,6 +5775,409 @@ export const transferPricingApi = {
     api<void>(`/api/transfer-pricing/studies/${studyId}/comparables/${compId}`, { method: 'DELETE' }),
 }
 
+// -------------------------------------------------------------
+// Sprint 41: Cost Audit & Form CRA-1 to CRA-4 Desk (Companies Act Sec 148 / Cost Records Rules 2014)
+// -------------------------------------------------------------
+
+export type CostAuditSummaryDto = {
+  totalEngagements: number
+  activeAudits: number
+  certifiedAudits: number
+  regulatedSectorsCount: number
+  nonRegulatedSectorsCount: number
+  overdueFilingsCount: number
+  totalAuditedProductionInr: number
+  totalCostProfitInr: number
+  totalUnreconciledDifferenceInr: number
+  averageRecordsComplianceScorePct: number
+}
+
+export type CostRecordHeadDto = {
+  id: string
+  engagementId: string
+  headCode: string
+  headName: string
+  ruleReference: string
+  status: string
+  recordMaintenanceSystem: string
+  verificationNotes?: string | null
+  deficiencyOrAnomaly?: string | null
+  correctiveActionRequired?: string | null
+  createdAt: string
+  updatedAt?: string | null
+}
+
+export type ProductCostStatementDto = {
+  id: string
+  engagementId: string
+  productCode: string
+  productName: string
+  ctaHeading: string
+  unitOfMeasurement: string
+  installedCapacity: number
+  availableCapacity: number
+  actualProduction: number
+  capacityUtilizationPct: number
+  directMaterialsCost: number
+  directLaborCost: number
+  utilitiesCost: number
+  otherDirectExpenses: number
+  primeCost: number
+  worksOverheads: number
+  worksCost: number
+  qualityControlCost: number
+  rndExpenses: number
+  administrationOverheads: number
+  openingWipCost: number
+  closingWipCost: number
+  costOfProduction: number
+  openingFinishedGoodsCost: number
+  closingFinishedGoodsCost: number
+  sellingAndDistributionOverheads: number
+  costOfSales: number
+  netSalesRealization: number
+  productMarginInr: number
+  productMarginPct: number
+  unitCostOfSales: number
+  unitSalesRealization: number
+  unitMarginInr: number
+  createdAt: string
+  updatedAt?: string | null
+}
+
+export type CostAuditReconciliationItemDto = {
+  id: string
+  engagementId: string
+  itemType: string
+  description: string
+  amountInr: number
+  impact: string
+  financialScheduleRef?: string | null
+  notes?: string | null
+  createdAt: string
+  updatedAt?: string | null
+}
+
+export type CostAuditEngagementDto = {
+  id: string
+  clientId: string
+  clientName: string
+  engagementReference: string
+  financialYear: string
+  periodStart: string
+  periodEnd: string
+  sectorType: string
+  sectorCategory: string
+  overallTurnoverInr: number
+  productTurnoverInr: number
+  exportTurnoverInr: number
+  isExportExempt: boolean
+  isSezExempt: boolean
+  isCaptivePowerExempt: boolean
+  isCostRecordsApplicable: boolean
+  isCostAuditApplicable: boolean
+  applicabilityReasoning: string
+  boardResolutionDate?: string | null
+  fyCommencementDate?: string | null
+  auditCommitteeRecommended: boolean
+  costAuditorName: string
+  costAuditorFirmName: string
+  costAuditorMembershipNo: string
+  costAuditorFirmRegNo: string
+  cra2FilingDueDate?: string | null
+  cra2FilingStatus: string
+  cra2Srn?: string | null
+  cra2FiledDate?: string | null
+  auditStatus: string
+  auditorOpinion: string
+  reservationsQualifications?: string | null
+  observationsSuggestions?: string | null
+  udin?: string | null
+  certifiedAt?: string | null
+  certifiedBy?: string | null
+  costAuditReportText?: string | null
+  cra3HandoverDate?: string | null
+  cra4FilingDueDate?: string | null
+  cra4FilingStatus: string
+  cra4Srn?: string | null
+  cra4FiledDate?: string | null
+  cra4XbrlValidated: boolean
+  totalProductsCount: number
+  totalProductionValueInr: number
+  totalCostOfSalesInr: number
+  totalSalesRealizationInr: number
+  totalCostProfitInr: number
+  auditedFinancialProfitInr: number
+  reconciledFinancialProfitInr: number
+  netReconciliationDifferenceInr: number
+  recordsComplianceScorePct: number
+  createdAt: string
+  updatedAt?: string | null
+  recordHeads: CostRecordHeadDto[]
+  productStatements: ProductCostStatementDto[]
+  reconciliationItems: CostAuditReconciliationItemDto[]
+}
+
+export type CostAuditApplicabilityRequest = {
+  sectorType: string
+  overallTurnoverInr: number
+  productTurnoverInr: number
+  exportTurnoverInr: number
+  isSezUnit: boolean
+  isCaptivePower: boolean
+}
+
+export type CostAuditApplicabilityResult = {
+  isCostRecordsApplicable: boolean
+  isCostAuditApplicable: boolean
+  isExportExempt: boolean
+  reasoning: string
+}
+
+export type MaterialVarianceRequest = {
+  standardQuantity: number
+  actualQuantity: number
+  standardPrice: number
+  actualPrice: number
+}
+
+export type MaterialVarianceResult = {
+  priceVariance: number
+  usageVariance: number
+  totalCostVariance: number
+}
+
+export type CreateCostAuditEngagementRequest = {
+  clientId: string
+  engagementReference: string
+  financialYear: string
+  periodStart: string
+  periodEnd: string
+  sectorType: string
+  sectorCategory: string
+  overallTurnoverInr: number
+  productTurnoverInr: number
+  exportTurnoverInr: number
+  isSezExempt: boolean
+  isCaptivePowerExempt: boolean
+  boardResolutionDate?: string | null
+  fyCommencementDate?: string | null
+  auditCommitteeRecommended: boolean
+  costAuditorName: string
+  costAuditorFirmName: string
+  costAuditorMembershipNo: string
+  costAuditorFirmRegNo: string
+  auditedFinancialProfitInr: number
+  seedDefaultHeads?: boolean
+}
+
+export type UpdateCostAuditEngagementRequest = {
+  engagementReference: string
+  financialYear: string
+  periodStart: string
+  periodEnd: string
+  sectorType: string
+  sectorCategory: string
+  overallTurnoverInr: number
+  productTurnoverInr: number
+  exportTurnoverInr: number
+  isSezExempt: boolean
+  isCaptivePowerExempt: boolean
+  boardResolutionDate?: string | null
+  fyCommencementDate?: string | null
+  auditCommitteeRecommended: boolean
+  costAuditorName: string
+  costAuditorFirmName: string
+  costAuditorMembershipNo: string
+  costAuditorFirmRegNo: string
+  auditedFinancialProfitInr: number
+  auditorOpinion: string
+  reservationsQualifications?: string | null
+  observationsSuggestions?: string | null
+  auditStatus: string
+}
+
+export type CreateProductCostStatementRequest = {
+  productCode: string
+  productName: string
+  ctaHeading: string
+  unitOfMeasurement: string
+  installedCapacity: number
+  availableCapacity: number
+  actualProduction: number
+  directMaterialsCost: number
+  directLaborCost: number
+  utilitiesCost: number
+  otherDirectExpenses: number
+  worksOverheads: number
+  qualityControlCost: number
+  rndExpenses: number
+  administrationOverheads: number
+  openingWipCost: number
+  closingWipCost: number
+  openingFinishedGoodsCost: number
+  closingFinishedGoodsCost: number
+  sellingAndDistributionOverheads: number
+  netSalesRealization: number
+}
+
+export type UpdateProductCostStatementRequest = CreateProductCostStatementRequest
+
+export type CreateReconciliationItemRequest = {
+  itemType: string
+  description: string
+  amountInr: number
+  impact: string
+  financialScheduleRef?: string | null
+  notes?: string | null
+}
+
+export type UpdateReconciliationItemRequest = CreateReconciliationItemRequest
+
+export type UpdateRecordHeadRequest = {
+  status: string
+  recordMaintenanceSystem: string
+  verificationNotes?: string | null
+  deficiencyOrAnomaly?: string | null
+  correctiveActionRequired?: string | null
+}
+
+export type RecordCra2FilingRequest = {
+  cra2Srn: string
+  cra2FiledDate: string
+  cra2FilingStatus: string
+}
+
+export type RecordCra4FilingRequest = {
+  cra4Srn: string
+  cra4FiledDate: string
+  cra4FilingStatus: string
+  cra4XbrlValidated: boolean
+}
+
+export type CostAuditCertifyRequest = {
+  udin: string
+  certifiedBy: string
+}
+
+export const costAuditApi = {
+  summary: (clientId?: string, fy?: string) => {
+    const p = new URLSearchParams()
+    if (clientId) p.set('clientId', clientId)
+    if (fy) p.set('financialYear', fy)
+    const qs = p.toString()
+    return api<CostAuditSummaryDto>(`/api/cost-audit/summary${qs ? `?${qs}` : ''}`)
+  },
+
+  checkApplicability: (req: CostAuditApplicabilityRequest) =>
+    api<CostAuditApplicabilityResult>('/api/cost-audit/applicability-check', {
+      method: 'POST',
+      body: JSON.stringify(req),
+    }),
+
+  calculateVariance: (req: MaterialVarianceRequest) =>
+    api<MaterialVarianceResult>('/api/cost-audit/variance-calculate', {
+      method: 'POST',
+      body: JSON.stringify(req),
+    }),
+
+  listEngagements: (clientId?: string, fy?: string, status?: string) => {
+    const p = new URLSearchParams()
+    if (clientId) p.set('clientId', clientId)
+    if (fy) p.set('financialYear', fy)
+    if (status) p.set('auditStatus', status)
+    const qs = p.toString()
+    return api<CostAuditEngagementDto[]>(`/api/cost-audit/engagements${qs ? `?${qs}` : ''}`)
+  },
+
+  getEngagement: (id: string) =>
+    api<CostAuditEngagementDto>(`/api/cost-audit/engagements/${id}`),
+
+  createEngagement: (req: CreateCostAuditEngagementRequest) =>
+    api<CostAuditEngagementDto>('/api/cost-audit/engagements', {
+      method: 'POST',
+      body: JSON.stringify(req),
+    }),
+
+  updateEngagement: (id: string, req: UpdateCostAuditEngagementRequest) =>
+    api<CostAuditEngagementDto>(`/api/cost-audit/engagements/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(req),
+    }),
+
+  deleteEngagement: (id: string) =>
+    api<void>(`/api/cost-audit/engagements/${id}`, { method: 'DELETE' }),
+
+  seedHeads: (id: string) =>
+    api<CostAuditEngagementDto>(`/api/cost-audit/engagements/${id}/seed-heads`, {
+      method: 'POST',
+    }),
+
+  updateHead: (id: string, headId: string, req: UpdateRecordHeadRequest) =>
+    api<CostAuditEngagementDto>(`/api/cost-audit/engagements/${id}/heads/${headId}`, {
+      method: 'PUT',
+      body: JSON.stringify(req),
+    }),
+
+  addProduct: (id: string, req: CreateProductCostStatementRequest) =>
+    api<CostAuditEngagementDto>(`/api/cost-audit/engagements/${id}/products`, {
+      method: 'POST',
+      body: JSON.stringify(req),
+    }),
+
+  updateProduct: (id: string, productId: string, req: UpdateProductCostStatementRequest) =>
+    api<CostAuditEngagementDto>(`/api/cost-audit/engagements/${id}/products/${productId}`, {
+      method: 'PUT',
+      body: JSON.stringify(req),
+    }),
+
+  deleteProduct: (id: string, productId: string) =>
+    api<CostAuditEngagementDto>(`/api/cost-audit/engagements/${id}/products/${productId}`, {
+      method: 'DELETE',
+    }),
+
+  addReconciliation: (id: string, req: CreateReconciliationItemRequest) =>
+    api<CostAuditEngagementDto>(`/api/cost-audit/engagements/${id}/reconciliation`, {
+      method: 'POST',
+      body: JSON.stringify(req),
+    }),
+
+  updateReconciliation: (id: string, itemId: string, req: UpdateReconciliationItemRequest) =>
+    api<CostAuditEngagementDto>(`/api/cost-audit/engagements/${id}/reconciliation/${itemId}`, {
+      method: 'PUT',
+      body: JSON.stringify(req),
+    }),
+
+  deleteReconciliation: (id: string, itemId: string) =>
+    api<CostAuditEngagementDto>(`/api/cost-audit/engagements/${id}/reconciliation/${itemId}`, {
+      method: 'DELETE',
+    }),
+
+  recordCra2: (id: string, req: RecordCra2FilingRequest) =>
+    api<CostAuditEngagementDto>(`/api/cost-audit/engagements/${id}/cra2-filing`, {
+      method: 'POST',
+      body: JSON.stringify(req),
+    }),
+
+  recordCra4: (id: string, req: RecordCra4FilingRequest) =>
+    api<CostAuditEngagementDto>(`/api/cost-audit/engagements/${id}/cra4-filing`, {
+      method: 'POST',
+      body: JSON.stringify(req),
+    }),
+
+  generateCra3: (id: string) =>
+    api<CostAuditEngagementDto>(`/api/cost-audit/engagements/${id}/generate-cra3`, {
+      method: 'POST',
+    }),
+
+  certify: (id: string, req: CostAuditCertifyRequest) =>
+    api<CostAuditEngagementDto>(`/api/cost-audit/engagements/${id}/certify`, {
+      method: 'POST',
+      body: JSON.stringify(req),
+    }),
+}
+
+
 
 
 

@@ -154,6 +154,10 @@ public interface IAppDbContext
     DbSet<CaDesk.Domain.TransferPricing.AssociatedEnterprise> AssociatedEnterprises { get; }
     DbSet<CaDesk.Domain.TransferPricing.TransferPricingTransaction> TransferPricingTransactions { get; }
     DbSet<CaDesk.Domain.TransferPricing.ComparableBenchmark> ComparableBenchmarks { get; }
+    DbSet<CaDesk.Domain.CostAudit.CostAuditEngagement> CostAuditEngagements { get; }
+    DbSet<CaDesk.Domain.CostAudit.CostRecordHead> CostRecordHeads { get; }
+    DbSet<CaDesk.Domain.CostAudit.ProductCostStatement> ProductCostStatements { get; }
+    DbSet<CaDesk.Domain.CostAudit.CostAuditReconciliationItem> CostAuditReconciliationItems { get; }
     /// <summary>For transactions and the few raw SQL calls (numbering, jsonb lookups). RLS still applies.</summary>
     DatabaseFacade Database { get; }
     Task<int> SaveChangesAsync(CancellationToken ct = default);

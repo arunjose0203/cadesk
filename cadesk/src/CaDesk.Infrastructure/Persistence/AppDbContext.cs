@@ -35,6 +35,7 @@ using CaDesk.Domain.InternalAudit;
 using CaDesk.Domain.AntiProfiteering;
 using CaDesk.Domain.SecretarialAudit;
 using CaDesk.Domain.TransferPricing;
+using CaDesk.Domain.CostAudit;
 using CaDesk.Domain.Common;
 using CaDesk.Domain.Configuration;
 using CaDesk.Domain.Firms;
@@ -165,6 +166,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
     public DbSet<AssociatedEnterprise> AssociatedEnterprises => Set<AssociatedEnterprise>();
     public DbSet<TransferPricingTransaction> TransferPricingTransactions => Set<TransferPricingTransaction>();
     public DbSet<ComparableBenchmark> ComparableBenchmarks => Set<ComparableBenchmark>();
+    public DbSet<CostAuditEngagement> CostAuditEngagements => Set<CostAuditEngagement>();
+    public DbSet<CostRecordHead> CostRecordHeads => Set<CostRecordHead>();
+    public DbSet<ProductCostStatement> ProductCostStatements => Set<ProductCostStatement>();
+    public DbSet<CostAuditReconciliationItem> CostAuditReconciliationItems => Set<CostAuditReconciliationItem>();
     public DbSet<ConfigDefinition> ConfigDefinitions => Set<ConfigDefinition>();
     public DbSet<ConfigValue> ConfigValues => Set<ConfigValue>();
     public DbSet<ConfigChangeLog> ConfigChangeLog => Set<ConfigChangeLog>();
@@ -929,6 +934,34 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
             e.HasOne(x => x.Study).WithMany(x => x.Comparables).HasForeignKey(x => x.StudyId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(x => x.Transaction).WithMany().HasForeignKey(x => x.TransactionId).OnDelete(DeleteBehavior.SetNull);
             e.HasIndex(x => new { x.FirmId, x.StudyId }).HasDatabaseName("ix_comparables_firm_study");
+        });
+
+        b.Entity<CostAuditEngagement>(e =>
+        {
+            e.ToTable("cost_audit_engagements");
+            e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.FirmId, x.ClientId, x.FinancialYear }).HasDatabaseName("ix_cost_audit_engagements_firm_client_fy");
+        });
+
+        b.Entity<CostRecordHead>(e =>
+        {
+            e.ToTable("cost_record_heads");
+            e.HasOne(x => x.Engagement).WithMany(x => x.RecordHeads).HasForeignKey(x => x.EngagementId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.FirmId, x.EngagementId }).HasDatabaseName("ix_cost_record_heads_firm_engagement");
+        });
+
+        b.Entity<ProductCostStatement>(e =>
+        {
+            e.ToTable("product_cost_statements");
+            e.HasOne(x => x.Engagement).WithMany(x => x.ProductStatements).HasForeignKey(x => x.EngagementId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.FirmId, x.EngagementId }).HasDatabaseName("ix_product_cost_statements_firm_engagement");
+        });
+
+        b.Entity<CostAuditReconciliationItem>(e =>
+        {
+            e.ToTable("cost_audit_reconciliation_items");
+            e.HasOne(x => x.Engagement).WithMany(x => x.ReconciliationItems).HasForeignKey(x => x.EngagementId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.FirmId, x.EngagementId }).HasDatabaseName("ix_cost_audit_rec_items_firm_engagement");
         });
 
         b.Entity<TaskTemplate>(e =>
