@@ -315,3 +315,658 @@ export function uploadFile<T>(path: string, file: File, fields: Record<string, s
 export function uploadLinkUrl(token: string) {
   return `${location.origin}/upload/${encodeURIComponent(token)}`
 }
+
+// ---------------------------------------------------------------- Sprint 11: Billing & Timesheets
+
+export type TimeEntry = {
+  id: string
+  clientId: string
+  clientName?: string | null
+  taskId?: string | null
+  taskTitle?: string | null
+  userId: string
+  userName?: string | null
+  date: string
+  hours: number
+  hourlyRate: number
+  description: string
+  billable: boolean
+  isBilled: boolean
+  invoiceItemId?: string | null
+  createdAt: string
+}
+
+export type TimesheetSummary = {
+  totalHours: number
+  billableHours: number
+  nonBillableHours: number
+  unbilledHours: number
+  estimatedUnbilledValue: number
+}
+
+export type InvoiceItem = {
+  id: string
+  description: string
+  sacCode?: string | null
+  quantity: number
+  unitPrice: number
+  gstRate: number
+  amount: number
+  taxAmount: number
+  totalAmount: number
+  timeEntryId?: string | null
+}
+
+export type Payment = {
+  id: string
+  invoiceId: string
+  invoiceNumber?: string | null
+  clientId: string
+  clientName?: string | null
+  paymentDate: string
+  amount: number
+  paymentMode: string
+  referenceNumber?: string | null
+  notes?: string | null
+  createdAt: string
+}
+
+export type Invoice = {
+  id: string
+  clientId: string
+  clientName?: string | null
+  invoiceNumber: string
+  issueDate: string
+  dueDate: string
+  status: 'draft' | 'sent' | 'partially_paid' | 'paid' | 'cancelled'
+  currency: string
+  subtotal: number
+  taxAmount: number
+  totalAmount: number
+  paidAmount: number
+  balanceDue: number
+  notes?: string | null
+  terms?: string | null
+  items: InvoiceItem[]
+  payments: Payment[]
+  createdAt: string
+}
+
+export type BillingSummary = {
+  totalOutstanding: number
+  totalOverdue: number
+  billedThisMonth: number
+  collectedThisMonth: number
+  openInvoicesCount: number
+}
+
+export type CreateInvoiceRequest = {
+  clientId: string
+  issueDate: string
+  dueDate: string
+  currency?: string | null
+  notes?: string | null
+  terms?: string | null
+  items: {
+    description: string
+    sacCode?: string | null
+    quantity: number
+    unitPrice: number
+    gstRate?: number | null
+    timeEntryId?: string | null
+  }[]
+  timeEntryIds?: string[] | null
+}
+
+export type RecordPaymentRequest = {
+  paymentDate: string
+  amount: number
+  paymentMode: string
+  referenceNumber?: string | null
+  notes?: string | null
+}
+
+
+export type DscMovementLog = {
+  id: string
+  movedAt: string
+  fromLocation: string
+  toLocation: string
+  handlerUserId?: string | null
+  handlerUserName?: string | null
+  remarks?: string | null
+}
+
+export type DscRegister = {
+  id: string
+  clientId?: string | null
+  clientName?: string | null
+  holderName: string
+  pan: string
+  dscType: string
+  issuingAuthority: string
+  validFrom: string
+  validTo: string
+  daysRemaining: number
+  serialNumber?: string | null
+  usbTokenId?: string | null
+  location: string
+  custodianUserId?: string | null
+  custodianUserName?: string | null
+  status: string
+  notes?: string | null
+  movementLogs: DscMovementLog[]
+  createdAt: string
+}
+
+export type DscSummary = {
+  totalActive: number
+  expiringSoon: number
+  expired: number
+  inVault: number
+  checkedOut: number
+}
+
+export type CreateDscRequest = {
+  clientId?: string | null
+  holderName: string
+  pan: string
+  dscType?: string | null
+  issuingAuthority?: string | null
+  validFrom: string
+  validTo: string
+  serialNumber?: string | null
+  usbTokenId?: string | null
+  location?: string | null
+  custodianUserId?: string | null
+  notes?: string | null
+}
+
+export type TransferCustodyRequest = {
+  toLocation: string
+  custodianUserId?: string | null
+  remarks?: string | null
+}
+
+export type PortalUser = {
+  id: string
+  clientId: string
+  clientName?: string | null
+  email: string
+  name: string
+  phone?: string | null
+  role: string
+  isActive: boolean
+  lastLoginAt?: string | null
+  createdAt: string
+}
+
+export type ServiceRequestMessage = {
+  id: string
+  senderType: 'client' | 'staff' | string
+  senderName: string
+  senderUserId?: string | null
+  message: string
+  attachmentDocId?: string | null
+  createdAt: string
+}
+
+export type ServiceRequest = {
+  id: string
+  clientId: string
+  clientName?: string | null
+  portalUserId?: string | null
+  portalUserName?: string | null
+  requestNumber: string
+  category: string
+  subject: string
+  description: string
+  priority: 'low' | 'medium' | 'high' | 'urgent' | string
+  status: 'submitted' | 'in_progress' | 'resolved' | 'closed' | string
+  assignedUserId?: string | null
+  assignedUserName?: string | null
+  resolutionNotes?: string | null
+  resolvedAt?: string | null
+  createdAt: string
+  updatedAt?: string | null
+  messages: ServiceRequestMessage[]
+}
+
+export type CreatePortalUserRequest = {
+  clientId: string
+  email: string
+  name: string
+  phone?: string | null
+  password: string
+  role?: string | null
+}
+
+export type CreateServiceRequestInput = {
+  category: string
+  subject: string
+  description: string
+  priority?: string | null
+}
+
+export type AddRequestMessageInput = {
+  message: string
+  attachmentDocId?: string | null
+}
+
+export type UpdateServiceRequestStatusInput = {
+  status: string
+  resolutionNotes?: string | null
+  assignedUserId?: string | null
+}
+
+// -------------------------------------------------------------
+// Sprint 14: Direct Tax Computation & Regime Comparison Types
+// -------------------------------------------------------------
+
+export type TaxSlabBreakdown = {
+  slabRange: string
+  ratePercent: number
+  taxableInSlab: number
+  taxAmount: number
+}
+
+export type RegimeTaxResult = {
+  regime: string
+  grossSalary: number
+  standardDeduction: number
+  netSalary: number
+  housePropertyIncome: number
+  businessIncome: number
+  capitalGainsStcg: number
+  capitalGainsLtcg: number
+  otherSourcesIncome: number
+  grossTotalIncome: number
+  chapterViaDeductions: number
+  taxableIncome: number
+  baseTax: number
+  specialRateTax: number
+  rebate87A: number
+  surcharge: number
+  cess: number
+  totalTaxLiability: number
+  prepaidTaxes: number
+  netPayableOrRefund: number
+  slabBreakdown: TaxSlabBreakdown[]
+}
+
+export type RegimeComparisonDto = {
+  oldRegime: RegimeTaxResult
+  newRegime: RegimeTaxResult
+  recommendedRegime: string
+  taxSavings: number
+  recommendationReason: string
+}
+
+export type CalculateTaxRequest = {
+  clientId: string
+  assessmentYear: string
+  financialYear: string
+  taxpayerCategory?: string | null
+  optedRegime?: string | null
+  // Salary
+  grossSalary: number
+  hraReceived: number
+  rentPaid: number
+  isMetro: boolean
+  professionalTax: number
+  // House property
+  annualRentReceived: number
+  municipalTaxesPaid: number
+  housingLoanInterest: number
+  isSelfOccupied: boolean
+  // Business
+  businessGrossTurnover: number
+  netProfit: number
+  presumptiveSection?: string | null
+  // Capital gains
+  stcg111A: number
+  stcgNormal: number
+  ltcg112A: number
+  ltcg112: number
+  // Other sources
+  savingsInterest: number
+  fdInterest: number
+  dividendIncome: number
+  otherIncome: number
+  // Deductions
+  section80C: number
+  section80Ccd1B: number
+  section80D: number
+  section80E: number
+  section80G: number
+  section80Tta: number
+  // Taxes paid
+  tdsPaid: number
+  tcsPaid: number
+  advanceTaxPaid: number
+  selfAssessmentTaxPaid: number
+  notes?: string | null
+}
+
+export type TaxComputationDto = {
+  id: string
+  clientId: string
+  clientName?: string | null
+  assessmentYear: string
+  financialYear: string
+  taxpayerCategory: string
+  optedRegime: string
+  status: string
+  grossSalary: number
+  salaryDeductions: number
+  netSalary: number
+  housePropertyIncome: number
+  businessIncome: number
+  capitalGainsStcg: number
+  capitalGainsLtcg: number
+  otherSourcesIncome: number
+  grossTotalIncome: number
+  chapterViaDeductions: number
+  totalTaxableIncome: number
+  taxOnIncome: number
+  rebate87A: number
+  surcharge: number
+  cess: number
+  totalTaxLiability: number
+  tdsTcsCredit: number
+  advanceTaxPaid: number
+  selfAssessmentTax: number
+  netTaxPayableOrRefund: number
+  comparison: RegimeComparisonDto
+  notes?: string | null
+  createdAt: string
+  updatedAt?: string | null
+}
+
+export const taxApi = {
+  preview: (req: CalculateTaxRequest) => api<RegimeComparisonDto>('/api/tax/preview', { method: 'POST', body: JSON.stringify(req) }),
+  save: (req: CalculateTaxRequest) => api<TaxComputationDto>('/api/tax/computations', { method: 'POST', body: JSON.stringify(req) }),
+  list: (clientId?: string, ay?: string) => {
+    const p = new URLSearchParams()
+    if (clientId) p.set('clientId', clientId)
+    if (ay) p.set('assessmentYear', ay)
+    const qs = p.toString()
+    return api<TaxComputationDto[]>(`/api/tax/computations${qs ? `?${qs}` : ''}`)
+  },
+  get: (id: string) => api<TaxComputationDto>(`/api/tax/computations/${id}`),
+  updateStatus: (id: string, status: string) => api<TaxComputationDto>(`/api/tax/computations/${id}/status?status=${encodeURIComponent(status)}`, { method: 'PUT' }),
+  delete: (id: string) => api<void>(`/api/tax/computations/${id}`, { method: 'DELETE' }),
+}
+
+// -------------------------------------------------------------
+// Sprint 15: Statutory Audit & Working Papers Types (ICAI SA)
+// -------------------------------------------------------------
+
+export type AuditEngagementDto = {
+  id: string
+  clientId: string
+  clientName?: string | null
+  financialYear: string
+  auditType: string
+  title: string
+  leadPartnerId?: string | null
+  leadPartnerName?: string | null
+  managerId?: string | null
+  managerName?: string | null
+  plannedStartDate?: string | null
+  plannedEndDate?: string | null
+  status: string
+  benchmarkType: string
+  benchmarkAmount: number
+  overallMateriality: number
+  performanceMateriality: number
+  trivialThreshold: number
+  auditOpinion?: string | null
+  notes?: string | null
+  totalWorkingPapers: number
+  reviewedWorkingPapers: number
+  createdAt: string
+  updatedAt?: string | null
+}
+
+export type AuditWorkingPaperDto = {
+  id: string
+  engagementId: string
+  refCode: string
+  area: string
+  title: string
+  assertion: string
+  objective: string
+  proceduresPerformed: string
+  samplingMethod: string
+  populationValue: number
+  sampleValue: number
+  itemsTestedCount: number
+  exceptionsNoted?: string | null
+  conclusion: string
+  status: string
+  preparerId?: string | null
+  preparerName?: string | null
+  preparedAt?: string | null
+  reviewerId?: string | null
+  reviewerName?: string | null
+  reviewedAt?: string | null
+  reviewNotes?: string | null
+  attachments: string[]
+  createdAt: string
+  updatedAt?: string | null
+}
+
+export type CreateAuditEngagementRequest = {
+  clientId: string
+  financialYear: string
+  auditType?: string | null
+  title: string
+  leadPartnerId?: string | null
+  managerId?: string | null
+  plannedStartDate?: string | null
+  plannedEndDate?: string | null
+  benchmarkType?: string | null
+  benchmarkAmount: number
+  notes?: string | null
+}
+
+export type UpdateMaterialityRequest = {
+  benchmarkType: string
+  benchmarkAmount: number
+  overallMaterialityPercent?: number | null
+  performanceMaterialityPercent?: number | null
+  trivialThresholdPercent?: number | null
+}
+
+export type SaveWorkingPaperRequest = {
+  refCode: string
+  area: string
+  title: string
+  assertion?: string | null
+  objective: string
+  proceduresPerformed?: string | null
+  samplingMethod?: string | null
+  populationValue: number
+  sampleValue: number
+  itemsTestedCount: number
+  exceptionsNoted?: string | null
+  conclusion?: string | null
+}
+
+export type ReviewWorkingPaperRequest = {
+  status: string
+  reviewNotes?: string | null
+}
+
+export type UpdateEngagementStatusRequest = {
+  status: string
+  auditOpinion?: string | null
+}
+
+export type AuditSummaryDto = {
+  totalEngagements: number
+  planningCount: number
+  fieldworkCount: number
+  reviewCount: number
+  signedOffCount: number
+  totalWorkingPapers: number
+  exceptionsFlaggedCount: number
+}
+
+export const auditApi = {
+  summary: () => api<AuditSummaryDto>('/api/audit/summary'),
+  listEngagements: (clientId?: string, fy?: string, status?: string) => {
+    const p = new URLSearchParams()
+    if (clientId) p.set('clientId', clientId)
+    if (fy) p.set('financialYear', fy)
+    if (status) p.set('status', status)
+    const qs = p.toString()
+    return api<AuditEngagementDto[]>(`/api/audit/engagements${qs ? `?${qs}` : ''}`)
+  },
+  getEngagement: (id: string) => api<AuditEngagementDto>(`/api/audit/engagements/${id}`),
+  createEngagement: (req: CreateAuditEngagementRequest) => api<AuditEngagementDto>('/api/audit/engagements', { method: 'POST', body: JSON.stringify(req) }),
+  updateMateriality: (id: string, req: UpdateMaterialityRequest) => api<AuditEngagementDto>(`/api/audit/engagements/${id}/materiality`, { method: 'PUT', body: JSON.stringify(req) }),
+  updateStatus: (id: string, req: UpdateEngagementStatusRequest) => api<AuditEngagementDto>(`/api/audit/engagements/${id}/status`, { method: 'PUT', body: JSON.stringify(req) }),
+  deleteEngagement: (id: string) => api<void>(`/api/audit/engagements/${id}`, { method: 'DELETE' }),
+
+  listWorkingPapers: (engagementId: string, area?: string, status?: string) => {
+    const p = new URLSearchParams()
+    if (area) p.set('area', area)
+    if (status) p.set('status', status)
+    const qs = p.toString()
+    return api<AuditWorkingPaperDto[]>(`/api/audit/engagements/${engagementId}/working-papers${qs ? `?${qs}` : ''}`)
+  },
+  getWorkingPaper: (id: string) => api<AuditWorkingPaperDto>(`/api/audit/working-papers/${id}`),
+  createWorkingPaper: (engagementId: string, req: SaveWorkingPaperRequest) => api<AuditWorkingPaperDto>(`/api/audit/engagements/${engagementId}/working-papers`, { method: 'POST', body: JSON.stringify(req) }),
+  updateWorkingPaper: (id: string, req: SaveWorkingPaperRequest) => api<AuditWorkingPaperDto>(`/api/audit/working-papers/${id}`, { method: 'PUT', body: JSON.stringify(req) }),
+  reviewWorkingPaper: (id: string, req: ReviewWorkingPaperRequest) => api<AuditWorkingPaperDto>(`/api/audit/working-papers/${id}/review`, { method: 'PUT', body: JSON.stringify(req) }),
+  deleteWorkingPaper: (id: string) => api<void>(`/api/audit/working-papers/${id}`, { method: 'DELETE' }),
+}
+
+// -------------------------------------------------------------
+// Sprint 16: GST 2A/2B Reconciliation Types
+// -------------------------------------------------------------
+
+export type PurchaseRegisterInvoice = {
+  supplierGstin: string
+  supplierName?: string | null
+  invoiceNumber: string
+  invoiceDate?: string | null
+  invoiceType?: string | null
+  taxableValue: number
+  cgst: number
+  sgst: number
+  igst: number
+  cess: number
+}
+
+export type Gstr2BInvoice = {
+  supplierGstin: string
+  supplierName?: string | null
+  invoiceNumber: string
+  invoiceDate?: string | null
+  invoiceType?: string | null
+  taxableValue: number
+  cgst: number
+  sgst: number
+  igst: number
+  cess: number
+  itcAvailable?: boolean | null
+  ineligibleReason?: string | null
+}
+
+export type RunReconciliationRequest = {
+  clientId: string
+  returnPeriod: string
+  financialYear: string
+  toleranceAmount?: number | null
+  purchaseInvoices: PurchaseRegisterInvoice[]
+  gstr2BInvoices: Gstr2BInvoice[]
+  notes?: string | null
+}
+
+export type GstReconciliationBatchDto = {
+  id: string
+  clientId: string
+  clientName?: string | null
+  returnPeriod: string
+  financialYear: string
+  status: string
+  toleranceAmount: number
+  purchaseRegisterCount: number
+  gstr2BCount: number
+  matchedCount: number
+  matchedWithToleranceCount: number
+  missingIn2BCount: number
+  missingInBooksCount: number
+  mismatchedTaxCount: number
+  totalPrTaxable: number
+  totalPrTax: number
+  total2BTaxable: number
+  total2BTax: number
+  totalItcEligible: number
+  totalItcIneligible: number
+  notes?: string | null
+  createdAt: string
+}
+
+export type GstReconciliationItemDto = {
+  id: string
+  batchId: string
+  supplierGstin: string
+  supplierName?: string | null
+  invoiceNumber: string
+  normalizedInvoiceNumber: string
+  invoiceDate?: string | null
+  invoiceType: string
+  prTaxableValue: number
+  prCgst: number
+  prSgst: number
+  prIgst: number
+  prCess: number
+  gstr2BTaxableValue: number
+  gstr2BCgst: number
+  gstr2BSgst: number
+  gstr2BIgst: number
+  gstr2BCess: number
+  matchStatus: string
+  itcEligibility: string
+  taxDifference: number
+  notes?: string | null
+  createdAt: string
+}
+
+export type GstReconciliationSummaryDto = {
+  totalBatches: number
+  totalInvoicesReconciled: number
+  totalMatchedCount: number
+  totalMissingIn2BCount: number
+  totalMissingInBooksCount: number
+  totalItcEligible: number
+  totalItcAtRisk: number
+}
+
+export const gstApi = {
+  summary: () => api<GstReconciliationSummaryDto>('/api/gst/summary'),
+  listBatches: (clientId?: string, fy?: string, rp?: string) => {
+    const p = new URLSearchParams()
+    if (clientId) p.set('clientId', clientId)
+    if (fy) p.set('financialYear', fy)
+    if (rp) p.set('returnPeriod', rp)
+    const qs = p.toString()
+    return api<GstReconciliationBatchDto[]>(`/api/gst/batches${qs ? `?${qs}` : ''}`)
+  },
+  getBatch: (id: string) => api<GstReconciliationBatchDto>(`/api/gst/batches/${id}`),
+  reconcile: (req: RunReconciliationRequest) => api<GstReconciliationBatchDto>('/api/gst/reconcile', { method: 'POST', body: JSON.stringify(req) }),
+  listItems: (batchId: string, matchStatus?: string) => {
+    const p = new URLSearchParams()
+    if (matchStatus) p.set('matchStatus', matchStatus)
+    const qs = p.toString()
+    return api<GstReconciliationItemDto[]>(`/api/gst/batches/${batchId}/items${qs ? `?${qs}` : ''}`)
+  },
+  deleteBatch: (id: string) => api<void>(`/api/gst/batches/${id}`, { method: 'DELETE' }),
+}
+
+
+

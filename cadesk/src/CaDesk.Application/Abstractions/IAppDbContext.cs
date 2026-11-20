@@ -1,4 +1,10 @@
+using CaDesk.Domain.Audit;
+using CaDesk.Domain.Gst;
+using CaDesk.Domain.Billing;
 using CaDesk.Domain.Clients;
+using CaDesk.Domain.Dsc;
+using CaDesk.Domain.Portal;
+using CaDesk.Domain.Tax;
 using CaDesk.Domain.Compliance;
 using CaDesk.Domain.Documents;
 using CaDesk.Domain.Tasks;
@@ -48,6 +54,20 @@ public interface IAppDbContext
     DbSet<DocumentFolder> DocumentFolders { get; }
     DbSet<DocumentUploadLink> DocumentUploadLinks { get; }
     DbSet<TaskDocument> TaskDocuments { get; }
+    DbSet<TimeEntry> TimeEntries { get; }
+    DbSet<Invoice> Invoices { get; }
+    DbSet<InvoiceItem> InvoiceItems { get; }
+    DbSet<Payment> Payments { get; }
+    DbSet<DscRegister> DscRegisters { get; }
+    DbSet<DscMovementLog> DscMovementLogs { get; }
+    DbSet<ClientPortalUser> ClientPortalUsers { get; }
+    DbSet<ServiceRequest> ServiceRequests { get; }
+    DbSet<ServiceRequestMessage> ServiceRequestMessages { get; }
+    DbSet<TaxComputation> TaxComputations { get; }
+    DbSet<AuditEngagement> AuditEngagements { get; }
+    DbSet<AuditWorkingPaper> AuditWorkingPapers { get; }
+    DbSet<GstReconciliationBatch> GstReconciliationBatches { get; }
+    DbSet<GstReconciliationItem> GstReconciliationItems { get; }
     /// <summary>For transactions and the few raw SQL calls (numbering, jsonb lookups). RLS still applies.</summary>
     DatabaseFacade Database { get; }
     Task<int> SaveChangesAsync(CancellationToken ct = default);

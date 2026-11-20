@@ -71,6 +71,13 @@ else
 // ---- document vault: files on disk (Documents:StoragePath), virus scan with ClamAV (Documents:Scan:Mode = ClamAv | None)
 builder.Services.AddScoped<CaDesk.Application.Documents.DocumentService>();
 builder.Services.AddScoped<CaDesk.Application.Documents.PortalService>();
+builder.Services.AddScoped<CaDesk.Application.Billing.BillingService>();
+builder.Services.AddScoped<CaDesk.Application.Billing.TimesheetService>();
+builder.Services.AddScoped<CaDesk.Application.Dsc.DscService>();
+builder.Services.AddScoped<CaDesk.Application.Portal.ClientPortalService>();
+builder.Services.AddScoped<CaDesk.Application.Tax.TaxComputationService>();
+builder.Services.AddScoped<CaDesk.Application.Audit.AuditService>();
+builder.Services.AddScoped<CaDesk.Application.Gst.GstReconciliationService>();
 var docOptions = config.GetSection("Documents").Get<CaDesk.Api.Documents.DocumentOptions>() ?? new();
 var storagePath = docOptions.StoragePath;
 if (storagePath.Length == 0)
@@ -209,6 +216,13 @@ app.MapComplianceEndpoints();
 app.MapTaskEndpoints();
 app.MapNotificationEndpoints();
 app.MapDocumentEndpoints();
+app.MapBillingEndpoints();
+app.MapTimesheetEndpoints();
+app.MapDscEndpoints();
+app.MapClientPortalEndpoints();
+app.MapTaxComputationEndpoints();
+app.MapStatutoryAuditEndpoints();
+app.MapGstReconciliationEndpoints();
 app.MapSettingsEndpoints();
 app.MapAuditEndpoints();
 

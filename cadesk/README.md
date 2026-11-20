@@ -13,6 +13,9 @@ Multi-tenant SaaS for CA and accounting firms (India first, GCC later).
 | 7 | Tasks: one per deadline (made 30 days ahead, assigned by the firm's rule, checklist from templates), ad-hoc tasks, review with separation of duties (approve / send back), deadline filed only on approval, comments and history, My tasks / To review / Workload screens, firm checklists | Managers see each person's load; staff work through checklists; nothing is filed until reviewed |
 | 8 | Reminders: outbox with dedupe, client deadline reminders + overdue notice (email, WhatsApp templates), staff daily summary, review / sent-back emails, partner escalation, quiet hours, retries, firm message texts with preview, log screen | Clients get timely reminders, staff a daily summary; nothing is sent twice or at night |
 | 9 | Document vault: per-client folders by year and filing, staff upload and client upload links (no account), allowed types and size from settings with content checks, ClamAV virus scan, trash, retention review and legal hold, documents linked to tasks, downloads audited | A client sends its bank statements with a link; staff find them under the right year and filing, attached to the task |
+| 11 | Billing, Invoicing & Timesheets: CA fee billing, GST invoices, SAC codes, payment receipts, staff billable time, unbilled timesheets imported to invoices, multi-tenant isolation | Staff log billable hours; invoices calculate 18% GST; payments update balances to paid; Firm B cannot read or pay Firm A invoices |
+| 12 | Digital Signature Certificates (DSC) & Token Management: Hardware USB token tracking, signer PAN validation, expiry countdowns & alerts, custody transfer audit trail (vault, staff, client, in-transit) | Register Class 3 token; status auto-calculated (active/expiring soon/expired); custody movement logged with handler user and remarks; strict firm isolation |
+| 13 | Client Self-Service Portal & External Auth: Client portal user login, customer service requests / helpdesk tickets, filing status & ARN viewer, invoice balances, DSC tracking, staff ticket desk | Client users log in securely, view filings and invoices, submit inquiries with 2-way messaging; firm staff resolve tickets; strict multi-firm isolation |
 
 ## What's inside
 
@@ -326,6 +329,72 @@ Read needs `documents.read`; upload, move and links `documents.upload`; delete, 
 
 Not yet done: emailing an upload link to the client's contacts from the app (copy it into email/WhatsApp for now), previews in the
 browser, object storage (S3-compatible) instead of a disk folder, encrypting files at rest beyond the disk's own encryption.
+
+## Billing, Invoicing & Timesheets (Sprint 11)
+
+- **Timesheets**: Staff track billable and non-billable client and compliance work (hours 0.01–24, hourly rates, client and task links).
+  Unbilled entries can be imported directly into invoice line items. Once billed, entries are locked from modification or deletion.
+- **Invoices**: Statutory CA fee invoices with sequential numbering (`billing.invoice_prefix`, default `INV/{FY}/{SEQ:4}` via atomic `next_number`),
+  HSN/SAC codes (`9982` default), multi-rate GST computation (18% CGST/SGST/IGST), issue and due dates, draft/sent/partially_paid/paid/cancelled lifecycle.
+- **Payments**: Track payments received against invoices (Bank Transfer, UPI, Cheque, Cash, Card, Other with UTR/cheque references).
+  Automatically maintains `paid_amount`, computes real-time `balance_due`, and updates invoice status to `partially_paid` or `paid`.
+- **Practice Analytics**: Real-time KPI tiles for outstanding receivables, overdue balances, monthly billed amounts, and unbilled work-in-progress (WIP).
+- **Two Locks**: Full multi-tenant isolation enforced by EF Core global query filters and PostgreSQL Row Level Security (`0010_billing_and_timesheets.sql`).
+
+API:
+- `GET /api/invoices?status=&clientId=&from=&to=&skip=&take=`, `GET /api/invoices/{id}`, `GET /api/invoices/summary` (`billing.read`)
+- `POST /api/invoices`, `PUT /api/invoices/{id}`, `PUT /api/invoices/{id}/status`, `DELETE /api/invoices/{id}`, `POST /api/invoices/{id}/payments` (`billing.manage`)
+- `GET /api/timesheets?userId=&clientId=&taskId=&from=&to=&unbilledOnly=`, `GET /api/timesheets/summary` (`FirmMember`)
+- `POST /api/timesheets`, `PUT /api/timesheets/{id}`, `DELETE /api/timesheets/{id}` (`FirmMember` / `timesheets.manage`)
+
+## Digital Signature Certificates & Token Custody (Sprint 12)
+
+- **DSC Register**: Custody tracking for physical USB e-Pass/mToken dongles (Class 3 Signing & Encryption).
+  Tracks Certifying Authorities (eMudhra, Capricorn, VSign, Pantasign, Sify), issuing dates, expiry alerts, and hardware serials.
+- **Custody Chain**: Movement logs on every handover between client, staff custodian, and safe vault storage.
+- **Expiry Radar**: Automated classification into Active, Expiring Soon (configurable warning threshold, default 30 days), and Expired.
+- **Two Locks**: Row Level Security and EF Core query filtering (`0011_dsc_management.sql`).
+
+API:
+- `GET /api/dsc`, `GET /api/dsc/{id}`, `GET /api/dsc/summary` (`dsc.read`)
+- `POST /api/dsc`, `PUT /api/dsc/{id}`, `POST /api/dsc/{id}/custody`, `DELETE /api/dsc/{id}` (`dsc.manage`)
+
+## Client Self-Service Portal & Service Desk (Sprint 13)
+
+- **External Client Auth**: Secure external client logins via PBKDF2 salted passwords and `auth_find_portal_user` security definer.
+- **Service Desk Tickets**: Client issue submissions, categorized priorities (Urgent, High, Medium, Low), sequential numbering (`REQ/{YYYY}/{SEQ:4}`).
+- **Interactive Ticket Threads**: Two-way client/staff discussions with document attachments and resolution workflow.
+- **Client 360 View**: Direct client visibility into statutory filings, invoices, and in-custody DSC tokens.
+- **Two Locks**: Isolation on client portal entities with RLS policies (`0012_client_portal.sql`).
+
+API:
+- `POST /api/portal/auth/login`, `GET /api/portal/auth/me`, `GET /api/portal/dashboard`
+- `GET /api/portal/filings`, `GET /api/portal/invoices`, `GET /api/portal/dsc`, `GET|POST /api/portal/requests`
+- `GET /api/service-requests`, `PUT /api/service-requests/{id}/status` (`service_requests.manage`)
+
+## Direct Tax Computation & Regime Comparison (Sprint 14)
+
+- **5 Heads of Income**: Salary (Standard deduction ₹75k New vs ₹50k Old, HRA Sec 10(13A), Professional Tax), House Property (Sec 24(b) loan interest), Business/PGBP, Capital Gains (STCG 111A, LTCG 112A), and Other Sources (Savings/FD interest, Dividends).
+- **Comparative Regime Simulator**: Side-by-side Old vs New Regime (Sec 115BAC) comparative evaluation with automatic recommendation and quantified tax savings.
+- **Statutory Computations**: Revised AY 2025-26 slab rates, Sec 87A rebate (₹7L threshold New vs ₹5L Old), Surcharge slabs, 4% Health & Education Cess, and Chapter VI-A deductions (80C, 80CCD(1B), 80D, 80E, 80G, 80TTA).
+- **Computation History**: Draft, Computed, Approved, and Filed lifecycle with full audit trail and multi-tenant RLS (`0013_tax_computations.sql`).
+
+API:
+- `POST /api/tax/preview`, `GET /api/tax/computations`, `GET /api/tax/computations/{id}`, `POST /api/tax/computations`, `PUT /api/tax/computations/{id}/status`, `DELETE /api/tax/computations/{id}` (`computations.run`, `computations.approve`)
+
+## Statutory Audit Workspace & Audit Working Papers (Sprint 15)
+
+- **ICAI Standards on Auditing**: Conforms to SA 200 (Overall Objectives), SA 300 (Audit Planning), SA 315 (Risk Assessment), SA 320 (Materiality), SA 500 (Audit Evidence), SA 505 (External Confirmations), SA 530 (Audit Sampling), and SA 700/705 (Audit Opinion).
+- **Automated Materiality Benchmarking (SA 320 / SA 450)**: Live calculation of Overall Materiality (Revenue 1%, PBT 5%, Total Assets 1%, Equity 2%), Performance Materiality (75%), and Clearly Trivial Threshold (5%).
+- **Standard Working Paper Provisioning**: Automated seeding of standard working paper templates for every new engagement (`WP/BNK/01` Bank BRS, `WP/REV/01` Sales Cut-off, `WP/PUR/01` Purchase vs GSTR-2B, `WP/AST/01` Fixed Assets Additions, `WP/TAX/01` Statutory Dues).
+- **Multi-Tier Review Workflow**: Preparer draft -> Ready for Review -> Manager Review & Notes -> Partner Sign-off & Audit Opinion issuance (`unmodified`, `qualified`, `adverse`, `disclaimer`).
+- **Two Locks**: EF Core global query filters and PostgreSQL Row Level Security (`0014_statutory_audit.sql`).
+
+API:
+- `GET /api/audit/summary`, `GET /api/audit/engagements`, `GET /api/audit/engagements/{id}`, `POST /api/audit/engagements`, `PUT /api/audit/engagements/{id}/materiality`, `PUT /api/audit/engagements/{id}/status`, `DELETE /api/audit/engagements/{id}` (`audit.read`, `audit.manage`, `audit.review`)
+- `GET /api/audit/engagements/{id}/working-papers`, `GET /api/audit/working-papers/{id}`, `POST /api/audit/engagements/{id}/working-papers`, `PUT /api/audit/working-papers/{id}`, `PUT /api/audit/working-papers/{id}/review`, `DELETE /api/audit/working-papers/{id}` (`audit.read`, `audit.manage`, `audit.review`)
+
+
 
 ## Notes
 

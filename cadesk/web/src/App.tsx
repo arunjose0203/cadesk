@@ -8,8 +8,13 @@ import SettingsPage from './SettingsPage'
 import AuditPage from './AuditPage'
 import DeadlinesPage from './DeadlinesPage'
 import TasksPage from './TasksPage'
+import BillingPage from './BillingPage'
+import DscPage from './DscPage'
+import PortalPage from './PortalPage'
+import { TaxPage } from './TaxPage'
+import { AuditWorkspacePage } from './AuditWorkspacePage'
 
-type Page = 'tasks' | 'deadlines' | 'clients' | 'users' | 'settings' | 'audit' | 'security'
+type Page = 'tasks' | 'deadlines' | 'clients' | 'billing' | 'tax' | 'audit-workspace' | 'dsc' | 'portal' | 'users' | 'settings' | 'audit' | 'security'
 
 export default function App() {
   const [user, setUser] = useState<UserProfile | null>(null)
@@ -170,6 +175,59 @@ export default function App() {
           </svg>
           Clients
         </button>
+        <button className={page === 'billing' ? 'active' : ''} onClick={() => setPage('billing')}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="12" y1="1" x2="12" y2="23"></line>
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+          </svg>
+          Billing & Time
+        </button>
+        {can('computations.run') && (
+          <button className={page === 'tax' ? 'active' : ''} onClick={() => setPage('tax')}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="4" y="2" width="16" height="20" rx="2"></rect>
+              <line x1="8" y1="6" x2="16" y2="6"></line>
+              <line x1="16" y1="14" x2="16" y2="18"></line>
+              <path d="M16 10h.01"></path>
+              <path d="M12 10h.01"></path>
+              <path d="M8 10h.01"></path>
+              <path d="M12 14h.01"></path>
+              <path d="M8 14h.01"></path>
+              <path d="M12 18h.01"></path>
+              <path d="M8 18h.01"></path>
+            </svg>
+            Tax Desk
+          </button>
+        )}
+        {can('audit.read') && (
+          <button className={page === 'audit-workspace' ? 'active' : ''} onClick={() => setPage('audit-workspace')}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+            Audit Workspace
+          </button>
+        )}
+        {can('dsc.read') && (
+          <button className={page === 'dsc' ? 'active' : ''} onClick={() => setPage('dsc')}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+            DSC Custody
+          </button>
+        )}
+        {can('portal.read') && (
+          <button className={page === 'portal' ? 'active' : ''} onClick={() => setPage('portal')}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+            </svg>
+            Client Desk
+          </button>
+        )}
         {can('users.read') && (
           <button className={page === 'users' ? 'active' : ''} onClick={() => setPage('users')}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -210,6 +268,11 @@ export default function App() {
       {page === 'tasks' && can('tasks.read') && <TasksPage can={can} meId={user.id} />}
       {page === 'deadlines' && can('compliance.read') && <DeadlinesPage can={can} />}
       {page === 'clients' && <ClientsPage can={can} meId={user.id} />}
+      {page === 'billing' && <BillingPage can={can} meId={user.id} />}
+      {page === 'tax' && can('computations.run') && <TaxPage />}
+      {page === 'audit-workspace' && can('audit.read') && <AuditWorkspacePage me={user} />}
+      {page === 'dsc' && can('dsc.read') && <DscPage can={can} meId={user.id} />}
+      {page === 'portal' && can('portal.read') && <PortalPage can={can} meId={user.id} />}
       {page === 'users' && can('users.read') && <UsersPage can={can} me={user} />}
       {page === 'settings' && can('settings.manage') && <SettingsPage />}
       {page === 'audit' && can('audit.read') && <AuditPage />}

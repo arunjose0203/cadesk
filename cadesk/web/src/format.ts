@@ -16,3 +16,11 @@ export function show(v: Json | null): string {
   }
   return String(v)
 }
+
+/** Formats ISO date 'yyyy-MM-dd' to 'dd/MM/yyyy'. */
+export function fmtDate(d: string | null | undefined): string {
+  if (!d) return '—'
+  const parts = d.slice(0, 10).split('-')
+  if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`
+  return d
+}

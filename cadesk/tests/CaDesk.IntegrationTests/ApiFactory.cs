@@ -132,7 +132,12 @@ public static class TestData
         "clients.read", "clients.write", "clients.delete", "users.read", "users.manage", "roles.manage",
         "settings.manage", "documents.read", "documents.upload", "documents.delete", "extractions.approve",
         "compliance.read", "compliance.manage", "tasks.read", "tasks.manage", "computations.run",
-        "computations.approve", "billing.manage", "reports.read", "audit.read", "tasks.review",
+        "computations.approve", "billing.manage", "billing.read", "timesheets.read", "timesheets.log", "timesheets.manage",
+        "dsc.read", "dsc.manage",
+        "portal.read", "portal.manage", "service_requests.manage",
+        "audit.read", "audit.manage", "audit.review",
+        "gst.read", "gst.reconcile",
+        "reports.read", "audit.read", "tasks.review",
     ];
 
     /// <summary>Value of the cadesk_rt cookie from a response, or null.</summary>

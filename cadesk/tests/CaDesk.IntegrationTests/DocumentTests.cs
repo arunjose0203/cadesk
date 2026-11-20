@@ -30,10 +30,10 @@ public class DocumentTests(ApiFactory api) : IClassFixture<ApiFactory>
         return new Firm(api.WithToken(u.AccessToken), u);
     }
 
-    private static async Task<ClientDto> NewClient(HttpClient c, string name = "Anand Textiles")
+    private static async Task<ClientDto> NewClient(HttpClient c, string name = "Anand Textiles", Dictionary<string, string>? taxIds = null)
     {
         var res = await c.PostAsJsonAsync("/api/clients",
-            new SaveClientRequest(null, name, null, null, "Company", GstCompany, "accounts@anand.example", null, null, null));
+            new SaveClientRequest(null, name, null, null, "Company", taxIds ?? GstCompany, "accounts@anand.example", null, null, null));
         Assert.True(res.IsSuccessStatusCode, await res.Content.ReadAsStringAsync());
         return (await res.Content.ReadFromJsonAsync<ClientDto>())!;
     }
@@ -192,7 +192,7 @@ public class DocumentTests(ApiFactory api) : IClassFixture<ApiFactory>
     {
         var f = await NewFirm();
         var client = await NewClient(f.Partner);
-        var other = await NewClient(f.Partner, "Bharat Traders");
+        var other = await NewClient(f.Partner, "Bharat Traders", new() { ["PAN"] = "AAACB1234F" });
         var bytes = Pdf();
         await Uploaded(f.Partner, client.Id, bytes, "Form 16.pdf");
         var again = await Upload(f.Partner, client.Id, bytes, "copy.pdf");
@@ -412,7 +412,7 @@ public class DocumentTests(ApiFactory api) : IClassFixture<ApiFactory>
     {
         var f = await NewFirm();
         var client = await NewClient(f.Partner);
-        var other = await NewClient(f.Partner, "Bharat Traders");
+        var other = await NewClient(f.Partner, "Bharat Traders", new() { ["PAN"] = "AAACB1234F" });
 
         var deadline = (await f.Partner.GetFromJsonAsync<JsonElement>($"/api/deadlines?clientId={client.Id}&take=500"))
             .GetProperty("items").EnumerateArray().First(d => d.GetProperty("typeCode").GetString() == "GSTR3B_M");

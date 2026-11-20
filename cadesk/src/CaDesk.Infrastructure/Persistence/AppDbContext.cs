@@ -1,7 +1,13 @@
 using System.Linq.Expressions;
 using System.Reflection;
 using CaDesk.Application.Abstractions;
+using CaDesk.Domain.Audit;
+using CaDesk.Domain.Gst;
+using CaDesk.Domain.Billing;
 using CaDesk.Domain.Clients;
+using CaDesk.Domain.Dsc;
+using CaDesk.Domain.Portal;
+using CaDesk.Domain.Tax;
 using CaDesk.Domain.Compliance;
 using CaDesk.Domain.Documents;
 using CaDesk.Domain.Tasks;
@@ -53,6 +59,20 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
     public DbSet<DocumentFolder> DocumentFolders => Set<DocumentFolder>();
     public DbSet<DocumentUploadLink> DocumentUploadLinks => Set<DocumentUploadLink>();
     public DbSet<TaskDocument> TaskDocuments => Set<TaskDocument>();
+    public DbSet<TimeEntry> TimeEntries => Set<TimeEntry>();
+    public DbSet<Invoice> Invoices => Set<Invoice>();
+    public DbSet<InvoiceItem> InvoiceItems => Set<InvoiceItem>();
+    public DbSet<Payment> Payments => Set<Payment>();
+    public DbSet<DscRegister> DscRegisters => Set<DscRegister>();
+    public DbSet<DscMovementLog> DscMovementLogs => Set<DscMovementLog>();
+    public DbSet<ClientPortalUser> ClientPortalUsers => Set<ClientPortalUser>();
+    public DbSet<ServiceRequest> ServiceRequests => Set<ServiceRequest>();
+    public DbSet<ServiceRequestMessage> ServiceRequestMessages => Set<ServiceRequestMessage>();
+    public DbSet<TaxComputation> TaxComputations => Set<TaxComputation>();
+    public DbSet<AuditEngagement> AuditEngagements => Set<AuditEngagement>();
+    public DbSet<AuditWorkingPaper> AuditWorkingPapers => Set<AuditWorkingPaper>();
+    public DbSet<GstReconciliationBatch> GstReconciliationBatches => Set<GstReconciliationBatch>();
+    public DbSet<GstReconciliationItem> GstReconciliationItems => Set<GstReconciliationItem>();
     public DbSet<ConfigDefinition> ConfigDefinitions => Set<ConfigDefinition>();
     public DbSet<ConfigValue> ConfigValues => Set<ConfigValue>();
     public DbSet<ConfigChangeLog> ConfigChangeLog => Set<ConfigChangeLog>();
@@ -174,6 +194,107 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
             e.HasKey(x => new { x.TaskId, x.DocumentId });
             e.HasOne<WorkTask>().WithMany().HasForeignKey(x => x.TaskId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne<Document>().WithMany().HasForeignKey(x => x.DocumentId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<TimeEntry>(e =>
+        {
+            e.ToTable("time_entries");
+            e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId);
+            e.HasOne(x => x.Task).WithMany().HasForeignKey(x => x.TaskId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId);
+        });
+
+        b.Entity<Invoice>(e =>
+        {
+            e.ToTable("invoices");
+            e.Property(x => x.Currency).HasMaxLength(3).IsFixedLength();
+            e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId);
+            e.HasMany(x => x.Items).WithOne().HasForeignKey(x => x.InvoiceId).OnDelete(DeleteBehavior.Cascade);
+            e.HasMany(x => x.Payments).WithOne().HasForeignKey(x => x.InvoiceId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<InvoiceItem>(e =>
+        {
+            e.ToTable("invoice_items");
+        });
+
+        b.Entity<Payment>(e =>
+        {
+            e.ToTable("payments");
+        });
+
+        b.Entity<DscRegister>(e =>
+        {
+            e.ToTable("dsc_registers");
+            e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.CustodianUser).WithMany().HasForeignKey(x => x.CustodianUserId).OnDelete(DeleteBehavior.SetNull);
+            e.HasMany(x => x.MovementLogs).WithOne().HasForeignKey(x => x.DscId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<DscMovementLog>(e =>
+        {
+            e.ToTable("dsc_movement_logs");
+            e.HasOne(x => x.HandlerUser).WithMany().HasForeignKey(x => x.HandlerUserId);
+        });
+
+        b.Entity<ClientPortalUser>(e =>
+        {
+            e.ToTable("client_portal_users");
+            e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.CreatedByUser).WithMany().HasForeignKey(x => x.CreatedBy);
+        });
+
+        b.Entity<ServiceRequest>(e =>
+        {
+            e.ToTable("service_requests");
+            e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.PortalUser).WithMany().HasForeignKey(x => x.PortalUserId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.AssignedUser).WithMany().HasForeignKey(x => x.AssignedUserId).OnDelete(DeleteBehavior.SetNull);
+            e.HasMany(x => x.Messages).WithOne(x => x.Request).HasForeignKey(x => x.RequestId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<ServiceRequestMessage>(e =>
+        {
+            e.ToTable("service_request_messages");
+        });
+
+        b.Entity<TaxComputation>(e =>
+        {
+            e.ToTable("tax_computations");
+            e.Property(x => x.ComputationBreakdown).HasColumnType("jsonb");
+            e.Property(x => x.ComparisonData).HasColumnType("jsonb");
+            e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.CreatedByUser).WithMany().HasForeignKey(x => x.CreatedBy);
+            e.HasOne(x => x.UpdatedByUser).WithMany().HasForeignKey(x => x.UpdatedBy);
+        });
+
+        b.Entity<AuditEngagement>(e =>
+        {
+            e.ToTable("audit_engagements");
+            e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.LeadPartner).WithMany().HasForeignKey(x => x.LeadPartnerId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.Manager).WithMany().HasForeignKey(x => x.ManagerId).OnDelete(DeleteBehavior.SetNull);
+            e.HasMany(x => x.WorkingPapers).WithOne(x => x.Engagement).HasForeignKey(x => x.EngagementId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<AuditWorkingPaper>(e =>
+        {
+            e.ToTable("audit_working_papers");
+            e.Property(x => x.Attachments).HasColumnType("jsonb");
+            e.HasOne(x => x.Preparer).WithMany().HasForeignKey(x => x.PreparerId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.Reviewer).WithMany().HasForeignKey(x => x.ReviewerId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        b.Entity<GstReconciliationBatch>(e =>
+        {
+            e.ToTable("gst_reconciliation_batches");
+            e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
+            e.HasMany(x => x.Items).WithOne(x => x.Batch).HasForeignKey(x => x.BatchId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<GstReconciliationItem>(e =>
+        {
+            e.ToTable("gst_reconciliation_items");
         });
 
         b.Entity<TaskTemplate>(e =>

@@ -32,10 +32,10 @@ public class NotificationTests(ApiFactory api) : IClassFixture<ApiFactory>
         return (c, u.UserId);
     }
 
-    private static async Task<ClientDto> NewClient(HttpClient c, string? email = "accounts@anand.example", Guid? assignedTo = null)
+    private static async Task<ClientDto> NewClient(HttpClient c, string? email = "accounts@anand.example", Guid? assignedTo = null, Dictionary<string, string>? taxIds = null)
     {
         var res = await c.PostAsJsonAsync("/api/clients",
-            new SaveClientRequest(null, "Anand Textiles", null, null, "Company", GstCompany, email, null, null, null, AssignedUserId: assignedTo));
+            new SaveClientRequest(null, "Anand Textiles", null, null, "Company", taxIds ?? GstCompany, email, null, null, null, AssignedUserId: assignedTo));
         Assert.True(res.IsSuccessStatusCode, await res.Content.ReadAsStringAsync());
         return (await res.Content.ReadFromJsonAsync<ClientDto>())!;
     }
@@ -105,7 +105,7 @@ public class NotificationTests(ApiFactory api) : IClassFixture<ApiFactory>
         Assert.All(held, n => Assert.Equal("queued", n.Status));
         Assert.All(held, n => Assert.True(n.ScheduledAt > DateTime.UtcNow));
 
-        var other = await NewClient(c, "other@client.example");
+        var other = await NewClient(c, "other@client.example", taxIds: new() { ["PAN"] = "AAACB1234F" });
         Assert.Equal(HttpStatusCode.NoContent, (await c.PutAsJsonAsync("/api/settings/reminder.client_enabled",
             new SaveSettingRequest(JsonDocument.Parse("false").RootElement.Clone(), "client", other.Id, null, "test"))).StatusCode);
         await Run(c);

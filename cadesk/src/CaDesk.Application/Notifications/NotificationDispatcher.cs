@@ -75,8 +75,7 @@ public sealed class NotificationDispatcher(IAppDbContext db, ISettings settings,
                              (n.RecipientType == RecipientTypes.ClientContact && n.RecipientId is { } cid && optedOut.Contains(cid)) ||
                              (n.ClientId is { } client && !await settings.GetAsync(Keys.ReminderClientEnabled, client, ct: ct))))
             {
-                n.Status = NotificationStatus.Cancelled; n.LastError = "No longer needed (filed, or reminders switched off)."; n.LockedAt = null;
-                await db.SaveChangesAsync(ct);
+                await db.Database.ExecuteSqlAsync($"update notifications set status = {NotificationStatus.Cancelled}, last_error = 'No longer needed (filed, or reminders switched off).', locked_at = null where id = {n.Id}", ct);
                 continue;
             }
 
@@ -93,22 +92,23 @@ public sealed class NotificationDispatcher(IAppDbContext db, ISettings settings,
 
             if (result.Ok)
             {
-                n.Status = NotificationStatus.Sent; n.SentAt = clock.GetUtcNow().UtcDateTime; n.ProviderMessageId = result.ProviderId;
-                n.LastError = null; sent++;
+                var sentAt = clock.GetUtcNow().UtcDateTime;
+                await db.Database.ExecuteSqlAsync($"update notifications set status = 'sent', sent_at = {sentAt}, provider_message_id = {result.ProviderId}, last_error = null, locked_at = null where id = {n.Id}", ct);
+                sent++;
             }
             else if (result.Permanent || n.Attempts >= MaxAttempts)
             {
-                n.Status = result.Skipped ? NotificationStatus.Skipped : NotificationStatus.Failed;
-                n.LastError = Trim(result.Error); failed++;
+                var st = result.Skipped ? NotificationStatus.Skipped : NotificationStatus.Failed;
+                var err = Trim(result.Error);
+                await db.Database.ExecuteSqlAsync($"update notifications set status = {st}, last_error = {err}, locked_at = null where id = {n.Id}", ct);
+                failed++;
             }
             else
             {
-                n.Status = NotificationStatus.Queued;
-                n.ScheduledAt = now.AddMinutes(Math.Pow(2, n.Attempts));
-                n.LastError = Trim(result.Error);
+                var nextSchedule = now.AddMinutes(Math.Pow(2, n.Attempts));
+                var err = Trim(result.Error);
+                await db.Database.ExecuteSqlAsync($"update notifications set status = 'queued', scheduled_at = {nextSchedule}, last_error = {err}, locked_at = null where id = {n.Id}", ct);
             }
-            n.LockedAt = null;
-            await db.SaveChangesAsync(ct);       // after each message: a crash mid-batch never re-sends what went out
         }
         return (sent, failed);
     }

@@ -112,4 +112,20 @@ public static class Perms
     public const string DocumentsRead = "documents.read";
     public const string DocumentsUpload = "documents.upload";
     public const string DocumentsDelete = "documents.delete";
+    public const string BillingRead = "billing.read";
+    public const string BillingManage = "billing.manage";
+    public const string TimesheetsRead = "timesheets.read";
+    public const string TimesheetsLog = "timesheets.log";
+    public const string TimesheetsManage = "timesheets.manage";
+    public const string DscRead = "dsc.read";
+    public const string DscManage = "dsc.manage";
+    public const string PortalRead = "portal.read";
+    public const string PortalManage = "portal.manage";
+    public const string ServiceRequestsManage = "service_requests.manage";
+    public const string ComputationsRun = "computations.run";
+    public const string ComputationsApprove = "computations.approve";
+    public const string AuditManage = "audit.manage";
+    public const string AuditReview = "audit.review";
+    public const string GstRead = "gst.read";
+    public const string GstReconcile = "gst.reconcile";
 }
