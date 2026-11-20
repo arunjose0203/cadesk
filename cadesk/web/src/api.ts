@@ -3497,6 +3497,173 @@ export const caroApi = {
     api<CaroSummaryDto>('/api/caro/summary')
 }
 
+// -------------------------------------------------------------
+// Sprint 31: Form 3CD Tax Audit Statement & Clause Disclosures
+// -------------------------------------------------------------
+
+export type Form3CdClauseResponseDto = {
+  id: string
+  assessmentId: string
+  clauseNumber: string
+  clauseTitle: string
+  category: string
+  status: string // Clean, Disallowed, Qualified, NotApplicable
+  reportedAmount: number
+  auditorRemarks: string
+  hasDiscrepancy: boolean
+  particularsJson?: string | null
+  workpaperRef?: string | null
+  verifiedByUserId?: string | null
+  verifiedByName?: string | null
+  verifiedAt?: string | null
+  updatedAt?: string | null
+}
+
+export type Form3CdAssessmentDto = {
+  id: string
+  clientId: string
+  clientName?: string | null
+  auditEngagementId?: string | null
+  auditEngagementTitle?: string | null
+  financialYear: string
+  assessmentYear: string
+  auditType: string // Form3CA, Form3CB
+  section44AbClause: string
+  totalTurnoverOrGrossReceipts: number
+  totalCashReceipts: number
+  totalPayments: number
+  totalCashPayments: number
+  cashReceiptPercentage: number
+  cashPaymentPercentage: number
+  isTaxAuditMandatory: boolean
+  applicabilityReason?: string | null
+  assesseeName: string
+  pan: string
+  address: string
+  gstin?: string | null
+  status: string
+  methodOfAccounting: string
+  optedSpecialTaxRegime: string
+  totalDisallowanceSec40a: number
+  totalDisallowanceSec40A3: number
+  totalDisallowanceSec43B: number
+  totalDisallowanceSec43Bh: number
+  totalDisallowanceSec361va: number
+  totalSec269Violations: number
+  totalIcdsNetAdjustment: number
+  totalNetIncomeAdjustment: number
+  assessmentStatus: string // draft, in_review, completed, finalized
+  qualificationsCount: number
+  discrepanciesCount: number
+  auditorObservations?: string | null
+  generatedReportText?: string | null
+  finalizedByUserId?: string | null
+  finalizedByName?: string | null
+  finalizedAt?: string | null
+  createdAt: string
+  updatedAt?: string | null
+  clauseResponses: Form3CdClauseResponseDto[]
+}
+
+export type SaveForm3CdAssessmentRequest = {
+  clientId: string
+  auditEngagementId?: string | null
+  financialYear: string
+  assessmentYear: string
+  auditType: string
+  section44AbClause?: string | null
+  totalTurnoverOrGrossReceipts: number
+  totalCashReceipts: number
+  totalPayments: number
+  totalCashPayments: number
+  assesseeName: string
+  pan: string
+  address: string
+  gstin?: string | null
+  status: string
+  methodOfAccounting: string
+  optedSpecialTaxRegime: string
+  auditorObservations?: string | null
+  declaresLowerPresumptiveProfit: boolean
+  is44AdLockout: boolean
+  isAuditedUnderOtherLaw: boolean
+  isBusiness: boolean
+}
+
+export type UpdateForm3CdClauseRequest = {
+  status: string
+  reportedAmount: number
+  auditorRemarks: string
+  hasDiscrepancy: boolean
+  particularsJson?: string | null
+  workpaperRef?: string | null
+}
+
+export type EvaluateApplicabilityRequest = {
+  entityType: string
+  isBusiness: boolean
+  turnoverOrGrossReceipts: number
+  cashReceipts: number
+  totalPayments: number
+  cashPayments: number
+  isAuditedUnderOtherLaw: boolean
+  declaresLowerPresumptiveProfit: boolean
+  is44AdLockout: boolean
+}
+
+export type Form3CdApplicabilityEvaluation = {
+  isMandatory: boolean
+  recommendedAuditType: string
+  applicableClause: string
+  cashReceiptPercent: number
+  cashPaymentPercent: number
+  rationale: string
+  statutoryTurnoverThreshold: number
+}
+
+export type Form3CdClauseTemplateDto = {
+  clauseNumber: string
+  clauseTitle: string
+  category: string
+  description: string
+}
+
+export type Form3CdSummaryDto = {
+  totalAssessments: number
+  mandatoryCount: number
+  exemptCount: number
+  finalizedCount: number
+  totalNetDisallowances: number
+  total43BhMsmeDisallowances: number
+  total269Violations: number
+}
+
+export const taxAuditApi = {
+  getSummary: () => api<Form3CdSummaryDto>('/api/taxaudit/summary'),
+  getClauseTemplates: () => api<Form3CdClauseTemplateDto[]>('/api/taxaudit/clauses-template'),
+  evaluateApplicability: (req: EvaluateApplicabilityRequest) =>
+    api<Form3CdApplicabilityEvaluation>('/api/taxaudit/evaluate-applicability', { method: 'POST', body: JSON.stringify(req) }),
+  getAssessments: (clientId?: string, fy?: string, status?: string) => {
+    const p = new URLSearchParams()
+    if (clientId) p.set('clientId', clientId)
+    if (fy) p.set('fy', fy)
+    if (status) p.set('status', status)
+    const qs = p.toString()
+    return api<Form3CdAssessmentDto[]>(`/api/taxaudit/assessments${qs ? `?${qs}` : ''}`)
+  },
+  getAssessmentById: (id: string) => api<Form3CdAssessmentDto>(`/api/taxaudit/assessments/${id}`),
+  createAssessment: (req: SaveForm3CdAssessmentRequest) =>
+    api<Form3CdAssessmentDto>('/api/taxaudit/assessments', { method: 'POST', body: JSON.stringify(req) }),
+  updateAssessment: (id: string, req: SaveForm3CdAssessmentRequest) =>
+    api<Form3CdAssessmentDto>(`/api/taxaudit/assessments/${id}`, { method: 'PUT', body: JSON.stringify(req) }),
+  updateClause: (assessmentId: string, clauseId: string, req: UpdateForm3CdClauseRequest) =>
+    api<Form3CdAssessmentDto>(`/api/taxaudit/assessments/${assessmentId}/clauses/${clauseId}`, { method: 'PUT', body: JSON.stringify(req) }),
+  generateReport: (id: string) =>
+    api<{ reportText: string }>(`/api/taxaudit/assessments/${id}/generate-report`, { method: 'POST' }),
+  finalizeAssessment: (id: string, auditorObservations?: string) =>
+    api<Form3CdAssessmentDto>(`/api/taxaudit/assessments/${id}/finalize`, { method: 'POST', body: JSON.stringify({ auditorObservations }) })
+}
+
 
 
 

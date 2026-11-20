@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
+using CaDesk.Api.Endpoints;
 using CaDesk.Application.Caro;
 using CaDesk.Application.Clients;
 using CaDesk.Domain.Caro;

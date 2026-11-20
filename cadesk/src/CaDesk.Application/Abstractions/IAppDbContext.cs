@@ -13,6 +13,7 @@ using CaDesk.Domain.AdvanceTax;
 using CaDesk.Domain.Gstr9;
 using CaDesk.Domain.Presumptive;
 using CaDesk.Domain.Caro;
+using CaDesk.Domain.TaxAudit;
 using CaDesk.Domain.Billing;
 using CaDesk.Domain.Clients;
 using CaDesk.Domain.Dsc;
@@ -120,6 +121,8 @@ public interface IAppDbContext
     DbSet<Presumptive44AeVehicle> Presumptive44AeVehicles { get; }
     DbSet<CaroAssessment> CaroAssessments { get; }
     DbSet<CaroClauseResponse> CaroClauseResponses { get; }
+    DbSet<Form3CdAssessment> Form3CdAssessments { get; }
+    DbSet<Form3CdClauseResponse> Form3CdClauseResponses { get; }
     /// <summary>For transactions and the few raw SQL calls (numbering, jsonb lookups). RLS still applies.</summary>
     DatabaseFacade Database { get; }
     Task<int> SaveChangesAsync(CancellationToken ct = default);

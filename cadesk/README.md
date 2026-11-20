@@ -33,6 +33,7 @@ Multi-tenant SaaS for CA and accounting firms (India first, GCC later).
 | 28 | Digital Workpapers & Engagement Quality Review (EQR) Desk (ICAI SQC 1 / SA 220): 60-day archival lock, immutable workpaper freeze, 10-point SA pre-issuance quality checklist, EQR hot/cold reviews, multi-tier review notes (Manager, EQR, Lead Partner) with gate-checked sign-off | Full-stack digital workpapers with ICAI SQC 1 60-day archival deadline countdown, mandatory EQR clearance gating, review query resolution workflow, and two-lock multi-tenancy |
 | 29 | Presumptive Taxation & Minimal Financials Generator (Section 44AD / 44ADA / 44AE): Enhanced 5% cash turnover gating (₹3 Cr / ₹75 L), 6%/8% and 50% deemed profit split, Section 44AE heavy/light vehicle fleet register, Section 44AD(4) 5-year lockout penalty engine, Section 44AB mandatory tax audit warnings, and Section 44AA minimal balance sheet particulars | Full-stack presumptive tax desk with digital/cash ratio checks, vehicle fleet manager, ITR-4 balance sheet coherence analyzer, and two-lock multi-tenancy |
 | 30 | CARO 2020 Automated Audit Checklist & Disclosures Generator: Companies Act Sec 143(11) 3-pillar applicability test, 21 statutory clauses verification workbench, discrepancy tracker, and official Annexure 'A' to Auditor's Report auto-drafting | Full-stack CARO 2020 audit workbench with statutory limit evaluation, clause templates, qualification/adverse remarks drafting, and two-lock multi-tenancy |
+| 31 | Form 3CD Tax Audit Statement & Clause-by-Clause Disclosure Desk: Section 44AB limits (₹1 Cr / ₹10 Cr 5% cash rule; ₹50L / ₹75L profession), Form 3CA vs 3CB selection, Clause 1-44 workbench (ICDS, Sec 40(a)(ia) 30%, Sec 40A(3), Sec 43B & 43B(h) MSME 45-day overdue, Sec 269SS/ST/T, Clause 44 GST), disallowance aggregator, and auditor observation generator | Full-stack Form 3CD tax audit workbench with 5% cash test, MSME overdue calculator, quantified disallowance schedules, Form 3CA/3CB legal text draft, and two-lock multi-tenancy |
 
 ## What's inside
 
@@ -802,6 +803,41 @@ API:
 - `GET /api/caro/assessments`, `GET /api/caro/assessments/{id}`, `POST /api/caro/assessments` (`caro.read`, `caro.manage`)
 - `PUT /api/caro/assessments/{assessmentId}/clauses/{clauseId}` (`caro.manage`)
 - `POST /api/caro/assessments/{id}/generate-annexure`, `POST /api/caro/assessments/{id}/finalize` (`caro.manage`, `caro.finalize`)
+
+## Form 3CD Tax Audit Statement & Clause-by-Clause Disclosure Desk (Sprint 31)
+
+- **Section 44AB Statutory Applicability & Gating Engine**:
+  - **Business Turnover Limits**: Standard limit ₹1 Crore; Enhanced limit ₹10 Crores (Finance Act 2020/2021 proviso) if both aggregate cash receipts $\le 5\%$ of turnover AND aggregate cash payments $\le 5\%$ of payments.
+  - **Professional Gross Receipts Limits**: Standard limit ₹50 Lakhs; Enhanced limit ₹75 Lakhs if aggregate cash receipts $\le 5\%$.
+  - **Presumptive Opt-Out Triggers**: Section 44AD(4) 5-year lockout penalty (Section 44AB(e)) and lower presumptive profits declared u/s 44AE/44BB/44BBB (Section 44AB(c)) or 44ADA (Section 44AB(d)).
+  - **Audit Form Selection**: Form 3CA-3CD (for entities audited under any other law, e.g. Companies Act) vs Form 3CB-3CD (entities audited solely under Section 44AB).
+- **Core Form 3CD Clauses Verification Workbench (Clauses 1 to 44)**:
+  - **Part A (Clauses 1-8a)**: Assessee name, PAN, address, GSTIN, status, previous year, 44AB applicable clause, and special tax regimes (115BAA/115BAB/115BAC).
+  - **Clause 13 (ICDS Adjustments I to X)**: Method of accounting (Mercantile/Cash), deviations, and schedule of net increase/decrease to taxable business profits across 10 Income Computation and Disclosure Standards.
+  - **Clause 14 (Closing Stock)**: Inventory valuation deviations under Section 145A (inclusive method for GST/taxes).
+  - **Clause 17 & 18**: Stamp duty valuation differentials (Sec 43CA / 50C) and Income-tax depreciation schedule by block of assets with 180-day 50% cutoff rules.
+  - **Clause 20(b) (Sec 36(1)(va))**: Late deposit of employees' PF and ESI contributions beyond the statutory due date under the PF/ESI Act (Checkmate Services SC ruling disallowances).
+  - **Clause 21(a) & 21(b) (Disallowances u/s 40(a))**: 100% disallowance on non-resident payments without TDS (Sec 40(a)(i)), 30% disallowance on resident payments without TDS (Sec 40(a)(ia)), and personal expenses/penalties (Sec 37).
+  - **Clause 21(d) (Sec 40A(3))**: Cash payments exceeding ₹10,000 per person per day (or ₹35,000 for transport carriages) outside Rule 6DD.
+  - **Clause 23 (Sec 40A(2)(b))**: Payments to specified persons and related parties evaluated for excessive consideration.
+  - **Clause 26 & Section 43B Dues**: Unpaid statutory taxes, duties, employee dues, and bank interest not paid on or before Section 139(1) return filing due date.
+  - **Clause 26/43B(h) (MSME Overdue Payments)**: Statutory 15-day (without agreement) or 45-day (with agreement) limits under Section 15 of MSMED Act, 2006. Payments delayed beyond limit and unpaid at year-end disallowed in the year of accrual.
+  - **Clause 31 (Sec 269SS, 269ST, 269T)**: Cash loans/deposits accepted $\ge ₹20,000$, cash receipts $\ge ₹2,00,000$, and cash loan repayments $\ge ₹20,000$.
+  - **Clause 34 (TDS/TCS Chapter XVII-B)**: Withholding tax compliance, timely filing of Form 24Q/26Q/27Q, and interest u/s 201(1A)/206C(7).
+  - **Clause 40 & Clause 44**: Analytical financial ratios (Gross profit, Net profit, Stock turnover, Material consumed) and GST expenditure breakdown (exempt, composition, registered, unregistered).
+- **Official Form 3CA / 3CB Report & Observations Generator**:
+  - Auto-drafts legal tax audit report text conforming to ICAI Guidance Note on Tax Audit.
+  - Compiles Paragraph 3 observation / qualification remarks for all modified clauses.
+  - Summarizes statement of quantified additions to taxable business profit.
+  - Formal partner sign-off freeze (`taxaudit.finalize`).
+- **Two Locks**: EF Core global query filters and PostgreSQL Row Level Security on `form3cd_assessments` and `form3cd_clause_responses` (`0030_form3cd.sql`).
+
+API:
+- `GET /api/taxaudit/summary`, `GET /api/taxaudit/clauses-template` (`taxaudit.read`)
+- `POST /api/taxaudit/evaluate-applicability` (`taxaudit.read`)
+- `GET /api/taxaudit/assessments`, `GET /api/taxaudit/assessments/{id}`, `POST /api/taxaudit/assessments`, `PUT /api/taxaudit/assessments/{id}` (`taxaudit.read`, `taxaudit.manage`)
+- `PUT /api/taxaudit/assessments/{assessmentId}/clauses/{clauseId}` (`taxaudit.manage`)
+- `POST /api/taxaudit/assessments/{id}/generate-report`, `POST /api/taxaudit/assessments/{id}/finalize` (`taxaudit.manage`, `taxaudit.finalize`)
 
 ## Notes
 

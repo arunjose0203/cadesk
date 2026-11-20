@@ -25,6 +25,7 @@ using CaDesk.Domain.AdvanceTax;
 using CaDesk.Domain.Gstr9;
 using CaDesk.Domain.Presumptive;
 using CaDesk.Domain.Caro;
+using CaDesk.Domain.TaxAudit;
 using CaDesk.Domain.Common;
 using CaDesk.Domain.Configuration;
 using CaDesk.Domain.Firms;
@@ -124,6 +125,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
     public DbSet<Presumptive44AeVehicle> Presumptive44AeVehicles => Set<Presumptive44AeVehicle>();
     public DbSet<CaroAssessment> CaroAssessments => Set<CaroAssessment>();
     public DbSet<CaroClauseResponse> CaroClauseResponses => Set<CaroClauseResponse>();
+    public DbSet<Form3CdAssessment> Form3CdAssessments => Set<Form3CdAssessment>();
+    public DbSet<Form3CdClauseResponse> Form3CdClauseResponses => Set<Form3CdClauseResponse>();
     public DbSet<ConfigDefinition> ConfigDefinitions => Set<ConfigDefinition>();
     public DbSet<ConfigValue> ConfigValues => Set<ConfigValue>();
     public DbSet<ConfigChangeLog> ConfigChangeLog => Set<ConfigChangeLog>();
@@ -648,6 +651,24 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
             e.HasOne(x => x.Assessment).WithMany(x => x.ClauseResponses).HasForeignKey(x => x.AssessmentId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(x => x.VerifiedByUser).WithMany().HasForeignKey(x => x.VerifiedByUserId).OnDelete(DeleteBehavior.SetNull);
             e.HasIndex(x => new { x.FirmId, x.AssessmentId }).HasDatabaseName("ix_caro_clause_responses_assessment");
+        });
+
+        b.Entity<Form3CdAssessment>(e =>
+        {
+            e.ToTable("form3cd_assessments");
+            e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.AuditEngagement).WithMany().HasForeignKey(x => x.AuditEngagementId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.FinalizedByUser).WithMany().HasForeignKey(x => x.FinalizedByUserId).OnDelete(DeleteBehavior.SetNull);
+            e.HasMany(x => x.ClauseResponses).WithOne(x => x.Assessment).HasForeignKey(x => x.AssessmentId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.FirmId, x.ClientId, x.FinancialYear }).HasDatabaseName("ix_form3cd_assessments_client_fy");
+        });
+
+        b.Entity<Form3CdClauseResponse>(e =>
+        {
+            e.ToTable("form3cd_clause_responses");
+            e.HasOne(x => x.Assessment).WithMany(x => x.ClauseResponses).HasForeignKey(x => x.AssessmentId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.VerifiedByUser).WithMany().HasForeignKey(x => x.VerifiedByUserId).OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(x => new { x.FirmId, x.AssessmentId }).HasDatabaseName("ix_form3cd_clause_responses_assessment");
         });
 
         b.Entity<TaskTemplate>(e =>

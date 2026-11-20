@@ -169,4 +169,7 @@ public static class Perms
     public const string CaroRead = "caro.read";
     public const string CaroManage = "caro.manage";
     public const string CaroFinalize = "caro.finalize";
+    public const string TaxAuditRead = "taxaudit.read";
+    public const string TaxAuditManage = "taxaudit.manage";
+    public const string TaxAuditFinalize = "taxaudit.finalize";
 }
