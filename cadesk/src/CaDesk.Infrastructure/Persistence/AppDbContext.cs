@@ -17,6 +17,7 @@ using CaDesk.Domain.Documents;
 using CaDesk.Domain.Tasks;
 using CaDesk.Domain.Notifications;
 using CaDesk.Domain.Reports;
+using CaDesk.Domain.TaxNotices;
 using CaDesk.Domain.Common;
 using CaDesk.Domain.Configuration;
 using CaDesk.Domain.Firms;
@@ -91,6 +92,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
     public DbSet<BankTransaction> BankTransactions => Set<BankTransaction>();
     public DbSet<BankReconciliationRule> BankReconciliationRules => Set<BankReconciliationRule>();
     public DbSet<PracticeTarget> PracticeTargets => Set<PracticeTarget>();
+    public DbSet<TaxNotice> TaxNotices => Set<TaxNotice>();
+    public DbSet<NoticeHearing> NoticeHearings => Set<NoticeHearing>();
+    public DbSet<NoticeResponse> NoticeResponses => Set<NoticeResponse>();
+    public DbSet<TaxDemand> TaxDemands => Set<TaxDemand>();
     public DbSet<ConfigDefinition> ConfigDefinitions => Set<ConfigDefinition>();
     public DbSet<ConfigValue> ConfigValues => Set<ConfigValue>();
     public DbSet<ConfigChangeLog> ConfigChangeLog => Set<ConfigChangeLog>();
@@ -405,6 +410,39 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
         {
             e.ToTable("practice_targets");
             e.HasIndex(x => new { x.FirmId, x.FinancialYear }).IsUnique().HasDatabaseName("ux_practice_targets_firm_fy");
+        });
+
+        b.Entity<TaxNotice>(e =>
+        {
+            e.ToTable("tax_notices");
+            e.Property(x => x.Authority).HasConversion<string>();
+            e.Property(x => x.Category).HasConversion<string>();
+            e.Property(x => x.Status).HasConversion<string>();
+            e.Property(x => x.DinStatus).HasConversion<string>();
+            e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
+            e.HasMany(x => x.Hearings).WithOne(x => x.Notice).HasForeignKey(x => x.NoticeId).OnDelete(DeleteBehavior.Cascade);
+            e.HasMany(x => x.Responses).WithOne(x => x.Notice).HasForeignKey(x => x.NoticeId).OnDelete(DeleteBehavior.Cascade);
+            e.HasMany(x => x.Demands).WithOne(x => x.Notice).HasForeignKey(x => x.NoticeId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        b.Entity<NoticeHearing>(e =>
+        {
+            e.ToTable("notice_hearings");
+            e.Property(x => x.HearingType).HasConversion<string>();
+            e.Property(x => x.Status).HasConversion<string>();
+        });
+
+        b.Entity<NoticeResponse>(e =>
+        {
+            e.ToTable("notice_responses");
+            e.Property(x => x.Status).HasConversion<string>();
+        });
+
+        b.Entity<TaxDemand>(e =>
+        {
+            e.ToTable("tax_demands");
+            e.Property(x => x.AppealStatus).HasConversion<string>();
+            e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
         });
 
         b.Entity<TaskTemplate>(e =>

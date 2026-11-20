@@ -24,6 +24,7 @@ Multi-tenant SaaS for CA and accounting firms (India first, GCC later).
 | 19 | Digital Engagement Letters & KYC Compliance: ICAI SA 210 standard audit terms generator, digital acceptance audit trail, PMLA risk profiling (Low/Medium/High/PEP), UBO (≥10%/≥15%) beneficial ownership | Engagement letter sent and digitally accepted by client; periodic KYC review cycle; strict multi-tenant isolation |
 | 20 | Cash & Bank Feeds, Multi-Bank Statement Parser & BRS Auto-Matcher: Bank accounts master (Current, Savings, OD, CC), CSV/OFX statement parsing, auto-categorization heuristics & custom rules, transaction-to-ledger matching, statutory Bank Reconciliation Statement (BRS) calculation engine | Bank accounts registered; CSV statements parsed into debit/credit streams; rules auto-classify UPI/salary/charges; BRS report computes timing differences; strict multi-firm isolation |
 | 21 | Practice MIS & Executive Reporting Desk: Executive KPI summary, Client profitability & margins, Staff billable utilization, Aging of receivables (0-30, 31-60, 61-90, 90+ days), Statutory compliance SLAs, FY target setting | Real-time practice financial KPIs, overdue recovery insights, staff capacity analytics, and client margin ranking; two-lock multi-tenancy |
+| 22 | Tax Notice & Faceless Assessment Management Desk: CBDT/CBIC DIN verification (non-est notices), Faceless Video Conference & hearing appointments, Maker-checker written submission workflows with partner sign-off, Outstanding tax demand ledger & CIT(A) 30-day appeal countdowns | Statutory notice tracking, faceless hearing room management, partner-approved portal submissions, and stay/demand tracking; two-lock multi-tenancy |
 
 ## What's inside
 
@@ -516,6 +517,32 @@ API:
 - `GET /api/reports/compliance-sla?fy={fy}` (`reports.read`)
 - `GET /api/reports/revenue-breakdown?fy={fy}` (`reports.read`)
 - `POST /api/reports/targets` (`reports.manage`)
+
+## Tax Notice & Faceless Assessment Management Desk (Sprint 22)
+
+- **Statutory Notice & Inquiry Tracking**:
+  - Unified register for Income Tax (Sec 143(1) intimation, Sec 139(9) defective return, Sec 142(1) inquiry, Sec 148/148A reassessment, Sec 156 demand, Sec 245 adjustment) and GST (DRC-01A, DRC-01, ASMT-10, REG-17, DRC-07) notices.
+  - Due date tracking with automatic remaining days and overdue alerts.
+- **CBDT & CBIC DIN Verification Engine**:
+  - Evaluates Document Identification Numbers per CBDT Circular No. 19/2019 and CBIC Circular No. 122/41/2019.
+  - Flags post-mandate communications lacking a valid DIN as `Invalid` (legally *non-est*), providing grounds for jurisdictional challenge.
+- **Faceless E-Hearings & Video Conference Scheduler**:
+  - Central calendar for Video Conference (VC) appointments with assessing officers and National Faceless Assessment Centre (NFAC).
+  - Virtual meeting link storage, officer jurisdiction mapping, and adjournment request tracking with minutes of hearing.
+- **Maker-Checker Written Submissions & Partner Sign-off**:
+  - Multi-version rebuttal draft editor with legal grounds and attachments inventory.
+  - Mandatory maker-checker review: Staff drafts response -> Partner signs off (`notices.approve`) -> Final submission logged with portal acknowledgement number.
+- **Statutory Demand Ledger & CIT(A) 30-Day Appeal Countdown**:
+  - Real-time ledger of original demand, stayed amounts u/s 220(6), direct tax payments, and Sec 245 refund adjustments.
+  - Automatic 30-day appeal countdown meter under Section 249(2) (Form 35) and 3-month GST appeal deadline under Section 107 (Form GST APL-01).
+- **Two Locks**: EF Core global query filters and PostgreSQL Row Level Security on `tax_notices`, `notice_hearings`, `notice_responses`, and `tax_demands` (`0021_tax_notices.sql`).
+
+API:
+- `GET /api/tax-notices`, `GET /api/tax-notices/{id}`, `POST /api/tax-notices`, `PUT /api/tax-notices/{id}`, `POST /api/tax-notices/{id}/verify-din` (`notices.read`, `notices.manage`)
+- `GET /api/tax-notices/hearings`, `POST /api/tax-notices/{id}/hearings`, `PUT /api/tax-notices/hearings/{hearingId}/status` (`notices.read`, `notices.manage`)
+- `GET /api/tax-notices/{id}/responses`, `POST /api/tax-notices/{id}/responses`, `POST /api/tax-notices/responses/{id}/approve`, `POST /api/tax-notices/responses/{id}/submit` (`notices.read`, `notices.manage`, `notices.approve`)
+- `GET /api/tax-notices/demands`, `POST /api/tax-notices/demands`, `POST /api/tax-notices/demands/{id}/payment`, `PUT /api/tax-notices/demands/{id}/appeal` (`notices.read`, `notices.manage`)
+- `GET /api/tax-notices/summary` (`notices.read`)
 
 
 

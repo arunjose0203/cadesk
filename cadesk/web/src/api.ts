@@ -1848,6 +1848,278 @@ export const reportsApi = {
     api<PracticeTargetDto>('/api/reports/targets', { method: 'POST', body: JSON.stringify(req) }),
 }
 
+// ---------------------------------------------------------------------------
+// Sprint 22: Tax Notice & Faceless Assessment Management Desk
+// ---------------------------------------------------------------------------
+export type TaxAuthority = 'IncomeTax' | 'Gst' | 'Customs' | 'Other'
+export type NoticeCategory =
+  | 'Intimation143_1'
+  | 'DefectiveReturn139_9'
+  | 'Inquiry142_1'
+  | 'Reassessment148_148A'
+  | 'DemandNotice156'
+  | 'RefundAdjustment245'
+  | 'PenaltyNotice270A'
+  | 'GstDrc01A'
+  | 'GstDrc01'
+  | 'GstAsmt10'
+  | 'GstReg17'
+  | 'GstDrc07'
+  | 'GeneralNotice'
+export type NoticeStatus =
+  | 'Received'
+  | 'InReview'
+  | 'DraftPrepared'
+  | 'PartnerApproved'
+  | 'Submitted'
+  | 'DisposedOrClosed'
+  | 'Appealed'
+export type DinStatus = 'Unverified' | 'Valid' | 'Invalid' | 'NotApplicable'
+export type HearingType = 'WrittenSubmission' | 'VideoConference' | 'PhysicalHearing'
+export type HearingStatus = 'Scheduled' | 'Attended' | 'AdjournmentRequested' | 'Concluded' | 'Cancelled'
+export type ResponseStatus = 'Draft' | 'UnderReview' | 'PartnerApproved' | 'UploadedToPortal'
+export type AppealStatus = 'NotAppealed' | 'AppealDrafted' | 'FiledCitA' | 'StayGranted' | 'DemandDeleted' | 'Settled'
+
+export type TaxNoticeDto = {
+  id: string
+  clientId: string
+  clientName: string
+  clientCode: string
+  authority: TaxAuthority
+  category: NoticeCategory
+  section: string
+  noticeNumber: string
+  din?: string | null
+  dinStatus: DinStatus
+  assessmentYear?: string | null
+  financialYear: string
+  issueDate: string
+  dueDate: string
+  daysRemaining: number
+  demandAmount: number
+  refundDisallowed: number
+  status: NoticeStatus
+  subject: string
+  description?: string | null
+  assignedToUserId?: string | null
+  assignedToName?: string | null
+  officerName?: string | null
+  officerJurisdiction?: string | null
+  hearingCount: number
+  responseCount: number
+  createdAt: string
+}
+
+export type NoticeHearingDto = {
+  id: string
+  noticeId: string
+  noticeSection: string
+  noticeNumber: string
+  clientName: string
+  hearingDate: string
+  hearingType: HearingType
+  officerName?: string | null
+  officerDesignation?: string | null
+  meetingLink?: string | null
+  status: HearingStatus
+  adjournmentReason?: string | null
+  summaryNotes?: string | null
+  attendedByUserId?: string | null
+  attendedByName?: string | null
+  createdAt: string
+}
+
+export type NoticeResponseDto = {
+  id: string
+  noticeId: string
+  responseVersion: number
+  submissionTitle: string
+  summaryOfSubmissions: string
+  legalGrounds?: string | null
+  status: ResponseStatus
+  preparedByUserId?: string | null
+  preparedByName?: string | null
+  approvedByUserId?: string | null
+  approvedByName?: string | null
+  approvedAt?: string | null
+  portalAckNumber?: string | null
+  submittedAt?: string | null
+  attachmentNames?: string | null
+  createdAt: string
+}
+
+export type TaxDemandDto = {
+  id: string
+  clientId: string
+  clientName: string
+  clientCode: string
+  noticeId?: string | null
+  assessmentYear?: string | null
+  financialYear: string
+  section: string
+  originalDemand: number
+  stayedAmount: number
+  paidAmount: number
+  adjustedRefund: number
+  outstandingAmount: number
+  demandDate: string
+  appealDueDate: string
+  daysUntilAppealDue: number
+  appealStatus: AppealStatus
+  appealAckNumber?: string | null
+  remarks?: string | null
+}
+
+export type NoticeDashboardSummaryDto = {
+  totalActiveNotices: number
+  incomeTaxNotices: number
+  gstNotices: number
+  pendingHearings: number
+  pendingApprovals: number
+  totalDemandAmount: number
+  totalOutstandingDemand: number
+  appealsDueWithin30Days: number
+  invalidDinCount: number
+}
+
+export type CreateTaxNoticeRequest = {
+  clientId: string
+  authority: TaxAuthority
+  category: NoticeCategory
+  section: string
+  noticeNumber: string
+  din?: string | null
+  assessmentYear?: string | null
+  financialYear: string
+  issueDate: string
+  dueDate: string
+  demandAmount: number
+  refundDisallowed: number
+  subject: string
+  description?: string | null
+  assignedToUserId?: string | null
+  officerName?: string | null
+  officerJurisdiction?: string | null
+}
+
+export type UpdateTaxNoticeRequest = {
+  status: NoticeStatus
+  din?: string | null
+  dueDate: string
+  demandAmount: number
+  refundDisallowed: number
+  subject: string
+  description?: string | null
+  assignedToUserId?: string | null
+  officerName?: string | null
+  officerJurisdiction?: string | null
+}
+
+export type CreateHearingRequest = {
+  hearingDate: string
+  hearingType: HearingType
+  officerName?: string | null
+  officerDesignation?: string | null
+  meetingLink?: string | null
+  summaryNotes?: string | null
+}
+
+export type UpdateHearingStatusRequest = {
+  status: HearingStatus
+  adjournmentReason?: string | null
+  summaryNotes?: string | null
+  attendedByUserId?: string | null
+}
+
+export type DraftResponseRequest = {
+  submissionTitle: string
+  summaryOfSubmissions: string
+  legalGrounds?: string | null
+  attachmentNames?: string | null
+}
+
+export type RecordSubmissionRequest = {
+  portalAckNumber: string
+  submittedAt?: string | null
+}
+
+export type CreateTaxDemandRequest = {
+  clientId: string
+  noticeId?: string | null
+  assessmentYear?: string | null
+  financialYear: string
+  section: string
+  originalDemand: number
+  demandDate: string
+  appealDueDate?: string | null
+  remarks?: string | null
+}
+
+export type RecordDemandPaymentRequest = {
+  amount: number
+  isRefundAdjustment: boolean
+  remarks?: string | null
+}
+
+export type UpdateAppealRequest = {
+  status: AppealStatus
+  appealAckNumber?: string | null
+  stayedAmount?: number | null
+  remarks?: string | null
+}
+
+export const taxNoticesApi = {
+  getSummary: () => api<NoticeDashboardSummaryDto>('/api/tax-notices/summary'),
+  getNotices: (authority?: TaxAuthority, status?: NoticeStatus, clientId?: string) => {
+    const p = new URLSearchParams()
+    if (authority) p.set('authority', authority)
+    if (status) p.set('status', status)
+    if (clientId) p.set('clientId', clientId)
+    const qs = p.toString()
+    return api<TaxNoticeDto[]>(`/api/tax-notices${qs ? `?${qs}` : ''}`)
+  },
+  getNoticeById: (id: string) => api<TaxNoticeDto>(`/api/tax-notices/${id}`),
+  createNotice: (req: CreateTaxNoticeRequest) =>
+    api<TaxNoticeDto>('/api/tax-notices', { method: 'POST', body: JSON.stringify(req) }),
+  updateNotice: (id: string, req: UpdateTaxNoticeRequest) =>
+    api<TaxNoticeDto>(`/api/tax-notices/${id}`, { method: 'PUT', body: JSON.stringify(req) }),
+  verifyDin: (id: string) => api<TaxNoticeDto>(`/api/tax-notices/${id}/verify-din`, { method: 'POST' }),
+
+  getHearings: (noticeId?: string, status?: HearingStatus) => {
+    const p = new URLSearchParams()
+    if (noticeId) p.set('noticeId', noticeId)
+    if (status) p.set('status', status)
+    const qs = p.toString()
+    return api<NoticeHearingDto[]>(`/api/tax-notices/hearings${qs ? `?${qs}` : ''}`)
+  },
+  addHearing: (noticeId: string, req: CreateHearingRequest) =>
+    api<NoticeHearingDto>(`/api/tax-notices/${noticeId}/hearings`, { method: 'POST', body: JSON.stringify(req) }),
+  updateHearingStatus: (hearingId: string, req: UpdateHearingStatusRequest) =>
+    api<NoticeHearingDto>(`/api/tax-notices/hearings/${hearingId}/status`, { method: 'PUT', body: JSON.stringify(req) }),
+
+  getResponses: (noticeId: string) => api<NoticeResponseDto[]>(`/api/tax-notices/${noticeId}/responses`),
+  draftResponse: (noticeId: string, req: DraftResponseRequest) =>
+    api<NoticeResponseDto>(`/api/tax-notices/${noticeId}/responses`, { method: 'POST', body: JSON.stringify(req) }),
+  approveResponse: (responseId: string) =>
+    api<NoticeResponseDto>(`/api/tax-notices/responses/${responseId}/approve`, { method: 'POST' }),
+  submitResponse: (responseId: string, req: RecordSubmissionRequest) =>
+    api<NoticeResponseDto>(`/api/tax-notices/responses/${responseId}/submit`, { method: 'POST', body: JSON.stringify(req) }),
+
+  getDemands: (clientId?: string, overdueOnly?: boolean) => {
+    const p = new URLSearchParams()
+    if (clientId) p.set('clientId', clientId)
+    if (overdueOnly) p.set('overdueOnly', 'true')
+    const qs = p.toString()
+    return api<TaxDemandDto[]>(`/api/tax-notices/demands${qs ? `?${qs}` : ''}`)
+  },
+  createDemand: (req: CreateTaxDemandRequest) =>
+    api<TaxDemandDto>('/api/tax-notices/demands', { method: 'POST', body: JSON.stringify(req) }),
+  recordDemandPayment: (demandId: string, req: RecordDemandPaymentRequest) =>
+    api<TaxDemandDto>(`/api/tax-notices/demands/${demandId}/payment`, { method: 'POST', body: JSON.stringify(req) }),
+  updateAppeal: (demandId: string, req: UpdateAppealRequest) =>
+    api<TaxDemandDto>(`/api/tax-notices/demands/${demandId}/appeal`, { method: 'PUT', body: JSON.stringify(req) }),
+}
+
 
 
 

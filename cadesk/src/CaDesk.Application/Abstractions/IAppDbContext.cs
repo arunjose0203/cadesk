@@ -5,6 +5,7 @@ using CaDesk.Domain.Mca;
 using CaDesk.Domain.Engagements;
 using CaDesk.Domain.BankFeeds;
 using CaDesk.Domain.Reports;
+using CaDesk.Domain.TaxNotices;
 using CaDesk.Domain.Billing;
 using CaDesk.Domain.Clients;
 using CaDesk.Domain.Dsc;
@@ -87,6 +88,10 @@ public interface IAppDbContext
     DbSet<BankTransaction> BankTransactions { get; }
     DbSet<BankReconciliationRule> BankReconciliationRules { get; }
     DbSet<PracticeTarget> PracticeTargets { get; }
+    DbSet<TaxNotice> TaxNotices { get; }
+    DbSet<NoticeHearing> NoticeHearings { get; }
+    DbSet<NoticeResponse> NoticeResponses { get; }
+    DbSet<TaxDemand> TaxDemands { get; }
     /// <summary>For transactions and the few raw SQL calls (numbering, jsonb lookups). RLS still applies.</summary>
     DatabaseFacade Database { get; }
     Task<int> SaveChangesAsync(CancellationToken ct = default);
