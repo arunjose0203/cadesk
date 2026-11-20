@@ -39,6 +39,7 @@ Multi-tenant SaaS for CA and accounting firms (India first, GCC later).
 | 34 | Audit Committee & Board Governance Desk (ICAI SA 260 / SA 265 / Companies Act Sec 177): Section 177 Audit Committee mandate, SA 260 communication with Those Charged with Governance (TCWG), SA 265 formal internal control deficiency letter generator, SA 450 schedule of uncorrected misstatements, Section 144 non-audit services independence affirmation | Full-stack Audit Committee and Board governance workbench with Section 177 compliance checks, SA 265 deficiency communications (design vs operating defect), SA 450 misstatement evaluation table, and SA 260 governance pack auto-generator; two-lock multi-tenancy |
 | 35 | Foreign Remittance & Form 15CA / 15CB Certification Engine (Income Tax Rule 37BB / Section 195 / DTAA): Section 195 non-resident withholding evaluation, Section 90(2) DTAA treaty relief comparison, Rule 37BB(3) 33-item exempt list checker, Form 15CA automated Part A/B/C/D routing, Form 15CB CA certification generator with 18-digit UDIN, and Section 195A net-of-tax grossing up engine | Full-stack international tax and foreign remittance certification desk with Section 195/90(2) tax calculators, DTAA prerequisite documentation tracker (TRC, Form 10F, No-PE), official Form 15CB certificate generator, and Form 15CA e-Filing XML exporter; two-lock multi-tenancy |
 | 36 | Related Party Transactions & Section 188 / AS 18 / Ind AS 24 Arm's Length Pricing Desk: Section 188 Rule 15 statutory threshold gates (10% turnover / 10% net worth), Section 188(1) 4th proviso ordinary course & arm's length exemption engine, Section 177 Audit Committee omnibus approvals with utilization tracking, Section 189 Form MBP-4 statutory register generator, and AS 18 / Ind AS 24 financial statement disclosure compiler | Full-stack related party compliance and transfer pricing desk with statutory threshold guards, arm's length price variance calculators, Section 40A(2)(b) risk flags, Form MBP-4 register drafting, and AS 18 / Ind AS 24 disclosure note generator; two-lock multi-tenancy |
+| 37 | Internal Audit Risk & Control Matrix (RCM) & IFC Testing Desk (ICAI SIA Standards / Companies Act Sec 138 & 143(3)(i)): Section 138 statutory applicability criteria, 6 core business cycles (P2P, O2C, H2R, R2R, Treasury, ITGC), dual walkthrough/design effectiveness and Test of Operating Effectiveness (ToC) review, residual risk mitigation engine, deficiency and action plan remediation tracking, and ICAI SIA executive report generator | Full-stack internal audit and IFC testing desk with pre-populated baseline RCM, exception-driven residual risk scoring, material weakness classification, remediation tracking, executive reporting, and two-lock multi-tenancy |
 
 ## What's inside
 
@@ -1058,6 +1059,50 @@ API:
 - `POST /api/related-party/transactions/{id}/approve` (`relatedparty.approve`)
 - `GET /api/related-party/omnibus`, `POST /api/related-party/omnibus`, `PUT /api/related-party/omnibus/{id}`, `DELETE /api/related-party/omnibus/{id}` (`relatedparty.read`, `relatedparty.manage`)
 - `GET /api/related-party/reports` (`relatedparty.read`)
+
+## Internal Audit Risk & Control Matrix (RCM) & IFC Testing Desk (Sprint 37)
+
+- **Statutory & Regulatory Framework**:
+  - **Companies Act, 2013, Section 138 & Rule 13 of Companies (Accounts) Rules, 2014**:
+    - Mandatory internal audit for listed companies, unlisted public companies ($\ge$ ₹50 Cr capital / ₹200 Cr turnover / ₹100 Cr loans / ₹25 Cr deposits), and private companies ($\ge$ ₹200 Cr turnover / ₹100 Cr loans).
+  - **Companies Act, 2013, Section 143(3)(i) & Rule 10A**:
+    - Statutory auditor reporting on adequacy and operating effectiveness of Internal Financial Controls with reference to financial statements (IFC-FR).
+  - **ICAI Standards on Internal Audit (SIA Framework)**:
+    - SIA 110 (Scope), SIA 120 (Internal Controls), SIA 210, SIA 310 (Planning & Universe), SIA 320 (Testing), SIA 330 (Documentation), SIA 340 (Communication).
+- **Comprehensive Risk & Control Matrix (RCM) Workbench**:
+  - Pre-populated standard baseline controls covering 6 core enterprise business cycles:
+    - **Procure to Pay (P2P)**: Automated 3-way matching, PO controls, vendor master authorizations.
+    - **Order to Cash (O2C)**: Customer credit limits, order dispatch locks, automated billing.
+    - **Hire to Retire (H2R)**: Biometric attendance reconciliation, payroll variance review, ghost employee prevention.
+    - **Record to Report (R2R)**: Manual journal entry authorization threshold, financial controller sign-off.
+    - **Treasury & Cash Management**: Monthly Bank Reconciliation Statement (BRS) reviews, dual signature mandates.
+    - **IT General Controls (ITGC)**: User access management, segregation of duties (SoD), quarterly privileged access audits.
+  - Supports extended cycles: Inventory & Warehousing, Fixed Assets & Capitalization.
+- **Dual Evaluation Testing Methodology**:
+  - **Design Effectiveness Review**: Walkthrough testing, sample documents, design conclusion (Effective vs Deficient).
+  - **Test of Operating Effectiveness (ToC)**: Testing methods (Inspection, Reperformance, Observation, Inquiry), sample size, exceptions count, operating conclusion (Operating Effectively vs Ineffective).
+  - **Automated Residual Risk Evaluator**:
+    - Controls with effective design + operating effectiveness mitigate inherent risk to **Low**.
+    - Controls with deficient design, ineffective operating result, or exceptions found are flagged as **High Residual Risk** with mandatory audit findings.
+  - **Overall IFC Health Score**: Dynamically calculates the percentage of tested controls operating effectively without exceptions.
+- **Internal Audit Observations & Remediation Tracker**:
+  - Deficiency title, control reference, severity (Critical, High, Medium, Low).
+  - IFC classification (Material Weakness, Significant Deficiency, Operational Deficiency, Process Improvement).
+  - Estimated financial exposure (₹), root cause analysis, and auditor recommendations.
+  - Management Action Plan tracking: Action owner, target completion date, implementation status (Open, InProgress, Implemented, Overdue).
+- **Executive Internal Audit & IFC Report Generator**:
+  - Automatically compiles an executive report formatted per ICAI Standards on Internal Audit (SIA) and Section 138/143(3)(i).
+  - Features executive summary, overall IFC health score, cycle-wise control effectiveness matrix, and formal schedule of internal audit findings and management action plans.
+- **Two Locks**: EF Core global query filters and PostgreSQL Row Level Security on `internal_audit_engagements`, `rcm_control_items`, and `internal_audit_findings` (`0036_internal_audit_rcm_ifc.sql`).
+
+API:
+- `GET /api/internal-audit/summary` (`internalaudit.read`)
+- `GET /api/internal-audit/engagements`, `GET /api/internal-audit/engagements/{id}` (`internalaudit.read`)
+- `POST /api/internal-audit/engagements`, `PUT /api/internal-audit/engagements/{id}`, `DELETE /api/internal-audit/engagements/{id}` (`internalaudit.manage`)
+- `GET /api/internal-audit/engagements/{id}/controls`, `POST /api/internal-audit/engagements/{id}/controls`, `PUT /api/internal-audit/engagements/{id}/controls/{controlId}`, `DELETE /api/internal-audit/engagements/{id}/controls/{controlId}` (`internalaudit.read`, `internalaudit.manage`)
+- `GET /api/internal-audit/engagements/{id}/findings`, `POST /api/internal-audit/engagements/{id}/findings`, `PUT /api/internal-audit/engagements/{id}/findings/{findingId}`, `DELETE /api/internal-audit/engagements/{id}/findings/{findingId}` (`internalaudit.read`, `internalaudit.manage`)
+- `PATCH /api/internal-audit/engagements/{id}/findings/{findingId}/status` (`internalaudit.manage`)
+- `POST /api/internal-audit/engagements/{id}/generate-report` (`internalaudit.report`)
 
 ## Notes
 

@@ -187,4 +187,7 @@ public static class Perms
     public const string RelatedPartyRead = "relatedparty.read";
     public const string RelatedPartyManage = "relatedparty.manage";
     public const string RelatedPartyApprove = "relatedparty.approve";
+    public const string InternalAuditRead = "internalaudit.read";
+    public const string InternalAuditManage = "internalaudit.manage";
+    public const string InternalAuditReport = "internalaudit.report";
 }

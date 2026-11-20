@@ -139,6 +139,9 @@ public interface IAppDbContext
     DbSet<CaDesk.Domain.RelatedParty.RelatedPartyEntity> RelatedPartyEntities { get; }
     DbSet<CaDesk.Domain.RelatedParty.RelatedPartyTransaction> RelatedPartyTransactions { get; }
     DbSet<CaDesk.Domain.RelatedParty.RelatedPartyOmnibusApproval> RelatedPartyOmnibusApprovals { get; }
+    DbSet<CaDesk.Domain.InternalAudit.InternalAuditEngagement> InternalAuditEngagements { get; }
+    DbSet<CaDesk.Domain.InternalAudit.RcmControlItem> RcmControlItems { get; }
+    DbSet<CaDesk.Domain.InternalAudit.InternalAuditFinding> InternalAuditFindings { get; }
     /// <summary>For transactions and the few raw SQL calls (numbering, jsonb lookups). RLS still applies.</summary>
     DatabaseFacade Database { get; }
     Task<int> SaveChangesAsync(CancellationToken ct = default);

@@ -4691,6 +4691,237 @@ export const relatedPartyApi = {
     api<RelatedPartyReportsDto>(`/api/related-party/reports?clientId=${clientId}&fy=${encodeURIComponent(fy)}`)
 }
 
+// -------------------------------------------------------------
+// Sprint 37: Internal Audit Risk & Control Matrix (RCM) & IFC Testing Desk
+// -------------------------------------------------------------
+
+export interface InternalAuditEngagementDto {
+  id: string
+  clientId: string
+  clientName?: string | null
+  financialYear: string
+  auditPeriod: string
+  title: string
+  engagementLeadName: string
+  auditScopeDescription: string
+  status: string
+  reportDate?: string | null
+  healthScorePercentage: number
+  totalControls: number
+  effectiveControls: number
+  totalFindings: number
+  criticalFindings: number
+  generatedReportText?: string | null
+  createdAt: string
+  updatedAt?: string | null
+}
+
+export interface RcmControlItemDto {
+  id: string
+  engagementId: string
+  controlCode: string
+  processCycle: string
+  subProcess: string
+  riskDescription: string
+  riskCategory: string
+  inherentRiskRating: string
+  controlActivity: string
+  controlNature: string
+  controlFrequency: string
+  controlType: string
+  controlOwner: string
+  assertions: string
+  walkthroughPerformed: boolean
+  walkthroughDate?: string | null
+  walkthroughReference: string
+  designEffectiveness: string
+  designNotes: string
+  testingMethod: string
+  sampleSize: number
+  exceptionsCount: number
+  operatingEffectiveness: string
+  testingNotes: string
+  testedAt?: string | null
+  testedBy: string
+  residualRiskRating: string
+  hasFinding: boolean
+  createdAt: string
+  updatedAt?: string | null
+}
+
+export interface InternalAuditFindingDto {
+  id: string
+  engagementId: string
+  controlItemId?: string | null
+  controlCode: string
+  findingReference: string
+  title: string
+  processCycle: string
+  severity: string
+  detailedObservation: string
+  rootCause: string
+  estimatedRiskAmount?: number | null
+  ifcClassification: string
+  auditorRecommendation: string
+  managementActionPlan: string
+  actionOwner: string
+  targetCompletionDate?: string | null
+  implementationStatus: string
+  createdAt: string
+  updatedAt?: string | null
+}
+
+export interface InternalAuditSummaryDto {
+  totalEngagements: number
+  totalControlsTested: number
+  overallHealthScore: number
+  totalDeficiencies: number
+  criticalDeficiencies: number
+  materialWeaknesses: number
+  totalFinancialExposure: number
+  openActionsCount: number
+}
+
+export interface SaveInternalAuditEngagementRequest {
+  clientId: string
+  financialYear: string
+  auditPeriod: string
+  title: string
+  engagementLeadName?: string | null
+  auditScopeDescription?: string | null
+  status?: string | null
+}
+
+export interface SaveRcmControlItemRequest {
+  controlCode: string
+  processCycle: string
+  subProcess: string
+  riskDescription: string
+  riskCategory?: string | null
+  inherentRiskRating: string
+  controlActivity: string
+  controlNature?: string | null
+  controlFrequency?: string | null
+  controlType?: string | null
+  controlOwner?: string | null
+  assertions?: string | null
+  walkthroughPerformed: boolean
+  walkthroughDate?: string | null
+  walkthroughReference?: string | null
+  designEffectiveness: string
+  designNotes?: string | null
+  testingMethod: string
+  sampleSize: number
+  exceptionsCount: number
+  operatingEffectiveness: string
+  testingNotes?: string | null
+  testedAt?: string | null
+  testedBy?: string | null
+}
+
+export interface SaveInternalAuditFindingRequest {
+  controlItemId?: string | null
+  controlCode?: string | null
+  findingReference?: string | null
+  title: string
+  processCycle: string
+  severity: string
+  detailedObservation: string
+  rootCause?: string | null
+  estimatedRiskAmount?: number | null
+  ifcClassification: string
+  auditorRecommendation: string
+  managementActionPlan?: string | null
+  actionOwner?: string | null
+  targetCompletionDate?: string | null
+  implementationStatus?: string | null
+}
+
+export interface UpdateFindingStatusRequest {
+  implementationStatus: string
+  managementActionPlan?: string | null
+  targetCompletionDate?: string | null
+}
+
+export const internalAuditApi = {
+  getSummary: (clientId?: string, financialYear?: string) => {
+    const params = new URLSearchParams()
+    if (clientId) params.set('clientId', clientId)
+    if (financialYear) params.set('financialYear', financialYear)
+    const qs = params.toString()
+    return api<InternalAuditSummaryDto>(`/api/internal-audit/summary${qs ? `?${qs}` : ''}`)
+  },
+  listEngagements: (clientId?: string, financialYear?: string, status?: string) => {
+    const params = new URLSearchParams()
+    if (clientId) params.set('clientId', clientId)
+    if (financialYear) params.set('financialYear', financialYear)
+    if (status) params.set('status', status)
+    const qs = params.toString()
+    return api<InternalAuditEngagementDto[]>(`/api/internal-audit/engagements${qs ? `?${qs}` : ''}`)
+  },
+  getEngagement: (id: string) =>
+    api<InternalAuditEngagementDto>(`/api/internal-audit/engagements/${id}`),
+  createEngagement: (req: SaveInternalAuditEngagementRequest, populateStandardRcm: boolean = false) =>
+    api<InternalAuditEngagementDto>(`/api/internal-audit/engagements?populateStandardRcm=${populateStandardRcm}`, {
+      method: 'POST',
+      body: JSON.stringify(req),
+    }),
+  updateEngagement: (id: string, req: SaveInternalAuditEngagementRequest) =>
+    api<InternalAuditEngagementDto>(`/api/internal-audit/engagements/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(req),
+    }),
+  deleteEngagement: (id: string) =>
+    api<void>(`/api/internal-audit/engagements/${id}`, { method: 'DELETE' }),
+  listControls: (engagementId: string, processCycle?: string) => {
+    const params = new URLSearchParams()
+    if (processCycle && processCycle !== 'All') params.set('processCycle', processCycle)
+    const qs = params.toString()
+    return api<RcmControlItemDto[]>(`/api/internal-audit/engagements/${engagementId}/controls${qs ? `?${qs}` : ''}`)
+  },
+  createControl: (engagementId: string, req: SaveRcmControlItemRequest) =>
+    api<RcmControlItemDto>(`/api/internal-audit/engagements/${engagementId}/controls`, {
+      method: 'POST',
+      body: JSON.stringify(req),
+    }),
+  updateControl: (engagementId: string, controlId: string, req: SaveRcmControlItemRequest) =>
+    api<RcmControlItemDto>(`/api/internal-audit/engagements/${engagementId}/controls/${controlId}`, {
+      method: 'PUT',
+      body: JSON.stringify(req),
+    }),
+  deleteControl: (engagementId: string, controlId: string) =>
+    api<void>(`/api/internal-audit/engagements/${engagementId}/controls/${controlId}`, { method: 'DELETE' }),
+  listFindings: (engagementId: string, severity?: string, status?: string) => {
+    const params = new URLSearchParams()
+    if (severity && severity !== 'All') params.set('severity', severity)
+    if (status && status !== 'All') params.set('status', status)
+    const qs = params.toString()
+    return api<InternalAuditFindingDto[]>(`/api/internal-audit/engagements/${engagementId}/findings${qs ? `?${qs}` : ''}`)
+  },
+  createFinding: (engagementId: string, req: SaveInternalAuditFindingRequest) =>
+    api<InternalAuditFindingDto>(`/api/internal-audit/engagements/${engagementId}/findings`, {
+      method: 'POST',
+      body: JSON.stringify(req),
+    }),
+  updateFinding: (engagementId: string, findingId: string, req: SaveInternalAuditFindingRequest) =>
+    api<InternalAuditFindingDto>(`/api/internal-audit/engagements/${engagementId}/findings/${findingId}`, {
+      method: 'PUT',
+      body: JSON.stringify(req),
+    }),
+  updateFindingStatus: (engagementId: string, findingId: string, req: UpdateFindingStatusRequest) =>
+    api<InternalAuditFindingDto>(`/api/internal-audit/engagements/${engagementId}/findings/${findingId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify(req),
+    }),
+  deleteFinding: (engagementId: string, findingId: string) =>
+    api<void>(`/api/internal-audit/engagements/${engagementId}/findings/${findingId}`, { method: 'DELETE' }),
+  generateReport: (engagementId: string) =>
+    api<InternalAuditEngagementDto>(`/api/internal-audit/engagements/${engagementId}/generate-report`, {
+      method: 'POST',
+    }),
+}
+
+
 
 
 

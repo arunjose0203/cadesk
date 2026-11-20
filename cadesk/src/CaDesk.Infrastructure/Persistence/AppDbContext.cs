@@ -31,6 +31,7 @@ using CaDesk.Domain.BranchAudit;
 using CaDesk.Domain.AuditCommittee;
 using CaDesk.Domain.ForeignRemittance;
 using CaDesk.Domain.RelatedParty;
+using CaDesk.Domain.InternalAudit;
 using CaDesk.Domain.Common;
 using CaDesk.Domain.Configuration;
 using CaDesk.Domain.Firms;
@@ -146,6 +147,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
     public DbSet<RelatedPartyEntity> RelatedPartyEntities => Set<RelatedPartyEntity>();
     public DbSet<RelatedPartyTransaction> RelatedPartyTransactions => Set<RelatedPartyTransaction>();
     public DbSet<RelatedPartyOmnibusApproval> RelatedPartyOmnibusApprovals => Set<RelatedPartyOmnibusApproval>();
+    public DbSet<InternalAuditEngagement> InternalAuditEngagements => Set<InternalAuditEngagement>();
+    public DbSet<RcmControlItem> RcmControlItems => Set<RcmControlItem>();
+    public DbSet<InternalAuditFinding> InternalAuditFindings => Set<InternalAuditFinding>();
     public DbSet<ConfigDefinition> ConfigDefinitions => Set<ConfigDefinition>();
     public DbSet<ConfigValue> ConfigValues => Set<ConfigValue>();
     public DbSet<ConfigChangeLog> ConfigChangeLog => Set<ConfigChangeLog>();
@@ -801,6 +805,28 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
             e.ToTable("related_party_omnibus_approvals");
             e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(x => new { x.FirmId, x.ClientId, x.FinancialYear }).HasDatabaseName("ix_related_party_omnibus_client_fy");
+        });
+
+        b.Entity<InternalAuditEngagement>(e =>
+        {
+            e.ToTable("internal_audit_engagements");
+            e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.FirmId, x.ClientId, x.FinancialYear }).HasDatabaseName("ix_internal_audit_engagements_client_fy");
+        });
+
+        b.Entity<RcmControlItem>(e =>
+        {
+            e.ToTable("rcm_control_items");
+            e.HasOne(x => x.Engagement).WithMany(x => x.Controls).HasForeignKey(x => x.EngagementId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.FirmId, x.EngagementId }).HasDatabaseName("ix_rcm_control_items_engagement");
+        });
+
+        b.Entity<InternalAuditFinding>(e =>
+        {
+            e.ToTable("internal_audit_findings");
+            e.HasOne(x => x.Engagement).WithMany(x => x.Findings).HasForeignKey(x => x.EngagementId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<RcmControlItem>().WithMany().HasForeignKey(x => x.ControlItemId).OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(x => new { x.FirmId, x.EngagementId }).HasDatabaseName("ix_internal_audit_findings_engagement");
         });
 
         b.Entity<TaskTemplate>(e =>
