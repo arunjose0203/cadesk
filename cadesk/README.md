@@ -40,6 +40,7 @@ Multi-tenant SaaS for CA and accounting firms (India first, GCC later).
 | 35 | Foreign Remittance & Form 15CA / 15CB Certification Engine (Income Tax Rule 37BB / Section 195 / DTAA): Section 195 non-resident withholding evaluation, Section 90(2) DTAA treaty relief comparison, Rule 37BB(3) 33-item exempt list checker, Form 15CA automated Part A/B/C/D routing, Form 15CB CA certification generator with 18-digit UDIN, and Section 195A net-of-tax grossing up engine | Full-stack international tax and foreign remittance certification desk with Section 195/90(2) tax calculators, DTAA prerequisite documentation tracker (TRC, Form 10F, No-PE), official Form 15CB certificate generator, and Form 15CA e-Filing XML exporter; two-lock multi-tenancy |
 | 36 | Related Party Transactions & Section 188 / AS 18 / Ind AS 24 Arm's Length Pricing Desk: Section 188 Rule 15 statutory threshold gates (10% turnover / 10% net worth), Section 188(1) 4th proviso ordinary course & arm's length exemption engine, Section 177 Audit Committee omnibus approvals with utilization tracking, Section 189 Form MBP-4 statutory register generator, and AS 18 / Ind AS 24 financial statement disclosure compiler | Full-stack related party compliance and transfer pricing desk with statutory threshold guards, arm's length price variance calculators, Section 40A(2)(b) risk flags, Form MBP-4 register drafting, and AS 18 / Ind AS 24 disclosure note generator; two-lock multi-tenancy |
 | 37 | Internal Audit Risk & Control Matrix (RCM) & IFC Testing Desk (ICAI SIA Standards / Companies Act Sec 138 & 143(3)(i)): Section 138 statutory applicability criteria, 6 core business cycles (P2P, O2C, H2R, R2R, Treasury, ITGC), dual walkthrough/design effectiveness and Test of Operating Effectiveness (ToC) review, residual risk mitigation engine, deficiency and action plan remediation tracking, and ICAI SIA executive report generator | Full-stack internal audit and IFC testing desk with pre-populated baseline RCM, exception-driven residual risk scoring, material weakness classification, remediation tracking, executive reporting, and two-lock multi-tenancy |
+| 38 | GST Annual Audit & Anti-Profiteering / Rate Notification Engine (CGST Act Section 171 / Rule 122–137): Landmark GST rate notification registry, SKU-level commensurate price reduction engine, base price hike tracking, customer credit note refund logger, 50:50 Central/State Consumer Welfare Fund (CWF) split with 18% p.a. statutory interest under Section 171(3A), and official CA Anti-Profiteering Audit Certificate with 18-digit UDIN | Full-stack GST anti-profiteering desk with automatic baseline rate notification seeding, SKU price reduction evaluator, customer refund and CWF tracking, statutory certificate generator, and two-lock multi-tenancy |
 
 ## What's inside
 
@@ -1103,6 +1104,51 @@ API:
 - `GET /api/internal-audit/engagements/{id}/findings`, `POST /api/internal-audit/engagements/{id}/findings`, `PUT /api/internal-audit/engagements/{id}/findings/{findingId}`, `DELETE /api/internal-audit/engagements/{id}/findings/{findingId}` (`internalaudit.read`, `internalaudit.manage`)
 - `PATCH /api/internal-audit/engagements/{id}/findings/{findingId}/status` (`internalaudit.manage`)
 - `POST /api/internal-audit/engagements/{id}/generate-report` (`internalaudit.report`)
+
+## GST Annual Audit & Anti-Profiteering / Rate Notification Engine (Sprint 38)
+
+- **Statutory & Regulatory Framework**:
+  - **CGST Act, 2017, Section 171 & CGST Rules, 2017, Rules 122–137**:
+    - Mandatory pass-through of any tax rate reduction or input tax credit (ITC) benefit to recipients by commensurate reduction in prices.
+    - Statutory mandate to prevent suppliers from pocketing tax cuts by hiking pre-tax base prices while keeping consumer selling prices static.
+  - **Section 171(3A) & Rule 133(3)(c) Penalty, Refund & Consumer Welfare Fund (CWF)**:
+    - Undue profiteered amount must be refunded to identified recipients via commercial credit notes or bank transfers.
+    - If recipients are unidentifiable (e.g. over-the-counter FMCG, retail sales, untraceable cash buyers), the undue amount must be credited in equal 50:50 proportion into the **Central Consumer Welfare Fund** and the relevant **State Consumer Welfare Fund**.
+    - If delayed beyond statutory timelines, statutory interest @ **18% p.a.** applies from the collection date to the deposit date.
+- **Landmark GST Rate Notifications Registry**:
+  - Pre-populated baseline rate cuts across major GST Council decisions:
+    - **Notification 41/2017-CT(R)**: Restaurants rate cut from 18% to 5% (without ITC).
+    - **Notification 18/2018-CT(R)**: White goods, refrigerators, washing machines, TV up to 32" cut from 28% to 18%.
+    - **Notification 24/2018-CT(R)**: Footwear & apparel rate rationalization from 18% to 12%.
+    - **Notification 14/2019-CT(R)**: Electric Vehicles (EVs) rate reduction from 12% to 5%.
+    - **Notification 06/2022-CT(R)**: Pre-packaged & labelled food products rate alignment.
+- **Automated Commensurate Price Reduction Engine**:
+  - Calculates statutory commensurate price:
+    $$\text{Commensurate Selling Price} = \text{Pre-Cut Base Price} \times (1 + \text{New GST Rate})$$
+    $$\text{Profiteering Per Unit} = \text{Max}(0, \text{Post-Cut Selling Price} - \text{Commensurate Price})$$
+    $$\text{Total Profiteered Amount} = \text{Profiteering Per Unit} \times \text{Post-Cut Quantity Sold}$$
+  - Automated classification:
+    - **Compliant**: Full price reduction passed through to recipients.
+    - **Profiteered**: Base price hiked to neutralize rate cut, resulting in zero or negligible price drop.
+    - **Deficient**: Price was reduced, but by less than the full commensurate reduction.
+- **Customer Refund & Consumer Welfare Fund (CWF) Desk**:
+  - Tracks commercial credit notes / refunds issued directly to identifiable buyers.
+  - Generates 50:50 Central CWF and State CWF payment challans for unidentifiable consumers.
+  - Computes statutory 18% p.a. interest for overdue refunds beyond 30 days.
+- **Statutory CA Audit Certificate under Section 171 & Rules 122–137**:
+  - Auto-drafts formal CA certificate verifying SKU price reductions, base price trends, and refund disbursements.
+  - Gated with mandatory 18-digit ICAI Unique Document Identification Number (UDIN).
+- **Two Locks**: EF Core global query filters and PostgreSQL Row Level Security on `gst_rate_notifications`, `anti_profiteering_assessments`, `sku_profiteering_items`, and `profiteering_refund_records` (`0037_anti_profiteering_engine.sql`).
+
+API:
+- `GET /api/anti-profiteering/summary` (`antiprofiteering.read`)
+- `GET /api/anti-profiteering/notifications`, `GET /api/anti-profiteering/notifications/{id}` (`antiprofiteering.read`)
+- `POST /api/anti-profiteering/notifications`, `PUT /api/anti-profiteering/notifications/{id}`, `DELETE /api/anti-profiteering/notifications/{id}` (`antiprofiteering.manage`)
+- `GET /api/anti-profiteering/assessments`, `GET /api/anti-profiteering/assessments/{id}` (`antiprofiteering.read`)
+- `POST /api/anti-profiteering/assessments`, `PUT /api/anti-profiteering/assessments/{id}`, `DELETE /api/anti-profiteering/assessments/{id}` (`antiprofiteering.manage`)
+- `POST /api/anti-profiteering/assessments/{id}/certify` (`antiprofiteering.certify`)
+- `GET /api/anti-profiteering/assessments/{id}/skus`, `POST /api/anti-profiteering/assessments/{id}/skus`, `PUT /api/anti-profiteering/assessments/{id}/skus/{skuId}`, `DELETE /api/anti-profiteering/assessments/{id}/skus/{skuId}` (`antiprofiteering.read`, `antiprofiteering.manage`)
+- `GET /api/anti-profiteering/assessments/{id}/refunds`, `POST /api/anti-profiteering/assessments/{id}/refunds`, `PUT /api/anti-profiteering/assessments/{id}/refunds/{refundId}`, `DELETE /api/anti-profiteering/assessments/{id}/refunds/{refundId}` (`antiprofiteering.read`, `antiprofiteering.manage`)
 
 ## Notes
 

@@ -32,6 +32,7 @@ using CaDesk.Domain.AuditCommittee;
 using CaDesk.Domain.ForeignRemittance;
 using CaDesk.Domain.RelatedParty;
 using CaDesk.Domain.InternalAudit;
+using CaDesk.Domain.AntiProfiteering;
 using CaDesk.Domain.Common;
 using CaDesk.Domain.Configuration;
 using CaDesk.Domain.Firms;
@@ -150,6 +151,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
     public DbSet<InternalAuditEngagement> InternalAuditEngagements => Set<InternalAuditEngagement>();
     public DbSet<RcmControlItem> RcmControlItems => Set<RcmControlItem>();
     public DbSet<InternalAuditFinding> InternalAuditFindings => Set<InternalAuditFinding>();
+    public DbSet<GstRateNotification> GstRateNotifications => Set<GstRateNotification>();
+    public DbSet<AntiProfiteeringAssessment> AntiProfiteeringAssessments => Set<AntiProfiteeringAssessment>();
+    public DbSet<SkuProfiteeringItem> SkuProfiteeringItems => Set<SkuProfiteeringItem>();
+    public DbSet<ProfiteeringRefundRecord> ProfiteeringRefundRecords => Set<ProfiteeringRefundRecord>();
     public DbSet<ConfigDefinition> ConfigDefinitions => Set<ConfigDefinition>();
     public DbSet<ConfigValue> ConfigValues => Set<ConfigValue>();
     public DbSet<ConfigChangeLog> ConfigChangeLog => Set<ConfigChangeLog>();
@@ -827,6 +832,35 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
             e.HasOne(x => x.Engagement).WithMany(x => x.Findings).HasForeignKey(x => x.EngagementId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne<RcmControlItem>().WithMany().HasForeignKey(x => x.ControlItemId).OnDelete(DeleteBehavior.SetNull);
             e.HasIndex(x => new { x.FirmId, x.EngagementId }).HasDatabaseName("ix_internal_audit_findings_engagement");
+        });
+
+        b.Entity<GstRateNotification>(e =>
+        {
+            e.ToTable("gst_rate_notifications");
+            e.HasIndex(x => new { x.FirmId, x.HsnOrSacCode }).HasDatabaseName("ix_gst_rate_notifications_firm_hsn");
+            e.HasIndex(x => new { x.FirmId, x.EffectiveDate }).HasDatabaseName("ix_gst_rate_notifications_firm_date");
+        });
+
+        b.Entity<AntiProfiteeringAssessment>(e =>
+        {
+            e.ToTable("anti_profiteering_assessments");
+            e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.GstNotification).WithMany().HasForeignKey(x => x.GstNotificationId).OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(x => new { x.FirmId, x.ClientId, x.FinancialYear }).HasDatabaseName("ix_apa_firm_client_fy");
+        });
+
+        b.Entity<SkuProfiteeringItem>(e =>
+        {
+            e.ToTable("sku_profiteering_items");
+            e.HasOne(x => x.Assessment).WithMany(x => x.SkuItems).HasForeignKey(x => x.AssessmentId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.FirmId, x.AssessmentId }).HasDatabaseName("ix_sku_items_firm_assessment");
+        });
+
+        b.Entity<ProfiteeringRefundRecord>(e =>
+        {
+            e.ToTable("profiteering_refund_records");
+            e.HasOne(x => x.Assessment).WithMany(x => x.RefundRecords).HasForeignKey(x => x.AssessmentId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.FirmId, x.AssessmentId }).HasDatabaseName("ix_refund_records_firm_assessment");
         });
 
         b.Entity<TaskTemplate>(e =>

@@ -190,4 +190,7 @@ public static class Perms
     public const string InternalAuditRead = "internalaudit.read";
     public const string InternalAuditManage = "internalaudit.manage";
     public const string InternalAuditReport = "internalaudit.report";
+    public const string AntiProfiteeringRead = "antiprofiteering.read";
+    public const string AntiProfiteeringManage = "antiprofiteering.manage";
+    public const string AntiProfiteeringCertify = "antiprofiteering.certify";
 }

@@ -4921,6 +4921,248 @@ export const internalAuditApi = {
     }),
 }
 
+// -------------------------------------------------------------
+// Sprint 38: GST Anti-Profiteering & Rate Notification Engine (Section 171)
+// -------------------------------------------------------------
+
+export interface GstRateNotificationDto {
+  id: string
+  notificationNumber: string
+  notificationDate: string
+  effectiveDate: string
+  hsnOrSacCode: string
+  description: string
+  previousRatePercentage: number
+  revisedRatePercentage: number
+  rateReductionPercentage: number
+  isActive: boolean
+  notes: string
+  createdAt: string
+}
+
+export interface AntiProfiteeringAssessmentDto {
+  id: string
+  clientId: string
+  clientName?: string | null
+  clientGstin?: string | null
+  assessmentReference: string
+  title: string
+  financialYear: string
+  auditPeriodFrom: string
+  auditPeriodTo: string
+  gstNotificationId?: string | null
+  notificationReference: string
+  rateCutEffectiveDate?: string | null
+  auditStatus: string
+  leadAuditorName: string
+  udin?: string | null
+  certificationDate?: string | null
+  totalSkusAudited: number
+  profiteeredSkusCount: number
+  totalTurnoverPostCut: number
+  totalUndueProfiteeredAmount: number
+  totalCustomerRefundedAmount: number
+  totalCwfDepositedAmount: number
+  cwfInterestPayableAmount: number
+  statutoryReportText?: string | null
+  createdAt: string
+  updatedAt?: string | null
+}
+
+export interface SkuProfiteeringItemDto {
+  id: string
+  assessmentId: string
+  productCode: string
+  hsnOrSacCode: string
+  productName: string
+  unitOfMeasurement: string
+  preCutBasePrice: number
+  oldGstRate: number
+  preCutSellingPrice: number
+  newGstRate: number
+  commensuratePriceRequired: number
+  postCutActualBasePrice: number
+  postCutActualSellingPrice: number
+  basePriceIncreasePercentage: number
+  quantitySoldPostCut: number
+  profiteeringPerUnit: number
+  totalProfiteeredAmount: number
+  complianceStatus: string
+  hasRawMaterialCostJustification: boolean
+  justificationRemarks: string
+  createdAt: string
+  updatedAt?: string | null
+}
+
+export interface ProfiteeringRefundRecordDto {
+  id: string
+  assessmentId: string
+  recipientType: string
+  customerNameOrEntity: string
+  customerGstin: string
+  invoiceReference: string
+  refundAmount: number
+  refundMode: string
+  refundOrDepositDate: string
+  challanOrCinNumber: string
+  interestAmountPaid: number
+  notes: string
+  createdAt: string
+}
+
+export interface AntiProfiteeringSummaryDto {
+  totalAssessments: number
+  totalSkusAudited: number
+  totalProfiteeredSkus: number
+  totalTurnoverAudited: number
+  totalProfiteeredAmount: number
+  totalRefundedToCustomers: number
+  totalCwfDeposits: number
+  totalPendingRemediation: number
+}
+
+export interface SaveRateNotificationRequest {
+  notificationNumber: string
+  notificationDate: string
+  effectiveDate: string
+  hsnOrSacCode: string
+  description: string
+  previousRatePercentage: number
+  revisedRatePercentage: number
+  isActive: boolean
+  notes?: string | null
+}
+
+export interface SaveAssessmentRequest {
+  clientId: string
+  assessmentReference: string
+  title: string
+  financialYear: string
+  auditPeriodFrom: string
+  auditPeriodTo: string
+  gstNotificationId?: string | null
+  notificationReference?: string | null
+  rateCutEffectiveDate?: string | null
+  leadAuditorName?: string | null
+}
+
+export interface SaveSkuItemRequest {
+  productCode: string
+  hsnOrSacCode: string
+  productName: string
+  unitOfMeasurement?: string | null
+  preCutBasePrice: number
+  oldGstRate: number
+  newGstRate: number
+  postCutActualBasePrice: number
+  quantitySoldPostCut: number
+  hasRawMaterialCostJustification: boolean
+  justificationRemarks?: string | null
+}
+
+export interface SaveRefundRecordRequest {
+  recipientType: string
+  customerNameOrEntity: string
+  customerGstin?: string | null
+  invoiceReference?: string | null
+  refundAmount: number
+  refundMode?: string | null
+  refundOrDepositDate: string
+  challanOrCinNumber?: string | null
+  interestAmountPaid: number
+  notes?: string | null
+}
+
+export interface CertifyAssessmentRequest {
+  leadAuditorName: string
+  udin?: string | null
+}
+
+export const antiProfiteeringApi = {
+  getSummary: (clientId?: string, financialYear?: string) => {
+    const params = new URLSearchParams()
+    if (clientId) params.set('clientId', clientId)
+    if (financialYear) params.set('financialYear', financialYear)
+    const qs = params.toString()
+    return api<AntiProfiteeringSummaryDto>(`/api/anti-profiteering/summary${qs ? `?${qs}` : ''}`)
+  },
+  listNotifications: (isActive?: boolean) => {
+    const params = new URLSearchParams()
+    if (isActive !== undefined) params.set('isActive', String(isActive))
+    const qs = params.toString()
+    return api<GstRateNotificationDto[]>(`/api/anti-profiteering/notifications${qs ? `?${qs}` : ''}`)
+  },
+  getNotification: (id: string) =>
+    api<GstRateNotificationDto>(`/api/anti-profiteering/notifications/${id}`),
+  createNotification: (req: SaveRateNotificationRequest) =>
+    api<GstRateNotificationDto>('/api/anti-profiteering/notifications', { method: 'POST', body: JSON.stringify(req) }),
+  updateNotification: (id: string, req: SaveRateNotificationRequest) =>
+    api<GstRateNotificationDto>(`/api/anti-profiteering/notifications/${id}`, { method: 'PUT', body: JSON.stringify(req) }),
+  deleteNotification: (id: string) =>
+    api<void>(`/api/anti-profiteering/notifications/${id}`, { method: 'DELETE' }),
+
+  listAssessments: (clientId?: string, financialYear?: string, status?: string) => {
+    const params = new URLSearchParams()
+    if (clientId) params.set('clientId', clientId)
+    if (financialYear) params.set('financialYear', financialYear)
+    if (status) params.set('status', status)
+    const qs = params.toString()
+    return api<AntiProfiteeringAssessmentDto[]>(`/api/anti-profiteering/assessments${qs ? `?${qs}` : ''}`)
+  },
+  getAssessment: (id: string) =>
+    api<AntiProfiteeringAssessmentDto>(`/api/anti-profiteering/assessments/${id}`),
+  createAssessment: (req: SaveAssessmentRequest) =>
+    api<AntiProfiteeringAssessmentDto>('/api/anti-profiteering/assessments', { method: 'POST', body: JSON.stringify(req) }),
+  updateAssessment: (id: string, req: SaveAssessmentRequest) =>
+    api<AntiProfiteeringAssessmentDto>(`/api/anti-profiteering/assessments/${id}`, { method: 'PUT', body: JSON.stringify(req) }),
+  deleteAssessment: (id: string) =>
+    api<void>(`/api/anti-profiteering/assessments/${id}`, { method: 'DELETE' }),
+  certifyAssessment: (id: string, req: CertifyAssessmentRequest) =>
+    api<AntiProfiteeringAssessmentDto>(`/api/anti-profiteering/assessments/${id}/certify`, {
+      method: 'POST',
+      body: JSON.stringify(req),
+    }),
+
+  listSkus: (assessmentId: string, complianceStatus?: string) => {
+    const params = new URLSearchParams()
+    if (complianceStatus && complianceStatus !== 'All') params.set('complianceStatus', complianceStatus)
+    const qs = params.toString()
+    return api<SkuProfiteeringItemDto[]>(`/api/anti-profiteering/assessments/${assessmentId}/skus${qs ? `?${qs}` : ''}`)
+  },
+  createSku: (assessmentId: string, req: SaveSkuItemRequest) =>
+    api<SkuProfiteeringItemDto>(`/api/anti-profiteering/assessments/${assessmentId}/skus`, {
+      method: 'POST',
+      body: JSON.stringify(req),
+    }),
+  updateSku: (assessmentId: string, skuId: string, req: SaveSkuItemRequest) =>
+    api<SkuProfiteeringItemDto>(`/api/anti-profiteering/assessments/${assessmentId}/skus/${skuId}`, {
+      method: 'PUT',
+      body: JSON.stringify(req),
+    }),
+  deleteSku: (assessmentId: string, skuId: string) =>
+    api<void>(`/api/anti-profiteering/assessments/${assessmentId}/skus/${skuId}`, { method: 'DELETE' }),
+
+  listRefunds: (assessmentId: string, recipientType?: string) => {
+    const params = new URLSearchParams()
+    if (recipientType && recipientType !== 'All') params.set('recipientType', recipientType)
+    const qs = params.toString()
+    return api<ProfiteeringRefundRecordDto[]>(`/api/anti-profiteering/assessments/${assessmentId}/refunds${qs ? `?${qs}` : ''}`)
+  },
+  createRefund: (assessmentId: string, req: SaveRefundRecordRequest) =>
+    api<ProfiteeringRefundRecordDto>(`/api/anti-profiteering/assessments/${assessmentId}/refunds`, {
+      method: 'POST',
+      body: JSON.stringify(req),
+    }),
+  updateRefund: (assessmentId: string, refundId: string, req: SaveRefundRecordRequest) =>
+    api<ProfiteeringRefundRecordDto>(`/api/anti-profiteering/assessments/${assessmentId}/refunds/${refundId}`, {
+      method: 'PUT',
+      body: JSON.stringify(req),
+    }),
+  deleteRefund: (assessmentId: string, refundId: string) =>
+    api<void>(`/api/anti-profiteering/assessments/${assessmentId}/refunds/${refundId}`, { method: 'DELETE' }),
+}
+
+
 
 
 

@@ -142,6 +142,10 @@ public interface IAppDbContext
     DbSet<CaDesk.Domain.InternalAudit.InternalAuditEngagement> InternalAuditEngagements { get; }
     DbSet<CaDesk.Domain.InternalAudit.RcmControlItem> RcmControlItems { get; }
     DbSet<CaDesk.Domain.InternalAudit.InternalAuditFinding> InternalAuditFindings { get; }
+    DbSet<CaDesk.Domain.AntiProfiteering.GstRateNotification> GstRateNotifications { get; }
+    DbSet<CaDesk.Domain.AntiProfiteering.AntiProfiteeringAssessment> AntiProfiteeringAssessments { get; }
+    DbSet<CaDesk.Domain.AntiProfiteering.SkuProfiteeringItem> SkuProfiteeringItems { get; }
+    DbSet<CaDesk.Domain.AntiProfiteering.ProfiteeringRefundRecord> ProfiteeringRefundRecords { get; }
     /// <summary>For transactions and the few raw SQL calls (numbering, jsonb lookups). RLS still applies.</summary>
     DatabaseFacade Database { get; }
     Task<int> SaveChangesAsync(CancellationToken ct = default);
