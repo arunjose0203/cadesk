@@ -3849,6 +3849,213 @@ export const schedule3Api = {
     api<Schedule3AssessmentDto>(`/api/schedule3/assessments/${id}/finalize`, { method: 'POST', body: JSON.stringify({ auditorRemarks }) })
 }
 
+export type BranchAuditOfficeDto = {
+  id: string
+  engagementId: string
+  branchCode: string
+  branchName: string
+  branchLocation: string
+  isForeignBranch: boolean
+  auditorFirmName: string
+  auditorFirmRegistrationNumber: string
+  auditorName: string
+  auditorMembershipNumber: string
+  auditorEmail: string
+  auditorPhone?: string | null
+  hasActiveToken: boolean
+  tokenExpiresAt?: string | null
+  lastSubmittedAt?: string | null
+  totalAssets: number
+  totalLiabilities: number
+  totalRevenue: number
+  totalExpenses: number
+  netProfit: number
+  branchReportType: string
+  hasQualifications: boolean
+  qualificationsSummary?: string | null
+  branchAuditReportRef?: string | null
+  accountingPoliciesConsistent: boolean
+  relatedPartyTransactionsDisclosed: boolean
+  contingentLiabilitiesReported: boolean
+  subsequentEventsReported: boolean
+  fraudOrIrregularitiesReported: boolean
+  internalControlsCommensurate: boolean
+  caroApplicableToBranch: boolean
+  caroReportSummary?: string | null
+  status: string
+  principalAuditorReviewNotes?: string | null
+  reviewedByUserId?: string | null
+  reviewedByUserName?: string | null
+  reviewedAt?: string | null
+  createdAt: string
+  updatedAt?: string | null
+}
+
+export type BranchAuditEngagementDto = {
+  id: string
+  clientId: string
+  clientName?: string | null
+  clientPan?: string | null
+  auditEngagementId?: string | null
+  auditEngagementTitle?: string | null
+  financialYear: string
+  title: string
+  headOfficeAssets: number
+  headOfficeLiabilities: number
+  headOfficeRevenue: number
+  headOfficeExpenses: number
+  headOfficeNetProfit: number
+  totalConsolidatedAssets: number
+  totalConsolidatedLiabilities: number
+  totalConsolidatedRevenue: number
+  totalConsolidatedExpenses: number
+  totalConsolidatedNetProfit: number
+  branchesAuditedCount: number
+  branchAuditorsCount: number
+  totalBranchAssets: number
+  branchAssetsPercentage: number
+  totalBranchRevenue: number
+  branchRevenuePercentage: number
+  totalBranchNetProfit: number
+  branchNetProfitPercentage: number
+  consolidationStatus: string
+  branchQualificationsCount: number
+  principalAuditorNotes?: string | null
+  generatedSa600ReportText?: string | null
+  finalizedByUserId?: string | null
+  finalizedByUserName?: string | null
+  finalizedAt?: string | null
+  createdAt: string
+  updatedAt?: string | null
+  branches: BranchAuditOfficeDto[]
+}
+
+export type SaveBranchEngagementRequest = {
+  clientId: string
+  auditEngagementId?: string | null
+  financialYear: string
+  title: string
+  headOfficeAssets: number
+  headOfficeLiabilities: number
+  headOfficeRevenue: number
+  headOfficeExpenses: number
+  headOfficeNetProfit: number
+  principalAuditorNotes?: string | null
+}
+
+export type SaveBranchOfficeRequest = {
+  branchCode: string
+  branchName: string
+  branchLocation: string
+  isForeignBranch: boolean
+  auditorFirmName: string
+  auditorFirmRegistrationNumber: string
+  auditorName: string
+  auditorMembershipNumber: string
+  auditorEmail: string
+  auditorPhone?: string | null
+  totalAssets: number
+  totalLiabilities: number
+  totalRevenue: number
+  totalExpenses: number
+  netProfit: number
+  branchReportType: string
+  hasQualifications: boolean
+  qualificationsSummary?: string | null
+  branchAuditReportRef?: string | null
+  accountingPoliciesConsistent: boolean
+  relatedPartyTransactionsDisclosed: boolean
+  contingentLiabilitiesReported: boolean
+  subsequentEventsReported: boolean
+  fraudOrIrregularitiesReported: boolean
+  internalControlsCommensurate: boolean
+  caroApplicableToBranch: boolean
+  caroReportSummary?: string | null
+}
+
+export type SubmitBranchReturnsRequest = {
+  token: string
+  totalAssets: number
+  totalLiabilities: number
+  totalRevenue: number
+  totalExpenses: number
+  netProfit: number
+  branchReportType: string
+  hasQualifications: boolean
+  qualificationsSummary?: string | null
+  branchAuditReportRef?: string | null
+  accountingPoliciesConsistent: boolean
+  relatedPartyTransactionsDisclosed: boolean
+  contingentLiabilitiesReported: boolean
+  subsequentEventsReported: boolean
+  fraudOrIrregularitiesReported: boolean
+  internalControlsCommensurate: boolean
+  caroApplicableToBranch: boolean
+  caroReportSummary?: string | null
+}
+
+export type ReviewBranchOfficeRequest = {
+  decision: string
+  reviewNotes?: string | null
+}
+
+export type GenerateTokenResponse = {
+  branchId: string
+  rawToken: string
+  expiresAt: string
+  portalUrl: string
+}
+
+export type BranchAuditSummaryDto = {
+  totalEngagements: number
+  consolidatedCount: number
+  finalizedCount: number
+  totalBranches: number
+  branchesSubmitted: number
+  branchesAccepted: number
+  totalBranchQualifications: number
+  totalBranchAssetsAudited: number
+  averageBranchAssetsPercentage: number
+}
+
+export const branchAuditApi = {
+  getSummary: () => api<BranchAuditSummaryDto>('/api/branchaudit/summary'),
+  getEngagements: (clientId?: string, fy?: string, status?: string) => {
+    const p = new URLSearchParams()
+    if (clientId) p.set('clientId', clientId)
+    if (fy) p.set('fy', fy)
+    if (status) p.set('status', status)
+    const qs = p.toString()
+    return api<BranchAuditEngagementDto[]>(`/api/branchaudit/engagements${qs ? `?${qs}` : ''}`)
+  },
+  getEngagementById: (id: string) => api<BranchAuditEngagementDto>(`/api/branchaudit/engagements/${id}`),
+  createEngagement: (req: SaveBranchEngagementRequest) =>
+    api<BranchAuditEngagementDto>('/api/branchaudit/engagements', { method: 'POST', body: JSON.stringify(req) }),
+  updateEngagement: (id: string, req: SaveBranchEngagementRequest) =>
+    api<BranchAuditEngagementDto>(`/api/branchaudit/engagements/${id}`, { method: 'PUT', body: JSON.stringify(req) }),
+  deleteEngagement: (id: string) =>
+    api<void>(`/api/branchaudit/engagements/${id}`, { method: 'DELETE' }),
+  addBranch: (engagementId: string, req: SaveBranchOfficeRequest) =>
+    api<BranchAuditOfficeDto>(`/api/branchaudit/engagements/${engagementId}/branches`, { method: 'POST', body: JSON.stringify(req) }),
+  updateBranch: (engagementId: string, branchId: string, req: SaveBranchOfficeRequest) =>
+    api<BranchAuditOfficeDto>(`/api/branchaudit/engagements/${engagementId}/branches/${branchId}`, { method: 'PUT', body: JSON.stringify(req) }),
+  deleteBranch: (engagementId: string, branchId: string) =>
+    api<void>(`/api/branchaudit/engagements/${engagementId}/branches/${branchId}`, { method: 'DELETE' }),
+  generateToken: (engagementId: string, branchId: string) =>
+    api<GenerateTokenResponse>(`/api/branchaudit/engagements/${engagementId}/branches/${branchId}/generate-token`, { method: 'POST' }),
+  getPortalBranchInfo: (token: string) =>
+    api<BranchAuditOfficeDto>(`/api/branchaudit/portal/branch?token=${encodeURIComponent(token)}`),
+  submitBranchReturns: (req: SubmitBranchReturnsRequest) =>
+    api<BranchAuditOfficeDto>('/api/branchaudit/portal/submit', { method: 'POST', body: JSON.stringify(req) }),
+  reviewBranch: (engagementId: string, branchId: string, req: ReviewBranchOfficeRequest) =>
+    api<BranchAuditOfficeDto>(`/api/branchaudit/engagements/${engagementId}/branches/${branchId}/review`, { method: 'POST', body: JSON.stringify(req) }),
+  consolidateEngagement: (engagementId: string) =>
+    api<BranchAuditEngagementDto>(`/api/branchaudit/engagements/${engagementId}/consolidate`, { method: 'POST' }),
+  finalizeEngagement: (engagementId: string) =>
+    api<BranchAuditEngagementDto>(`/api/branchaudit/engagements/${engagementId}/finalize`, { method: 'POST' })
+}
+
+
 
 
 

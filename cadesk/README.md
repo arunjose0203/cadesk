@@ -35,6 +35,7 @@ Multi-tenant SaaS for CA and accounting firms (India first, GCC later).
 | 30 | CARO 2020 Automated Audit Checklist & Disclosures Generator: Companies Act Sec 143(11) 3-pillar applicability test, 21 statutory clauses verification workbench, discrepancy tracker, and official Annexure 'A' to Auditor's Report auto-drafting | Full-stack CARO 2020 audit workbench with statutory limit evaluation, clause templates, qualification/adverse remarks drafting, and two-lock multi-tenancy |
 | 31 | Form 3CD Tax Audit Statement & Clause-by-Clause Disclosure Desk: Section 44AB limits (₹1 Cr / ₹10 Cr 5% cash rule; ₹50L / ₹75L profession), Form 3CA vs 3CB selection, Clause 1-44 workbench (ICDS, Sec 40(a)(ia) 30%, Sec 40A(3), Sec 43B & 43B(h) MSME 45-day overdue, Sec 269SS/ST/T, Clause 44 GST), disallowance aggregator, and auditor observation generator | Full-stack Form 3CD tax audit workbench with 5% cash test, MSME overdue calculator, quantified disallowance schedules, Form 3CA/3CB legal text draft, and two-lock multi-tenancy |
 | 32 | Schedule III Financial Ratios & Mandatory Corporate Disclosures Engine: Companies Act 2013 Schedule III 11 mandatory analytical ratios, mandatory variance explanations for changes &ge; 25%, statutory ageing schedules (Trade Receivables, Trade Payables, CWIP), and ₹100 Cr turnover rounding off compliance engine | Full-stack Schedule III corporate reporting desk with 11 financial ratios, variance threshold guards, interactive ageing buckets, audited disclosure note compiler, and two-lock multi-tenancy |
+| 33 | Multi-Firm Collaborative Audit & Branch Audit Consolidation Desk (Companies Act Sec 143(8) / ICAI SA 600): Branch auditor tracking, delegated portal token access, Head Office vs Branch consolidation matrix, SA 600 magnitude calculations (% Assets/Revenues), and statutory Other Matter paragraph generator | Full-stack multi-firm branch audit workbench with Section 143(8) branch auditor registry, external token submissions, consolidation engine, and ICAI SA 600 Other Matter legal text draft; two-lock multi-tenancy |
 
 ## What's inside
 
@@ -879,6 +880,50 @@ API:
 - `PUT /api/schedule3/assessments/{assessmentId}/ratios/{ratioId}` (`schedule3.manage`)
 - `PUT /api/schedule3/assessments/{assessmentId}/ageing/{ageingId}` (`schedule3.manage`)
 - `POST /api/schedule3/assessments/{id}/generate-note`, `POST /api/schedule3/assessments/{id}/finalize` (`schedule3.manage`, `schedule3.finalize`)
+
+## Multi-Firm Collaborative Audit & Branch Audit Consolidation Desk (Sprint 33)
+
+- **Companies Act, 2013, Section 143(8) & Rule 12 Mandate**:
+  - Independent audit of branch offices by company's auditor or other qualified branch auditors.
+  - Branch auditors prepare and forward certified financial returns and branch audit reports to the principal (statutory) auditor of the company.
+  - Supports domestic branches and foreign branches (audited by accountants qualified under foreign law).
+- **ICAI Standard on Auditing 600 (SA 600) "Using the Work of Another Auditor"**:
+  - **Division of Responsibility**: Principal auditor relies on branch auditor reports without modifying audit opinion solely due to delegation, provided SA 600 procedures are carried out.
+  - **Magnitude of Operations Quantification**: Automatically calculates the exact statutory percentage share of operations audited by other auditors:
+    - *Branch Assets Magnitude (%)*: $(\text{Total Branch Assets} / \text{Total Consolidated Assets}) \times 100$
+    - *Branch Revenue Magnitude (%)*: $(\text{Total Branch Revenue} / \text{Total Consolidated Revenue}) \times 100$
+    - *Branch Net Profit Magnitude (%)*: $(\text{Total Branch Net Profit} / |\text{Total Consolidated Net Profit}|) \times 100$
+  - **SA 600 Questionnaire & Governance Checkpoints**: Verifies accounting policy consistency, related party transactions, contingent liabilities, subsequent events, fraud/irregularities, internal controls, and CARO branch applicability.
+- **Delegated Branch Auditor Portal Access**:
+  - Generates secure, 32-byte cryptographic hex tokens (`SHA-256` hashed in database) with 30-day expiry.
+  - Allows independent external branch auditors to access dedicated branch portal links without holding full CA firm credentials or crossing firm boundaries.
+  - External auditors directly submit certified financial numbers, report type (`Clean`, `Qualified`, `Adverse`, `Disclaimer`), qualification summaries, CARO memos, and SA 600 affirmations.
+  - Interactive simulator drawer allows principal auditors to test and verify portal submissions.
+- **Principal Auditor Review & Consolidation Matrix**:
+  - Two-tier workflow: External submission $\rightarrow$ Principal Auditor Review (`Accept` or `Reject` with remarks).
+  - Standalone Head Office books consolidated with certified branch returns:
+    - $\text{Total Consolidated Assets} = \text{Head Office Assets} + \sum \text{Branch Assets}$
+    - $\text{Total Consolidated Liabilities} = \text{Head Office Liabilities} + \sum \text{Branch Liabilities}$
+    - $\text{Total Consolidated Revenues} = \text{Head Office Revenue} + \sum \text{Branch Revenue}$
+    - $\text{Total Consolidated Expenses} = \text{Head Office Expenses} + \sum \text{Branch Expenses}$
+    - $\text{Total Consolidated Net Profit} = \text{Head Office Net Profit} + \sum \text{Branch Net Profit}$
+- **Statutory "Other Matter" Paragraph Generator**:
+  - Auto-drafts ready-to-publish "Other Matter - Using the Work of Other Auditors" paragraph for the Independent Auditor's Report.
+  - Discloses aggregate branch asset and revenue counts and percentages.
+  - Embeds Schedule of Branch Offices Audited under Section 143(8).
+  - Details observations / qualifications noted in branch audit reports with firm FRN and partner details.
+  - Formal partner sign-off freeze (`branchaudit.consolidate`).
+- **Two Locks**: EF Core global query filters and PostgreSQL Row Level Security on `branch_audit_engagements` and `branch_audit_offices` (`0032_branch_audit_consolidation.sql`).
+
+API:
+- `GET /api/branchaudit/summary` (`branchaudit.read`)
+- `GET /api/branchaudit/engagements`, `GET /api/branchaudit/engagements/{id}` (`branchaudit.read`)
+- `POST /api/branchaudit/engagements`, `PUT /api/branchaudit/engagements/{id}`, `DELETE /api/branchaudit/engagements/{id}` (`branchaudit.manage`)
+- `POST /api/branchaudit/engagements/{id}/branches`, `PUT /api/branchaudit/engagements/{id}/branches/{branchId}`, `DELETE /api/branchaudit/engagements/{id}/branches/{branchId}` (`branchaudit.manage`)
+- `POST /api/branchaudit/engagements/{id}/branches/{branchId}/generate-token` (`branchaudit.manage`)
+- `GET /api/branchaudit/portal/branch`, `POST /api/branchaudit/portal/submit` (anonymous token-gated)
+- `POST /api/branchaudit/engagements/{id}/branches/{branchId}/review` (`branchaudit.manage`)
+- `POST /api/branchaudit/engagements/{id}/consolidate`, `POST /api/branchaudit/engagements/{id}/finalize` (`branchaudit.consolidate`)
 
 ## Notes
 

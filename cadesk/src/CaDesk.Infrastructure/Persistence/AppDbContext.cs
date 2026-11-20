@@ -27,6 +27,7 @@ using CaDesk.Domain.Presumptive;
 using CaDesk.Domain.Caro;
 using CaDesk.Domain.TaxAudit;
 using CaDesk.Domain.Schedule3;
+using CaDesk.Domain.BranchAudit;
 using CaDesk.Domain.Common;
 using CaDesk.Domain.Configuration;
 using CaDesk.Domain.Firms;
@@ -131,6 +132,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
     public DbSet<Schedule3Assessment> Schedule3Assessments => Set<Schedule3Assessment>();
     public DbSet<Schedule3RatioItem> Schedule3RatioItems => Set<Schedule3RatioItem>();
     public DbSet<Schedule3AgeingItem> Schedule3AgeingItems => Set<Schedule3AgeingItem>();
+    public DbSet<BranchAuditEngagement> BranchAuditEngagements => Set<BranchAuditEngagement>();
+    public DbSet<BranchAuditOffice> BranchAuditOffices => Set<BranchAuditOffice>();
     public DbSet<ConfigDefinition> ConfigDefinitions => Set<ConfigDefinition>();
     public DbSet<ConfigValue> ConfigValues => Set<ConfigValue>();
     public DbSet<ConfigChangeLog> ConfigChangeLog => Set<ConfigChangeLog>();
@@ -698,6 +701,25 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
             e.ToTable("schedule3_ageing_items");
             e.HasOne(x => x.Assessment).WithMany(x => x.AgeingItems).HasForeignKey(x => x.AssessmentId).OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(x => new { x.FirmId, x.AssessmentId }).HasDatabaseName("ix_schedule3_ageing_items_assessment");
+        });
+
+        b.Entity<BranchAuditEngagement>(e =>
+        {
+            e.ToTable("branch_audit_engagements");
+            e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.AuditEngagement).WithMany().HasForeignKey(x => x.AuditEngagementId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.FinalizedByUser).WithMany().HasForeignKey(x => x.FinalizedByUserId).OnDelete(DeleteBehavior.SetNull);
+            e.HasMany(x => x.Branches).WithOne(x => x.Engagement).HasForeignKey(x => x.EngagementId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.FirmId, x.ClientId, x.FinancialYear }).HasDatabaseName("ix_branch_audit_engagements_client_fy");
+        });
+
+        b.Entity<BranchAuditOffice>(e =>
+        {
+            e.ToTable("branch_audit_offices");
+            e.HasOne(x => x.Engagement).WithMany(x => x.Branches).HasForeignKey(x => x.EngagementId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.ReviewedByUser).WithMany().HasForeignKey(x => x.ReviewedByUserId).OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(x => new { x.FirmId, x.EngagementId }).HasDatabaseName("ix_branch_audit_offices_engagement");
+            e.HasIndex(x => x.AccessTokenHash).HasDatabaseName("ix_branch_audit_offices_token");
         });
 
         b.Entity<TaskTemplate>(e =>

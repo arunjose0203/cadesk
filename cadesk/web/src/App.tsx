@@ -29,8 +29,9 @@ import { PresumptiveTaxPage } from './PresumptiveTaxPage'
 import { CaroAuditDeskPage } from './CaroAuditDeskPage'
 import { TaxAuditDeskPage } from './TaxAuditDeskPage'
 import { Schedule3DeskPage } from './Schedule3DeskPage'
+import { BranchAuditDeskPage } from './BranchAuditDeskPage'
 
-type Page = 'tasks' | 'deadlines' | 'clients' | 'billing' | 'tax' | 'audit-workspace' | 'gst-reconcile' | 'tds' | 'mca' | 'engagement' | 'banking' | 'reports' | 'tax-notices' | 'payroll' | 'einvoicing' | 'fixed-assets' | 'advance-tax' | 'gstr9' | 'presumptive' | 'caro' | 'taxaudit' | 'schedule3' | 'dsc' | 'portal' | 'users' | 'settings' | 'audit' | 'security'
+type Page = 'tasks' | 'deadlines' | 'clients' | 'billing' | 'tax' | 'audit-workspace' | 'gst-reconcile' | 'tds' | 'mca' | 'engagement' | 'banking' | 'reports' | 'tax-notices' | 'payroll' | 'einvoicing' | 'fixed-assets' | 'advance-tax' | 'gstr9' | 'presumptive' | 'caro' | 'taxaudit' | 'schedule3' | 'branchaudit' | 'dsc' | 'portal' | 'users' | 'settings' | 'audit' | 'security'
 
 export default function App() {
   const [user, setUser] = useState<UserProfile | null>(null)
@@ -396,6 +397,17 @@ export default function App() {
             Schedule III Desk
           </button>
         )}
+        {can('branchaudit.read') && (
+          <button className={page === 'branchaudit' ? 'active' : ''} onClick={() => setPage('branchaudit')}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="8.5" cy="7" r="4"></circle>
+              <line x1="20" y1="8" x2="20" y2="14"></line>
+              <line x1="23" y1="11" x2="17" y2="11"></line>
+            </svg>
+            Branch Audit (SA 600)
+          </button>
+        )}
         {can('dsc.read') && (
           <button className={page === 'dsc' ? 'active' : ''} onClick={() => setPage('dsc')}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -472,6 +484,7 @@ export default function App() {
       {page === 'caro' && can('caro.read') && <CaroAuditDeskPage can={can} />}
       {page === 'taxaudit' && can('taxaudit.read') && <TaxAuditDeskPage can={can} />}
       {page === 'schedule3' && can('schedule3.read') && <Schedule3DeskPage can={can} />}
+      {page === 'branchaudit' && can('branchaudit.read') && <BranchAuditDeskPage can={can} />}
       {page === 'dsc' && can('dsc.read') && <DscPage can={can} meId={user.id} />}
       {page === 'portal' && can('portal.read') && <PortalPage can={can} meId={user.id} />}
       {page === 'users' && can('users.read') && <UsersPage can={can} me={user} />}

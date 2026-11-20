@@ -175,4 +175,7 @@ public static class Perms
     public const string Schedule3Read = "schedule3.read";
     public const string Schedule3Manage = "schedule3.manage";
     public const string Schedule3Finalize = "schedule3.finalize";
+    public const string BranchAuditRead = "branchaudit.read";
+    public const string BranchAuditManage = "branchaudit.manage";
+    public const string BranchAuditConsolidate = "branchaudit.consolidate";
 }
