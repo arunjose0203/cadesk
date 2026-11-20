@@ -30,6 +30,7 @@ using CaDesk.Domain.Schedule3;
 using CaDesk.Domain.BranchAudit;
 using CaDesk.Domain.AuditCommittee;
 using CaDesk.Domain.ForeignRemittance;
+using CaDesk.Domain.RelatedParty;
 using CaDesk.Domain.Common;
 using CaDesk.Domain.Configuration;
 using CaDesk.Domain.Firms;
@@ -142,6 +143,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
     public DbSet<UncorrectedMisstatement> UncorrectedMisstatements => Set<UncorrectedMisstatement>();
     public DbSet<ForeignRemittanceAssessment> ForeignRemittanceAssessments => Set<ForeignRemittanceAssessment>();
     public DbSet<ForeignRemittanceChecklistItem> ForeignRemittanceChecklists => Set<ForeignRemittanceChecklistItem>();
+    public DbSet<RelatedPartyEntity> RelatedPartyEntities => Set<RelatedPartyEntity>();
+    public DbSet<RelatedPartyTransaction> RelatedPartyTransactions => Set<RelatedPartyTransaction>();
+    public DbSet<RelatedPartyOmnibusApproval> RelatedPartyOmnibusApprovals => Set<RelatedPartyOmnibusApproval>();
     public DbSet<ConfigDefinition> ConfigDefinitions => Set<ConfigDefinition>();
     public DbSet<ConfigValue> ConfigValues => Set<ConfigValue>();
     public DbSet<ConfigChangeLog> ConfigChangeLog => Set<ConfigChangeLog>();
@@ -775,6 +779,28 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
             e.ToTable("foreign_remittance_checklists");
             e.HasOne(x => x.Assessment).WithMany(x => x.Checklist).HasForeignKey(x => x.AssessmentId).OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(x => new { x.FirmId, x.AssessmentId }).HasDatabaseName("ix_foreign_remittance_checklists_assessment");
+        });
+
+        b.Entity<RelatedPartyEntity>(e =>
+        {
+            e.ToTable("related_party_entities");
+            e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.FirmId, x.ClientId }).HasDatabaseName("ix_related_party_entities_client");
+        });
+
+        b.Entity<RelatedPartyTransaction>(e =>
+        {
+            e.ToTable("related_party_transactions");
+            e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.RelatedParty).WithMany(x => x.Transactions).HasForeignKey(x => x.RelatedPartyId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.FirmId, x.ClientId, x.FinancialYear }).HasDatabaseName("ix_related_party_transactions_client_fy");
+        });
+
+        b.Entity<RelatedPartyOmnibusApproval>(e =>
+        {
+            e.ToTable("related_party_omnibus_approvals");
+            e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.FirmId, x.ClientId, x.FinancialYear }).HasDatabaseName("ix_related_party_omnibus_client_fy");
         });
 
         b.Entity<TaskTemplate>(e =>

@@ -4492,6 +4492,206 @@ export const foreignRemittanceApi = {
     api<ForeignRemittanceAssessmentDto>(`/api/foreign-remittance/assessments/${id}/file`, { method: 'POST', body: JSON.stringify(req) })
 }
 
+// ----------------------------------------------------------------------
+// Related Party Transactions & Section 188 / AS 18 / Ind AS 24 Desk (Sprint 36)
+// ----------------------------------------------------------------------
+
+export interface RelatedPartyEntityDto {
+  id: string
+  clientId: string
+  clientName?: string
+  name: string
+  relationshipType: string
+  pan: string
+  cin: string
+  directorOrKmpName: string
+  natureOfInterest: string
+  isActive: boolean
+  transactionCount: number
+  createdAt: string
+  updatedAt?: string
+}
+
+export interface RelatedPartyTransactionDto {
+  id: string
+  clientId: string
+  clientName?: string
+  relatedPartyId: string
+  relatedPartyName?: string
+  relationshipType?: string
+  financialYear: string
+  transactionDate: string
+  contractReference: string
+  transactionType: string
+  description: string
+  transactionAmount: number
+  currency: string
+  annualTurnoverBenchmark: number
+  netWorthBenchmark: number
+  thresholdLimitAmount: number
+  thresholdPercentage: number
+  exceedsStatutoryThreshold: boolean
+  isOrdinaryCourseOfBusiness: boolean
+  isArmLength: boolean
+  armLengthMethod: string
+  benchmarkArmLengthPrice: number
+  priceVariancePercentage: number
+  auditCommitteeApprovalStatus: string
+  auditCommitteeMeetingDate?: string
+  omnibusApprovalId?: string
+  boardResolutionDate?: string
+  shareholdersResolutionDate?: string
+  requiresShareholderApproval: boolean
+  section40A2bRisk: boolean
+  mbp4EnteredDate?: string
+  outstandingBalanceAtYearEnd: number
+  balanceType: string
+  status: string
+  createdAt: string
+  updatedAt?: string
+}
+
+export interface RelatedPartyOmnibusApprovalDto {
+  id: string
+  clientId: string
+  clientName?: string
+  financialYear: string
+  auditCommitteeMeetingDate: string
+  title: string
+  maximumApprovedLimit: number
+  utilizedAmount: number
+  approvalCriteria: string
+  validityPeriodTo: string
+  isActive: boolean
+  createdAt: string
+  updatedAt?: string
+}
+
+export interface RelatedPartySummaryDto {
+  totalParties: number
+  totalTransactions: number
+  totalVolumeInr: number
+  armLengthComplianceRate: number
+  specialResolutionRequiredCount: number
+  auditCommitteeApprovedCount: number
+  sec40A2bRiskCount: number
+  totalYearEndBalancesInr: number
+}
+
+export interface SaveRelatedPartyEntityRequest {
+  clientId: string
+  name: string
+  relationshipType: string
+  pan?: string
+  cin?: string
+  directorOrKmpName?: string
+  natureOfInterest?: string
+  isActive: boolean
+}
+
+export interface SaveRelatedPartyTransactionRequest {
+  clientId: string
+  relatedPartyId: string
+  financialYear: string
+  transactionDate: string
+  contractReference?: string
+  transactionType: string
+  description?: string
+  transactionAmount: number
+  currency?: string
+  annualTurnoverBenchmark: number
+  netWorthBenchmark: number
+  isOrdinaryCourseOfBusiness: boolean
+  armLengthMethod?: string
+  benchmarkArmLengthPrice: number
+  auditCommitteeApprovalStatus?: string
+  auditCommitteeMeetingDate?: string
+  omnibusApprovalId?: string
+  boardResolutionDate?: string
+  shareholdersResolutionDate?: string
+  mbp4EnteredDate?: string
+  outstandingBalanceAtYearEnd: number
+  balanceType?: string
+}
+
+export interface SaveOmnibusApprovalRequest {
+  clientId: string
+  financialYear: string
+  auditCommitteeMeetingDate: string
+  title: string
+  maximumApprovedLimit: number
+  approvalCriteria?: string
+  validityPeriodTo: string
+}
+
+export interface ApproveTransactionRequest {
+  approvalStatus: string
+  meetingDate?: string
+  omnibusApprovalId?: string
+  boardDate?: string
+  shareholdersDate?: string
+}
+
+export interface RelatedPartyReportsDto {
+  mbp4RegisterText: string
+  as18DisclosureNoteText: string
+}
+
+export const relatedPartyApi = {
+  getSummary: (clientId?: string, fy?: string) => {
+    const params = new URLSearchParams()
+    if (clientId) params.set('clientId', clientId)
+    if (fy) params.set('fy', fy)
+    const qs = params.toString()
+    return api<RelatedPartySummaryDto>(`/api/related-party/summary${qs ? `?${qs}` : ''}`)
+  },
+  listEntities: (clientId?: string) =>
+    api<RelatedPartyEntityDto[]>(`/api/related-party/entities${clientId ? `?clientId=${clientId}` : ''}`),
+  getEntity: (id: string) =>
+    api<RelatedPartyEntityDto>(`/api/related-party/entities/${id}`),
+  createEntity: (req: SaveRelatedPartyEntityRequest) =>
+    api<RelatedPartyEntityDto>('/api/related-party/entities', { method: 'POST', body: JSON.stringify(req) }),
+  updateEntity: (id: string, req: SaveRelatedPartyEntityRequest) =>
+    api<RelatedPartyEntityDto>(`/api/related-party/entities/${id}`, { method: 'PUT', body: JSON.stringify(req) }),
+  deleteEntity: (id: string) =>
+    api<void>(`/api/related-party/entities/${id}`, { method: 'DELETE' }),
+  listTransactions: (clientId?: string, fy?: string, relatedPartyId?: string, status?: string) => {
+    const params = new URLSearchParams()
+    if (clientId) params.set('clientId', clientId)
+    if (fy) params.set('fy', fy)
+    if (relatedPartyId) params.set('relatedPartyId', relatedPartyId)
+    if (status) params.set('status', status)
+    const qs = params.toString()
+    return api<RelatedPartyTransactionDto[]>(`/api/related-party/transactions${qs ? `?${qs}` : ''}`)
+  },
+  getTransaction: (id: string) =>
+    api<RelatedPartyTransactionDto>(`/api/related-party/transactions/${id}`),
+  createTransaction: (req: SaveRelatedPartyTransactionRequest) =>
+    api<RelatedPartyTransactionDto>('/api/related-party/transactions', { method: 'POST', body: JSON.stringify(req) }),
+  updateTransaction: (id: string, req: SaveRelatedPartyTransactionRequest) =>
+    api<RelatedPartyTransactionDto>(`/api/related-party/transactions/${id}`, { method: 'PUT', body: JSON.stringify(req) }),
+  deleteTransaction: (id: string) =>
+    api<void>(`/api/related-party/transactions/${id}`, { method: 'DELETE' }),
+  approveTransaction: (id: string, req: ApproveTransactionRequest) =>
+    api<RelatedPartyTransactionDto>(`/api/related-party/transactions/${id}/approve`, { method: 'POST', body: JSON.stringify(req) }),
+  listOmnibus: (clientId?: string, fy?: string) => {
+    const params = new URLSearchParams()
+    if (clientId) params.set('clientId', clientId)
+    if (fy) params.set('fy', fy)
+    const qs = params.toString()
+    return api<RelatedPartyOmnibusApprovalDto[]>(`/api/related-party/omnibus${qs ? `?${qs}` : ''}`)
+  },
+  createOmnibus: (req: SaveOmnibusApprovalRequest) =>
+    api<RelatedPartyOmnibusApprovalDto>('/api/related-party/omnibus', { method: 'POST', body: JSON.stringify(req) }),
+  updateOmnibus: (id: string, req: SaveOmnibusApprovalRequest) =>
+    api<RelatedPartyOmnibusApprovalDto>(`/api/related-party/omnibus/${id}`, { method: 'PUT', body: JSON.stringify(req) }),
+  deleteOmnibus: (id: string) =>
+    api<void>(`/api/related-party/omnibus/${id}`, { method: 'DELETE' }),
+  getReports: (clientId: string, fy: string) =>
+    api<RelatedPartyReportsDto>(`/api/related-party/reports?clientId=${clientId}&fy=${encodeURIComponent(fy)}`)
+}
+
+
 
 
 

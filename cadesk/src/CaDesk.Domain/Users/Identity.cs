@@ -184,4 +184,7 @@ public static class Perms
     public const string ForeignRemittanceRead = "foreignremittance.read";
     public const string ForeignRemittanceManage = "foreignremittance.manage";
     public const string ForeignRemittanceCertify = "foreignremittance.certify";
+    public const string RelatedPartyRead = "relatedparty.read";
+    public const string RelatedPartyManage = "relatedparty.manage";
+    public const string RelatedPartyApprove = "relatedparty.approve";
 }

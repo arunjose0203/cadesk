@@ -38,6 +38,7 @@ Multi-tenant SaaS for CA and accounting firms (India first, GCC later).
 | 33 | Multi-Firm Collaborative Audit & Branch Audit Consolidation Desk (Companies Act Sec 143(8) / ICAI SA 600): Branch auditor tracking, delegated portal token access, Head Office vs Branch consolidation matrix, SA 600 magnitude calculations (% Assets/Revenues), and statutory Other Matter paragraph generator | Full-stack multi-firm branch audit workbench with Section 143(8) branch auditor registry, external token submissions, consolidation engine, and ICAI SA 600 Other Matter legal text draft; two-lock multi-tenancy |
 | 34 | Audit Committee & Board Governance Desk (ICAI SA 260 / SA 265 / Companies Act Sec 177): Section 177 Audit Committee mandate, SA 260 communication with Those Charged with Governance (TCWG), SA 265 formal internal control deficiency letter generator, SA 450 schedule of uncorrected misstatements, Section 144 non-audit services independence affirmation | Full-stack Audit Committee and Board governance workbench with Section 177 compliance checks, SA 265 deficiency communications (design vs operating defect), SA 450 misstatement evaluation table, and SA 260 governance pack auto-generator; two-lock multi-tenancy |
 | 35 | Foreign Remittance & Form 15CA / 15CB Certification Engine (Income Tax Rule 37BB / Section 195 / DTAA): Section 195 non-resident withholding evaluation, Section 90(2) DTAA treaty relief comparison, Rule 37BB(3) 33-item exempt list checker, Form 15CA automated Part A/B/C/D routing, Form 15CB CA certification generator with 18-digit UDIN, and Section 195A net-of-tax grossing up engine | Full-stack international tax and foreign remittance certification desk with Section 195/90(2) tax calculators, DTAA prerequisite documentation tracker (TRC, Form 10F, No-PE), official Form 15CB certificate generator, and Form 15CA e-Filing XML exporter; two-lock multi-tenancy |
+| 36 | Related Party Transactions & Section 188 / AS 18 / Ind AS 24 Arm's Length Pricing Desk: Section 188 Rule 15 statutory threshold gates (10% turnover / 10% net worth), Section 188(1) 4th proviso ordinary course & arm's length exemption engine, Section 177 Audit Committee omnibus approvals with utilization tracking, Section 189 Form MBP-4 statutory register generator, and AS 18 / Ind AS 24 financial statement disclosure compiler | Full-stack related party compliance and transfer pricing desk with statutory threshold guards, arm's length price variance calculators, Section 40A(2)(b) risk flags, Form MBP-4 register drafting, and AS 18 / Ind AS 24 disclosure note generator; two-lock multi-tenancy |
 
 ## What's inside
 
@@ -1013,6 +1014,50 @@ API:
 - `POST /api/foreign-remittance/assessments/{id}/generate-artifacts` (`foreignremittance.manage`)
 - `POST /api/foreign-remittance/assessments/{id}/certify` (`foreignremittance.certify`)
 - `POST /api/foreign-remittance/assessments/{id}/file` (`foreignremittance.manage`)
+
+## Related Party Transactions & Section 188 / AS 18 / Ind AS 24 Arm's Length Pricing Desk (Sprint 36)
+
+- **Companies Act, 2013, Section 188 & Rule 15 Compliance**:
+  - Related party contracts evaluation across goods, materials, property leasing, services, loans, guarantees, and office of profit remuneration.
+  - Automated Rule 15 statutory threshold evaluation against the company's financials:
+    - *Sale/Purchase/Supply of goods/materials*: $\ge$ 10% of annual turnover.
+    - *Selling/Buying property*: $\ge$ 10% of net worth.
+    - *Leasing of property*: $\ge$ 10% of annual turnover.
+    - *Rendering/Availing of services*: $\ge$ 10% of annual turnover.
+    - *Office of profit remuneration*: exceeding ₹2,50,000 per month (₹30,00,000 per year).
+  - Triggers mandatory Special Resolution requirement when statutory thresholds are breached.
+- **Section 188(1) Fourth Proviso Exemption & Transfer Pricing Engine**:
+  - Automatically assesses the statutory safe harbor: transactions entered into in the **ordinary course of business** on an **arm's length basis** are exempt from Board and Shareholder approval requirements under Section 188(1).
+  - Transfer pricing benchmarking methods:
+    - Comparable Uncontrolled Price (CUP) Method
+    - Resale Price Method (RPM)
+    - Cost Plus Method (CPM)
+    - Transactional Net Margin Method (TNMM)
+    - Independent Valuation Method
+  - Price variance percentage calculation with $\pm 3\%$ arm's length tolerance range.
+  - Flags Section 40A(2)(b) excessive / unreasonable payment risks for disallowance under the Income Tax Act.
+- **Audit Committee Section 177 Omnibus Approvals Management**:
+  - Registers Audit Committee omnibus approvals valid for up to 1 financial year.
+  - Real-time limit utilization tracking ($\text{Utilized Amount} / \text{Maximum Approved Limit}$) with criteria and validity period monitoring.
+- **Form MBP-4 Register of Contracts & Arrangements Generator**:
+  - "Register of contracts or arrangements in which directors are interested under Section 184 or contracts/arrangements with related parties under Section 188" pursuant to Section 189(1) and Rule 16(1).
+  - Compiles ready-to-print legal register with transaction dates, party names, relationship categories, transaction values, arm's length confirmations, and committee approval dates.
+- **AS 18 & Ind AS 24 Notes to Accounts Disclosure Compiler**:
+  - Automatically compiles standard financial statement disclosure note:
+    - Section A: Categorized list of related parties (Holding, Subsidiary, Fellow Subsidiary, Associate/JV, KMP & Relatives, Enterprises controlled by KMP).
+    - Section B: Transaction summary matrix showing nature of transaction, relationship category, current year volume, and year-end closing balances (Debit/Credit).
+    - Section C: Mandatory disclosures on terms, pricing basis, bad debt provisions, and guarantees.
+- **Two Locks**: EF Core global query filters and PostgreSQL Row Level Security on `related_party_entities`, `related_party_transactions`, and `related_party_omnibus_approvals` (`0035_related_party_transactions.sql`).
+
+API:
+- `GET /api/related-party/summary` (`relatedparty.read`)
+- `GET /api/related-party/entities`, `GET /api/related-party/entities/{id}` (`relatedparty.read`)
+- `POST /api/related-party/entities`, `PUT /api/related-party/entities/{id}`, `DELETE /api/related-party/entities/{id}` (`relatedparty.manage`)
+- `GET /api/related-party/transactions`, `GET /api/related-party/transactions/{id}` (`relatedparty.read`)
+- `POST /api/related-party/transactions`, `PUT /api/related-party/transactions/{id}`, `DELETE /api/related-party/transactions/{id}` (`relatedparty.manage`)
+- `POST /api/related-party/transactions/{id}/approve` (`relatedparty.approve`)
+- `GET /api/related-party/omnibus`, `POST /api/related-party/omnibus`, `PUT /api/related-party/omnibus/{id}`, `DELETE /api/related-party/omnibus/{id}` (`relatedparty.read`, `relatedparty.manage`)
+- `GET /api/related-party/reports` (`relatedparty.read`)
 
 ## Notes
 

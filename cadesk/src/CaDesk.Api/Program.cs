@@ -96,6 +96,7 @@ builder.Services.AddScoped<CaDesk.Application.Schedule3.Schedule3Service>();
 builder.Services.AddScoped<CaDesk.Application.BranchAudit.BranchAuditService>();
 builder.Services.AddScoped<CaDesk.Application.AuditCommittee.AuditCommitteeService>();
 builder.Services.AddScoped<CaDesk.Application.ForeignRemittance.ForeignRemittanceService>();
+builder.Services.AddScoped<CaDesk.Application.RelatedParty.RelatedPartyService>();
 var docOptions = config.GetSection("Documents").Get<CaDesk.Api.Documents.DocumentOptions>() ?? new();
 var storagePath = docOptions.StoragePath;
 if (storagePath.Length == 0)
@@ -259,6 +260,7 @@ app.MapSchedule3Endpoints();
 app.MapBranchAuditEndpoints();
 app.MapAuditCommitteeEndpoints();
 app.MapForeignRemittanceEndpoints();
+app.MapRelatedPartyEndpoints();
 app.MapSettingsEndpoints();
 app.MapAuditEndpoints();
 

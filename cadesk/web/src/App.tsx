@@ -32,8 +32,9 @@ import { Schedule3DeskPage } from './Schedule3DeskPage'
 import { BranchAuditDeskPage } from './BranchAuditDeskPage'
 import { AuditCommitteeDeskPage } from './AuditCommitteeDeskPage'
 import { ForeignRemittancePage } from './ForeignRemittancePage'
+import { RelatedPartyPage } from './RelatedPartyPage'
 
-type Page = 'tasks' | 'deadlines' | 'clients' | 'billing' | 'tax' | 'audit-workspace' | 'gst-reconcile' | 'tds' | 'mca' | 'engagement' | 'banking' | 'reports' | 'tax-notices' | 'payroll' | 'einvoicing' | 'fixed-assets' | 'advance-tax' | 'gstr9' | 'presumptive' | 'caro' | 'taxaudit' | 'schedule3' | 'branchaudit' | 'auditcommittee' | 'foreignremittance' | 'dsc' | 'portal' | 'users' | 'settings' | 'audit' | 'security'
+type Page = 'tasks' | 'deadlines' | 'clients' | 'billing' | 'tax' | 'audit-workspace' | 'gst-reconcile' | 'tds' | 'mca' | 'engagement' | 'banking' | 'reports' | 'tax-notices' | 'payroll' | 'einvoicing' | 'fixed-assets' | 'advance-tax' | 'gstr9' | 'presumptive' | 'caro' | 'taxaudit' | 'schedule3' | 'branchaudit' | 'auditcommittee' | 'foreignremittance' | 'relatedparty' | 'dsc' | 'portal' | 'users' | 'settings' | 'audit' | 'security'
 
 export default function App() {
   const [user, setUser] = useState<UserProfile | null>(null)
@@ -432,6 +433,17 @@ export default function App() {
             Foreign Remittance (15CA/CB)
           </button>
         )}
+        {can('relatedparty.read') && (
+          <button className={page === 'relatedparty' ? 'active' : ''} onClick={() => setPage('relatedparty')}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+            Related Party (Sec 188)
+          </button>
+        )}
         {can('dsc.read') && (
           <button className={page === 'dsc' ? 'active' : ''} onClick={() => setPage('dsc')}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -511,6 +523,7 @@ export default function App() {
       {page === 'branchaudit' && can('branchaudit.read') && <BranchAuditDeskPage can={can} />}
       {page === 'auditcommittee' && can('auditcommittee.read') && <AuditCommitteeDeskPage can={can} />}
       {page === 'foreignremittance' && can('foreignremittance.read') && <ForeignRemittancePage />}
+      {page === 'relatedparty' && can('relatedparty.read') && <RelatedPartyPage />}
       {page === 'dsc' && can('dsc.read') && <DscPage can={can} meId={user.id} />}
       {page === 'portal' && can('portal.read') && <PortalPage can={can} meId={user.id} />}
       {page === 'users' && can('users.read') && <UsersPage can={can} me={user} />}

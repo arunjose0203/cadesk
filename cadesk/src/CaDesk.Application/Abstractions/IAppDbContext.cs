@@ -136,6 +136,9 @@ public interface IAppDbContext
     DbSet<CaDesk.Domain.AuditCommittee.UncorrectedMisstatement> UncorrectedMisstatements { get; }
     DbSet<CaDesk.Domain.ForeignRemittance.ForeignRemittanceAssessment> ForeignRemittanceAssessments { get; }
     DbSet<CaDesk.Domain.ForeignRemittance.ForeignRemittanceChecklistItem> ForeignRemittanceChecklists { get; }
+    DbSet<CaDesk.Domain.RelatedParty.RelatedPartyEntity> RelatedPartyEntities { get; }
+    DbSet<CaDesk.Domain.RelatedParty.RelatedPartyTransaction> RelatedPartyTransactions { get; }
+    DbSet<CaDesk.Domain.RelatedParty.RelatedPartyOmnibusApproval> RelatedPartyOmnibusApprovals { get; }
     /// <summary>For transactions and the few raw SQL calls (numbering, jsonb lookups). RLS still applies.</summary>
     DatabaseFacade Database { get; }
     Task<int> SaveChangesAsync(CancellationToken ct = default);
