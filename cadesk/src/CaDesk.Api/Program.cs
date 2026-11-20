@@ -92,6 +92,7 @@ builder.Services.AddScoped<CaDesk.Application.Gstr9.IGstr9Service, CaDesk.Applic
 builder.Services.AddScoped<CaDesk.Application.Presumptive.PresumptiveTaxService>();
 builder.Services.AddScoped<CaDesk.Application.Caro.CaroService>();
 builder.Services.AddScoped<CaDesk.Application.TaxAudit.Form3CdService>();
+builder.Services.AddScoped<CaDesk.Application.Schedule3.Schedule3Service>();
 var docOptions = config.GetSection("Documents").Get<CaDesk.Api.Documents.DocumentOptions>() ?? new();
 var storagePath = docOptions.StoragePath;
 if (storagePath.Length == 0)
@@ -251,6 +252,7 @@ app.MapGstr9Endpoints();
 app.MapPresumptiveTaxEndpoints();
 app.MapCaroEndpoints();
 app.MapForm3CdEndpoints();
+app.MapSchedule3Endpoints();
 app.MapSettingsEndpoints();
 app.MapAuditEndpoints();
 

@@ -172,4 +172,7 @@ public static class Perms
     public const string TaxAuditRead = "taxaudit.read";
     public const string TaxAuditManage = "taxaudit.manage";
     public const string TaxAuditFinalize = "taxaudit.finalize";
+    public const string Schedule3Read = "schedule3.read";
+    public const string Schedule3Manage = "schedule3.manage";
+    public const string Schedule3Finalize = "schedule3.finalize";
 }

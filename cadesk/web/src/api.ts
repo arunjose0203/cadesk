@@ -3664,6 +3664,191 @@ export const taxAuditApi = {
     api<Form3CdAssessmentDto>(`/api/taxaudit/assessments/${id}/finalize`, { method: 'POST', body: JSON.stringify({ auditorObservations }) })
 }
 
+// -------------------------------------------------------------
+// Sprint 32: Schedule III 11 Analytical Ratios & Disclosures
+// -------------------------------------------------------------
+
+export type Schedule3RatioItemDto = {
+  id: string
+  assessmentId: string
+  ratioCode: string
+  ratioName: string
+  numeratorDescription: string
+  denominatorDescription: string
+  currentYearValue: number
+  precedingYearValue: number
+  variancePercent: number
+  isVarianceSignificant: boolean
+  varianceExplanation?: string | null
+  isExplanationProvided: boolean
+}
+
+export type Schedule3AgeingItemDto = {
+  id: string
+  assessmentId: string
+  scheduleType: string
+  particularsCategory: string
+  less6MonthsOr1Year: number
+  oneToTwoYears: number
+  twoToThreeYears: number
+  moreThanThreeYears: number
+  unbilledDues: number
+  total: number
+}
+
+export type Schedule3AssessmentDto = {
+  id: string
+  clientId: string
+  clientName?: string | null
+  auditEngagementId?: string | null
+  auditEngagementTitle?: string | null
+  financialYear: string
+  precedingFinancialYear: string
+  accountingStandard: string
+  roundingUnit: string
+
+  totalIncomeCurrent: number
+  totalIncomePreceding: number
+  currentAssetsCurrent: number
+  currentAssetsPreceding: number
+  currentLiabilitiesCurrent: number
+  currentLiabilitiesPreceding: number
+  totalDebtCurrent: number
+  totalDebtPreceding: number
+  shareholdersEquityCurrent: number
+  shareholdersEquityPreceding: number
+  netProfitAfterTaxesCurrent: number
+  netProfitAfterTaxesPreceding: number
+  ebitCurrent: number
+  ebitPreceding: number
+  debtServiceCurrent: number
+  debtServicePreceding: number
+  costOfGoodsSoldCurrent: number
+  costOfGoodsSoldPreceding: number
+  averageInventoryCurrent: number
+  averageInventoryPreceding: number
+  revenueFromOperationsCurrent: number
+  revenueFromOperationsPreceding: number
+  averageTradeReceivablesCurrent: number
+  averageTradeReceivablesPreceding: number
+  netCreditPurchasesCurrent: number
+  netCreditPurchasesPreceding: number
+  averageTradePayablesCurrent: number
+  averageTradePayablesPreceding: number
+  capitalEmployedCurrent: number
+  capitalEmployedPreceding: number
+  incomeFromInvestmentsCurrent: number
+  incomeFromInvestmentsPreceding: number
+  averageInvestmentsCurrent: number
+  averageInvestmentsPreceding: number
+
+  isRoundingRuleCompliant: boolean
+  roundingRuleRecommendation?: string | null
+  significantVariancesCount: number
+  missingExplanationsCount: number
+  assessmentStatus: string
+  auditorRemarks?: string | null
+  generatedDisclosureNoteText?: string | null
+  finalizedByUserId?: string | null
+  finalizedByName?: string | null
+  finalizedAt?: string | null
+  createdAt: string
+  updatedAt?: string | null
+  ratios: Schedule3RatioItemDto[]
+  ageingItems: Schedule3AgeingItemDto[]
+}
+
+export type SaveSchedule3AssessmentRequest = {
+  clientId: string
+  auditEngagementId?: string | null
+  financialYear: string
+  precedingFinancialYear: string
+  accountingStandard: string
+  roundingUnit: string
+
+  totalIncomeCurrent: number
+  totalIncomePreceding: number
+  currentAssetsCurrent: number
+  currentAssetsPreceding: number
+  currentLiabilitiesCurrent: number
+  currentLiabilitiesPreceding: number
+  totalDebtCurrent: number
+  totalDebtPreceding: number
+  shareholdersEquityCurrent: number
+  shareholdersEquityPreceding: number
+  netProfitAfterTaxesCurrent: number
+  netProfitAfterTaxesPreceding: number
+  ebitCurrent: number
+  ebitPreceding: number
+  debtServiceCurrent: number
+  debtServicePreceding: number
+  costOfGoodsSoldCurrent: number
+  costOfGoodsSoldPreceding: number
+  averageInventoryCurrent: number
+  averageInventoryPreceding: number
+  revenueFromOperationsCurrent: number
+  revenueFromOperationsPreceding: number
+  averageTradeReceivablesCurrent: number
+  averageTradeReceivablesPreceding: number
+  netCreditPurchasesCurrent: number
+  netCreditPurchasesPreceding: number
+  averageTradePayablesCurrent: number
+  averageTradePayablesPreceding: number
+  capitalEmployedCurrent: number
+  capitalEmployedPreceding: number
+  incomeFromInvestmentsCurrent: number
+  incomeFromInvestmentsPreceding: number
+  averageInvestmentsCurrent: number
+  averageInvestmentsPreceding: number
+  auditorRemarks?: string | null
+}
+
+export type UpdateRatioExplanationRequest = {
+  varianceExplanation?: string | null
+}
+
+export type UpdateAgeingItemRequest = {
+  less6MonthsOr1Year: number
+  oneToTwoYears: number
+  twoToThreeYears: number
+  moreThanThreeYears: number
+  unbilledDues: number
+}
+
+export type Schedule3SummaryDto = {
+  totalAssessments: number
+  inReviewCount: number
+  finalizedCount: number
+  totalSignificantVariances: number
+  totalMissingExplanations: number
+  roundingCompliantCount: number
+}
+
+export const schedule3Api = {
+  getSummary: () => api<Schedule3SummaryDto>('/api/schedule3/summary'),
+  getAssessments: (clientId?: string, fy?: string, status?: string) => {
+    const p = new URLSearchParams()
+    if (clientId) p.set('clientId', clientId)
+    if (fy) p.set('fy', fy)
+    if (status) p.set('status', status)
+    const qs = p.toString()
+    return api<Schedule3AssessmentDto[]>(`/api/schedule3/assessments${qs ? `?${qs}` : ''}`)
+  },
+  getAssessmentById: (id: string) => api<Schedule3AssessmentDto>(`/api/schedule3/assessments/${id}`),
+  createAssessment: (req: SaveSchedule3AssessmentRequest) =>
+    api<Schedule3AssessmentDto>('/api/schedule3/assessments', { method: 'POST', body: JSON.stringify(req) }),
+  updateAssessment: (id: string, req: SaveSchedule3AssessmentRequest) =>
+    api<Schedule3AssessmentDto>(`/api/schedule3/assessments/${id}`, { method: 'PUT', body: JSON.stringify(req) }),
+  updateRatioExplanation: (assessmentId: string, ratioId: string, req: UpdateRatioExplanationRequest) =>
+    api<Schedule3AssessmentDto>(`/api/schedule3/assessments/${assessmentId}/ratios/${ratioId}`, { method: 'PUT', body: JSON.stringify(req) }),
+  updateAgeingItem: (assessmentId: string, ageingId: string, req: UpdateAgeingItemRequest) =>
+    api<Schedule3AssessmentDto>(`/api/schedule3/assessments/${assessmentId}/ageing/${ageingId}`, { method: 'PUT', body: JSON.stringify(req) }),
+  generateNote: (id: string) =>
+    api<{ disclosureNoteText: string }>(`/api/schedule3/assessments/${id}/generate-note`, { method: 'POST' }),
+  finalizeAssessment: (id: string, auditorRemarks?: string) =>
+    api<Schedule3AssessmentDto>(`/api/schedule3/assessments/${id}/finalize`, { method: 'POST', body: JSON.stringify({ auditorRemarks }) })
+}
+
 
 
 

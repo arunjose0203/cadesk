@@ -34,6 +34,7 @@ Multi-tenant SaaS for CA and accounting firms (India first, GCC later).
 | 29 | Presumptive Taxation & Minimal Financials Generator (Section 44AD / 44ADA / 44AE): Enhanced 5% cash turnover gating (₹3 Cr / ₹75 L), 6%/8% and 50% deemed profit split, Section 44AE heavy/light vehicle fleet register, Section 44AD(4) 5-year lockout penalty engine, Section 44AB mandatory tax audit warnings, and Section 44AA minimal balance sheet particulars | Full-stack presumptive tax desk with digital/cash ratio checks, vehicle fleet manager, ITR-4 balance sheet coherence analyzer, and two-lock multi-tenancy |
 | 30 | CARO 2020 Automated Audit Checklist & Disclosures Generator: Companies Act Sec 143(11) 3-pillar applicability test, 21 statutory clauses verification workbench, discrepancy tracker, and official Annexure 'A' to Auditor's Report auto-drafting | Full-stack CARO 2020 audit workbench with statutory limit evaluation, clause templates, qualification/adverse remarks drafting, and two-lock multi-tenancy |
 | 31 | Form 3CD Tax Audit Statement & Clause-by-Clause Disclosure Desk: Section 44AB limits (₹1 Cr / ₹10 Cr 5% cash rule; ₹50L / ₹75L profession), Form 3CA vs 3CB selection, Clause 1-44 workbench (ICDS, Sec 40(a)(ia) 30%, Sec 40A(3), Sec 43B & 43B(h) MSME 45-day overdue, Sec 269SS/ST/T, Clause 44 GST), disallowance aggregator, and auditor observation generator | Full-stack Form 3CD tax audit workbench with 5% cash test, MSME overdue calculator, quantified disallowance schedules, Form 3CA/3CB legal text draft, and two-lock multi-tenancy |
+| 32 | Schedule III Financial Ratios & Mandatory Corporate Disclosures Engine: Companies Act 2013 Schedule III 11 mandatory analytical ratios, mandatory variance explanations for changes &ge; 25%, statutory ageing schedules (Trade Receivables, Trade Payables, CWIP), and ₹100 Cr turnover rounding off compliance engine | Full-stack Schedule III corporate reporting desk with 11 financial ratios, variance threshold guards, interactive ageing buckets, audited disclosure note compiler, and two-lock multi-tenancy |
 
 ## What's inside
 
@@ -838,6 +839,46 @@ API:
 - `GET /api/taxaudit/assessments`, `GET /api/taxaudit/assessments/{id}`, `POST /api/taxaudit/assessments`, `PUT /api/taxaudit/assessments/{id}` (`taxaudit.read`, `taxaudit.manage`)
 - `PUT /api/taxaudit/assessments/{assessmentId}/clauses/{clauseId}` (`taxaudit.manage`)
 - `POST /api/taxaudit/assessments/{id}/generate-report`, `POST /api/taxaudit/assessments/{id}/finalize` (`taxaudit.manage`, `taxaudit.finalize`)
+
+## Schedule III Financial Ratios & Mandatory Corporate Disclosures Engine (Sprint 32)
+
+- **Mandatory 11 Analytical Financial Ratios (Companies Act 2013, Schedule III)**:
+  - Supports Division I (AS Non-Ind AS), Division II (Ind AS), and Division III (NBFC).
+  - Computes all 11 statutory ratios for Current Financial Year vs Preceding Financial Year:
+    1. *Current Ratio*: Current Assets / Current Liabilities
+    2. *Debt-Equity Ratio*: Total Debt / Shareholder's Equity
+    3. *Debt Service Coverage Ratio (DSCR)*: EBIT / Debt Service (Interest + Principal Repayments)
+    4. *Return on Equity (ROE)*: (Net Profit after Taxes / Shareholder's Equity) $\times 100$
+    5. *Inventory Turnover Ratio*: Cost of Goods Sold / Average Inventory
+    6. *Trade Receivables Turnover Ratio*: Revenue from Operations / Average Trade Receivables
+    7. *Trade Payables Turnover Ratio*: Net Credit Purchases / Average Trade Payables
+    8. *Net Capital Turnover Ratio*: Revenue from Operations / Working Capital
+    9. *Net Profit Ratio*: (Net Profit after Taxes / Revenue from Operations) $\times 100$
+    10. *Return on Capital Employed (ROCE)*: (EBIT / Capital Employed) $\times 100$
+    11. *Return on Investment (ROI)*: (Income from Investments / Average Investments) $\times 100$
+- **Mandatory Variance Reporting (&ge; 25% Change Rule)**:
+  - Automatically computes percentage change: $((CY - PY) / |PY|) \times 100$.
+  - Flags any ratio with absolute variance $\ge 25\%$ with statutory alert.
+  - Enforces mandatory recording of underlying business explanations required by MCA guidelines.
+  - Tracks missing explanations count as a gating item before financial sign-off.
+- **Statutory Ageing Schedules Workbench**:
+  - **Trade Receivables Ageing**: Standard age buckets ($< 6\text{ months}$, $6\text{ months}-1\text{ year}$, $1-2\text{ years}$, $2-3\text{ years}$, $> 3\text{ years}$, and unbilled dues) cross-tabulated across 6 categories (Undisputed / Disputed, Considered Good / Credit Impaired).
+  - **Trade Payables Ageing**: Age buckets ($< 1\text{ year}$, $1-2\text{ years}$, $2-3\text{ years}$, $> 3\text{ years}$, and unbilled dues) categorized by MSME dues, Others, and Disputed dues.
+  - **Capital Work-in-Progress (CWIP) & Intangible Assets Ageing**: Projects in progress and projects temporarily suspended.
+- **Statutory Rounding Off Compliance Rules (Schedule III General Instructions Paragraph 4)**:
+  - If Total Income $< ₹100\text{ Crores}$: Verifies rounding in Hundreds, Thousands, Lakhs, or Millions.
+  - If Total Income $\ge ₹100\text{ Crores}$: Flags non-compliance if rounded in Hundreds or Thousands (Schedule III mandates Lakhs, Millions, or Crores).
+- **Official Financial Statement Note Generator**:
+  - Auto-drafts ready-to-publish Note on "Additional Regulatory Information & Financial Ratios" formatted with statutory tabular presentations, formula disclosures, and variance explanation paragraphs.
+  - Formal partner sign-off freeze (`schedule3.finalize`).
+- **Two Locks**: EF Core global query filters and PostgreSQL Row Level Security on `schedule3_assessments`, `schedule3_ratio_items`, and `schedule3_ageing_items` (`0031_schedule3_ratios.sql`).
+
+API:
+- `GET /api/schedule3/summary` (`schedule3.read`)
+- `GET /api/schedule3/assessments`, `GET /api/schedule3/assessments/{id}`, `POST /api/schedule3/assessments`, `PUT /api/schedule3/assessments/{id}` (`schedule3.read`, `schedule3.manage`)
+- `PUT /api/schedule3/assessments/{assessmentId}/ratios/{ratioId}` (`schedule3.manage`)
+- `PUT /api/schedule3/assessments/{assessmentId}/ageing/{ageingId}` (`schedule3.manage`)
+- `POST /api/schedule3/assessments/{id}/generate-note`, `POST /api/schedule3/assessments/{id}/finalize` (`schedule3.manage`, `schedule3.finalize`)
 
 ## Notes
 
