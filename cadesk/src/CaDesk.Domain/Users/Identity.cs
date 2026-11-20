@@ -196,4 +196,7 @@ public static class Perms
     public const string SecretarialAuditRead = "secretarialaudit.read";
     public const string SecretarialAuditManage = "secretarialaudit.manage";
     public const string SecretarialAuditCertify = "secretarialaudit.certify";
+    public const string TransferPricingRead = "transferpricing.read";
+    public const string TransferPricingManage = "transferpricing.manage";
+    public const string TransferPricingCertify = "transferpricing.certify";
 }

@@ -34,6 +34,7 @@ using CaDesk.Domain.RelatedParty;
 using CaDesk.Domain.InternalAudit;
 using CaDesk.Domain.AntiProfiteering;
 using CaDesk.Domain.SecretarialAudit;
+using CaDesk.Domain.TransferPricing;
 using CaDesk.Domain.Common;
 using CaDesk.Domain.Configuration;
 using CaDesk.Domain.Firms;
@@ -160,6 +161,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
     public DbSet<SecretarialChecklistItem> SecretarialChecklistItems => Set<SecretarialChecklistItem>();
     public DbSet<McaFormFilingAudit> McaFormFilingAudits => Set<McaFormFilingAudit>();
     public DbSet<BoardMeetingAuditRecord> BoardMeetingAuditRecords => Set<BoardMeetingAuditRecord>();
+    public DbSet<TransferPricingStudy> TransferPricingStudies => Set<TransferPricingStudy>();
+    public DbSet<AssociatedEnterprise> AssociatedEnterprises => Set<AssociatedEnterprise>();
+    public DbSet<TransferPricingTransaction> TransferPricingTransactions => Set<TransferPricingTransaction>();
+    public DbSet<ComparableBenchmark> ComparableBenchmarks => Set<ComparableBenchmark>();
     public DbSet<ConfigDefinition> ConfigDefinitions => Set<ConfigDefinition>();
     public DbSet<ConfigValue> ConfigValues => Set<ConfigValue>();
     public DbSet<ConfigChangeLog> ConfigChangeLog => Set<ConfigChangeLog>();
@@ -894,6 +899,36 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
             e.ToTable("board_meeting_audit_records");
             e.HasOne(x => x.Engagement).WithMany(x => x.MeetingAudits).HasForeignKey(x => x.EngagementId).OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(x => new { x.FirmId, x.EngagementId }).HasDatabaseName("ix_meeting_audits_firm_engagement");
+        });
+
+        b.Entity<TransferPricingStudy>(e =>
+        {
+            e.ToTable("transfer_pricing_studies");
+            e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.FirmId, x.ClientId, x.FinancialYear }).HasDatabaseName("ix_tp_studies_firm_client_fy");
+        });
+
+        b.Entity<AssociatedEnterprise>(e =>
+        {
+            e.ToTable("associated_enterprises");
+            e.HasOne(x => x.Study).WithMany(x => x.AssociatedEnterprises).HasForeignKey(x => x.StudyId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.FirmId, x.StudyId }).HasDatabaseName("ix_ae_firm_study");
+        });
+
+        b.Entity<TransferPricingTransaction>(e =>
+        {
+            e.ToTable("transfer_pricing_transactions");
+            e.HasOne(x => x.Study).WithMany(x => x.Transactions).HasForeignKey(x => x.StudyId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.AssociatedEnterprise).WithMany().HasForeignKey(x => x.AssociatedEnterpriseId).OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(x => new { x.FirmId, x.StudyId }).HasDatabaseName("ix_tp_txs_firm_study");
+        });
+
+        b.Entity<ComparableBenchmark>(e =>
+        {
+            e.ToTable("comparable_benchmarks");
+            e.HasOne(x => x.Study).WithMany(x => x.Comparables).HasForeignKey(x => x.StudyId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Transaction).WithMany().HasForeignKey(x => x.TransactionId).OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(x => new { x.FirmId, x.StudyId }).HasDatabaseName("ix_comparables_firm_study");
         });
 
         b.Entity<TaskTemplate>(e =>

@@ -5479,6 +5479,302 @@ export const secretarialAuditApi = {
     api<void>(`/api/secretarial-audit/engagements/${engagementId}/meetings/${meetingId}`, { method: 'DELETE' }),
 }
 
+// -------------------------------------------------------------
+// Sprint 40: Transfer Pricing Study & Form 3CEB Certification Desk
+// -------------------------------------------------------------
+
+export interface TransferPricingSummaryDto {
+  totalStudies: number
+  activeStudies: number
+  certifiedStudies: number
+  totalAssociatedEnterprises: number
+  totalInternationalTransactions: number
+  totalInternationalVolumeInr: number
+  totalSdtTransactions: number
+  totalSdtVolumeInr: number
+  totalAlpAdjustmentsCount: number
+  totalAlpAdjustmentAmount: number
+}
+
+export interface TransferPricingStudyDto {
+  id: string
+  clientId: string
+  clientName: string
+  studyReference: string
+  title: string
+  financialYear: string
+  assessmentYear: string
+  auditPeriodStart: string
+  auditPeriodEnd: string
+  rule10DDocumentationMaintained: boolean
+  rule10DDocumentationPath: string
+  studyStatus: string
+  accountantName: string
+  accountantFirmName: string
+  membershipNumber: string
+  firmRegistrationNumber: string
+  udin?: string
+  certifiedAt?: string
+  certifiedBy?: string
+  totalAssociatedEnterprisesCount: number
+  totalInternationalTransactionsCount: number
+  totalInternationalInrValue: number
+  totalSdtTransactionsCount: number
+  totalSdtInrValue: number
+  totalAlpAdjustmentsCount: number
+  totalAlpAdjustmentAmount: number
+  transactionsWithinToleranceCount: number
+  transactionsOutsideToleranceCount: number
+  form3CebReportText?: string
+  createdAt: string
+  updatedAt?: string
+}
+
+export interface AssociatedEnterpriseDto {
+  id: string
+  studyId: string
+  enterpriseName: string
+  countryOfResidence: string
+  countryCode: string
+  taxIdentificationNumber: string
+  registeredAddress: string
+  relationshipSection: string
+  ownershipPercentage: number
+  briefActivityDescription: string
+  createdAt: string
+}
+
+export interface TransferPricingTransactionDto {
+  id: string
+  studyId: string
+  associatedEnterpriseId?: string
+  associatedEnterpriseName?: string
+  associatedEnterpriseCountry?: string
+  transactionCategory: string
+  clauseNumber: number
+  descriptionOfTransaction: string
+  currencyCode: string
+  foreignCurrencyAmount: number
+  exchangeRate: number
+  inrValue: number
+  mostAppropriateMethod: string
+  profitLevelIndicator: string
+  testedPartyCostBase: number
+  testedPartyMargin: number
+  comparablesCount: number
+  benchmarkRangeMin: number
+  benchmarkRangeMax: number
+  benchmarkMedianOrMean: number
+  toleranceBandPercentage: number
+  isWithinArmLength: boolean
+  alpAdjustmentAmount: number
+  methodSelectionRationale: string
+  documentationReference: string
+  createdAt: string
+  updatedAt?: string
+}
+
+export interface ComparableBenchmarkDto {
+  id: string
+  studyId: string
+  transactionId?: string
+  comparableCompanyName: string
+  cinOrIdentifier: string
+  financialYear: string
+  operatingRevenue: number
+  operatingCost: number
+  operatingProfit: number
+  calculatedMarginPercentage: number
+  weight: number
+  isAccepted: boolean
+  rejectionReason?: string
+  createdAt: string
+}
+
+export interface SaveStudyRequest {
+  clientId: string
+  studyReference: string
+  title: string
+  financialYear: string
+  assessmentYear: string
+  auditPeriodStart: string
+  auditPeriodEnd: string
+  rule10DDocumentationMaintained: boolean
+  rule10DDocumentationPath: string
+  accountantName: string
+  accountantFirmName: string
+  membershipNumber: string
+  firmRegistrationNumber: string
+}
+
+export interface CertifyStudyRequest {
+  udin: string
+  certifiedBy: string
+}
+
+export interface SaveEnterpriseRequest {
+  enterpriseName: string
+  countryOfResidence: string
+  countryCode: string
+  taxIdentificationNumber: string
+  registeredAddress: string
+  relationshipSection: string
+  ownershipPercentage: number
+  briefActivityDescription: string
+}
+
+export interface SaveTransactionRequest {
+  associatedEnterpriseId?: string
+  transactionCategory: string
+  clauseNumber: number
+  descriptionOfTransaction: string
+  currencyCode: string
+  foreignCurrencyAmount: number
+  exchangeRate: number
+  mostAppropriateMethod: string
+  profitLevelIndicator: string
+  testedPartyCostBase: number
+  testedPartyMargin: number
+  toleranceBandPercentage: number
+  methodSelectionRationale: string
+  documentationReference: string
+}
+
+export interface SaveComparableRequest {
+  transactionId?: string
+  comparableCompanyName: string
+  cinOrIdentifier: string
+  financialYear: string
+  operatingRevenue: number
+  operatingCost: number
+  operatingProfit: number
+  weight: number
+  isAccepted: boolean
+  rejectionReason?: string
+}
+
+export interface BenchmarkCalculationRequest {
+  comparableMargins: number[]
+  toleranceBandPercentage: number
+}
+
+export interface BenchmarkCalculationResult {
+  useRange: boolean
+  dataCount: number
+  rangeMin: number
+  rangeMax: number
+  medianOrMean: number
+  explanation: string
+}
+
+export const transferPricingApi = {
+  getSummary: (clientId?: string, financialYear?: string) => {
+    const params = new URLSearchParams()
+    if (clientId) params.set('clientId', clientId)
+    if (financialYear) params.set('financialYear', financialYear)
+    const qs = params.toString()
+    return api<TransferPricingSummaryDto>(`/api/transfer-pricing/summary${qs ? `?${qs}` : ''}`)
+  },
+
+  calculateBenchmark: (req: BenchmarkCalculationRequest) =>
+    api<BenchmarkCalculationResult>('/api/transfer-pricing/calculate-benchmark', {
+      method: 'POST',
+      body: JSON.stringify(req),
+    }),
+
+  listStudies: (clientId?: string, financialYear?: string, status?: string) => {
+    const params = new URLSearchParams()
+    if (clientId) params.set('clientId', clientId)
+    if (financialYear) params.set('financialYear', financialYear)
+    if (status && status !== 'All') params.set('status', status)
+    const qs = params.toString()
+    return api<TransferPricingStudyDto[]>(`/api/transfer-pricing/studies${qs ? `?${qs}` : ''}`)
+  },
+
+  getStudy: (id: string) =>
+    api<TransferPricingStudyDto>(`/api/transfer-pricing/studies/${id}`),
+
+  createStudy: (req: SaveStudyRequest) =>
+    api<TransferPricingStudyDto>('/api/transfer-pricing/studies', {
+      method: 'POST',
+      body: JSON.stringify(req),
+    }),
+
+  updateStudy: (id: string, req: SaveStudyRequest) =>
+    api<TransferPricingStudyDto>(`/api/transfer-pricing/studies/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(req),
+    }),
+
+  deleteStudy: (id: string) =>
+    api<void>(`/api/transfer-pricing/studies/${id}`, { method: 'DELETE' }),
+
+  certifyStudy: (id: string, req: CertifyStudyRequest) =>
+    api<TransferPricingStudyDto>(`/api/transfer-pricing/studies/${id}/certify`, {
+      method: 'POST',
+      body: JSON.stringify(req),
+    }),
+
+  generate3CEB: (id: string) =>
+    api<{ reportText: string }>(`/api/transfer-pricing/studies/${id}/generate-3ceb`, {
+      method: 'POST',
+    }),
+
+  listEnterprises: (studyId: string) =>
+    api<AssociatedEnterpriseDto[]>(`/api/transfer-pricing/studies/${studyId}/enterprises`),
+
+  createEnterprise: (studyId: string, req: SaveEnterpriseRequest) =>
+    api<AssociatedEnterpriseDto>(`/api/transfer-pricing/studies/${studyId}/enterprises`, {
+      method: 'POST',
+      body: JSON.stringify(req),
+    }),
+
+  updateEnterprise: (studyId: string, aeId: string, req: SaveEnterpriseRequest) =>
+    api<AssociatedEnterpriseDto>(`/api/transfer-pricing/studies/${studyId}/enterprises/${aeId}`, {
+      method: 'PUT',
+      body: JSON.stringify(req),
+    }),
+
+  deleteEnterprise: (studyId: string, aeId: string) =>
+    api<void>(`/api/transfer-pricing/studies/${studyId}/enterprises/${aeId}`, { method: 'DELETE' }),
+
+  listTransactions: (studyId: string) =>
+    api<TransferPricingTransactionDto[]>(`/api/transfer-pricing/studies/${studyId}/transactions`),
+
+  createTransaction: (studyId: string, req: SaveTransactionRequest) =>
+    api<TransferPricingTransactionDto>(`/api/transfer-pricing/studies/${studyId}/transactions`, {
+      method: 'POST',
+      body: JSON.stringify(req),
+    }),
+
+  updateTransaction: (studyId: string, txId: string, req: SaveTransactionRequest) =>
+    api<TransferPricingTransactionDto>(`/api/transfer-pricing/studies/${studyId}/transactions/${txId}`, {
+      method: 'PUT',
+      body: JSON.stringify(req),
+    }),
+
+  deleteTransaction: (studyId: string, txId: string) =>
+    api<void>(`/api/transfer-pricing/studies/${studyId}/transactions/${txId}`, { method: 'DELETE' }),
+
+  listComparables: (studyId: string) =>
+    api<ComparableBenchmarkDto[]>(`/api/transfer-pricing/studies/${studyId}/comparables`),
+
+  createComparable: (studyId: string, req: SaveComparableRequest) =>
+    api<ComparableBenchmarkDto>(`/api/transfer-pricing/studies/${studyId}/comparables`, {
+      method: 'POST',
+      body: JSON.stringify(req),
+    }),
+
+  updateComparable: (studyId: string, compId: string, req: SaveComparableRequest) =>
+    api<ComparableBenchmarkDto>(`/api/transfer-pricing/studies/${studyId}/comparables/${compId}`, {
+      method: 'PUT',
+      body: JSON.stringify(req),
+    }),
+
+  deleteComparable: (studyId: string, compId: string) =>
+    api<void>(`/api/transfer-pricing/studies/${studyId}/comparables/${compId}`, { method: 'DELETE' }),
+}
+
 
 
 

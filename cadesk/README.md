@@ -42,6 +42,7 @@ Multi-tenant SaaS for CA and accounting firms (India first, GCC later).
 | 37 | Internal Audit Risk & Control Matrix (RCM) & IFC Testing Desk (ICAI SIA Standards / Companies Act Sec 138 & 143(3)(i)): Section 138 statutory applicability criteria, 6 core business cycles (P2P, O2C, H2R, R2R, Treasury, ITGC), dual walkthrough/design effectiveness and Test of Operating Effectiveness (ToC) review, residual risk mitigation engine, deficiency and action plan remediation tracking, and ICAI SIA executive report generator | Full-stack internal audit and IFC testing desk with pre-populated baseline RCM, exception-driven residual risk scoring, material weakness classification, remediation tracking, executive reporting, and two-lock multi-tenancy |
 | 38 | GST Annual Audit & Anti-Profiteering / Rate Notification Engine (CGST Act Section 171 / Rule 122–137): Landmark GST rate notification registry, SKU-level commensurate price reduction engine, base price hike tracking, customer credit note refund logger, 50:50 Central/State Consumer Welfare Fund (CWF) split with 18% p.a. statutory interest under Section 171(3A), and official CA Anti-Profiteering Audit Certificate with 18-digit UDIN | Full-stack GST anti-profiteering desk with automatic baseline rate notification seeding, SKU price reduction evaluator, customer refund and CWF tracking, statutory certificate generator, and two-lock multi-tenancy |
 | 39 | Secretarial Audit & Form MR-3 Compliance Engine (Companies Act 2013 Sec 204 / Rule 9): Statutory applicability calculator (Listed, Public capital ≥ ₹50 Cr / turnover ≥ ₹250 Cr, Borrowings ≥ ₹100 Cr), multi-statute verification checklist (Companies Act, SEBI LODR/PIT/SAST, FEMA FDI/ODI/ECB, Depositories, SCRA), MCA e-filing audits (AOC-4, MGT-7, DIR-12, CHG-1/4, DPT-3) with delay penalty calculator, Board & Committee meetings audit (120-day interval gap, 7-day notice, quorum, SS-1/SS-2), and official Form MR-3 Secretarial Audit Report generator with 18-character UDIN | Full-stack secretarial audit desk with automated statutory applicability gating, baseline checklist seeding, MCA return delay tracking, meeting interval compliance, Form MR-3 drafting, and two-lock multi-tenancy |
+| 40 | Transfer Pricing Study & Form 3CEB Certification Desk (Income Tax Act Sec 92E / Rule 10D & 10E): Section 92A Associated Enterprises (AEs) registry, Clauses 11–20 international transactions & Clauses 21–25 Specified Domestic Transactions (SDT), Most Appropriate Method (MAM) benchmarking engine (CUP, RPM, CPM, PSM, TNMM, Other Method), Rule 10CA 35th–65th percentile range calculator with +/- 3% tolerance band, automated Section 92CA primary TP adjustment quantification, and official Form No. 3CEB Accountant's Report generator with 18-digit ICAI UDIN | Full-stack transfer pricing desk with Rule 10CA percentile range engine, tolerance band checks, AE register, primary TP adjustment calculator, official Form 3CEB compilation, and two-lock multi-tenancy |
 
 ## What's inside
 
@@ -1192,6 +1193,48 @@ API:
 - `POST /api/secretarial-audit/engagements/{id}/checklist/batch` (`secretarialaudit.manage`)
 - `GET /api/secretarial-audit/engagements/{id}/filings`, `POST /api/secretarial-audit/engagements/{id}/filings`, `PUT /api/secretarial-audit/engagements/{id}/filings/{filingId}`, `DELETE /api/secretarial-audit/engagements/{id}/filings/{filingId}` (`secretarialaudit.read`, `secretarialaudit.manage`)
 - `GET /api/secretarial-audit/engagements/{id}/meetings`, `POST /api/secretarial-audit/engagements/{id}/meetings`, `PUT /api/secretarial-audit/engagements/{id}/meetings/{meetingId}`, `DELETE /api/secretarial-audit/engagements/{id}/meetings/{meetingId}` (`secretarialaudit.read`, `secretarialaudit.manage`)
+
+## Transfer Pricing Study & Form 3CEB Certification Desk (Sprint 40)
+
+- **Statutory & Regulatory Framework**:
+  - **Income Tax Act, 1961, Section 92E & Rule 10E of Income-tax Rules, 1962**:
+    - Mandatory report from an Accountant in **Form No. 3CEB** for every person who has entered into an international transaction or Specified Domestic Transaction (SDT) during a previous year.
+  - **Section 92A**: Associated Enterprises (AEs) definitions covering direct/indirect voting power ($\ge$ 26%), loans exceeding 51% of book value of total assets, guarantees exceeding 10% of total borrowings, board appointment control, and 100% dependency on patents/IP or supply.
+  - **Section 92B & Section 92BA**: International transactions (Clauses 11 to 20) and Specified Domestic Transactions exceeding statutory threshold of ₹20 Crore (Clauses 21 to 25).
+- **Rule 10CA Arm's Length Range & Tolerance Band Engine**:
+  - **Percentile Range Concept ($\ge$ 6 comparables)**:
+    - Constructs an ordered dataset in ascending order.
+    - Calculates 35th percentile, 65th percentile, and 50th percentile (Median).
+    - If tested party margin falls between 35th and 65th percentile, transaction is deemed at arm's length.
+    - If deficient, primary transfer pricing adjustment under Section 92CA is calculated with reference to the **Median (50th percentile)**.
+  - **Arithmetic Mean Concept ($<$ 6 comparables)**:
+    - Calculates arithmetic mean with a statutory tolerance band: **1% for wholesale trading** and **3% for other transactions**.
+    - If outside tolerance band, adjustment is computed to the arithmetic mean.
+- **Associated Enterprises (AE) Registry**:
+  - Maintains records of foreign and domestic AEs, country of residence, ISO codes, Tax Identification Numbers (TIN/EIN), Section 92A(2)(a)–(m) relationship basis, and ownership percentages.
+- **Comparable Benchmark Database**:
+  - Peer company dataset recording Operating Revenue, Operating Cost, Operating Profit, and calculated Profit Level Indicators (PLI: OP/TC, OP/OR, GP/Sales, GP/Cost).
+  - Quantitative and qualitative filter rejection reason tracking with automatic recalculation of study benchmark ranges.
+- **Official Form No. 3CEB Statutory Report Generator**:
+  - Auto-drafts complete Form 3CEB:
+    - Accountant's Certificate verifying Rule 10D Local File documentation.
+    - Part A: Assessee profile, PAN, and aggregate international & SDT volumes.
+    - Part B: Clause-by-clause particulars of international transactions (tangibles, intangibles, services, loans, guarantees, capital issues).
+    - Part C: Specified Domestic Transactions under Section 80A/80-IA/115BAB.
+    - Schedule of Primary Transfer Pricing Adjustments under Section 92CA.
+  - Gated with mandatory 18-digit ICAI Unique Document Identification Number (UDIN).
+- **Two Locks**: EF Core global query filters and PostgreSQL Row Level Security on `transfer_pricing_studies`, `associated_enterprises`, `transfer_pricing_transactions`, and `comparable_benchmarks` (`0039_transfer_pricing_3ceb.sql`).
+
+API:
+- `GET /api/transfer-pricing/summary` (`transferpricing.read`)
+- `POST /api/transfer-pricing/calculate-benchmark` (`transferpricing.read`)
+- `GET /api/transfer-pricing/studies`, `GET /api/transfer-pricing/studies/{id}` (`transferpricing.read`)
+- `POST /api/transfer-pricing/studies`, `PUT /api/transfer-pricing/studies/{id}`, `DELETE /api/transfer-pricing/studies/{id}` (`transferpricing.manage`)
+- `POST /api/transfer-pricing/studies/{id}/certify` (`transferpricing.certify`)
+- `POST /api/transfer-pricing/studies/{id}/generate-3ceb` (`transferpricing.read`)
+- `GET /api/transfer-pricing/studies/{id}/enterprises`, `POST /api/transfer-pricing/studies/{id}/enterprises`, `PUT /api/transfer-pricing/studies/{id}/enterprises/{aeId}`, `DELETE /api/transfer-pricing/studies/{id}/enterprises/{aeId}` (`transferpricing.read`, `transferpricing.manage`)
+- `GET /api/transfer-pricing/studies/{id}/transactions`, `POST /api/transfer-pricing/studies/{id}/transactions`, `PUT /api/transfer-pricing/studies/{id}/transactions/{txId}`, `DELETE /api/transfer-pricing/studies/{id}/transactions/{txId}` (`transferpricing.read`, `transferpricing.manage`)
+- `GET /api/transfer-pricing/studies/{id}/comparables`, `POST /api/transfer-pricing/studies/{id}/comparables`, `PUT /api/transfer-pricing/studies/{id}/comparables/{compId}`, `DELETE /api/transfer-pricing/studies/{id}/comparables/{compId}` (`transferpricing.read`, `transferpricing.manage`)
 
 ## Notes
 

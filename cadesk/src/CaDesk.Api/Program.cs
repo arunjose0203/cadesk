@@ -100,6 +100,7 @@ builder.Services.AddScoped<CaDesk.Application.RelatedParty.RelatedPartyService>(
 builder.Services.AddScoped<CaDesk.Application.InternalAudit.InternalAuditService>();
 builder.Services.AddScoped<CaDesk.Application.AntiProfiteering.AntiProfiteeringService>();
 builder.Services.AddScoped<CaDesk.Application.SecretarialAudit.SecretarialAuditService>();
+builder.Services.AddScoped<CaDesk.Application.TransferPricing.TransferPricingService>();
 var docOptions = config.GetSection("Documents").Get<CaDesk.Api.Documents.DocumentOptions>() ?? new();
 var storagePath = docOptions.StoragePath;
 if (storagePath.Length == 0)
@@ -267,6 +268,7 @@ app.MapRelatedPartyEndpoints();
 app.MapInternalAuditEndpoints();
 app.MapAntiProfiteeringEndpoints();
 app.MapSecretarialAuditEndpoints();
+app.MapTransferPricingEndpoints();
 app.MapSettingsEndpoints();
 app.MapAuditEndpoints();
 
