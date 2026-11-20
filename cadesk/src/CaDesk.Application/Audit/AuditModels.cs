@@ -133,9 +133,9 @@ public record CreateAuditEngagementRequest(
     DateOnly? PlannedEndDate,
     string? BenchmarkType,
     decimal BenchmarkAmount,
-    bool EqrRequired,
-    Guid? EqrPartnerId,
-    string? Notes
+    bool EqrRequired = false,
+    Guid? EqrPartnerId = null,
+    string? Notes = null
 );
 
 public record UpdateMaterialityRequest(

@@ -25,8 +25,9 @@ import { EInvoicingPage } from './EInvoicingPage'
 import { FixedAssetsPage } from './FixedAssetsPage'
 import { AdvanceTaxPage } from './AdvanceTaxPage'
 import { Gstr9Page } from './Gstr9Page'
+import { PresumptiveTaxPage } from './PresumptiveTaxPage'
 
-type Page = 'tasks' | 'deadlines' | 'clients' | 'billing' | 'tax' | 'audit-workspace' | 'gst-reconcile' | 'tds' | 'mca' | 'engagement' | 'banking' | 'reports' | 'tax-notices' | 'payroll' | 'einvoicing' | 'fixed-assets' | 'advance-tax' | 'gstr9' | 'dsc' | 'portal' | 'users' | 'settings' | 'audit' | 'security'
+type Page = 'tasks' | 'deadlines' | 'clients' | 'billing' | 'tax' | 'audit-workspace' | 'gst-reconcile' | 'tds' | 'mca' | 'engagement' | 'banking' | 'reports' | 'tax-notices' | 'payroll' | 'einvoicing' | 'fixed-assets' | 'advance-tax' | 'gstr9' | 'presumptive' | 'dsc' | 'portal' | 'users' | 'settings' | 'audit' | 'security'
 
 export default function App() {
   const [user, setUser] = useState<UserProfile | null>(null)
@@ -353,6 +354,15 @@ export default function App() {
             GSTR-9 / 9C Desk
           </button>
         )}
+        {can('presumptive.read') && (
+          <button className={page === 'presumptive' ? 'active' : ''} onClick={() => setPage('presumptive')}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2v20"></path>
+              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+            </svg>
+            Presumptive Tax (44AD)
+          </button>
+        )}
         {can('dsc.read') && (
           <button className={page === 'dsc' ? 'active' : ''} onClick={() => setPage('dsc')}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -425,6 +435,7 @@ export default function App() {
       {page === 'fixed-assets' && can('assets.read') && <FixedAssetsPage can={can} />}
       {page === 'advance-tax' && can('advancetax.read') && <AdvanceTaxPage can={can} />}
       {page === 'gstr9' && can('gstr9.read') && <Gstr9Page />}
+      {page === 'presumptive' && can('presumptive.read') && <PresumptiveTaxPage can={can} />}
       {page === 'dsc' && can('dsc.read') && <DscPage can={can} meId={user.id} />}
       {page === 'portal' && can('portal.read') && <PortalPage can={can} meId={user.id} />}
       {page === 'users' && can('users.read') && <UsersPage can={can} me={user} />}

@@ -31,6 +31,7 @@ Multi-tenant SaaS for CA and accounting firms (India first, GCC later).
 | 26 | Advance Tax Planner, Self-Assessment & Section 234A/B/C Interest Engine: Section 208 statutory ₹10,000 liability threshold, Section 211 quarterly milestones (15%, 45%, 75%, 100%) and Sec 44AD/ADA presumptive schedule, Section 234C installment deferment interest with safe harbors (12%, 36%), Section 234B shortfall (< 90%) interest from April 1, Section 234A late filing interest, ITNS 280 challan BSR tracking | Quarterly advance tax schedule with automatic deferment interest, safe harbor rules, 234A/B/C interest breakdowns, and ITNS 280 challan recording; two-lock multi-tenancy |
 | 27 | GSTR-9 / 9C Annual Return & Audit Reconciliation Desk: Section 44 annual return compilation (Tables 4, 5, 6, 7, 8, 9, 10-14), turnover threshold gating (Exempt < ₹2 Cr, Mandatory GSTR-9 > ₹2 Cr, Mandatory GSTR-9 & 9C > ₹5 Cr), Table 5 gross turnover & Table 7 taxable turnover reconciliation, Table 8 ITC 2A/2B vs 3B difference detection, audit discrepancy manager with statutory reason codes, CA certification with UDIN, and Form GST DRC-03 voluntary payment tracking | Full-stack GSTR-9 annual return tables, interactive GSTR-9C gross & taxable reconciliation workbench, discrepancy log with auditor recommendations, UDIN certification, and DRC-03 electronic cash ledger payment recording; two-lock multi-tenancy |
 | 28 | Digital Workpapers & Engagement Quality Review (EQR) Desk (ICAI SQC 1 / SA 220): 60-day archival lock, immutable workpaper freeze, 10-point SA pre-issuance quality checklist, EQR hot/cold reviews, multi-tier review notes (Manager, EQR, Lead Partner) with gate-checked sign-off | Full-stack digital workpapers with ICAI SQC 1 60-day archival deadline countdown, mandatory EQR clearance gating, review query resolution workflow, and two-lock multi-tenancy |
+| 29 | Presumptive Taxation & Minimal Financials Generator (Section 44AD / 44ADA / 44AE): Enhanced 5% cash turnover gating (₹3 Cr / ₹75 L), 6%/8% and 50% deemed profit split, Section 44AE heavy/light vehicle fleet register, Section 44AD(4) 5-year lockout penalty engine, Section 44AB mandatory tax audit warnings, and Section 44AA minimal balance sheet particulars | Full-stack presumptive tax desk with digital/cash ratio checks, vehicle fleet manager, ITR-4 balance sheet coherence analyzer, and two-lock multi-tenancy |
 
 ## What's inside
 
@@ -718,6 +719,41 @@ API:
 - `GET /api/audit/engagements/{id}/eqr`, `POST /api/audit/engagements/{id}/eqr/assign`, `PUT /api/audit/eqr/{id}`, `POST /api/audit/eqr/{id}/clear` (`audit.read`, `audit.manage`, `eqr.review`)
 - `GET /api/audit/engagements/{id}/review-notes`, `POST /api/audit/engagements/{id}/review-notes`, `POST /api/audit/review-notes/{id}/respond`, `POST /api/audit/review-notes/{id}/clear`, `POST /api/audit/review-notes/{id}/reopen` (`audit.read`, `audit.manage`)
 - `GET /api/audit/checklist-template` (`audit.read`)
+
+## Presumptive Taxation & Minimal Financials Generator (Sprint 29)
+
+- **Section 44AD (Eligible Business for Resident Individuals, HUFs & Partnership Firms)**:
+  - Evaluates statutory turnover ceilings: ₹2 Crores standard limit, or enhanced ₹3 Crores limit when cash receipts &le; 5% of aggregate turnover (Finance Act 2023 amendment).
+  - Deemed profit split: 6% on turnover received through electronic clearing / banking channels and 8% on non-digital / cash receipts. Assessee can declare higher taxable profit.
+  - Section 44AD(4) 5-Year Lockout Penalty Tracker: Tracks clients who opted out in an earlier Assessment Year by declaring profit below the statutory deemed rate. Flags active 5-year lockouts and triggers mandatory tax audit requirements under Section 44AB(e).
+- **Section 44ADA (Specified Professionals)**:
+  - Gross receipts ceiling: ₹50 Lakhs standard limit, or enhanced ₹75 Lakhs limit when cash receipts &le; 5%.
+  - Minimum deemed professional profit: 50% of aggregate gross receipts.
+- **Section 44AE (Goods Carriage Transporters Fleet Register)**:
+  - Fleet size limit: Assessee cannot own more than 10 goods carriages at any time during the previous year.
+  - Deemed profit computation per vehicle per month (or part thereof):
+    - **Heavy Goods Vehicle** (Gross Vehicle Weight &gt; 12 Metric Tonnes): ₹1,000 per ton per month.
+    - **Other Goods Vehicle** (&le; 12 MT): ₹7,500 per vehicle per month.
+- **Section 44AB Mandatory Tax Audit Trigger Engine**:
+  - Automatically raises red audit alerts with statutory citations when:
+    - Declared profit is lower than the statutory minimum deemed profit (and total income exceeds basic exemption).
+    - Turnover or gross receipts exceed statutory ceilings (₹2 Cr/₹3 Cr for 44AD, ₹50L/₹75L for 44ADA, &gt; 10 vehicles for 44AE).
+    - Section 44AD(4) lockout penalty is active.
+- **Section 44AA Minimal Financials Generator (ITR-4 Sugam Particulars)**:
+  - Generates the 4 mandatory business balance sheet particulars required under Section 44AA for ITR-4:
+    1. Amount of Sundry Debtors
+    2. Amount of Sundry Creditors
+    3. Amount of Stock-in-trade
+    4. Amount of Cash balance
+  - Real-time balance sheet sanity meter: Compares Total Assets against Total Liabilities & Capital, detects variances, and validates mathematical coherence.
+  - Printable / Exportable official Statement of Presumptive Income for client records and sign-off.
+- **Two Locks**: EF Core global query filters and PostgreSQL Row Level Security on `presumptive_tax_computations` and `presumptive_44ae_vehicles` (`0028_presumptive_taxation.sql`).
+
+API:
+- `GET /api/presumptive/computations`, `GET /api/presumptive/computations/{id}`, `POST /api/presumptive/computations`, `PUT /api/presumptive/computations/{id}` (`presumptive.read`, `presumptive.manage`)
+- `POST /api/presumptive/computations/{id}/recalculate`, `POST /api/presumptive/computations/{id}/approve` (`presumptive.manage`, `presumptive.approve`)
+- `POST /api/presumptive/computations/{id}/vehicles`, `DELETE /api/presumptive/computations/{id}/vehicles/{vehicleId}` (`presumptive.manage`)
+- `GET /api/presumptive/computations/{id}/statement`, `GET /api/presumptive/summary` (`presumptive.read`)
 
 
 

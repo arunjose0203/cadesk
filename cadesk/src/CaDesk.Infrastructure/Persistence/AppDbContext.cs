@@ -23,6 +23,7 @@ using CaDesk.Domain.EInvoicing;
 using CaDesk.Domain.FixedAssets;
 using CaDesk.Domain.AdvanceTax;
 using CaDesk.Domain.Gstr9;
+using CaDesk.Domain.Presumptive;
 using CaDesk.Domain.Common;
 using CaDesk.Domain.Configuration;
 using CaDesk.Domain.Firms;
@@ -118,6 +119,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
     public DbSet<Gstr9TableEntry> Gstr9TableEntries => Set<Gstr9TableEntry>();
     public DbSet<Gstr9cReconciliation> Gstr9cReconciliations => Set<Gstr9cReconciliation>();
     public DbSet<Gstr9cDiscrepancy> Gstr9cDiscrepancies => Set<Gstr9cDiscrepancy>();
+    public DbSet<PresumptiveTaxComputation> PresumptiveTaxComputations => Set<PresumptiveTaxComputation>();
+    public DbSet<Presumptive44AeVehicle> Presumptive44AeVehicles => Set<Presumptive44AeVehicle>();
     public DbSet<ConfigDefinition> ConfigDefinitions => Set<ConfigDefinition>();
     public DbSet<ConfigValue> ConfigValues => Set<ConfigValue>();
     public DbSet<ConfigChangeLog> ConfigChangeLog => Set<ConfigChangeLog>();
@@ -607,6 +610,23 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
             e.ToTable("gstr9c_discrepancies");
             e.Property(x => x.Category).HasConversion<string>();
             e.HasIndex(x => new { x.FirmId, x.Gstr9cId }).HasDatabaseName("ix_gstr9c_discrepancies_rec");
+        });
+
+        b.Entity<PresumptiveTaxComputation>(e =>
+        {
+            e.ToTable("presumptive_tax_computations");
+            e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.CreatedByUser).WithMany().HasForeignKey(x => x.CreatedByUserId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.ApprovedByUser).WithMany().HasForeignKey(x => x.ApprovedByUserId).OnDelete(DeleteBehavior.SetNull);
+            e.HasMany(x => x.Vehicles).WithOne(x => x.Computation).HasForeignKey(x => x.ComputationId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.FirmId, x.ClientId, x.FinancialYear }).HasDatabaseName("ix_presumptive_computations_client_fy");
+        });
+
+        b.Entity<Presumptive44AeVehicle>(e =>
+        {
+            e.ToTable("presumptive_44ae_vehicles");
+            e.HasOne(x => x.Computation).WithMany(x => x.Vehicles).HasForeignKey(x => x.ComputationId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.FirmId, x.ComputationId }).HasDatabaseName("ix_presumptive_44ae_vehicles_computation");
         });
 
         b.Entity<TaskTemplate>(e =>

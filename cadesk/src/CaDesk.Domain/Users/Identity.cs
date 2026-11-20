@@ -163,4 +163,7 @@ public static class Perms
     public const string WorkpapersManage = "workpapers.manage";
     public const string EqrReview = "eqr.review";
     public const string AuditArchive = "audit.archive";
+    public const string PresumptiveRead = "presumptive.read";
+    public const string PresumptiveManage = "presumptive.manage";
+    public const string PresumptiveApprove = "presumptive.approve";
 }

@@ -3221,6 +3221,172 @@ export const gstr9Api = {
   }
 }
 
+// -------------------------------------------------------------
+// Sprint 29: Presumptive Taxation & Minimal Financials (44AD/44ADA/44AE)
+// -------------------------------------------------------------
+
+export type Presumptive44AeVehicleDto = {
+  id: string
+  computationId: string
+  registrationNumber: string
+  vehicleType: string
+  grossVehicleWeightTons: number
+  monthsOwned: number
+  ratePerMonth: number
+  deemedMonthlyProfit: number
+  deemedAnnualProfit: number
+  declaredProfit: number
+  createdAt: string
+}
+
+export type PresumptiveTaxComputationDto = {
+  id: string
+  clientId: string
+  clientName?: string | null
+  clientPan?: string | null
+  financialYear: string
+  assessmentYear: string
+  section: string
+  entityType: string
+  businessNatureCode: string
+  tradeName: string
+  grossTurnover: number
+  digitalTurnover: number
+  cashTurnover: number
+  digitalPercentage: number
+  isDigitalThresholdEligible: boolean
+  turnoverLimit: number
+  isTurnoverWithinLimit: boolean
+  deemedProfitDigitalRate: number
+  deemedProfitCashRate: number
+  minimumDeemedProfit: number
+  declaredProfit: number
+  optedOutPriorYear: boolean
+  optOutAssessmentYear?: string | null
+  isLockoutActive: boolean
+  lockoutExpiryAy?: string | null
+  isAuditMandatory: boolean
+  auditTriggerReason?: string | null
+  sundryDebtors: number
+  sundryCreditors: number
+  stockInTrade: number
+  cashBalance: number
+  bankBalance: number
+  fixedAssets: number
+  otherAssets: number
+  partnerOrProprietorCapital: number
+  loansAndBorrowings: number
+  status: string
+  notes?: string | null
+  createdByUserId?: string | null
+  createdByName?: string | null
+  approvedByUserId?: string | null
+  approvedByName?: string | null
+  approvedAt?: string | null
+  createdAt: string
+  updatedAt?: string | null
+  vehicles: Presumptive44AeVehicleDto[]
+}
+
+export type SavePresumptiveComputationRequest = {
+  clientId: string
+  financialYear: string
+  section: string
+  entityType?: string | null
+  businessNatureCode?: string | null
+  tradeName?: string | null
+  grossTurnover: number
+  digitalTurnover: number
+  cashTurnover: number
+  declaredProfit: number
+  optedOutPriorYear: boolean
+  optOutAssessmentYear?: string | null
+  sundryDebtors: number
+  sundryCreditors: number
+  stockInTrade: number
+  cashBalance: number
+  bankBalance: number
+  fixedAssets: number
+  otherAssets: number
+  partnerOrProprietorCapital: number
+  loansAndBorrowings: number
+  notes?: string | null
+}
+
+export type SaveVehicleRequest = {
+  registrationNumber: string
+  vehicleType: string
+  grossVehicleWeightTons: number
+  monthsOwned: number
+  declaredProfit: number
+}
+
+export type MinimalFinancialsStatementDto = {
+  computationId: string
+  clientName: string
+  clientPan?: string | null
+  financialYear: string
+  assessmentYear: string
+  section: string
+  tradeName: string
+  grossTurnover: number
+  declaredProfit: number
+  totalAssets: number
+  totalLiabilitiesAndCapital: number
+  difference: number
+  isBalanced: boolean
+  validationAlerts: string[]
+  sundryDebtors: number
+  sundryCreditors: number
+  stockInTrade: number
+  cashBalance: number
+  bankBalance: number
+  fixedAssets: number
+  otherAssets: number
+  partnerOrProprietorCapital: number
+  loansAndBorrowings: number
+}
+
+export type PresumptiveSummaryDto = {
+  totalComputations: number
+  sec44AdCount: number
+  sec44AdaCount: number
+  sec44AeCount: number
+  auditMandatoryCount: number
+  lockoutActiveCount: number
+  totalPresumptiveTurnover: number
+  totalDeclaredProfit: number
+}
+
+export const presumptiveApi = {
+  getComputations: (clientId?: string, fy?: string, section?: string, status?: string) => {
+    const p = new URLSearchParams()
+    if (clientId) p.set('clientId', clientId)
+    if (fy) p.set('fy', fy)
+    if (section) p.set('section', section)
+    if (status) p.set('status', status)
+    const qs = p.toString()
+    return api<PresumptiveTaxComputationDto[]>(`/api/presumptive/computations${qs ? `?${qs}` : ''}`)
+  },
+  getComputationById: (id: string) => api<PresumptiveTaxComputationDto>(`/api/presumptive/computations/${id}`),
+  createComputation: (req: SavePresumptiveComputationRequest) =>
+    api<PresumptiveTaxComputationDto>('/api/presumptive/computations', { method: 'POST', body: JSON.stringify(req) }),
+  updateComputation: (id: string, req: SavePresumptiveComputationRequest) =>
+    api<PresumptiveTaxComputationDto>(`/api/presumptive/computations/${id}`, { method: 'PUT', body: JSON.stringify(req) }),
+  recalculate: (id: string) =>
+    api<PresumptiveTaxComputationDto>(`/api/presumptive/computations/${id}/recalculate`, { method: 'POST' }),
+  addVehicle: (id: string, req: SaveVehicleRequest) =>
+    api<PresumptiveTaxComputationDto>(`/api/presumptive/computations/${id}/vehicles`, { method: 'POST', body: JSON.stringify(req) }),
+  removeVehicle: (id: string, vehicleId: string) =>
+    api<PresumptiveTaxComputationDto>(`/api/presumptive/computations/${id}/vehicles/${vehicleId}`, { method: 'DELETE' }),
+  approve: (id: string) =>
+    api<PresumptiveTaxComputationDto>(`/api/presumptive/computations/${id}/approve`, { method: 'POST' }),
+  getStatement: (id: string) =>
+    api<MinimalFinancialsStatementDto>(`/api/presumptive/computations/${id}/statement`),
+  getSummary: () =>
+    api<PresumptiveSummaryDto>('/api/presumptive/summary')
+}
+
 
 
 
