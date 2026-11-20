@@ -77,6 +77,8 @@ public interface IAppDbContext
     DbSet<TaxComputation> TaxComputations { get; }
     DbSet<AuditEngagement> AuditEngagements { get; }
     DbSet<AuditWorkingPaper> AuditWorkingPapers { get; }
+    DbSet<AuditEqrReview> AuditEqrReviews { get; }
+    DbSet<AuditReviewNote> AuditReviewNotes { get; }
     DbSet<GstReconciliationBatch> GstReconciliationBatches { get; }
     DbSet<GstReconciliationItem> GstReconciliationItems { get; }
     DbSet<TdsLowerDeductionCertificate> TdsLowerDeductionCertificates { get; }

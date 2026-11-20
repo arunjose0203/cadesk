@@ -723,6 +723,20 @@ export type AuditEngagementDto = {
   trivialThreshold: number
   auditOpinion?: string | null
   notes?: string | null
+  auditReportDate?: string | null
+  archivalDeadline?: string | null
+  isArchived: boolean
+  archivedAt?: string | null
+  archivedBy?: string | null
+  archivedByName?: string | null
+  eqrRequired: boolean
+  eqrPartnerId?: string | null
+  eqrPartnerName?: string | null
+  eqrStatus: string
+  archivalStatus: string
+  openReviewNotesCount: number
+  canSignOff: boolean
+  signOffValidationMessage: string
   totalWorkingPapers: number
   reviewedWorkingPapers: number
   createdAt: string
@@ -753,6 +767,59 @@ export type AuditWorkingPaperDto = {
   reviewedAt?: string | null
   reviewNotes?: string | null
   attachments: string[]
+  reviewNotesCount: number
+  openReviewNotesCount: number
+  createdAt: string
+  updatedAt?: string | null
+}
+
+export type PreIssuanceChecklistItemDto = {
+  code: string
+  description: string
+  required: boolean
+  isVerified: boolean
+  comments?: string | null
+  verifiedAt?: string | null
+}
+
+export type AuditEqrReviewDto = {
+  id: string
+  engagementId: string
+  reviewType: string
+  eqrPartnerId: string
+  eqrPartnerName?: string | null
+  reviewStatus: string
+  evaluationMateriality?: string | null
+  evaluationSignificantRisks?: string | null
+  evaluationGoingConcern?: string | null
+  evaluationAuditOpinion?: string | null
+  preIssuanceChecklist: PreIssuanceChecklistItemDto[]
+  eqrSignoffDate?: string | null
+  eqrConclusionRemarks?: string | null
+  createdAt: string
+  updatedAt?: string | null
+}
+
+export type AuditReviewNoteDto = {
+  id: string
+  engagementId: string
+  workingPaperId?: string | null
+  workingPaperRef?: string | null
+  workingPaperTitle?: string | null
+  raisedByUserId: string
+  raisedByName?: string | null
+  raisedByRole: string
+  category: string
+  priority: string
+  query: string
+  status: string
+  response?: string | null
+  responseByUserId?: string | null
+  responseByName?: string | null
+  responseAt?: string | null
+  clearedByUserId?: string | null
+  clearedByName?: string | null
+  clearedAt?: string | null
   createdAt: string
   updatedAt?: string | null
 }
@@ -768,7 +835,54 @@ export type CreateAuditEngagementRequest = {
   plannedEndDate?: string | null
   benchmarkType?: string | null
   benchmarkAmount: number
+  eqrRequired: boolean
+  eqrPartnerId?: string | null
   notes?: string | null
+}
+
+export type SignOffAuditReportRequest = {
+  auditReportDate: string
+  auditOpinion: string
+  notes?: string | null
+}
+
+export type ArchiveEngagementRequest = {
+  notes?: string | null
+}
+
+export type CreateEqrReviewRequest = {
+  reviewType: string
+  eqrPartnerId: string
+}
+
+export type UpdateEqrReviewRequest = {
+  evaluationMateriality?: string | null
+  evaluationSignificantRisks?: string | null
+  evaluationGoingConcern?: string | null
+  evaluationAuditOpinion?: string | null
+  preIssuanceChecklist?: PreIssuanceChecklistItemDto[] | null
+  eqrConclusionRemarks?: string | null
+}
+
+export type ClearEqrReviewRequest = {
+  eqrConclusionRemarks: string
+  preIssuanceChecklist: PreIssuanceChecklistItemDto[]
+}
+
+export type CreateReviewNoteRequest = {
+  workingPaperId?: string | null
+  raisedByRole: string
+  category: string
+  priority: string
+  query: string
+}
+
+export type RespondReviewNoteRequest = {
+  response: string
+}
+
+export type ReopenReviewNoteRequest = {
+  remarks: string
 }
 
 export type UpdateMaterialityRequest = {
@@ -810,7 +924,12 @@ export type AuditSummaryDto = {
   fieldworkCount: number
   reviewCount: number
   signedOffCount: number
+  archivedCount: number
+  archivalDueSoonCount: number
+  archivalOverdueCount: number
+  eqrPendingCount: number
   totalWorkingPapers: number
+  openReviewNotesCount: number
   exceptionsFlaggedCount: number
 }
 
@@ -829,6 +948,28 @@ export const auditApi = {
   updateMateriality: (id: string, req: UpdateMaterialityRequest) => api<AuditEngagementDto>(`/api/audit/engagements/${id}/materiality`, { method: 'PUT', body: JSON.stringify(req) }),
   updateStatus: (id: string, req: UpdateEngagementStatusRequest) => api<AuditEngagementDto>(`/api/audit/engagements/${id}/status`, { method: 'PUT', body: JSON.stringify(req) }),
   deleteEngagement: (id: string) => api<void>(`/api/audit/engagements/${id}`, { method: 'DELETE' }),
+
+  signOffAudit: (id: string, req: SignOffAuditReportRequest) => api<AuditEngagementDto>(`/api/audit/engagements/${id}/signoff`, { method: 'POST', body: JSON.stringify(req) }),
+  archiveEngagement: (id: string, req: ArchiveEngagementRequest) => api<AuditEngagementDto>(`/api/audit/engagements/${id}/archive`, { method: 'POST', body: JSON.stringify(req) }),
+
+  getEqrReview: (engagementId: string) => api<AuditEqrReviewDto>(`/api/audit/engagements/${engagementId}/eqr`),
+  assignEqr: (engagementId: string, req: CreateEqrReviewRequest) => api<AuditEqrReviewDto>(`/api/audit/engagements/${engagementId}/eqr/assign`, { method: 'POST', body: JSON.stringify(req) }),
+  updateEqr: (id: string, req: UpdateEqrReviewRequest) => api<AuditEqrReviewDto>(`/api/audit/eqr/${id}`, { method: 'PUT', body: JSON.stringify(req) }),
+  clearEqr: (id: string, req: ClearEqrReviewRequest) => api<AuditEqrReviewDto>(`/api/audit/eqr/${id}/clear`, { method: 'POST', body: JSON.stringify(req) }),
+
+  listReviewNotes: (engagementId: string, workingPaperId?: string, status?: string, priority?: string) => {
+    const p = new URLSearchParams()
+    if (workingPaperId) p.set('workingPaperId', workingPaperId)
+    if (status) p.set('status', status)
+    if (priority) p.set('priority', priority)
+    const qs = p.toString()
+    return api<AuditReviewNoteDto[]>(`/api/audit/engagements/${engagementId}/review-notes${qs ? `?${qs}` : ''}`)
+  },
+  createReviewNote: (engagementId: string, req: CreateReviewNoteRequest) => api<AuditReviewNoteDto>(`/api/audit/engagements/${engagementId}/review-notes`, { method: 'POST', body: JSON.stringify(req) }),
+  respondReviewNote: (id: string, req: RespondReviewNoteRequest) => api<AuditReviewNoteDto>(`/api/audit/review-notes/${id}/respond`, { method: 'POST', body: JSON.stringify(req) }),
+  clearReviewNote: (id: string) => api<AuditReviewNoteDto>(`/api/audit/review-notes/${id}/clear`, { method: 'POST', body: JSON.stringify({}) }),
+  reopenReviewNote: (id: string, req: ReopenReviewNoteRequest) => api<AuditReviewNoteDto>(`/api/audit/review-notes/${id}/reopen`, { method: 'POST', body: JSON.stringify(req) }),
+  getChecklistTemplate: () => api<PreIssuanceChecklistItemDto[]>('/api/audit/checklist-template'),
 
   listWorkingPapers: (engagementId: string, area?: string, status?: string) => {
     const p = new URLSearchParams()

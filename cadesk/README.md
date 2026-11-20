@@ -30,6 +30,7 @@ Multi-tenant SaaS for CA and accounting firms (India first, GCC later).
 | 25 | Fixed Asset Register & Dual Depreciation Engine: Companies Act 2013 Schedule II (useful life, SLM/WDV, single/double/triple shift) vs. Income Tax Act Section 32 (block of assets, 180-day 50% rule, additional depr @ 20%), AS 22 / Ind AS 12 deferred tax engine, and physical verification audit trail | Side-by-side dual depreciation schedule, automated 180-day cutoff, DTA/DTL quantification, physical verification logs; two-lock multi-tenancy |
 | 26 | Advance Tax Planner, Self-Assessment & Section 234A/B/C Interest Engine: Section 208 statutory ₹10,000 liability threshold, Section 211 quarterly milestones (15%, 45%, 75%, 100%) and Sec 44AD/ADA presumptive schedule, Section 234C installment deferment interest with safe harbors (12%, 36%), Section 234B shortfall (< 90%) interest from April 1, Section 234A late filing interest, ITNS 280 challan BSR tracking | Quarterly advance tax schedule with automatic deferment interest, safe harbor rules, 234A/B/C interest breakdowns, and ITNS 280 challan recording; two-lock multi-tenancy |
 | 27 | GSTR-9 / 9C Annual Return & Audit Reconciliation Desk: Section 44 annual return compilation (Tables 4, 5, 6, 7, 8, 9, 10-14), turnover threshold gating (Exempt < ₹2 Cr, Mandatory GSTR-9 > ₹2 Cr, Mandatory GSTR-9 & 9C > ₹5 Cr), Table 5 gross turnover & Table 7 taxable turnover reconciliation, Table 8 ITC 2A/2B vs 3B difference detection, audit discrepancy manager with statutory reason codes, CA certification with UDIN, and Form GST DRC-03 voluntary payment tracking | Full-stack GSTR-9 annual return tables, interactive GSTR-9C gross & taxable reconciliation workbench, discrepancy log with auditor recommendations, UDIN certification, and DRC-03 electronic cash ledger payment recording; two-lock multi-tenancy |
+| 28 | Digital Workpapers & Engagement Quality Review (EQR) Desk (ICAI SQC 1 / SA 220): 60-day archival lock, immutable workpaper freeze, 10-point SA pre-issuance quality checklist, EQR hot/cold reviews, multi-tier review notes (Manager, EQR, Lead Partner) with gate-checked sign-off | Full-stack digital workpapers with ICAI SQC 1 60-day archival deadline countdown, mandatory EQR clearance gating, review query resolution workflow, and two-lock multi-tenancy |
 
 ## What's inside
 
@@ -691,6 +692,32 @@ API:
 - `GET /api/gstr9/returns/{id}/gstr9c`, `POST /api/gstr9/returns/{id}/gstr9c/reconcile`, `POST /api/gstr9/returns/{id}/gstr9c/certify`, `POST /api/gstr9/returns/{id}/gstr9c/drc03` (`gstr9.read`, `gstr9.manage`, `gstr9.certify`)
 - `POST /api/gstr9/returns/{id}/gstr9c/discrepancies`, `POST /api/gstr9/discrepancies/{id}/resolve` (`gstr9.manage`)
 - `GET /api/gstr9/summary` (`gstr9.read`)
+
+## Digital Workpapers & Engagement Quality Review (EQR) Desk (Sprint 28)
+
+- **ICAI SQC 1 Engagement Archival Engine & 60-Day Lock**:
+  - Implements ICAI SQC 1 (Paragraphs 74-75) statutory rule: Final engagement file assembly must be completed within 60 days of the auditor's report date.
+  - Automatically calculates the exact 60-day deadline upon partner report sign-off.
+  - Provides a real-time status monitor: In Progress &rarr; Due in X days &rarr; Overdue (SQC 1 Breach) &rarr; Archived & Locked.
+  - **Permanent Immutability**: Once an engagement is sealed and archived, workpapers, review notes, and EQR reviews are locked. Any update, creation, or deletion throws an `InvalidOperationException`.
+- **ICAI SA 220 Engagement Quality Control Review (EQR)**:
+  - Supports Hot Reviews (pre-issuance of auditor's report) and Cold Reviews (post-issuance inspection / monitoring).
+  - Embeds standard 10-point pre-issuance quality checklist (SA 210, SA 315, SA 320, SA 240, SA 505, SA 501, SA 570, SA 580, CARO 2020, and Trial Balance agreement).
+  - Clearance gate: Evaluates all mandatory checklist items and records EQR partner concurrence remarks before clearance is granted.
+- **Audit Review Notes & Query Resolution Workflow**:
+  - Multi-tier query raising across roles (`manager`, `eqr`, `lead_partner`) and priority tiers (`low`, `medium`, `high`, `critical`).
+  - Categorization into audit gap types (`documentation_gap`, `insufficient_testing`, `assertion_unverified`, `accounting_policy_mismatch`, `caro_clause_omission`, `other`).
+  - Response, clearance, and reopening workflow with user audit stamps.
+- **Partner Sign-Off Gate Checks**:
+  - Automatically blocks report sign-off if any review notes remain open or reopened.
+  - Blocks sign-off if EQR review is required (`EqrRequired = true`) and EQR clearance has not been formally granted.
+- **Two Locks**: EF Core global query filters and PostgreSQL Row Level Security on `audit_engagements`, `audit_working_papers`, `audit_eqr_reviews`, and `audit_review_notes` (`0027_workpapers_eqr.sql`).
+
+API:
+- `POST /api/audit/engagements/{id}/signoff`, `POST /api/audit/engagements/{id}/archive` (`audit.manage`, `audit.archive`)
+- `GET /api/audit/engagements/{id}/eqr`, `POST /api/audit/engagements/{id}/eqr/assign`, `PUT /api/audit/eqr/{id}`, `POST /api/audit/eqr/{id}/clear` (`audit.read`, `audit.manage`, `eqr.review`)
+- `GET /api/audit/engagements/{id}/review-notes`, `POST /api/audit/engagements/{id}/review-notes`, `POST /api/audit/review-notes/{id}/respond`, `POST /api/audit/review-notes/{id}/clear`, `POST /api/audit/review-notes/{id}/reopen` (`audit.read`, `audit.manage`)
+- `GET /api/audit/checklist-template` (`audit.read`)
 
 
 

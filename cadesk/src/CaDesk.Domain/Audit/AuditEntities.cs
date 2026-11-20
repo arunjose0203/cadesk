@@ -90,6 +90,66 @@ public static class AuditOpinion
     public static readonly string[] All = [Unmodified, Qualified, Adverse, Disclaimer];
 }
 
+public static class EqrReviewType
+{
+    public const string HotReview = "hot_review";
+    public const string ColdReview = "cold_review";
+
+    public static readonly string[] All = [HotReview, ColdReview];
+}
+
+public static class EqrReviewStatus
+{
+    public const string NotApplicable = "not_applicable";
+    public const string Assigned = "assigned";
+    public const string InProgress = "in_progress";
+    public const string ClearanceGranted = "clearance_granted";
+    public const string QualificationsNoted = "qualifications_noted";
+
+    public static readonly string[] All = [NotApplicable, Assigned, InProgress, ClearanceGranted, QualificationsNoted];
+}
+
+public static class ReviewNoteRole
+{
+    public const string Manager = "manager";
+    public const string Eqr = "eqr";
+    public const string LeadPartner = "lead_partner";
+
+    public static readonly string[] All = [Manager, Eqr, LeadPartner];
+}
+
+public static class ReviewNoteCategory
+{
+    public const string DocumentationGap = "documentation_gap";
+    public const string InsufficientTesting = "insufficient_testing";
+    public const string AssertionUnverified = "assertion_unverified";
+    public const string AccountingPolicyMismatch = "accounting_policy_mismatch";
+    public const string CAROClauseOmission = "caro_clause_omission";
+    public const string Other = "other";
+
+    public static readonly string[] All = [DocumentationGap, InsufficientTesting, AssertionUnverified, AccountingPolicyMismatch, CAROClauseOmission, Other];
+}
+
+public static class ReviewNotePriority
+{
+    public const string Low = "low";
+    public const string Medium = "medium";
+    public const string High = "high";
+    public const string Critical = "critical";
+
+    public static readonly string[] All = [Low, Medium, High, Critical];
+}
+
+public static class ReviewNoteStatus
+{
+    public const string Open = "open";
+    public const string ResponseProvided = "response_provided";
+    public const string Cleared = "cleared";
+    public const string Reopened = "reopened";
+
+    public static readonly string[] All = [Open, ResponseProvided, Cleared, Reopened];
+}
+
 public class AuditEngagement : ITenantOwned
 {
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -114,6 +174,16 @@ public class AuditEngagement : ITenantOwned
     public string? AuditOpinion { get; set; }
     public string? Notes { get; set; }
 
+    // ICAI SQC 1 & SA 220 Engagement Quality Control Review & Archival
+    public DateOnly? AuditReportDate { get; set; }
+    public DateOnly? ArchivalDeadline { get; set; }
+    public bool IsArchived { get; set; }
+    public DateTime? ArchivedAt { get; set; }
+    public Guid? ArchivedBy { get; set; }
+    public bool EqrRequired { get; set; }
+    public Guid? EqrPartnerId { get; set; }
+    public string EqrStatus { get; set; } = EqrReviewStatus.NotApplicable;
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public Guid? CreatedBy { get; set; }
     public DateTime? UpdatedAt { get; set; }
@@ -123,7 +193,11 @@ public class AuditEngagement : ITenantOwned
     public Client? Client { get; set; }
     public User? LeadPartner { get; set; }
     public User? Manager { get; set; }
+    public User? ArchivedByUser { get; set; }
+    public User? EqrPartner { get; set; }
     public List<AuditWorkingPaper> WorkingPapers { get; set; } = new();
+    public List<AuditEqrReview> EqrReviews { get; set; } = new();
+    public List<AuditReviewNote> ReviewNotes { get; set; } = new();
 }
 
 public class AuditWorkingPaper : ITenantOwned
@@ -164,4 +238,119 @@ public class AuditWorkingPaper : ITenantOwned
     public AuditEngagement? Engagement { get; set; }
     public User? Preparer { get; set; }
     public User? Reviewer { get; set; }
+    public List<AuditReviewNote> ReviewNotesList { get; set; } = new();
+}
+
+public class AuditEqrReview : ITenantOwned
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid FirmId { get; set; }
+    public Guid EngagementId { get; set; }
+    public string ReviewType { get; set; } = EqrReviewType.HotReview;
+    public Guid EqrPartnerId { get; set; }
+    public string ReviewStatus { get; set; } = EqrReviewStatus.Assigned;
+
+    public string? EvaluationMateriality { get; set; }
+    public string? EvaluationSignificantRisks { get; set; }
+    public string? EvaluationGoingConcern { get; set; }
+    public string? EvaluationAuditOpinion { get; set; }
+    public string PreIssuanceChecklist { get; set; } = "[]";
+    public DateTime? EqrSignoffDate { get; set; }
+    public string? EqrConclusionRemarks { get; set; }
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public Guid? CreatedBy { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public Guid? UpdatedBy { get; set; }
+
+    public AuditEngagement? Engagement { get; set; }
+    public User? EqrPartner { get; set; }
+}
+
+public class AuditReviewNote : ITenantOwned
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid FirmId { get; set; }
+    public Guid EngagementId { get; set; }
+    public Guid? WorkingPaperId { get; set; }
+    public Guid RaisedByUserId { get; set; }
+    public string RaisedByRole { get; set; } = ReviewNoteRole.Manager;
+    public string Category { get; set; } = ReviewNoteCategory.DocumentationGap;
+    public string Priority { get; set; } = ReviewNotePriority.Medium;
+    public string Query { get; set; } = "";
+    public string Status { get; set; } = ReviewNoteStatus.Open;
+
+    public string? Response { get; set; }
+    public Guid? ResponseByUserId { get; set; }
+    public DateTime? ResponseAt { get; set; }
+    public Guid? ClearedByUserId { get; set; }
+    public DateTime? ClearedAt { get; set; }
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public Guid? CreatedBy { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public Guid? UpdatedBy { get; set; }
+
+    public AuditEngagement? Engagement { get; set; }
+    public AuditWorkingPaper? WorkingPaper { get; set; }
+    public User? RaisedByUser { get; set; }
+    public User? ResponseByUser { get; set; }
+    public User? ClearedByUser { get; set; }
+}
+
+public static class AuditQualityEngine
+{
+    public const int Sqc1ArchivalDaysLimit = 60;
+
+    public static DateOnly CalculateArchivalDeadline(DateOnly auditReportDate)
+    {
+        return auditReportDate.AddDays(Sqc1ArchivalDaysLimit);
+    }
+
+    public static string GetArchivalStatus(bool isArchived, DateOnly? auditReportDate, DateOnly? deadline, DateOnly currentDate)
+    {
+        if (isArchived)
+            return "Archived & Locked (SQC 1 Sealed)";
+        if (!auditReportDate.HasValue || !deadline.HasValue)
+            return "In Progress (Report not yet issued)";
+
+        var diff = deadline.Value.DayNumber - currentDate.DayNumber;
+        if (diff < 0)
+            return $"OVERDUE for Archival by {Math.Abs(diff)} days (SQC 1 Breach)";
+        if (diff <= 15)
+            return $"Archival Due in {diff} days (Urgent)";
+        return $"Archival Due in {diff} days ({deadline:dd-MMM-yyyy})";
+    }
+
+    public static (bool Allowed, string Reason) CanSignOffAudit(int openReviewNotesCount, bool eqrRequired, string? eqrStatus)
+    {
+        if (openReviewNotesCount > 0)
+        {
+            return (false, $"Cannot sign off audit: {openReviewNotesCount} review note(s) remain open or uncleared.");
+        }
+
+        if (eqrRequired && eqrStatus != EqrReviewStatus.ClearanceGranted)
+        {
+            return (false, "Cannot sign off audit: Engagement Quality Review (EQR) hot review clearance is mandatory prior to report issuance under ICAI SA 220.");
+        }
+
+        return (true, "Eligible for Partner Sign-off and Report Issuance.");
+    }
+
+    public static List<(string Code, string Description, bool Required)> GetStandardPreIssuanceChecklist()
+    {
+        return
+        [
+            ("SA_210", "Engagement terms and signed audit engagement letter verified", true),
+            ("SA_315", "Identification and assessment of risks of material misstatement documented", true),
+            ("SA_320", "Materiality thresholds and performance materiality benchmarked", true),
+            ("SA_240", "Auditor responsibilities relating to fraud and management override tested", true),
+            ("SA_505", "External bank & trade receivable confirmations dispatched and reconciled", true),
+            ("SA_501", "Physical inventory count attendance and valuation verified", true),
+            ("SA_570", "Management's assessment of Going Concern for 12 months verified", true),
+            ("SA_580", "Written Management Representation Letter obtained and dated appropriately", true),
+            ("CARO_2020", "All applicable clauses of Companies (Auditor's Report) Order verified", true),
+            ("TB_AGREEMENT", "Financial statements agree in all respects with underlying trial balance and books", true)
+        ];
+    }
 }

@@ -21,6 +21,20 @@ public record AuditEngagementDto(
     decimal TrivialThreshold,
     string? AuditOpinion,
     string? Notes,
+    DateOnly? AuditReportDate,
+    DateOnly? ArchivalDeadline,
+    bool IsArchived,
+    DateTime? ArchivedAt,
+    Guid? ArchivedBy,
+    string? ArchivedByName,
+    bool EqrRequired,
+    Guid? EqrPartnerId,
+    string? EqrPartnerName,
+    string EqrStatus,
+    string ArchivalStatus,
+    int OpenReviewNotesCount,
+    bool CanSignOff,
+    string SignOffValidationMessage,
     int TotalWorkingPapers,
     int ReviewedWorkingPapers,
     DateTime CreatedAt,
@@ -51,6 +65,59 @@ public record AuditWorkingPaperDto(
     DateTime? ReviewedAt,
     string? ReviewNotes,
     List<string> Attachments,
+    int ReviewNotesCount,
+    int OpenReviewNotesCount,
+    DateTime CreatedAt,
+    DateTime? UpdatedAt
+);
+
+public record PreIssuanceChecklistItemDto(
+    string Code,
+    string Description,
+    bool Required,
+    bool IsVerified,
+    string? Comments,
+    DateTime? VerifiedAt
+);
+
+public record AuditEqrReviewDto(
+    Guid Id,
+    Guid EngagementId,
+    string ReviewType,
+    Guid EqrPartnerId,
+    string? EqrPartnerName,
+    string ReviewStatus,
+    string? EvaluationMateriality,
+    string? EvaluationSignificantRisks,
+    string? EvaluationGoingConcern,
+    string? EvaluationAuditOpinion,
+    List<PreIssuanceChecklistItemDto> PreIssuanceChecklist,
+    DateTime? EqrSignoffDate,
+    string? EqrConclusionRemarks,
+    DateTime CreatedAt,
+    DateTime? UpdatedAt
+);
+
+public record AuditReviewNoteDto(
+    Guid Id,
+    Guid EngagementId,
+    Guid? WorkingPaperId,
+    string? WorkingPaperRef,
+    string? WorkingPaperTitle,
+    Guid RaisedByUserId,
+    string? RaisedByName,
+    string RaisedByRole,
+    string Category,
+    string Priority,
+    string Query,
+    string Status,
+    string? Response,
+    Guid? ResponseByUserId,
+    string? ResponseByName,
+    DateTime? ResponseAt,
+    Guid? ClearedByUserId,
+    string? ClearedByName,
+    DateTime? ClearedAt,
     DateTime CreatedAt,
     DateTime? UpdatedAt
 );
@@ -66,15 +133,17 @@ public record CreateAuditEngagementRequest(
     DateOnly? PlannedEndDate,
     string? BenchmarkType,
     decimal BenchmarkAmount,
+    bool EqrRequired,
+    Guid? EqrPartnerId,
     string? Notes
 );
 
 public record UpdateMaterialityRequest(
     string BenchmarkType,
     decimal BenchmarkAmount,
-    decimal? OverallMaterialityPercent, // e.g. 1% of revenue or 5% of PBT
-    decimal? PerformanceMaterialityPercent, // e.g. 75%
-    decimal? TrivialThresholdPercent // e.g. 5%
+    decimal? OverallMaterialityPercent,
+    decimal? PerformanceMaterialityPercent,
+    decimal? TrivialThresholdPercent
 );
 
 public record SaveWorkingPaperRequest(
@@ -93,13 +162,58 @@ public record SaveWorkingPaperRequest(
 );
 
 public record ReviewWorkingPaperRequest(
-    string Status, // 'draft', 'ready_for_review', 'reviewed', 'partner_approved'
+    string Status,
     string? ReviewNotes
 );
 
 public record UpdateEngagementStatusRequest(
-    string Status, // 'planning', 'fieldwork', 'review', 'partner_signoff', 'archived'
+    string Status,
     string? AuditOpinion
+);
+
+public record SignOffAuditReportRequest(
+    DateOnly AuditReportDate,
+    string AuditOpinion,
+    string? Notes
+);
+
+public record ArchiveEngagementRequest(
+    string? Notes
+);
+
+public record CreateEqrReviewRequest(
+    string ReviewType, // 'hot_review' or 'cold_review'
+    Guid EqrPartnerId
+);
+
+public record UpdateEqrReviewRequest(
+    string? EvaluationMateriality,
+    string? EvaluationSignificantRisks,
+    string? EvaluationGoingConcern,
+    string? EvaluationAuditOpinion,
+    List<PreIssuanceChecklistItemDto>? PreIssuanceChecklist,
+    string? EqrConclusionRemarks
+);
+
+public record ClearEqrReviewRequest(
+    string EqrConclusionRemarks,
+    List<PreIssuanceChecklistItemDto> PreIssuanceChecklist
+);
+
+public record CreateReviewNoteRequest(
+    Guid? WorkingPaperId,
+    string RaisedByRole,
+    string Category,
+    string Priority,
+    string Query
+);
+
+public record RespondReviewNoteRequest(
+    string Response
+);
+
+public record ReopenReviewNoteRequest(
+    string Remarks
 );
 
 public record AuditSummaryDto(
@@ -108,6 +222,11 @@ public record AuditSummaryDto(
     int FieldworkCount,
     int ReviewCount,
     int SignedOffCount,
+    int ArchivedCount,
+    int ArchivalDueSoonCount,
+    int ArchivalOverdueCount,
+    int EqrPendingCount,
     int TotalWorkingPapers,
+    int OpenReviewNotesCount,
     int ExceptionsFlaggedCount
 );

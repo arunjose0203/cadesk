@@ -159,4 +159,8 @@ public static class Perms
     public const string Gstr9Read = "gstr9.read";
     public const string Gstr9Manage = "gstr9.manage";
     public const string Gstr9Certify = "gstr9.certify";
+    public const string WorkpapersRead = "workpapers.read";
+    public const string WorkpapersManage = "workpapers.manage";
+    public const string EqrReview = "eqr.review";
+    public const string AuditArchive = "audit.archive";
 }
