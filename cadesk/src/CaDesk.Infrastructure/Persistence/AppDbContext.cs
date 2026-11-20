@@ -33,6 +33,7 @@ using CaDesk.Domain.ForeignRemittance;
 using CaDesk.Domain.RelatedParty;
 using CaDesk.Domain.InternalAudit;
 using CaDesk.Domain.AntiProfiteering;
+using CaDesk.Domain.SecretarialAudit;
 using CaDesk.Domain.Common;
 using CaDesk.Domain.Configuration;
 using CaDesk.Domain.Firms;
@@ -155,6 +156,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
     public DbSet<AntiProfiteeringAssessment> AntiProfiteeringAssessments => Set<AntiProfiteeringAssessment>();
     public DbSet<SkuProfiteeringItem> SkuProfiteeringItems => Set<SkuProfiteeringItem>();
     public DbSet<ProfiteeringRefundRecord> ProfiteeringRefundRecords => Set<ProfiteeringRefundRecord>();
+    public DbSet<SecretarialAuditEngagement> SecretarialAuditEngagements => Set<SecretarialAuditEngagement>();
+    public DbSet<SecretarialChecklistItem> SecretarialChecklistItems => Set<SecretarialChecklistItem>();
+    public DbSet<McaFormFilingAudit> McaFormFilingAudits => Set<McaFormFilingAudit>();
+    public DbSet<BoardMeetingAuditRecord> BoardMeetingAuditRecords => Set<BoardMeetingAuditRecord>();
     public DbSet<ConfigDefinition> ConfigDefinitions => Set<ConfigDefinition>();
     public DbSet<ConfigValue> ConfigValues => Set<ConfigValue>();
     public DbSet<ConfigChangeLog> ConfigChangeLog => Set<ConfigChangeLog>();
@@ -861,6 +866,34 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
             e.ToTable("profiteering_refund_records");
             e.HasOne(x => x.Assessment).WithMany(x => x.RefundRecords).HasForeignKey(x => x.AssessmentId).OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(x => new { x.FirmId, x.AssessmentId }).HasDatabaseName("ix_refund_records_firm_assessment");
+        });
+
+        b.Entity<SecretarialAuditEngagement>(e =>
+        {
+            e.ToTable("secretarial_audit_engagements");
+            e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.FirmId, x.ClientId, x.FinancialYear }).HasDatabaseName("ix_sa_engagements_firm_client_fy");
+        });
+
+        b.Entity<SecretarialChecklistItem>(e =>
+        {
+            e.ToTable("secretarial_checklist_items");
+            e.HasOne(x => x.Engagement).WithMany(x => x.ChecklistItems).HasForeignKey(x => x.EngagementId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.FirmId, x.EngagementId }).HasDatabaseName("ix_sa_checklist_firm_engagement");
+        });
+
+        b.Entity<McaFormFilingAudit>(e =>
+        {
+            e.ToTable("mca_form_filing_audits");
+            e.HasOne(x => x.Engagement).WithMany(x => x.McaFilings).HasForeignKey(x => x.EngagementId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.FirmId, x.EngagementId }).HasDatabaseName("ix_mca_filings_firm_engagement");
+        });
+
+        b.Entity<BoardMeetingAuditRecord>(e =>
+        {
+            e.ToTable("board_meeting_audit_records");
+            e.HasOne(x => x.Engagement).WithMany(x => x.MeetingAudits).HasForeignKey(x => x.EngagementId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.FirmId, x.EngagementId }).HasDatabaseName("ix_meeting_audits_firm_engagement");
         });
 
         b.Entity<TaskTemplate>(e =>

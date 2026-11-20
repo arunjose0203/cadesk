@@ -41,6 +41,7 @@ Multi-tenant SaaS for CA and accounting firms (India first, GCC later).
 | 36 | Related Party Transactions & Section 188 / AS 18 / Ind AS 24 Arm's Length Pricing Desk: Section 188 Rule 15 statutory threshold gates (10% turnover / 10% net worth), Section 188(1) 4th proviso ordinary course & arm's length exemption engine, Section 177 Audit Committee omnibus approvals with utilization tracking, Section 189 Form MBP-4 statutory register generator, and AS 18 / Ind AS 24 financial statement disclosure compiler | Full-stack related party compliance and transfer pricing desk with statutory threshold guards, arm's length price variance calculators, Section 40A(2)(b) risk flags, Form MBP-4 register drafting, and AS 18 / Ind AS 24 disclosure note generator; two-lock multi-tenancy |
 | 37 | Internal Audit Risk & Control Matrix (RCM) & IFC Testing Desk (ICAI SIA Standards / Companies Act Sec 138 & 143(3)(i)): Section 138 statutory applicability criteria, 6 core business cycles (P2P, O2C, H2R, R2R, Treasury, ITGC), dual walkthrough/design effectiveness and Test of Operating Effectiveness (ToC) review, residual risk mitigation engine, deficiency and action plan remediation tracking, and ICAI SIA executive report generator | Full-stack internal audit and IFC testing desk with pre-populated baseline RCM, exception-driven residual risk scoring, material weakness classification, remediation tracking, executive reporting, and two-lock multi-tenancy |
 | 38 | GST Annual Audit & Anti-Profiteering / Rate Notification Engine (CGST Act Section 171 / Rule 122–137): Landmark GST rate notification registry, SKU-level commensurate price reduction engine, base price hike tracking, customer credit note refund logger, 50:50 Central/State Consumer Welfare Fund (CWF) split with 18% p.a. statutory interest under Section 171(3A), and official CA Anti-Profiteering Audit Certificate with 18-digit UDIN | Full-stack GST anti-profiteering desk with automatic baseline rate notification seeding, SKU price reduction evaluator, customer refund and CWF tracking, statutory certificate generator, and two-lock multi-tenancy |
+| 39 | Secretarial Audit & Form MR-3 Compliance Engine (Companies Act 2013 Sec 204 / Rule 9): Statutory applicability calculator (Listed, Public capital ≥ ₹50 Cr / turnover ≥ ₹250 Cr, Borrowings ≥ ₹100 Cr), multi-statute verification checklist (Companies Act, SEBI LODR/PIT/SAST, FEMA FDI/ODI/ECB, Depositories, SCRA), MCA e-filing audits (AOC-4, MGT-7, DIR-12, CHG-1/4, DPT-3) with delay penalty calculator, Board & Committee meetings audit (120-day interval gap, 7-day notice, quorum, SS-1/SS-2), and official Form MR-3 Secretarial Audit Report generator with 18-character UDIN | Full-stack secretarial audit desk with automated statutory applicability gating, baseline checklist seeding, MCA return delay tracking, meeting interval compliance, Form MR-3 drafting, and two-lock multi-tenancy |
 
 ## What's inside
 
@@ -1149,6 +1150,48 @@ API:
 - `POST /api/anti-profiteering/assessments/{id}/certify` (`antiprofiteering.certify`)
 - `GET /api/anti-profiteering/assessments/{id}/skus`, `POST /api/anti-profiteering/assessments/{id}/skus`, `PUT /api/anti-profiteering/assessments/{id}/skus/{skuId}`, `DELETE /api/anti-profiteering/assessments/{id}/skus/{skuId}` (`antiprofiteering.read`, `antiprofiteering.manage`)
 - `GET /api/anti-profiteering/assessments/{id}/refunds`, `POST /api/anti-profiteering/assessments/{id}/refunds`, `PUT /api/anti-profiteering/assessments/{id}/refunds/{refundId}`, `DELETE /api/anti-profiteering/assessments/{id}/refunds/{refundId}` (`antiprofiteering.read`, `antiprofiteering.manage`)
+
+## Secretarial Audit & Form MR-3 Compliance Engine (Sprint 39)
+
+- **Statutory & Regulatory Framework**:
+  - **Companies Act, 2013, Section 204 & Rule 9 of Companies (Appointment and Remuneration of Managerial Personnel) Rules, 2014**:
+    - Mandatory secretarial audit for:
+      - All listed companies;
+      - Every unlisted public company having paid-up share capital $\ge$ ₹50 crore; OR
+      - Every unlisted public company having turnover $\ge$ ₹250 crore; OR
+      - Every company (including private companies) having outstanding loans or borrowings from banks or public financial institutions $\ge$ ₹100 crore.
+    - Statutory secretarial audit report in **Form MR-3** annexed to Board's Report pursuant to Section 134(3)(f).
+- **Multi-Statute Verification Checklist Workbench**:
+  - Pre-populated baseline secretarial audit checklist items across all statutory codes:
+    - **Companies Act, 2013**: Board composition & independent/woman directors (Sec 149), board meetings & 120-day interval gap (Sec 173), quorum (Sec 174), Audit Committee (Sec 177), NRC & SRC (Sec 178), borrowings limits (Sec 180), loans to directors & investments (Sec 185/186), related party transactions (Sec 188), CSR 2% obligation (Sec 135), and Board report disclosures (Sec 134).
+    - **Securities & Exchange Board of India (SEBI)**: LODR Regulation 17 (Board composition & independence), Regulation 30 (Material event disclosures within 24h / 30m), PIT Regulation 3(5) (Structured Digital Database - SDD maintenance), SAST Regulations 29–31 (shareholding disclosures).
+    - **Foreign Exchange Management Act, 1999 (FEMA)**: FDI reporting in Form FC-GPR (allotment within 30 days), Form FC-TRS (shares transfer), annual return on Foreign Liabilities and Assets (FLA) by July 15, and monthly ECB-2 returns.
+    - **Depositories Act, 1996**: Mandatory dematerialization of promoter/director securities (PAS Rules 9A/9B) and share capital audit under SEBI D&P Reg 76.
+    - **Industry-Specific & Social Security Laws**: EPF, ESI, Payment of Gratuity, and State Pollution Control Board consents.
+- **MCA V2/V3 Portal E-Filing Audit**:
+  - Verifies statutory forms (`AOC-4`, `MGT-7`, `DIR-12`, `CHG-1`, `CHG-4`, `DPT-3`, `BEN-2`, `MGT-14`, `MSME-1`, `PAS-3`).
+  - Automated statutory due date calculation, delay counter, and additional fee penalty recording.
+- **Board & Committee Meetings Governance Log**:
+  - Evaluates Section 173(1) 120-day maximum consecutive interval rule between Board meetings.
+  - Validates Section 173(3) 7-day advance notice requirement.
+  - Checks Section 174 quorum compliance (greater of 1/3rd or 2 members) and presence of independent directors.
+  - Adherence to ICSI Secretarial Standards SS-1 (Meetings of the Board) and SS-2 (General Meetings).
+- **Official Form MR-3 Secretarial Audit Report Generator**:
+  - Formats statutory Form MR-3 report including corporate details, examined statutes, qualification/reservation paragraphs, board processes, and internal compliance mechanisms.
+  - Gated with mandatory 17/18-character ICSI/ICAI Unique Document Identification Number (UDIN).
+- **Two Locks**: EF Core global query filters and PostgreSQL Row Level Security on `secretarial_audit_engagements`, `secretarial_checklist_items`, `mca_form_filing_audits`, and `board_meeting_audit_records` (`0038_secretarial_audit_mr3.sql`).
+
+API:
+- `GET /api/secretarial-audit/summary` (`secretarialaudit.read`)
+- `POST /api/secretarial-audit/check-applicability` (`secretarialaudit.read`)
+- `GET /api/secretarial-audit/engagements`, `GET /api/secretarial-audit/engagements/{id}` (`secretarialaudit.read`)
+- `POST /api/secretarial-audit/engagements`, `PUT /api/secretarial-audit/engagements/{id}`, `DELETE /api/secretarial-audit/engagements/{id}` (`secretarialaudit.manage`)
+- `POST /api/secretarial-audit/engagements/{id}/certify` (`secretarialaudit.certify`)
+- `POST /api/secretarial-audit/engagements/{id}/generate-mr3` (`secretarialaudit.read`)
+- `GET /api/secretarial-audit/engagements/{id}/checklist`, `POST /api/secretarial-audit/engagements/{id}/checklist`, `PUT /api/secretarial-audit/engagements/{id}/checklist/{itemId}`, `DELETE /api/secretarial-audit/engagements/{id}/checklist/{itemId}` (`secretarialaudit.read`, `secretarialaudit.manage`)
+- `POST /api/secretarial-audit/engagements/{id}/checklist/batch` (`secretarialaudit.manage`)
+- `GET /api/secretarial-audit/engagements/{id}/filings`, `POST /api/secretarial-audit/engagements/{id}/filings`, `PUT /api/secretarial-audit/engagements/{id}/filings/{filingId}`, `DELETE /api/secretarial-audit/engagements/{id}/filings/{filingId}` (`secretarialaudit.read`, `secretarialaudit.manage`)
+- `GET /api/secretarial-audit/engagements/{id}/meetings`, `POST /api/secretarial-audit/engagements/{id}/meetings`, `PUT /api/secretarial-audit/engagements/{id}/meetings/{meetingId}`, `DELETE /api/secretarial-audit/engagements/{id}/meetings/{meetingId}` (`secretarialaudit.read`, `secretarialaudit.manage`)
 
 ## Notes
 

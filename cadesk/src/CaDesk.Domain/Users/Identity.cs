@@ -193,4 +193,7 @@ public static class Perms
     public const string AntiProfiteeringRead = "antiprofiteering.read";
     public const string AntiProfiteeringManage = "antiprofiteering.manage";
     public const string AntiProfiteeringCertify = "antiprofiteering.certify";
+    public const string SecretarialAuditRead = "secretarialaudit.read";
+    public const string SecretarialAuditManage = "secretarialaudit.manage";
+    public const string SecretarialAuditCertify = "secretarialaudit.certify";
 }

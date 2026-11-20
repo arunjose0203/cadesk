@@ -5162,6 +5162,323 @@ export const antiProfiteeringApi = {
     api<void>(`/api/anti-profiteering/assessments/${assessmentId}/refunds/${refundId}`, { method: 'DELETE' }),
 }
 
+// -------------------------------------------------------------
+// Sprint 39: Secretarial Audit & Form MR-3 Compliance Engine
+// -------------------------------------------------------------
+
+export interface SecretarialAuditSummaryDto {
+  totalEngagements: number
+  activeEngagements: number
+  certifiedEngagements: number
+  mandatoryApplicableCount: number
+  totalQualificationsLogged: number
+  delayedFilingsCount: number
+  meetingIrregularitiesCount: number
+  averageComplianceScore: number
+}
+
+export interface SecretarialAuditEngagementDto {
+  id: string
+  clientId: string
+  clientName: string
+  engagementReference: string
+  title: string
+  financialYear: string
+  auditPeriodStart: string
+  auditPeriodEnd: string
+  cin: string
+  companyType: string
+  paidUpShareCapital: number
+  turnover: number
+  outstandingBorrowings: number
+  isApplicable: boolean
+  applicabilityReason: string
+  auditStatus: string
+  auditorName: string
+  auditorFirmName: string
+  membershipType: string
+  membershipNumber: string
+  certificateOfPracticeNumber: string
+  peerReviewCertificateNumber: string
+  udin?: string
+  certifiedAt?: string
+  certifiedBy?: string
+  totalChecklistCount: number
+  compliedCount: number
+  notCompliedCount: number
+  partiallyCompliedCount: number
+  notApplicableCount: number
+  qualificationsCount: number
+  overallComplianceScore: number
+  totalFilingsAudited: number
+  filingsDelayedCount: number
+  totalMeetingsAudited: number
+  meetingDeficienciesCount: number
+  formMR3ReportText?: string
+  createdAt: string
+  updatedAt?: string
+}
+
+export interface SecretarialChecklistItemDto {
+  id: string
+  engagementId: string
+  statuteCategory: string
+  clauseCode: string
+  subjectArea: string
+  statutoryRequirement: string
+  complianceStatus: string
+  auditorRemarks: string
+  isQualification: boolean
+  deviationRisk: string
+  targetCompletionDate?: string
+  actionOwner?: string
+  createdAt: string
+  updatedAt?: string
+}
+
+export interface McaFormFilingAuditDto {
+  id: string
+  engagementId: string
+  formName: string
+  description: string
+  eventDate: string
+  statutoryDaysAllowed: number
+  statutoryDueDate: string
+  actualFilingDate?: string
+  srn: string
+  filingStatus: string
+  delayDays: number
+  additionalFeePaid: number
+  auditorRemarks: string
+  createdAt: string
+}
+
+export interface BoardMeetingAuditRecordDto {
+  id: string
+  engagementId: string
+  meetingType: string
+  meetingDate: string
+  previousMeetingDate?: string
+  gapFromPreviousMeetingDays?: number
+  isGapCompliant: boolean
+  noticeDispatchDate?: string
+  noticeDaysGiven?: number
+  isNoticeCompliant: boolean
+  totalMembersCount: number
+  attendedMembersCount: number
+  quorumRequiredCount: number
+  isQuorumCompliant: boolean
+  independentDirectorsAttended: number
+  secretarialStandardComplied: boolean
+  auditorRemarks: string
+  createdAt: string
+}
+
+export interface SaveEngagementRequest {
+  clientId: string
+  engagementReference: string
+  title: string
+  financialYear: string
+  auditPeriodStart: string
+  auditPeriodEnd: string
+  cin: string
+  companyType: string
+  paidUpShareCapital: number
+  turnover: number
+  outstandingBorrowings: number
+  auditorName: string
+  auditorFirmName: string
+  membershipType: string
+  membershipNumber: string
+  certificateOfPracticeNumber: string
+  peerReviewCertificateNumber: string
+}
+
+export interface CertifyEngagementRequest {
+  udin: string
+  certifiedBy: string
+}
+
+export interface SaveChecklistItemRequest {
+  statuteCategory: string
+  clauseCode: string
+  subjectArea: string
+  statutoryRequirement: string
+  complianceStatus: string
+  auditorRemarks: string
+  isQualification: boolean
+  deviationRisk: string
+  targetCompletionDate?: string
+  actionOwner?: string
+}
+
+export interface BatchChecklistUpdateItem {
+  id: string
+  complianceStatus: string
+  auditorRemarks: string
+  isQualification: boolean
+  deviationRisk: string
+}
+
+export interface BatchUpdateChecklistRequest {
+  items: BatchChecklistUpdateItem[]
+}
+
+export interface SaveMcaFilingRequest {
+  formName: string
+  description: string
+  eventDate: string
+  statutoryDaysAllowed: number
+  actualFilingDate?: string
+  srn: string
+  additionalFeePaid: number
+  auditorRemarks: string
+}
+
+export interface SaveBoardMeetingAuditRequest {
+  meetingType: string
+  meetingDate: string
+  previousMeetingDate?: string
+  noticeDispatchDate?: string
+  totalMembersCount: number
+  attendedMembersCount: number
+  independentDirectorsAttended: number
+  secretarialStandardComplied: boolean
+  auditorRemarks: string
+}
+
+export interface ApplicabilityCheckRequest {
+  companyType: string
+  paidUpShareCapital: number
+  turnover: number
+  outstandingBorrowings: number
+}
+
+export interface ApplicabilityCheckResult {
+  isApplicable: boolean
+  reason: string
+  thresholdsExceeded: string[]
+}
+
+export const secretarialAuditApi = {
+  getSummary: (clientId?: string, financialYear?: string) => {
+    const params = new URLSearchParams()
+    if (clientId) params.set('clientId', clientId)
+    if (financialYear) params.set('financialYear', financialYear)
+    const qs = params.toString()
+    return api<SecretarialAuditSummaryDto>(`/api/secretarial-audit/summary${qs ? `?${qs}` : ''}`)
+  },
+
+  checkApplicability: (req: ApplicabilityCheckRequest) =>
+    api<ApplicabilityCheckResult>('/api/secretarial-audit/check-applicability', {
+      method: 'POST',
+      body: JSON.stringify(req),
+    }),
+
+  listEngagements: (clientId?: string, financialYear?: string, status?: string) => {
+    const params = new URLSearchParams()
+    if (clientId) params.set('clientId', clientId)
+    if (financialYear) params.set('financialYear', financialYear)
+    if (status && status !== 'All') params.set('status', status)
+    const qs = params.toString()
+    return api<SecretarialAuditEngagementDto[]>(`/api/secretarial-audit/engagements${qs ? `?${qs}` : ''}`)
+  },
+
+  getEngagement: (id: string) =>
+    api<SecretarialAuditEngagementDto>(`/api/secretarial-audit/engagements/${id}`),
+
+  createEngagement: (req: SaveEngagementRequest) =>
+    api<SecretarialAuditEngagementDto>('/api/secretarial-audit/engagements', {
+      method: 'POST',
+      body: JSON.stringify(req),
+    }),
+
+  updateEngagement: (id: string, req: SaveEngagementRequest) =>
+    api<SecretarialAuditEngagementDto>(`/api/secretarial-audit/engagements/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(req),
+    }),
+
+  deleteEngagement: (id: string) =>
+    api<void>(`/api/secretarial-audit/engagements/${id}`, { method: 'DELETE' }),
+
+  certifyEngagement: (id: string, req: CertifyEngagementRequest) =>
+    api<SecretarialAuditEngagementDto>(`/api/secretarial-audit/engagements/${id}/certify`, {
+      method: 'POST',
+      body: JSON.stringify(req),
+    }),
+
+  generateMR3: (id: string) =>
+    api<{ reportText: string }>(`/api/secretarial-audit/engagements/${id}/generate-mr3`, {
+      method: 'POST',
+    }),
+
+  listChecklist: (engagementId: string, category?: string, status?: string) => {
+    const params = new URLSearchParams()
+    if (category && category !== 'All') params.set('category', category)
+    if (status && status !== 'All') params.set('status', status)
+    const qs = params.toString()
+    return api<SecretarialChecklistItemDto[]>(`/api/secretarial-audit/engagements/${engagementId}/checklist${qs ? `?${qs}` : ''}`)
+  },
+
+  createChecklistItem: (engagementId: string, req: SaveChecklistItemRequest) =>
+    api<SecretarialChecklistItemDto>(`/api/secretarial-audit/engagements/${engagementId}/checklist`, {
+      method: 'POST',
+      body: JSON.stringify(req),
+    }),
+
+  updateChecklistItem: (engagementId: string, itemId: string, req: SaveChecklistItemRequest) =>
+    api<SecretarialChecklistItemDto>(`/api/secretarial-audit/engagements/${engagementId}/checklist/${itemId}`, {
+      method: 'PUT',
+      body: JSON.stringify(req),
+    }),
+
+  deleteChecklistItem: (engagementId: string, itemId: string) =>
+    api<void>(`/api/secretarial-audit/engagements/${engagementId}/checklist/${itemId}`, { method: 'DELETE' }),
+
+  batchUpdateChecklist: (engagementId: string, req: BatchUpdateChecklistRequest) =>
+    api<{ updatedCount: number }>(`/api/secretarial-audit/engagements/${engagementId}/checklist/batch`, {
+      method: 'POST',
+      body: JSON.stringify(req),
+    }),
+
+  listFilings: (engagementId: string) =>
+    api<McaFormFilingAuditDto[]>(`/api/secretarial-audit/engagements/${engagementId}/filings`),
+
+  createFiling: (engagementId: string, req: SaveMcaFilingRequest) =>
+    api<McaFormFilingAuditDto>(`/api/secretarial-audit/engagements/${engagementId}/filings`, {
+      method: 'POST',
+      body: JSON.stringify(req),
+    }),
+
+  updateFiling: (engagementId: string, filingId: string, req: SaveMcaFilingRequest) =>
+    api<McaFormFilingAuditDto>(`/api/secretarial-audit/engagements/${engagementId}/filings/${filingId}`, {
+      method: 'PUT',
+      body: JSON.stringify(req),
+    }),
+
+  deleteFiling: (engagementId: string, filingId: string) =>
+    api<void>(`/api/secretarial-audit/engagements/${engagementId}/filings/${filingId}`, { method: 'DELETE' }),
+
+  listMeetings: (engagementId: string) =>
+    api<BoardMeetingAuditRecordDto[]>(`/api/secretarial-audit/engagements/${engagementId}/meetings`),
+
+  createMeeting: (engagementId: string, req: SaveBoardMeetingAuditRequest) =>
+    api<BoardMeetingAuditRecordDto>(`/api/secretarial-audit/engagements/${engagementId}/meetings`, {
+      method: 'POST',
+      body: JSON.stringify(req),
+    }),
+
+  updateMeeting: (engagementId: string, meetingId: string, req: SaveBoardMeetingAuditRequest) =>
+    api<BoardMeetingAuditRecordDto>(`/api/secretarial-audit/engagements/${engagementId}/meetings/${meetingId}`, {
+      method: 'PUT',
+      body: JSON.stringify(req),
+    }),
+
+  deleteMeeting: (engagementId: string, meetingId: string) =>
+    api<void>(`/api/secretarial-audit/engagements/${engagementId}/meetings/${meetingId}`, { method: 'DELETE' }),
+}
+
 
 
 
