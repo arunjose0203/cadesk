@@ -23,8 +23,9 @@ import { TaxNoticesPage } from './TaxNoticesPage'
 import { PayrollPage } from './PayrollPage'
 import { EInvoicingPage } from './EInvoicingPage'
 import { FixedAssetsPage } from './FixedAssetsPage'
+import { AdvanceTaxPage } from './AdvanceTaxPage'
 
-type Page = 'tasks' | 'deadlines' | 'clients' | 'billing' | 'tax' | 'audit-workspace' | 'gst-reconcile' | 'tds' | 'mca' | 'engagement' | 'banking' | 'reports' | 'tax-notices' | 'payroll' | 'einvoicing' | 'fixed-assets' | 'dsc' | 'portal' | 'users' | 'settings' | 'audit' | 'security'
+type Page = 'tasks' | 'deadlines' | 'clients' | 'billing' | 'tax' | 'audit-workspace' | 'gst-reconcile' | 'tds' | 'mca' | 'engagement' | 'banking' | 'reports' | 'tax-notices' | 'payroll' | 'einvoicing' | 'fixed-assets' | 'advance-tax' | 'dsc' | 'portal' | 'users' | 'settings' | 'audit' | 'security'
 
 export default function App() {
   const [user, setUser] = useState<UserProfile | null>(null)
@@ -330,6 +331,15 @@ export default function App() {
             Fixed Assets & Depr
           </button>
         )}
+        {can('advancetax.read') && (
+          <button className={page === 'advance-tax' ? 'active' : ''} onClick={() => setPage('advance-tax')}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            Advance Tax & 234
+          </button>
+        )}
         {can('dsc.read') && (
           <button className={page === 'dsc' ? 'active' : ''} onClick={() => setPage('dsc')}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -400,6 +410,7 @@ export default function App() {
       {page === 'payroll' && can('payroll.read') && <PayrollPage can={can} />}
       {page === 'einvoicing' && can('einvoice.read') && <EInvoicingPage can={can} />}
       {page === 'fixed-assets' && can('assets.read') && <FixedAssetsPage can={can} />}
+      {page === 'advance-tax' && can('advancetax.read') && <AdvanceTaxPage can={can} />}
       {page === 'dsc' && can('dsc.read') && <DscPage can={can} meId={user.id} />}
       {page === 'portal' && can('portal.read') && <PortalPage can={can} meId={user.id} />}
       {page === 'users' && can('users.read') && <UsersPage can={can} me={user} />}

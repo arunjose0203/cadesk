@@ -21,6 +21,7 @@ using CaDesk.Domain.TaxNotices;
 using CaDesk.Domain.Payroll;
 using CaDesk.Domain.EInvoicing;
 using CaDesk.Domain.FixedAssets;
+using CaDesk.Domain.AdvanceTax;
 using CaDesk.Domain.Common;
 using CaDesk.Domain.Configuration;
 using CaDesk.Domain.Firms;
@@ -107,6 +108,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
     public DbSet<FixedAsset> FixedAssets => Set<FixedAsset>();
     public DbSet<AssetDepreciationEntry> AssetDepreciationEntries => Set<AssetDepreciationEntry>();
     public DbSet<AssetPhysicalVerification> AssetPhysicalVerifications => Set<AssetPhysicalVerification>();
+    public DbSet<AdvanceTaxPlan> AdvanceTaxPlans => Set<AdvanceTaxPlan>();
+    public DbSet<AdvanceTaxInstallment> AdvanceTaxInstallments => Set<AdvanceTaxInstallment>();
+    public DbSet<TaxInterestComputation> TaxInterestComputations => Set<TaxInterestComputation>();
     public DbSet<ConfigDefinition> ConfigDefinitions => Set<ConfigDefinition>();
     public DbSet<ConfigValue> ConfigValues => Set<ConfigValue>();
     public DbSet<ConfigChangeLog> ConfigChangeLog => Set<ConfigChangeLog>();
@@ -526,6 +530,27 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
         {
             e.ToTable("asset_physical_verifications");
             e.Property(x => x.Status).HasConversion<string>();
+        });
+
+        b.Entity<AdvanceTaxPlan>(e =>
+        {
+            e.ToTable("advance_tax_plans");
+            e.Property(x => x.Regime).HasConversion<string>();
+            e.Property(x => x.Status).HasConversion<string>();
+            e.HasIndex(x => new { x.FirmId, x.ClientId, x.FinancialYear }).IsUnique().HasDatabaseName("ux_advance_tax_plans_client_fy");
+            e.HasMany(x => x.Installments).WithOne(x => x.Plan).HasForeignKey(x => x.PlanId).OnDelete(DeleteBehavior.Cascade);
+            e.HasMany(x => x.InterestComputations).WithOne(x => x.Plan).HasForeignKey(x => x.PlanId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<AdvanceTaxInstallment>(e =>
+        {
+            e.ToTable("advance_tax_installments");
+            e.HasIndex(x => new { x.FirmId, x.PlanId, x.InstallmentNumber }).IsUnique().HasDatabaseName("ux_advance_tax_installments");
+        });
+
+        b.Entity<TaxInterestComputation>(e =>
+        {
+            e.ToTable("tax_interest_computations");
         });
 
         b.Entity<TaskTemplate>(e =>

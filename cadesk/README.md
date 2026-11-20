@@ -28,6 +28,7 @@ Multi-tenant SaaS for CA and accounting firms (India first, GCC later).
 | 23 | Payroll, Salary TDS & Statutory PF / ESIC Engine: Client employee master, Automated EPF (12% + EPS 8.33% / EPF 3.67% split), ESIC (0.75% / 3.25%), State Professional Tax (PT), Section 192 Salary TDS, Monthly salary register & EPFO ECR text export | Automated statutory wage ceilings, payslip generation, and official ECR file formatting; two-lock multi-tenancy |
 | 24 | Automated E-Invoicing & E-Way Bill Integration Desk: Direct Invoice Registration Portal (IRP) simulation, 64-character SHA-256 IRN generation, digitally signed QR codes, Rule 138(10) E-Way Bill validity calculator, Part-B multi-modal vehicle updater, 24-hour statutory cancellation engine | Direct IRP schema generation, dynamic distance-based validity countdowns, vehicle transshipment updates, and multi-tenant firm isolation |
 | 25 | Fixed Asset Register & Dual Depreciation Engine: Companies Act 2013 Schedule II (useful life, SLM/WDV, single/double/triple shift) vs. Income Tax Act Section 32 (block of assets, 180-day 50% rule, additional depr @ 20%), AS 22 / Ind AS 12 deferred tax engine, and physical verification audit trail | Side-by-side dual depreciation schedule, automated 180-day cutoff, DTA/DTL quantification, physical verification logs; two-lock multi-tenancy |
+| 26 | Advance Tax Planner, Self-Assessment & Section 234A/B/C Interest Engine: Section 208 statutory ₹10,000 liability threshold, Section 211 quarterly milestones (15%, 45%, 75%, 100%) and Sec 44AD/ADA presumptive schedule, Section 234C installment deferment interest with safe harbors (12%, 36%), Section 234B shortfall (< 90%) interest from April 1, Section 234A late filing interest, ITNS 280 challan BSR tracking | Quarterly advance tax schedule with automatic deferment interest, safe harbor rules, 234A/B/C interest breakdowns, and ITNS 280 challan recording; two-lock multi-tenancy |
 
 ## What's inside
 
@@ -623,6 +624,40 @@ API:
 - `POST /api/fixed-assets/depreciation`, `GET /api/fixed-assets/depreciation` (`assets.depreciate`, `assets.read`)
 - `POST /api/fixed-assets/{id}/verifications`, `GET /api/fixed-assets/verifications` (`assets.manage`, `assets.read`)
 - `GET /api/fixed-assets/summary` (`assets.read`)
+
+## Advance Tax Planner, Self-Assessment & Section 234A/B/C Interest Engine (Sprint 26)
+
+- **Section 208 Mandatory Advance Tax Threshold**:
+  - Automatically assesses net tax liability (`TotalEstimatedTax - TotalPrepaidTdsTcs`).
+  - Flags mandatory advance tax obligation if net liability is &ge; ₹10,000; honors Section 207(2) resident senior citizen exemption (no business/profession income).
+- **Section 211 Quarterly Installment Milestones**:
+  - **Regular Assessees (Corporate & Non-Corporate)**:
+    - 1st Installment (on or before June 15): 15% of advance tax.
+    - 2nd Installment (on or before September 15): 45% of advance tax (cumulative).
+    - 3rd Installment (on or before December 15): 75% of advance tax (cumulative).
+    - 4th Installment (on or before March 15): 100% of advance tax (cumulative).
+  - **Presumptive Tax Assessees (Section 44AD / 44ADA)**:
+    - Single installment of 100% on or before March 15.
+- **Section 234C Deferment Interest & Statutory Safe Harbors**:
+  - Charges 1% per month for 3 months on quarterly shortfalls (1 month for March installment).
+  - Evaluates statutory safe harbors under Section 234C(1):
+    - June 15 safe harbor: No interest if cumulative paid &ge; 12% of assessed tax.
+    - September 15 safe harbor: No interest if cumulative paid &ge; 36% of assessed tax.
+- **Section 234B Default / Shortfall in Payment of Advance Tax**:
+  - Triggered if cumulative advance tax paid on or before March 31 is < 90% of assessed tax.
+  - Computes 1% per month (or part thereof) on shortfall from April 1 of the Assessment Year until assessment / self-assessment date.
+- **Section 234A Interest for Late Filing of Income Tax Return**:
+  - Evaluates filing date against Section 139(1) statutory due date (e.g. July 31 for non-audit, October 31 for tax audit, November 30 for transfer pricing).
+  - Computes 1% per month (or part thereof) on balance tax remaining payable.
+- **ITNS 280 Challan Tracking & Recording**:
+  - Records BSR code (7 digits), challan date, challan serial number (5 digits), minor head code (100 for Advance Tax, 300 for Self-Assessment), and tax breakdown (Basic, Surcharge, Cess, Interest, Penalty).
+- **Two Locks**: EF Core global query filters and PostgreSQL Row Level Security on `advance_tax_plans`, `advance_tax_installments`, and `tax_interest_computations` (`0025_advance_tax.sql`).
+
+API:
+- `GET /api/advance-tax/plans`, `GET /api/advance-tax/plans/{id}`, `POST /api/advance-tax/plans`, `PUT /api/advance-tax/plans/{id}` (`advancetax.read`, `advancetax.manage`)
+- `POST /api/advance-tax/plans/{id}/pay-installment` (`advancetax.manage`)
+- `POST /api/advance-tax/plans/{id}/calculate-interest`, `GET /api/advance-tax/computations` (`advancetax.calculate`, `advancetax.read`)
+- `GET /api/advance-tax/summary` (`advancetax.read`)
 
 
 

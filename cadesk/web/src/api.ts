@@ -2691,6 +2691,147 @@ export const fixedAssetApi = {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Sprint 26: Advance Tax Planner & Section 234A/B/C Interest Engine
+// ---------------------------------------------------------------------------
+export type AdvanceTaxRegime = 'NewRegime' | 'OldRegime'
+export type AdvanceTaxPlanStatus = 'Draft' | 'Active' | 'Completed'
+
+export type AdvanceTaxPlanDto = {
+  id: string
+  clientId: string
+  clientName: string
+  clientCode: string
+  financialYear: string
+  assessmentYear: string
+  regime: AdvanceTaxRegime
+  isPresumptive: boolean
+  isSeniorCitizen: boolean
+  estimatedGrossIncome: number
+  estimatedDeductions: number
+  estimatedTaxableIncome: number
+  estimatedTaxBeforeCredits: number
+  estimatedTdsTcs: number
+  otherReliefs: number
+  assessedTax: number
+  status: AdvanceTaxPlanStatus
+  notes?: string | null
+  totalAdvanceTaxPaid: number
+  totalInterest234c: number
+  createdAt: string
+}
+
+export type AdvanceTaxInstallmentDto = {
+  id: string
+  planId: string
+  installmentNumber: number
+  dueDate: string
+  targetPercentage: number
+  cumulativeTargetAmount: number
+  amountPaid: number
+  shortfallAmount: number
+  interest234c: number
+  challanBsrCode?: string | null
+  challanNumber?: string | null
+  challanDate?: string | null
+  isPaid: boolean
+  createdAt: string
+}
+
+export type TaxInterestComputationDto = {
+  id: string
+  planId: string
+  assessmentYear: string
+  assessedTax: number
+  advanceTaxPaid: number
+  tdsTcsCredit: number
+  selfAssessmentTaxPaid: number
+  returnDueDate: string
+  actualReturnFilingDate: string
+  monthsDelayed234a: number
+  interest234a: number
+  is234bApplicable: boolean
+  monthsDelayed234b: number
+  interest234b: number
+  interest234cTotal: number
+  totalStatutoryInterest: number
+  netTaxPayable: number
+  computedAt: string
+}
+
+export type AdvanceTaxSummaryDto = {
+  totalPlans: number
+  activePlans: number
+  totalEstimatedIncome: number
+  totalAssessedTax: number
+  totalAdvanceTaxCollected: number
+  totalShortfall: number
+  totalInterest234c: number
+  totalInterest234b: number
+  totalInterest234a: number
+}
+
+export type SaveAdvanceTaxPlanRequest = {
+  clientId: string
+  financialYear: string
+  assessmentYear: string
+  regime: AdvanceTaxRegime
+  isPresumptive: boolean
+  isSeniorCitizen: boolean
+  estimatedGrossIncome: number
+  estimatedDeductions: number
+  estimatedTaxBeforeCredits: number
+  estimatedTdsTcs: number
+  otherReliefs: number
+  notes?: string | null
+}
+
+export type RecordInstallmentPaymentRequest = {
+  amountPaid: number
+  challanBsrCode?: string | null
+  challanNumber?: string | null
+  challanDate?: string | null
+}
+
+export type CalculateStatutoryInterestRequest = {
+  returnDueDate: string
+  actualReturnFilingDate: string
+  selfAssessmentTaxPaid: number
+}
+
+export const advanceTaxApi = {
+  getSummary: (clientId?: string, financialYear?: string) => {
+    const p = new URLSearchParams()
+    if (clientId) p.set('clientId', clientId)
+    if (financialYear) p.set('financialYear', financialYear)
+    const qs = p.toString()
+    return api<AdvanceTaxSummaryDto>(`/api/advance-tax/summary${qs ? `?${qs}` : ''}`)
+  },
+  getPlans: (clientId?: string, financialYear?: string) => {
+    const p = new URLSearchParams()
+    if (clientId) p.set('clientId', clientId)
+    if (financialYear) p.set('financialYear', financialYear)
+    const qs = p.toString()
+    return api<AdvanceTaxPlanDto[]>(`/api/advance-tax/plans${qs ? `?${qs}` : ''}`)
+  },
+  getPlanById: (id: string) => api<AdvanceTaxPlanDto>(`/api/advance-tax/plans/${id}`),
+  createPlan: (req: SaveAdvanceTaxPlanRequest) =>
+    api<AdvanceTaxPlanDto>('/api/advance-tax/plans', { method: 'POST', body: JSON.stringify(req) }),
+  updatePlan: (id: string, req: SaveAdvanceTaxPlanRequest) =>
+    api<AdvanceTaxPlanDto>(`/api/advance-tax/plans/${id}`, { method: 'PUT', body: JSON.stringify(req) }),
+  deletePlan: (id: string) => api(`/api/advance-tax/plans/${id}`, { method: 'DELETE' }),
+
+  getInstallments: (planId: string) =>
+    api<AdvanceTaxInstallmentDto[]>(`/api/advance-tax/plans/${planId}/installments`),
+  recordPayment: (installmentId: string, req: RecordInstallmentPaymentRequest) =>
+    api<AdvanceTaxInstallmentDto>(`/api/advance-tax/installments/${installmentId}/pay`, { method: 'POST', body: JSON.stringify(req) }),
+
+  calculateInterest: (planId: string, req: CalculateStatutoryInterestRequest) =>
+    api<TaxInterestComputationDto>(`/api/advance-tax/plans/${planId}/calculate-interest`, { method: 'POST', body: JSON.stringify(req) }),
+  getInterestComputations: (planId: string) =>
+    api<TaxInterestComputationDto[]>(`/api/advance-tax/plans/${planId}/interest-computations`),
+}
+
 
 
 

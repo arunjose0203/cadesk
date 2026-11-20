@@ -153,4 +153,7 @@ public static class Perms
     public const string AssetsRead = "assets.read";
     public const string AssetsManage = "assets.manage";
     public const string AssetsDepreciate = "assets.depreciate";
+    public const string AdvanceTaxRead = "advancetax.read";
+    public const string AdvanceTaxManage = "advancetax.manage";
+    public const string AdvanceTaxCalculate = "advancetax.calculate";
 }
