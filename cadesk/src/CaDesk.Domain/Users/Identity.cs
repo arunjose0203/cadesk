@@ -132,4 +132,11 @@ public static class Perms
     public const string TdsManage = "tds.manage";
     public const string McaRead = "mca.read";
     public const string McaManage = "mca.manage";
+    public const string EngagementRead = "engagement.read";
+    public const string EngagementManage = "engagement.manage";
+    public const string KycRead = "kyc.read";
+    public const string KycManage = "kyc.manage";
+    public const string BankRead = "bank.read";
+    public const string BankManage = "bank.manage";
+    public const string BankReconcile = "bank.reconcile";
 }

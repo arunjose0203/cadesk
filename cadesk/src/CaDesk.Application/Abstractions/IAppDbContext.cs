@@ -2,6 +2,8 @@ using CaDesk.Domain.Audit;
 using CaDesk.Domain.Gst;
 using CaDesk.Domain.Tds;
 using CaDesk.Domain.Mca;
+using CaDesk.Domain.Engagements;
+using CaDesk.Domain.BankFeeds;
 using CaDesk.Domain.Billing;
 using CaDesk.Domain.Clients;
 using CaDesk.Domain.Dsc;
@@ -77,6 +79,12 @@ public interface IAppDbContext
     DbSet<DirectorDinRecord> DirectorDins { get; }
     DbSet<McaAnnualFiling> McaFilings { get; }
     DbSet<BoardResolution> BoardResolutions { get; }
+    DbSet<EngagementLetter> EngagementLetters { get; }
+    DbSet<ClientKycRecord> ClientKycRecords { get; }
+    DbSet<BankAccount> BankAccounts { get; }
+    DbSet<BankStatement> BankStatements { get; }
+    DbSet<BankTransaction> BankTransactions { get; }
+    DbSet<BankReconciliationRule> BankReconciliationRules { get; }
     /// <summary>For transactions and the few raw SQL calls (numbering, jsonb lookups). RLS still applies.</summary>
     DatabaseFacade Database { get; }
     Task<int> SaveChangesAsync(CancellationToken ct = default);

@@ -141,6 +141,7 @@ public static class TestData
         "mca.read", "mca.manage",
         "engagement.read", "engagement.manage",
         "kyc.read", "kyc.manage",
+        "bank.read", "bank.manage", "bank.reconcile",
         "reports.read", "tasks.review",
     ];
 

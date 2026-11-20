@@ -440,6 +440,23 @@ API:
 API:
 - `GET /api/mca/summary`, `GET /api/mca/companies`, `GET /api/mca/companies/{id}`, `POST /api/mca/companies`, `GET /api/mca/directors`, `POST /api/mca/directors`, `GET /api/mca/filings`, `POST /api/mca/filings`, `GET /api/mca/resolutions`, `POST /api/mca/resolutions`, `POST /api/mca/late-fee/calculate` (`mca.read`, `mca.manage`)
 
+## Digital Engagement Letters & KYC Compliance (Sprint 19)
+
+- **ICAI SA 210 Standard on Auditing Compliance**:
+  - Prepares formal engagement terms agreeing on the objective and scope of the engagement, the auditor's responsibilities, management's responsibilities, applicable financial reporting framework, and expected form of reports.
+  - Built-in standardized clauses covering Statutory Audits (Companies Act 2013 Sec 139), Tax Audits (Income Tax Sec 44AB), GST Audits (Rule 80(3)), and Internal Audits (Sec 138).
+  - Lifecycle states: `Draft`, `IssuedToClient`, `AcceptedByClient`, `Declined`, `Superseded`.
+- **PMLA (Prevention of Money Laundering Act) & Beneficial Ownership KYC**:
+  - Risk classification tiers: `Low`, `Medium`, `High`, and `PEP` (Politically Exposed Persons).
+  - Dynamic risk review windows: 1-year periodic re-verification for High Risk/PEP, 2 years for Medium Risk, and 3 years for Low Risk.
+  - Beneficial Ownership (Rule 9 of PMLA Rules): Natural persons holding ≥ 10% (companies) or ≥ 15% (partnerships/trusts) control or ownership.
+  - Mandatory verification tracking: PAN verification, Aadhaar/Offline XML, C-KYC 14-digit identifier, and Board Resolution identity proofs.
+- **Two Locks**: EF Core tenant filtering and PostgreSQL Row Level Security on `engagement_letters` and `client_kyc_records` (`0018_engagement_kyc.sql`).
+
+API:
+- `GET /api/engagements/summary`, `GET /api/engagements`, `GET /api/engagements/{id}`, `POST /api/engagements`, `PUT /api/engagements/{id}/status`, `POST /api/engagements/preview-template` (`engagement.read`, `engagement.manage`)
+- `GET /api/kyc`, `GET /api/kyc/{id}`, `POST /api/kyc`, `PUT /api/kyc/{id}/status` (`kyc.read`, `kyc.manage`)
+
 
 
 

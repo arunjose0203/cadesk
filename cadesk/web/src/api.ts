@@ -1367,6 +1367,159 @@ export const mcaApi = {
     api<McaLateFeeCalculationResult>('/api/mca/late-fee/calculate', { method: 'POST', body: JSON.stringify(req) }),
 }
 
+// -------------------------------------------------------------
+// Sprint 19: Digital Engagement Letters & KYC Compliance Types
+// -------------------------------------------------------------
+
+export type EngagementLetterDto = {
+  id: string
+  clientId: string
+  clientName?: string | null
+  letterNumber: string
+  engagementType: string
+  financialYear: string
+  scopeOfWork: string
+  managementResponsibilities: string
+  auditorResponsibilities: string
+  feeStructure: string
+  agreedFeeAmount: number
+  outOfPocketIncluded: boolean
+  status: string
+  sentDate?: string | null
+  acceptedDate?: string | null
+  clientSignatoryName?: string | null
+  clientSignatoryDesignation?: string | null
+  acceptanceIp?: string | null
+  letterContent: string
+  createdAt: string
+}
+
+export type CreateEngagementLetterRequest = {
+  clientId: string
+  engagementType: string
+  financialYear: string
+  scopeOfWork?: string
+  managementResponsibilities?: string
+  auditorResponsibilities?: string
+  feeStructure?: string
+  agreedFeeAmount: number
+  outOfPocketIncluded?: boolean
+  letterContent?: string
+}
+
+export type AcceptEngagementLetterRequest = {
+  signatoryName: string
+  signatoryDesignation: string
+  ipAddress?: string
+}
+
+export type ClientKycRecordDto = {
+  id: string
+  clientId: string
+  clientName?: string | null
+  riskRating: string
+  verificationStatus: string
+  constitutionDocumentType: string
+  constitutionDocumentNumber?: string | null
+  panVerified: boolean
+  gstinVerified: boolean
+  addressProofType?: string | null
+  addressProofNumber?: string | null
+  uboName?: string | null
+  uboShareholdingPercentage?: number | null
+  uboPan?: string | null
+  sanctionsCheckCleared: boolean
+  adverseMediaCheckCleared: boolean
+  riskRationale?: string | null
+  lastReviewedDate: string
+  nextReviewDueDate: string
+  createdAt: string
+}
+
+export type SaveClientKycRequest = {
+  clientId: string
+  riskRating: string
+  verificationStatus?: string
+  constitutionDocumentType: string
+  constitutionDocumentNumber?: string | null
+  panVerified?: boolean
+  gstinVerified?: boolean
+  addressProofType?: string | null
+  addressProofNumber?: string | null
+  uboName?: string | null
+  uboShareholdingPercentage?: number | null
+  uboPan?: string | null
+  sanctionsCheckCleared?: boolean
+  adverseMediaCheckCleared?: boolean
+  riskRationale?: string | null
+}
+
+export type EngagementKycSummaryDto = {
+  totalLettersCount: number
+  acceptedLettersCount: number
+  pendingLettersCount: number
+  totalKycRecordsCount: number
+  verifiedKycCount: number
+  highRiskKycCount: number
+  totalContractedFeeValue: number
+}
+
+export type GenerateTemplateRequest = {
+  engagementType: string
+  clientName: string
+  financialYear: string
+  feeStructure?: string
+  agreedFeeAmount: number
+}
+
+export type GeneratedEngagementTemplate = {
+  engagementType: string
+  defaultScope: string
+  defaultManagementResponsibilities: string
+  defaultAuditorResponsibilities: string
+  fullLetterContent: string
+}
+
+export const engagementApi = {
+  summary: () => api<EngagementKycSummaryDto>('/api/engagements/summary'),
+
+  listLetters: (clientId?: string, type?: string, status?: string) => {
+    const p = new URLSearchParams()
+    if (clientId) p.set('clientId', clientId)
+    if (type) p.set('type', type)
+    if (status) p.set('status', status)
+    const qs = p.toString()
+    return api<EngagementLetterDto[]>(`/api/engagements${qs ? `?${qs}` : ''}`)
+  },
+
+  getLetter: (id: string) => api<EngagementLetterDto>(`/api/engagements/${id}`),
+
+  createLetter: (req: CreateEngagementLetterRequest) =>
+    api<EngagementLetterDto>('/api/engagements', { method: 'POST', body: JSON.stringify(req) }),
+
+  sendLetter: (id: string) =>
+    api<EngagementLetterDto>(`/api/engagements/${id}/send`, { method: 'POST' }),
+
+  acceptLetter: (id: string, req: AcceptEngagementLetterRequest) =>
+    api<EngagementLetterDto>(`/api/engagements/${id}/accept`, { method: 'POST', body: JSON.stringify(req) }),
+
+  generateTemplate: (req: GenerateTemplateRequest) =>
+    api<GeneratedEngagementTemplate>('/api/engagements/template', { method: 'POST', body: JSON.stringify(req) }),
+
+  listKyc: (clientId?: string, riskRating?: string) => {
+    const p = new URLSearchParams()
+    if (clientId) p.set('clientId', clientId)
+    if (riskRating) p.set('riskRating', riskRating)
+    const qs = p.toString()
+    return api<ClientKycRecordDto[]>(`/api/kyc${qs ? `?${qs}` : ''}`)
+  },
+
+  getKyc: (clientId: string) => api<ClientKycRecordDto>(`/api/kyc/${clientId}`),
+
+  saveKyc: (req: SaveClientKycRequest) =>
+    api<ClientKycRecordDto>('/api/kyc', { method: 'POST', body: JSON.stringify(req) }),
+}
+
 
 
 

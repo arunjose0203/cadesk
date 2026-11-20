@@ -5,6 +5,8 @@ using CaDesk.Domain.Audit;
 using CaDesk.Domain.Gst;
 using CaDesk.Domain.Tds;
 using CaDesk.Domain.Mca;
+using CaDesk.Domain.Engagements;
+using CaDesk.Domain.BankFeeds;
 using CaDesk.Domain.Billing;
 using CaDesk.Domain.Clients;
 using CaDesk.Domain.Dsc;
@@ -82,6 +84,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
     public DbSet<DirectorDinRecord> DirectorDins => Set<DirectorDinRecord>();
     public DbSet<McaAnnualFiling> McaFilings => Set<McaAnnualFiling>();
     public DbSet<BoardResolution> BoardResolutions => Set<BoardResolution>();
+    public DbSet<EngagementLetter> EngagementLetters => Set<EngagementLetter>();
+    public DbSet<ClientKycRecord> ClientKycRecords => Set<ClientKycRecord>();
+    public DbSet<BankAccount> BankAccounts => Set<BankAccount>();
+    public DbSet<BankStatement> BankStatements => Set<BankStatement>();
+    public DbSet<BankTransaction> BankTransactions => Set<BankTransaction>();
+    public DbSet<BankReconciliationRule> BankReconciliationRules => Set<BankReconciliationRule>();
     public DbSet<ConfigDefinition> ConfigDefinitions => Set<ConfigDefinition>();
     public DbSet<ConfigValue> ConfigValues => Set<ConfigValue>();
     public DbSet<ConfigChangeLog> ConfigChangeLog => Set<ConfigChangeLog>();
@@ -351,6 +359,45 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
         {
             e.ToTable("board_resolutions");
             e.HasOne(x => x.Company).WithMany(x => x.Resolutions).HasForeignKey(x => x.CompanyId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<EngagementLetter>(e =>
+        {
+            e.ToTable("engagement_letters");
+            e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<ClientKycRecord>(e =>
+        {
+            e.ToTable("client_kyc_records");
+            e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<BankAccount>(e =>
+        {
+            e.ToTable("bank_accounts");
+            e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
+            e.HasMany(x => x.Statements).WithOne(x => x.BankAccount).HasForeignKey(x => x.BankAccountId).OnDelete(DeleteBehavior.Cascade);
+            e.HasMany(x => x.Transactions).WithOne(x => x.BankAccount).HasForeignKey(x => x.BankAccountId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<BankStatement>(e =>
+        {
+            e.ToTable("bank_statements");
+            e.HasOne(x => x.BankAccount).WithMany(x => x.Statements).HasForeignKey(x => x.BankAccountId).OnDelete(DeleteBehavior.Cascade);
+            e.HasMany(x => x.Transactions).WithOne(x => x.Statement).HasForeignKey(x => x.StatementId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<BankTransaction>(e =>
+        {
+            e.ToTable("bank_transactions");
+            e.HasOne(x => x.Statement).WithMany(x => x.Transactions).HasForeignKey(x => x.StatementId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.BankAccount).WithMany(x => x.Transactions).HasForeignKey(x => x.BankAccountId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<BankReconciliationRule>(e =>
+        {
+            e.ToTable("bank_reconciliation_rules");
         });
 
         b.Entity<TaskTemplate>(e =>

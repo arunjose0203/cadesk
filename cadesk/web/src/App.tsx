@@ -16,8 +16,9 @@ import { AuditWorkspacePage } from './AuditWorkspacePage'
 import { GstReconciliationPage } from './GstReconciliationPage'
 import { TdsPage } from './TdsPage'
 import { McaCompliancePage } from './McaCompliancePage'
+import { EngagementKycPage } from './EngagementKycPage'
 
-type Page = 'tasks' | 'deadlines' | 'clients' | 'billing' | 'tax' | 'audit-workspace' | 'gst-reconcile' | 'tds' | 'mca' | 'dsc' | 'portal' | 'users' | 'settings' | 'audit' | 'security'
+type Page = 'tasks' | 'deadlines' | 'clients' | 'billing' | 'tax' | 'audit-workspace' | 'gst-reconcile' | 'tds' | 'mca' | 'engagement' | 'dsc' | 'portal' | 'users' | 'settings' | 'audit' | 'security'
 
 export default function App() {
   const [user, setUser] = useState<UserProfile | null>(null)
@@ -249,6 +250,18 @@ export default function App() {
             MCA / ROC
           </button>
         )}
+        {can('engagement.read') && (
+          <button className={page === 'engagement' ? 'active' : ''} onClick={() => setPage('engagement')}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+              <path d="M10 9H8"></path>
+            </svg>
+            Engagements & KYC
+          </button>
+        )}
         {can('dsc.read') && (
           <button className={page === 'dsc' ? 'active' : ''} onClick={() => setPage('dsc')}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -312,6 +325,7 @@ export default function App() {
       {page === 'gst-reconcile' && can('gst.read') && <GstReconciliationPage />}
       {page === 'tds' && can('tds.read') && <TdsPage />}
       {page === 'mca' && can('mca.read') && <McaCompliancePage />}
+      {page === 'engagement' && can('engagement.read') && <EngagementKycPage />}
       {page === 'dsc' && can('dsc.read') && <DscPage can={can} meId={user.id} />}
       {page === 'portal' && can('portal.read') && <PortalPage can={can} meId={user.id} />}
       {page === 'users' && can('users.read') && <UsersPage can={can} me={user} />}
