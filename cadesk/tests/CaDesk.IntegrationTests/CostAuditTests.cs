@@ -126,10 +126,10 @@ public class CostAuditTests(ApiFactory api) : IClassFixture<ApiFactory>
                 QualityControlCost: 3_00_000m,
                 RndExpenses: 2_50_000m,
                 AdministrationOverheads: 4_50_000m,
-                OpeningWipCost = 3_00_000m,
-                ClosingWipCost = 2_00_000m,
-                OpeningFinishedGoodsCost = 5_00_000m,
-                ClosingFinishedGoodsCost = 3_00_000m,
+                OpeningWipCost: 3_00_000m,
+                ClosingWipCost: 2_00_000m,
+                OpeningFinishedGoodsCost: 5_00_000m,
+                ClosingFinishedGoodsCost: 3_00_000m,
                 SellingAndDistributionOverheads: 8_00_000m,
                 NetSalesRealization: 95_00_000m));
         addProdRes.EnsureSuccessStatusCode();
