@@ -156,7 +156,8 @@ public static class PresumptiveTaxEngine
         decimal declaredProfit,
         bool optedOutPriorYear = false,
         string? optOutAy = null,
-        string? currentAy = null)
+        string? currentAy = null,
+        string? financialYear = null)
     {
         var gross = Math.Max(0, digitalTurnover) + Math.Max(0, cashTurnover);
         var cashPct = gross > 0 ? Math.Round((cashTurnover / gross) * 100m, 2) : 0m;
@@ -183,7 +184,8 @@ public static class PresumptiveTaxEngine
             isWithinLimit: isWithinLimit,
             minimumDeemedProfit: minProfit,
             declaredProfit: declaredProfit,
-            isLockoutActive: isLockout
+            isLockoutActive: isLockout,
+            financialYear: financialYear
         );
 
         return (
@@ -216,7 +218,8 @@ public static class PresumptiveTaxEngine
     ) CalculateSection44ADA(
         decimal digitalReceipts,
         decimal cashReceipts,
-        decimal declaredProfit)
+        decimal declaredProfit,
+        string? financialYear = null)
     {
         var gross = Math.Max(0, digitalReceipts) + Math.Max(0, cashReceipts);
         var cashPct = gross > 0 ? Math.Round((cashReceipts / gross) * 100m, 2) : 0m;
@@ -237,7 +240,8 @@ public static class PresumptiveTaxEngine
             isWithinLimit: isWithinLimit,
             minimumDeemedProfit: minProfit,
             declaredProfit: declaredProfit,
-            isLockoutActive: false
+            isLockoutActive: false,
+            financialYear: financialYear
         );
 
         return (
@@ -318,21 +322,25 @@ public static class PresumptiveTaxEngine
         bool isWithinLimit,
         decimal minimumDeemedProfit,
         decimal declaredProfit,
-        bool isLockoutActive)
+        bool isLockoutActive,
+        string? financialYear = null)
     {
+        // cite the law of the year (Income-tax Act, 2025 from tax year 2026-27)
+        string S(string ref1961) => IncomeTaxLaw.Sec(ref1961, financialYear);
+
         if (!isWithinLimit)
         {
-            return (true, $"Turnover/Receipts ({grossTurnover:N0}) exceeds the statutory presumptive ceiling of {turnoverLimit:N0} under Section {section}. Mandatory Tax Audit under Section 44AB.");
+            return (true, $"Turnover/Receipts ({grossTurnover:N0}) exceeds the statutory presumptive ceiling of {turnoverLimit:N0} under {S(section)}. Mandatory Tax Audit under {S("44AB")}.");
         }
 
         if (isLockoutActive)
         {
-            return (true, "Assessee is under active 5-year Section 44AD(4) penalty lockout for previously declaring profit below statutory rate. Mandatory Tax Audit under Section 44AB(e) applies.");
+            return (true, $"Assessee is under active 5-year {S("44AD(4)")} penalty lockout for previously declaring profit below statutory rate. Mandatory Tax Audit under {S("44AB(e)")} applies.");
         }
 
         if (declaredProfit > 0 && declaredProfit < minimumDeemedProfit)
         {
-            return (true, $"Declared profit ({declaredProfit:N0}) is lower than the statutory minimum deemed profit ({minimumDeemedProfit:N0}). Books of accounts required under Section 44AA and Tax Audit mandatory under Section 44AB.");
+            return (true, $"Declared profit ({declaredProfit:N0}) is lower than the statutory minimum deemed profit ({minimumDeemedProfit:N0}). Books of accounts required under {S("44AA")} and Tax Audit mandatory under {S("44AB(c)")}.");
         }
 
         return (false, null);

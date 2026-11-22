@@ -190,8 +190,13 @@ public static class Form3CdEngine
         decimal cashPayments,
         bool isAuditedUnderOtherLaw, // true for Companies, etc.
         bool declaresLowerPresumptiveProfit = false,
-        bool is44AdLockout = false)
+        bool is44AdLockout = false,
+        bool optsPresumptive44Ada = false,
+        string? financialYear = null)
     {
+        // cite the law of the year being audited (Income-tax Act, 2025 from tax year 2026-27)
+        string S(string ref1961) => IncomeTaxLaw.Sec(ref1961, financialYear);
+
         var cashReceiptsPct = turnoverOrGrossReceipts > 0
             ? Math.Round((cashReceipts / turnoverOrGrossReceipts) * 100m, 2)
             : 0m;
@@ -213,7 +218,7 @@ public static class Form3CdEngine
                 ApplicableClause: Form3CdSection44AbClause.Clause_e_Presumptive44AdLockout,
                 CashReceiptPercent: cashReceiptsPct,
                 CashPaymentPercent: cashPaymentsPct,
-                Rationale: "Mandatory tax audit under Section 44AB(e): Assessee has opted out of presumptive taxation within the 5-year lockout period under Section 44AD(4).",
+                Rationale: $"Mandatory tax audit under {S("44AB(e)")}: Assessee has opted out of presumptive taxation within the 5-year lockout period under {S("44AD(4)")}.",
                 StatutoryTurnoverThreshold: 0m
             );
         }
@@ -231,7 +236,7 @@ public static class Form3CdEngine
                 ApplicableClause: clause,
                 CashReceiptPercent: cashReceiptsPct,
                 CashPaymentPercent: cashPaymentsPct,
-                Rationale: $"Mandatory tax audit under {(isBusiness ? "Section 44AB(c)" : "Section 44AB(d)")}: Assessee declared net profit lower than statutory deemed presumptive rates.",
+                Rationale: $"Mandatory tax audit under {S(isBusiness ? "44AB(c)" : "44AB(d)")}: Assessee declared net profit lower than statutory deemed presumptive rates.",
                 StatutoryTurnoverThreshold: 0m
             );
         }
@@ -239,23 +244,35 @@ public static class Form3CdEngine
         // 3. Professional gross receipts check
         if (!isBusiness)
         {
-            // Standard limit ₹50 Lakhs; Enhanced limit ₹75 Lakhs if cash receipts <= 5%
-            bool isEligibleFor75Lakhs = cashReceiptsPct <= 5.0m;
-            decimal threshold = isEligibleFor75Lakhs ? 75_00_000m : 50_00_000m;
+            // Audit above Rs 50 lakh: 44AB(b) / s.63(1) (Table: Sl. No. 1(c)). Rs 75 lakh is the 44ADA presumptive ceiling
+            // (cash receipts <= 5%), not an audit threshold: it only spares a professional who declares at least the
+            // deemed 50% under 44ADA, which the caller states with optsPresumptive44Ada.
+            const decimal threshold = 50_00_000m;
+            bool within44AdaCeiling = cashReceiptsPct <= 5.0m ? turnoverOrGrossReceipts <= 75_00_000m : turnoverOrGrossReceipts <= 50_00_000m;
+
+            if (turnoverOrGrossReceipts > threshold && optsPresumptive44Ada && within44AdaCeiling)
+            {
+                return new Form3CdApplicabilityEvaluation(
+                    IsMandatory: false,
+                    RecommendedAuditType: auditType,
+                    ApplicableClause: Form3CdSection44AbClause.Clause_b_ProfessionReceipts,
+                    CashReceiptPercent: cashReceiptsPct,
+                    CashPaymentPercent: cashPaymentsPct,
+                    Rationale: $"Tax audit not mandatory: professional gross receipts ({turnoverOrGrossReceipts.ToString("C2", IndianCulture)}) are within the {S("44ADA")} presumptive ceiling of ₹75 lakh (cash receipts <= 5%) and income is declared at not less than the deemed 50%.",
+                    StatutoryTurnoverThreshold: 75_00_000m
+                );
+            }
 
             if (turnoverOrGrossReceipts > threshold)
             {
-                string ruleDesc = isEligibleFor75Lakhs
-                    ? "enhanced threshold of ₹75 Lakhs (cash receipts <= 5%)"
-                    : "standard threshold of ₹50 Lakhs (cash receipts exceed 5%)";
-
                 return new Form3CdApplicabilityEvaluation(
                     IsMandatory: true,
                     RecommendedAuditType: auditType,
                     ApplicableClause: Form3CdSection44AbClause.Clause_b_ProfessionReceipts,
                     CashReceiptPercent: cashReceiptsPct,
                     CashPaymentPercent: cashPaymentsPct,
-                    Rationale: $"Mandatory tax audit under Section 44AB(b): Professional gross receipts ({turnoverOrGrossReceipts.ToString("C2", IndianCulture)}) exceed statutory {ruleDesc}.",
+                    Rationale: $"Mandatory tax audit under {S("44AB(b)")}: Professional gross receipts ({turnoverOrGrossReceipts.ToString("C2", IndianCulture)}) exceed ₹50 lakh." +
+                        (within44AdaCeiling ? $" (Not required if income is offered under {S("44ADA")} at not less than 50% of receipts.)" : ""),
                     StatutoryTurnoverThreshold: threshold
                 );
             }
@@ -266,7 +283,7 @@ public static class Form3CdEngine
                 ApplicableClause: Form3CdSection44AbClause.Clause_b_ProfessionReceipts,
                 CashReceiptPercent: cashReceiptsPct,
                 CashPaymentPercent: cashPaymentsPct,
-                Rationale: $"Tax audit not mandatory under Section 44AB(b): Professional gross receipts ({turnoverOrGrossReceipts.ToString("C2", IndianCulture)}) within statutory threshold ({threshold.ToString("C2", IndianCulture)}).",
+                Rationale: $"Tax audit not mandatory under {S("44AB(b)")}: Professional gross receipts ({turnoverOrGrossReceipts.ToString("C2", IndianCulture)}) within statutory threshold ({threshold.ToString("C2", IndianCulture)}).",
                 StatutoryTurnoverThreshold: threshold
             );
         }
@@ -288,14 +305,14 @@ public static class Form3CdEngine
                 ApplicableClause: Form3CdSection44AbClause.Clause_a_BusinessTurnover,
                 CashReceiptPercent: cashReceiptsPct,
                 CashPaymentPercent: cashPaymentsPct,
-                Rationale: $"Mandatory tax audit under Section 44AB(a): Business turnover ({turnoverOrGrossReceipts.ToString("C2", IndianCulture)}) exceeds statutory {ruleDesc}.",
+                Rationale: $"Mandatory tax audit under {S("44AB(a)")}: Business turnover ({turnoverOrGrossReceipts.ToString("C2", IndianCulture)}) exceeds statutory {ruleDesc}.",
                 StatutoryTurnoverThreshold: businessThreshold
             );
         }
 
         string exemptReason = isEligibleFor10Crores
-            ? $"Business turnover ({turnoverOrGrossReceipts.ToString("C2", IndianCulture)}) is within the ₹10 Crore threshold under Section 44AB proviso (cash receipts: {cashReceiptsPct}%, cash payments: {cashPaymentsPct}%)."
-            : $"Business turnover ({turnoverOrGrossReceipts.ToString("C2", IndianCulture)}) is within the standard ₹1 Crore threshold under Section 44AB(a).";
+            ? $"Business turnover ({turnoverOrGrossReceipts.ToString("C2", IndianCulture)}) is within the ₹10 Crore threshold under {S("44AB(a)")} (cash receipts: {cashReceiptsPct}%, cash payments: {cashPaymentsPct}%)."
+            : $"Business turnover ({turnoverOrGrossReceipts.ToString("C2", IndianCulture)}) is within the standard ₹1 Crore threshold under {S("44AB(a)")}.";
 
         return new Form3CdApplicabilityEvaluation(
             IsMandatory: false,
@@ -385,9 +402,16 @@ public static class Form3CdEngine
     public static string GenerateTaxAuditReportDraft(Form3CdAssessment assessment, IEnumerable<Form3CdClauseResponse> clauses)
     {
         var sb = new StringBuilder();
-        string reportTitle = assessment.AuditType == Form3CdAuditType.Form3CA
-            ? "FORM NO. 3CA - AUDIT REPORT UNDER SECTION 44AB OF THE INCOME-TAX ACT, 1961"
-            : "FORM NO. 3CB - AUDIT REPORT UNDER SECTION 44AB OF THE INCOME-TAX ACT, 1961";
+        var fy = assessment.FinancialYear;
+        bool act2025 = IncomeTaxLaw.IsAct2025(fy);
+        string S(string ref1961) => IncomeTaxLaw.SecShort(ref1961, fy);
+        string statement = IncomeTaxLaw.Form("3CD", fy); // Form No. 26 from tax year 2026-27
+        string reportTitle = act2025
+            // Rules 2026 merge 3CA / 3CB / 3CD into one Form No. 26 under section 63
+            ? $"{statement.ToUpperInvariant()} - AUDIT REPORT AND STATEMENT OF PARTICULARS UNDER SECTION 63 OF THE {IncomeTaxLaw.Act2025.ToUpperInvariant()}"
+            : assessment.AuditType == Form3CdAuditType.Form3CA
+                ? "FORM NO. 3CA - AUDIT REPORT UNDER SECTION 44AB OF THE INCOME-TAX ACT, 1961"
+                : "FORM NO. 3CB - AUDIT REPORT UNDER SECTION 44AB OF THE INCOME-TAX ACT, 1961";
 
         sb.AppendLine(reportTitle);
         sb.AppendLine(new string('=', reportTitle.Length));
@@ -397,8 +421,12 @@ public static class Form3CdEngine
         sb.AppendLine($"PAN                : {assessment.Pan}");
         sb.AppendLine($"Address            : {assessment.Address}");
         sb.AppendLine($"Status             : {assessment.Status}");
-        sb.AppendLine($"Financial Year     : {assessment.FinancialYear} (Assessment Year: {assessment.AssessmentYear})");
-        sb.AppendLine($"Audit Form         : {assessment.AuditType} (Section: {assessment.Section44AbClause})");
+        sb.AppendLine(act2025
+            ? $"Tax Year           : {fy}"
+            : $"Financial Year     : {fy} (Assessment Year: {assessment.AssessmentYear})");
+        sb.AppendLine(act2025
+            ? $"Audit Form         : {statement} (tax audit trigger: {IncomeTaxLaw.SecWithEarlier(TriggerRef(assessment.Section44AbClause), fy)})"
+            : $"Audit Form         : {assessment.AuditType} (Section: {assessment.Section44AbClause})");
         sb.AppendLine($"Method of Account  : {assessment.MethodOfAccounting}");
         sb.AppendLine($"Special Tax Regime : {assessment.OptedSpecialTaxRegime}");
         sb.AppendLine();
@@ -406,14 +434,14 @@ public static class Form3CdEngine
         if (assessment.AuditType == Form3CdAuditType.Form3CA)
         {
             sb.AppendLine("1. We report that the statutory audit of the accounts of the assessee was conducted by us/statutory auditors under the Companies Act, 2013, and a copy of the audit report along with the audited financial statements is annexed hereto.");
-            sb.AppendLine("2. We report that the statement of particulars required to be furnished under section 44AB is given in Form No. 3CD annexed herewith.");
-            sb.AppendLine("3. In our opinion and to the best of our information and according to explanations given to us, the particulars given in the said Form No. 3CD and the Annexures thereto are true and correct, subject to the following observations / qualifications:");
+            sb.AppendLine($"2. We report that the statement of particulars required to be furnished under {IncomeTaxLaw.Sec("44AB", fy)} is given in {statement} annexed herewith.");
+            sb.AppendLine($"3. In our opinion and to the best of our information and according to explanations given to us, the particulars given in the said {statement} and the Annexures thereto are true and correct, subject to the following observations / qualifications:");
         }
         else
         {
-            sb.AppendLine("1. We have examined the balance sheet as at 31st March of the relevant previous year, and the profit and loss account / income and expenditure account for the year ended on that date, of the assessee.");
+            sb.AppendLine($"1. We have examined the balance sheet as at 31st March of the relevant {(act2025 ? "tax year" : "previous year")}, and the profit and loss account / income and expenditure account for the year ended on that date, of the assessee.");
             sb.AppendLine("2. We certify that the balance sheet and the profit and loss account are in agreement with the books of account maintained at the head office and branches.");
-            sb.AppendLine("3. In our opinion and to the best of our information and according to explanations given to us, the said accounts give a true and fair view, and the particulars given in Form No. 3CD are true and correct, subject to the following observations / qualifications:");
+            sb.AppendLine($"3. In our opinion and to the best of our information and according to explanations given to us, the said accounts give a true and fair view, and the particulars given in {statement} are true and correct, subject to the following observations / qualifications:");
         }
 
         sb.AppendLine();
@@ -426,7 +454,7 @@ public static class Form3CdEngine
 
         if (modifiedClauses.Count == 0)
         {
-            sb.AppendLine("   * None. All particulars furnished in Form 3CD have been verified against the books of account, statutory returns, and vouchers and are found clean and compliant.");
+            sb.AppendLine($"   * None. All particulars furnished in {statement} have been verified against the books of account, statutory returns, and vouchers and are found clean and compliant.");
         }
         else
         {
@@ -445,17 +473,22 @@ public static class Form3CdEngine
         }
 
         sb.AppendLine("--------------------------------------------------------------------------------");
-        sb.AppendLine("STATEMENT OF QUANTIFIED DISALLOWANCES / ADDITIONS TO TAXABLE PROFIT (FORM 3CD):");
+        sb.AppendLine($"STATEMENT OF QUANTIFIED DISALLOWANCES / ADDITIONS TO TAXABLE PROFIT ({statement.ToUpperInvariant()}):");
         sb.AppendLine("--------------------------------------------------------------------------------");
-        sb.AppendLine($"1. Sec 40(a)(i) & 40(a)(ia) TDS defaults disallowance : {assessment.TotalDisallowanceSec40a.ToString("C2", IndianCulture)}");
-        sb.AppendLine($"2. Sec 40A(3) Cash payments exceeding ₹10,000         : {assessment.TotalDisallowanceSec40A3.ToString("C2", IndianCulture)}");
-        sb.AppendLine($"3. Sec 43B Unpaid statutory dues / interest            : {assessment.TotalDisallowanceSec43B.ToString("C2", IndianCulture)}");
-        sb.AppendLine($"4. Sec 43B(h) MSME overdue payments (> 15/45 days)     : {assessment.TotalDisallowanceSec43Bh.ToString("C2", IndianCulture)}");
-        sb.AppendLine($"5. Sec 36(1)(va) Employee PF/ESI late deposits         : {assessment.TotalDisallowanceSec361va.ToString("C2", IndianCulture)}");
+        sb.AppendLine(Line($"1. {S("40(a)(i)")} & {S("40(a)(ia)")} TDS defaults disallowance", assessment.TotalDisallowanceSec40a));
+        sb.AppendLine(Line($"2. {S("40A(3)")} Cash payments exceeding ₹10,000", assessment.TotalDisallowanceSec40A3));
+        sb.AppendLine(Line($"3. {S("43B")} Unpaid statutory dues / interest", assessment.TotalDisallowanceSec43B));
+        sb.AppendLine(Line($"4. {S("43B(h)")} MSME overdue payments (> 15/45 days)", assessment.TotalDisallowanceSec43Bh));
+        sb.AppendLine(Line($"5. {S("36(1)(va)")} Employee PF/ESI late deposits", assessment.TotalDisallowanceSec361va));
         sb.AppendLine($"6. Net ICDS I-X adjustments to business profit         : {assessment.TotalIcdsNetAdjustment.ToString("C2", IndianCulture)}");
         sb.AppendLine($"TOTAL ADDITIONS TO TAXABLE BUSINESS PROFIT             : {assessment.TotalNetIncomeAdjustment.ToString("C2", IndianCulture)}");
         sb.AppendLine();
-        sb.AppendLine($"Sec 269SS/ST/T Cash loans/repayments violations reported: {assessment.TotalSec269Violations.ToString("C2", IndianCulture)}");
+        sb.AppendLine($"{S("269SS")} / {S("269ST")} / {S("269T")} cash loans / repayments violations reported: {assessment.TotalSec269Violations.ToString("C2", IndianCulture)}");
+        if (act2025)
+        {
+            sb.AppendLine();
+            sb.AppendLine($"Note: clause references above follow the Form No. 3CD layout; map them to the clauses of {statement} before filing.");
+        }
         sb.AppendLine("--------------------------------------------------------------------------------");
         sb.AppendLine();
         sb.AppendLine("For & on behalf of:");
@@ -469,6 +502,13 @@ public static class Form3CdEngine
 
         return sb.ToString();
     }
+
+    private static string Line(string label, decimal amount) =>
+        $"{label.PadRight(55)}: {amount.ToString("C2", IndianCulture)}";
+
+    /// <summary>"44AB(a) - Business ..." -> "44AB(a)", the 1961 trigger stored on the assessment.</summary>
+    private static string TriggerRef(string? section44AbClause) =>
+        string.IsNullOrWhiteSpace(section44AbClause) ? "44AB" : section44AbClause.Split(' ')[0];
 
     public static List<Form3CdClauseTemplate> GetStandardClausesTemplate()
     {

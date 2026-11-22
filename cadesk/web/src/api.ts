@@ -3593,6 +3593,8 @@ export type SaveForm3CdAssessmentRequest = {
   auditorObservations?: string | null
   declaresLowerPresumptiveProfit: boolean
   is44AdLockout: boolean
+  /** professional offering income under 44ADA (s.58 Sl. No. 3) at not less than the deemed 50% */
+  optsPresumptive44Ada?: boolean
   isAuditedUnderOtherLaw: boolean
   isBusiness: boolean
 }
@@ -3616,6 +3618,10 @@ export type EvaluateApplicabilityRequest = {
   isAuditedUnderOtherLaw: boolean
   declaresLowerPresumptiveProfit: boolean
   is44AdLockout: boolean
+  /** professional offering income under 44ADA (s.58 Sl. No. 3) at not less than the deemed 50% */
+  optsPresumptive44Ada?: boolean
+  /** "2026-27": decides whether the 1961 or the 2025 Act is cited */
+  financialYear?: string
 }
 
 export type Form3CdApplicabilityEvaluation = {

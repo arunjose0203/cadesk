@@ -107,21 +107,30 @@ public class Form3CdUnitTests
     }
 
     [Fact]
-    public void EvaluateApplicability_Profession_Between50LAnd75L_LowCash_ExemptUnderEnhancedLimit()
+    public void EvaluateApplicability_Profession_Between50LAnd75L_LowCash_MandatoryUnlessOffered44Ada()
     {
-        // Professional receipts ₹65 Lakhs, Cash receipts ₹2 Lakhs (3.08% <= 5%) -> ₹75 Lakhs limit applies -> Exempt
-        var eval = Form3CdEngine.EvaluateApplicability(
+        // 44AB(b) / s.63(1) Sl. No. 1(c): audit above ₹50 lakh. ₹75 lakh is the 44ADA presumptive ceiling (cash <= 5%),
+        // which spares only a professional who offers at least the deemed 50% under 44ADA.
+        Form3CdApplicabilityEvaluation Eval(bool opts44Ada) => Form3CdEngine.EvaluateApplicability(
             entityType: "Individual",
             isBusiness: false,
             turnoverOrGrossReceipts: 65_00_000m,
             cashReceipts: 2_00_000m,
             totalPayments: 30_00_000m,
             cashPayments: 1_00_000m,
-            isAuditedUnderOtherLaw: false
+            isAuditedUnderOtherLaw: false,
+            optsPresumptive44Ada: opts44Ada,
+            financialYear: "2025-26"
         );
 
-        Assert.False(eval.IsMandatory);
-        Assert.Equal(75_00_000m, eval.StatutoryTurnoverThreshold);
+        var regular = Eval(opts44Ada: false);
+        Assert.True(regular.IsMandatory);
+        Assert.Equal(50_00_000m, regular.StatutoryTurnoverThreshold);
+        Assert.Contains("section 44ADA", regular.Rationale);
+
+        var presumptive = Eval(opts44Ada: true);
+        Assert.False(presumptive.IsMandatory);
+        Assert.Equal(75_00_000m, presumptive.StatutoryTurnoverThreshold);
     }
 
     [Fact]
@@ -140,7 +149,8 @@ public class Form3CdUnitTests
 
         Assert.True(eval.IsMandatory);
         Assert.Equal(50_00_000m, eval.StatutoryTurnoverThreshold);
-        Assert.Contains("standard threshold of ₹50 Lakhs", eval.Rationale);
+        Assert.Contains("exceed ₹50 lakh", eval.Rationale);
+        Assert.DoesNotContain("44ADA", eval.Rationale); // cash above 5%: 44ADA's ₹75 lakh ceiling is not available
     }
 
     [Fact]
@@ -154,12 +164,13 @@ public class Form3CdUnitTests
             totalPayments: 50_00_000m,
             cashPayments: 2_00_000m,
             isAuditedUnderOtherLaw: false,
-            is44AdLockout: true
+            is44AdLockout: true,
+            financialYear: "2025-26"
         );
 
         Assert.True(eval.IsMandatory);
         Assert.Equal(Form3CdSection44AbClause.Clause_e_Presumptive44AdLockout, eval.ApplicableClause);
-        Assert.Contains("Section 44AB(e)", eval.Rationale);
+        Assert.Contains("section 44AB(e)", eval.Rationale);
     }
 
     [Fact]

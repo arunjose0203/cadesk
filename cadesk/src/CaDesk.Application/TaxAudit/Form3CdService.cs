@@ -62,7 +62,9 @@ public class Form3CdService
             cashPayments: req.CashPayments,
             isAuditedUnderOtherLaw: req.IsAuditedUnderOtherLaw,
             declaresLowerPresumptiveProfit: req.DeclaresLowerPresumptiveProfit,
-            is44AdLockout: req.Is44AdLockout
+            is44AdLockout: req.Is44AdLockout,
+            optsPresumptive44Ada: req.OptsPresumptive44Ada,
+            financialYear: req.FinancialYear
         );
     }
 
@@ -145,7 +147,9 @@ public class Form3CdService
             cashPayments: req.TotalCashPayments,
             isAuditedUnderOtherLaw: req.IsAuditedUnderOtherLaw,
             declaresLowerPresumptiveProfit: req.DeclaresLowerPresumptiveProfit,
-            is44AdLockout: req.Is44AdLockout
+            is44AdLockout: req.Is44AdLockout,
+            optsPresumptive44Ada: req.OptsPresumptive44Ada,
+            financialYear: req.FinancialYear
         );
 
         assessment.ClientId = req.ClientId;

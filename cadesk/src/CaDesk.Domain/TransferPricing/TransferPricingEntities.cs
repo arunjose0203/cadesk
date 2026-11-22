@@ -376,11 +376,17 @@ public static class TransferPricingEngine
         string registeredAddress)
     {
         var sb = new StringBuilder();
+        var fy = study.FinancialYear;
+        bool act2025 = IncomeTaxLaw.IsAct2025(fy); // Form No. 48 under section 172 from tax year 2026-27
+        string S(string ref1961) => IncomeTaxLaw.Sec(ref1961, fy);
+        string yearEnd = fy.Split('-').LastOrDefault() is { Length: 2 } yy ? "20" + yy : fy.Split('-').LastOrDefault() ?? "";
 
         sb.AppendLine("================================================================================");
-        sb.AppendLine("                               FORM NO. 3CEB");
-        sb.AppendLine("                 [See rule 10E of Income-tax Rules, 1962]");
-        sb.AppendLine("        REPORT FROM AN ACCOUNTANT TO BE FURNISHED UNDER SECTION 92E");
+        sb.AppendLine($"                               {IncomeTaxLaw.Form("3CEB", fy).ToUpperInvariant()}");
+        sb.AppendLine(act2025
+            ? "                     [See the Income-tax Rules, 2026]"
+            : "                 [See rule 10E of Income-tax Rules, 1962]");
+        sb.AppendLine($"        REPORT FROM AN ACCOUNTANT TO BE FURNISHED UNDER {S("92E").ToUpperInvariant()}");
         sb.AppendLine("                RELATING TO INTERNATIONAL TRANSACTION(S) AND");
         sb.AppendLine("                   SPECIFIED DOMESTIC TRANSACTION(S)");
         sb.AppendLine("================================================================================");
@@ -389,15 +395,22 @@ public static class TransferPricingEngine
         sb.AppendLine($"   Name of Assessee   : {assesseeName}");
         sb.AppendLine($"   PAN                : {pan}");
         sb.AppendLine($"   Registered Address : {registeredAddress}");
-        sb.AppendLine($"   Financial Year     : {study.FinancialYear} (Ended 31st March, {study.FinancialYear.Split('-').LastOrDefault() ?? "2025"})");
-        sb.AppendLine($"   Assessment Year    : {study.AssessmentYear}");
+        if (act2025)
+            sb.AppendLine($"   Tax Year           : {fy} (Ended 31st March, {yearEnd})");
+        else
+        {
+            sb.AppendLine($"   Financial Year     : {fy} (Ended 31st March, {yearEnd})");
+            sb.AppendLine($"   Assessment Year    : {study.AssessmentYear}");
+        }
         sb.AppendLine();
         sb.AppendLine("2. In my/our opinion proper books of account and documentation as required by the");
-        sb.AppendLine("   provisions of Chapter X of the Income-tax Act, 1961, read with rules 10D and 10E");
+        sb.AppendLine(act2025
+            ? $"   provisions of sections 162 to 172 of the {IncomeTaxLaw.Act2025}, read with the Income-tax Rules, 2026,"
+            : "   provisions of Chapter X of the Income-tax Act, 1961, read with rules 10D and 10E");
         sb.AppendLine($"   have been kept by the assessee in respect of international transactions and specified");
-        sb.AppendLine($"   domestic transactions entered into by the assessee during the previous year.");
+        sb.AppendLine($"   domestic transactions entered into by the assessee during the {(act2025 ? "tax year" : "previous year")}.");
         sb.AppendLine();
-        sb.AppendLine("3. The particulars required to be furnished under Section 92E are given in the");
+        sb.AppendLine($"3. The particulars required to be furnished under {S("92E")} are given in the");
         sb.AppendLine("   Annexure to this report. In my/our opinion and to the best of my/our information");
         sb.AppendLine("   and according to the explanations given to me/us, the particulars given in the");
         sb.AppendLine("   Annexure are true and correct.");
@@ -410,8 +423,12 @@ public static class TransferPricingEngine
         sb.AppendLine($"  3. Permanent Account Number (PAN)    : {pan}");
         sb.AppendLine($"  4. Status                            : Company / Body Corporate");
         sb.AppendLine($"  5. Residential Status                : Resident in India");
-        sb.AppendLine($"  6. Previous Year ended               : 31st March {study.FinancialYear.Split('-').LastOrDefault() ?? "2025"}");
-        sb.AppendLine($"  7. Assessment Year                   : {study.AssessmentYear}");
+        sb.AppendLine(act2025
+            ? $"  6. Tax Year ended                    : 31st March {yearEnd}"
+            : $"  6. Previous Year ended               : 31st March {yearEnd}");
+        sb.AppendLine(act2025
+            ? $"  7. Tax Year                          : {fy}"
+            : $"  7. Assessment Year                   : {study.AssessmentYear}");
         sb.AppendLine($"  8. Total Associated Enterprises      : {study.TotalAssociatedEnterprisesCount}");
         sb.AppendLine($"  9. Value of International Txs (INR)  : ₹{study.TotalInternationalInrValue:N2}");
         sb.AppendLine($" 10. Value of Specified Domestic Txs   : ₹{study.TotalSdtInrValue:N2}");
@@ -426,7 +443,7 @@ public static class TransferPricingEngine
 
         if (intlTxs.Count == 0)
         {
-            sb.AppendLine("  No international transactions were entered into during the previous year.");
+            sb.AppendLine($"  No international transactions were entered into during the {(act2025 ? "tax year" : "previous year")}.");
         }
         else
         {
@@ -447,7 +464,7 @@ public static class TransferPricingEngine
                 sb.AppendLine($"    Arm's Length Status     : {(tx.IsWithinArmLength ? "AT ARM'S LENGTH" : "OUTSIDE ARM'S LENGTH RANGE")}");
                 if (!tx.IsWithinArmLength && tx.AlpAdjustmentAmount > 0)
                 {
-                    sb.AppendLine($"    >> Primary TP Adjustment: ₹{tx.AlpAdjustmentAmount:N2} (Under Section 92CA)");
+                    sb.AppendLine($"    >> Primary TP Adjustment: ₹{tx.AlpAdjustmentAmount:N2} (Under {S("92CA")})");
                 }
                 sb.AppendLine($"    Documentation Reference : {tx.DocumentationReference}");
                 sb.AppendLine();
@@ -464,7 +481,7 @@ public static class TransferPricingEngine
 
         if (sdtTxs.Count == 0)
         {
-            sb.AppendLine("  No specified domestic transactions exceeding Section 92BA threshold (₹20 Cr) entered into.");
+            sb.AppendLine($"  No specified domestic transactions exceeding the {S("92BA")} threshold (₹20 Cr) entered into.");
         }
         else
         {
@@ -505,6 +522,11 @@ public static class TransferPricingEngine
         sb.AppendLine($"Date of Report     : {(study.CertifiedAt.HasValue ? study.CertifiedAt.Value.ToString("dd-MM-yyyy") : DateTime.UtcNow.ToString("dd-MM-yyyy"))}");
         sb.AppendLine($"Place              : New Delhi");
         sb.AppendLine("================================================================================");
+        if (act2025)
+        {
+            sb.AppendLine();
+            sb.AppendLine($"Note: clause numbers above follow the Form No. 3CEB layout; map them to {IncomeTaxLaw.Form("3CEB", fy)} before filing.");
+        }
 
         return sb.ToString();
     }

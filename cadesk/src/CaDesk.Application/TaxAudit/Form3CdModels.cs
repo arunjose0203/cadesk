@@ -89,6 +89,8 @@ public class SaveForm3CdAssessmentRequest
     public string? AuditorObservations { get; set; }
     public bool DeclaresLowerPresumptiveProfit { get; set; }
     public bool Is44AdLockout { get; set; }
+    /// <summary>Professional offering income under 44ADA (s.58 Table Sl. No. 3) at not less than the deemed 50%.</summary>
+    public bool OptsPresumptive44Ada { get; set; }
     public bool IsAuditedUnderOtherLaw { get; set; } = true;
     public bool IsBusiness { get; set; } = true;
 }
@@ -114,6 +116,10 @@ public class EvaluateApplicabilityRequest
     public bool IsAuditedUnderOtherLaw { get; set; } = true;
     public bool DeclaresLowerPresumptiveProfit { get; set; }
     public bool Is44AdLockout { get; set; }
+    /// <summary>Professional offering income under 44ADA (s.58 Table Sl. No. 3) at not less than the deemed 50%.</summary>
+    public bool OptsPresumptive44Ada { get; set; }
+    /// <summary>Year being evaluated ("2026-27"); decides whether the 1961 or the 2025 Act is cited. Defaults to today's law.</summary>
+    public string? FinancialYear { get; set; }
 }
 
 public record Form3CdSummaryDto(

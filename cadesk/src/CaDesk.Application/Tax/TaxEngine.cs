@@ -16,7 +16,7 @@ public static class TaxEngine
             recommended = "new";
             savings = oldResult.TotalTaxLiability - newResult.TotalTaxLiability;
             var rules = NewRegimeRules.For(req.FinancialYear, req.AssessmentYear);
-            reason = $"New Tax Regime saves ₹{savings:N0} in tax due to higher standard deduction (₹75,000), concessional tax slab rates, and ₹{rules.RebateIncomeLimit:N0} zero-tax threshold u/s 87A.";
+            reason = $"New Tax Regime saves ₹{savings:N0} in tax due to higher standard deduction (₹75,000), concessional tax slab rates, and ₹{rules.RebateIncomeLimit:N0} zero-tax threshold u/s {CaDesk.Domain.Common.IncomeTaxLaw.SecShort("87A", req.FinancialYear)[4..]}.";
         }
         else if (oldResult.TotalTaxLiability < newResult.TotalTaxLiability)
         {

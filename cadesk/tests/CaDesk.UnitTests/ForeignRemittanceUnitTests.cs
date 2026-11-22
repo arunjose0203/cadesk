@@ -195,6 +195,7 @@ public class ForeignRemittanceUnitTests
     {
         var assessment = new ForeignRemittanceAssessment
         {
+            FinancialYear = "2025-26", // Income-tax Act, 1961: Form No. 15CB
             RemitterName = "TechNova Solutions Pvt Ltd",
             RemitterPan = "AAACT1234F",
             RemitterTan = "BLRT12345A",

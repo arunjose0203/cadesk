@@ -1,3 +1,4 @@
+using CaDesk.Domain.Common;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -325,7 +326,8 @@ public class PresumptiveTaxService(IAppDbContext db, ITenantContext tenant)
                 comp.DeclaredProfit,
                 comp.OptedOutPriorYear,
                 comp.OptOutAssessmentYear,
-                comp.AssessmentYear
+                comp.AssessmentYear,
+                comp.FinancialYear
             );
 
             comp.GrossTurnover = r.GrossTurnover;
@@ -348,7 +350,8 @@ public class PresumptiveTaxService(IAppDbContext db, ITenantContext tenant)
             var r = PresumptiveTaxEngine.CalculateSection44ADA(
                 comp.DigitalTurnover,
                 comp.CashTurnover,
-                comp.DeclaredProfit
+                comp.DeclaredProfit,
+                comp.FinancialYear
             );
 
             comp.GrossTurnover = r.GrossReceipts;
@@ -382,13 +385,13 @@ public class PresumptiveTaxService(IAppDbContext db, ITenantContext tenant)
             {
                 comp.IsTurnoverWithinLimit = false;
                 comp.IsAuditMandatory = true;
-                comp.AuditTriggerReason = $"Assessee owns {vehicleCount} goods carriages, which exceeds the statutory maximum limit of {PresumptiveTaxEngine.Sec44AEMaxVehiclesLimit} vehicles under Section 44AE. Section 44AB Tax Audit mandatory.";
+                comp.AuditTriggerReason = $"Assessee owns {vehicleCount} goods carriages, which exceeds the statutory maximum limit of {PresumptiveTaxEngine.Sec44AEMaxVehiclesLimit} vehicles under {IncomeTaxLaw.Sec("44AE", comp.FinancialYear)}. Tax Audit mandatory under {IncomeTaxLaw.Sec("44AB", comp.FinancialYear)}.";
             }
             else if (comp.DeclaredProfit < minDeemed)
             {
                 comp.IsTurnoverWithinLimit = true;
                 comp.IsAuditMandatory = true;
-                comp.AuditTriggerReason = $"Declared profit ({comp.DeclaredProfit:N0}) is lower than the statutory minimum deemed profit ({minDeemed:N0}) calculated under Section 44AE(2). Section 44AB Tax Audit mandatory.";
+                comp.AuditTriggerReason = $"Declared profit ({comp.DeclaredProfit:N0}) is lower than the statutory minimum deemed profit ({minDeemed:N0}) calculated under {IncomeTaxLaw.Sec("44AE", comp.FinancialYear)}. Tax Audit mandatory under {IncomeTaxLaw.Sec("44AB(c)", comp.FinancialYear)}.";
             }
             else
             {

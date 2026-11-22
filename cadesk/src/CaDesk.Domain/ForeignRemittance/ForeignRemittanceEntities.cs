@@ -199,35 +199,39 @@ public static class ForeignRemittanceEngine
             assessment.NetRemittanceInr = Math.Round(assessment.InrEquivalent - assessment.TdsAmountInr, 2);
         }
 
-        // 6. Form 15CA Part Auto-Routing
+        // 6. Form 15CA Part Auto-Routing (Forms 145 / 146 under the Income-tax Rules, 2026 from tax year 2026-27)
+        var fy = assessment.FinancialYear;
+        bool act2025 = IncomeTaxLaw.IsAct2025(fy);
+        string form15Ca = IncomeTaxLaw.Form("15CA", fy), form15Cb = IncomeTaxLaw.Form("15CB", fy);
+        string yearWord = act2025 ? "tax year" : "financial year";
         if (isExemptCode)
         {
             assessment.Form15CaPart = "ExemptRule37BB";
-            assessment.Form15CaRoutingReason = $"Remittance is exempt under Rule 37BB(3) specified purpose code {assessment.RbiPurposeCode}. Neither Form 15CA nor Form 15CB is required.";
+            assessment.Form15CaRoutingReason = $"Remittance is exempt as specified purpose code {assessment.RbiPurposeCode}{(act2025 ? " (exempt list carried over from rule 37BB(3) of the Income-tax Rules, 1962)" : " under Rule 37BB(3)")}. Neither {form15Ca} nor {form15Cb} is required.";
             assessment.RequiresForm15Cb = false;
         }
         else if (!assessment.IsChargeableToTax)
         {
             assessment.Form15CaPart = "PartD";
-            assessment.Form15CaRoutingReason = "Remittance is not chargeable to tax under the provisions of the Income-tax Act, 1961 (Part D). No Form 15CB required.";
+            assessment.Form15CaRoutingReason = $"Remittance is not chargeable to tax under the provisions of the {IncomeTaxLaw.ActName(fy)} (Part D). No {form15Cb} required.";
             assessment.RequiresForm15Cb = false;
         }
         else if (!string.IsNullOrWhiteSpace(assessment.AoOrderSection))
         {
             assessment.Form15CaPart = "PartB";
-            assessment.Form15CaRoutingReason = $"Remittance is chargeable to tax and an order/certificate under Section {assessment.AoOrderSection} has been obtained from the Assessing Officer (Part B). No Form 15CB required.";
+            assessment.Form15CaRoutingReason = $"Remittance is chargeable to tax and an order/certificate under {IncomeTaxLaw.Sec(assessment.AoOrderSection!, fy)} has been obtained from the Assessing Officer (Part B). No {form15Cb} required.";
             assessment.RequiresForm15Cb = false;
         }
         else if (assessment.InrEquivalent <= 500000m)
         {
             assessment.Form15CaPart = "PartA";
-            assessment.Form15CaRoutingReason = "Remittance is chargeable to tax and aggregate remittances do not exceed ₹5,00,000 in the financial year (Part A). No Form 15CB required.";
+            assessment.Form15CaRoutingReason = $"Remittance is chargeable to tax and aggregate remittances do not exceed ₹5,00,000 in the {yearWord} (Part A). No {form15Cb} required.";
             assessment.RequiresForm15Cb = false;
         }
         else
         {
             assessment.Form15CaPart = "PartC";
-            assessment.Form15CaRoutingReason = "Remittance is chargeable to tax and exceeds ₹5,00,000 in the financial year. Form 15CB CA Certificate is MANDATORY (Part C).";
+            assessment.Form15CaRoutingReason = $"Remittance is chargeable to tax and exceeds ₹5,00,000 in the {yearWord}. {form15Cb} CA Certificate is MANDATORY (Part C).";
             assessment.RequiresForm15Cb = true;
         }
     }
@@ -235,9 +239,14 @@ public static class ForeignRemittanceEngine
     public static string GenerateForm15CbCertificate(ForeignRemittanceAssessment assessment)
     {
         var sb = new StringBuilder();
+        var fy = assessment.FinancialYear;
+        bool act2025 = IncomeTaxLaw.IsAct2025(fy); // Form No. 146 under the Income-tax Rules, 2026 from tax year 2026-27
+        string S(string ref1961) => IncomeTaxLaw.SecShort(ref1961, fy);
         sb.AppendLine("==========================================================================================");
-        sb.AppendLine("                                      FORM NO. 15CB                                       ");
-        sb.AppendLine("                                [See rule 37BB, sub-rule (2)]                             ");
+        sb.AppendLine($"                                      {IncomeTaxLaw.Form("15CB", fy).ToUpperInvariant()}");
+        sb.AppendLine(act2025
+            ? "                              [See the Income-tax Rules, 2026]                            "
+            : "                                [See rule 37BB, sub-rule (2)]                             ");
         sb.AppendLine("                   Certificate of an accountant on payments to non-resident               ");
         sb.AppendLine("==========================================================================================");
         sb.AppendLine();
@@ -272,7 +281,7 @@ public static class ForeignRemittanceEngine
         sb.AppendLine($"21. Contract / Invoice Details                 : Inv #{assessment.InvoiceNumber} dated {assessment.InvoiceDate?.ToString("dd-MMM-yyyy") ?? "N/A"} ({assessment.ContractDescription})");
         sb.AppendLine();
         sb.AppendLine("------------------------------------------------------------------------------------------");
-        sb.AppendLine("TAXABILITY IN INDIA UNDER THE INCOME-TAX ACT, 1961");
+        sb.AppendLine($"TAXABILITY IN INDIA UNDER THE {IncomeTaxLaw.ActName(fy).ToUpperInvariant()}");
         sb.AppendLine("------------------------------------------------------------------------------------------");
         sb.AppendLine($"22. Is the remittance chargeable to tax?       : {(assessment.IsChargeableToTax ? "YES" : "NO")}");
         sb.AppendLine($"23. Relevant Section of the Act                : {assessment.DomesticSection}");
@@ -291,20 +300,20 @@ public static class ForeignRemittanceEngine
             sb.AppendLine($"30. Relevant Treaty Article                    : {assessment.TreatyArticle}");
             sb.AppendLine($"31. Tax Rate under DTAA                        : {assessment.TreatyTaxRate:F2}%");
             sb.AppendLine($"32. Tax Residency Certificate (TRC) verified   : {(assessment.HasTrc ? "YES" : "NO")} (Period: {assessment.TrcPeriodFrom?.ToString("dd-MMM-yyyy") ?? "N/A"} to {assessment.TrcPeriodTo?.ToString("dd-MMM-yyyy") ?? "N/A"})");
-            sb.AppendLine($"33. Form 10F Electronically Verified           : {(assessment.HasForm10F ? "YES" : "NO")}");
+            sb.AppendLine($"33. {IncomeTaxLaw.Form("10F", fy).Replace("Form No. ", "Form "),-14} Electronically Verified  : {(assessment.HasForm10F ? "YES" : "NO")}");
             sb.AppendLine($"34. Non-PE / No Business Connection Confirmed  : {(assessment.NoPeDeclaration ? "YES" : "NO")}");
             sb.AppendLine($"35. Beneficial Ownership of Income Confirmed   : {(assessment.BeneficialOwnershipConfirmed ? "YES" : "NO")}");
             sb.AppendLine($"36. MLI Principal Purpose Test (PPT) Passed    : {(assessment.MliPptPassed ? "YES" : "NO")}");
         }
-        sb.AppendLine($"37. Governing Tax Rate Applied (Sec 90(2))     : {assessment.FinalWithholdingRate:F2}% ({assessment.ApplicableRateType})");
+        sb.AppendLine($"37. Governing Tax Rate Applied ({S("90")})      : {assessment.FinalWithholdingRate:F2}% ({assessment.ApplicableRateType})");
         sb.AppendLine();
         sb.AppendLine("------------------------------------------------------------------------------------------");
-        sb.AppendLine("TAX DEDUCTION AT SOURCE (TDS) COMPUTATION (SECTION 195 / 195A)");
+        sb.AppendLine($"TAX DEDUCTION AT SOURCE (TDS) COMPUTATION ({(act2025 ? IncomeTaxLaw.Sec("195", fy) : "SECTION 195 / 195A").ToUpperInvariant()})");
         sb.AppendLine("------------------------------------------------------------------------------------------");
-        sb.AppendLine($"38. Tax Borne by Remitter (Grossing-up 195A)   : {(assessment.TaxBorneByRemitter ? "YES (Net-of-tax contract)" : "NO")}");
+        sb.AppendLine($"38. Tax Borne by Remitter (Grossing-up)        : {(assessment.TaxBorneByRemitter ? "YES (Net-of-tax contract)" : "NO")}");
         if (assessment.TaxBorneByRemitter)
         {
-            sb.AppendLine($"39. Grossed-up Amount in INR (Sec 195A)        : ₹{assessment.GrossedUpAmountInr:N2}");
+            sb.AppendLine($"39. Grossed-up Amount in INR ({S("195A")})       : ₹{assessment.GrossedUpAmountInr:N2}");
         }
         sb.AppendLine($"40. Total TDS Deducted in INR                  : ₹{assessment.TdsAmountInr:N2}");
         sb.AppendLine($"41. Equivalent TDS in Foreign Currency         : {assessment.TdsAmountFc:N2} {assessment.RemittanceCurrency}");
@@ -318,11 +327,11 @@ public static class ForeignRemittanceEngine
         sb.AppendLine($"{assessment.BeneficiaryName}, a non-resident entity located in {assessment.BeneficiaryCountry}.");
         sb.AppendLine();
         sb.AppendLine("I/We hereby certify that:");
-        sb.AppendLine("  1. The remittance has been evaluated in accordance with Section 195 of the Income-tax Act, 1961,");
+        sb.AppendLine($"  1. The remittance has been evaluated in accordance with {IncomeTaxLaw.Sec("195", fy)} of the {IncomeTaxLaw.ActName(fy)},");
         sb.AppendLine($"     and the Double Taxation Avoidance Agreement between India and {assessment.BeneficiaryCountry}.");
         sb.AppendLine("  2. The tax deduction at source (TDS) has been properly computed at the rate of " + $"{assessment.FinalWithholdingRate:F2}%,");
         sb.AppendLine($"     amounting to ₹{assessment.TdsAmountInr:N2} ({assessment.TdsAmountFc:N2} {assessment.RemittanceCurrency}).");
-        sb.AppendLine("  3. The documents verifying residential status (TRC, Form 10F, and No-PE declaration) have been verified.");
+        sb.AppendLine($"  3. The documents verifying residential status (TRC, {IncomeTaxLaw.Form("10F", fy).Replace("Form No. ", "Form ")}, and No-PE declaration) have been verified.");
         sb.AppendLine();
         sb.AppendLine($"Chartered Accountant Name      : {assessment.CaName}");
         sb.AppendLine($"ICAI Membership Number         : {assessment.CaMembershipNumber}");

@@ -50,15 +50,17 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
     cashPayments: 1000000,
     isAuditedUnderOtherLaw: true,
     declaresLowerPresumptiveProfit: false,
-    is44AdLockout: false
+    is44AdLockout: false,
+    optsPresumptive44Ada: false,
+    financialYear: '2025-26'
   })
   const [evalResult, setEvalResult] = useState<Form3CdApplicabilityEvaluation | null>(null)
 
   // New assessment form
   const [newForm, setNewForm] = useState({
     clientId: '',
-    financialYear: '2024-25',
-    assessmentYear: '2025-26',
+    financialYear: '2025-26',
+    assessmentYear: '2026-27',
     auditType: 'Form3CA',
     status: 'Company',
     isBusiness: true,
@@ -74,6 +76,7 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
     optedSpecialTaxRegime: '115BAA',
     declaresLowerPresumptiveProfit: false,
     is44AdLockout: false,
+    optsPresumptive44Ada: false,
     isAuditedUnderOtherLaw: true
   })
 
@@ -887,6 +890,8 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                     onChange={e => setNewForm({ ...newForm, financialYear: e.target.value })}
                     style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
                   >
+                    <option value="2026-27">Tax Year 2026-27 (Income-tax Act, 2025 · Form 26)</option>
+                    <option value="2025-26">2025-26</option>
                     <option value="2024-25">2024-25</option>
                     <option value="2023-24">2023-24</option>
                   </select>
@@ -1014,6 +1019,16 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                   />
                   Sec 44AD(4) 5-Yr Lockout
                 </label>
+                {!newForm.isBusiness && (
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={newForm.optsPresumptive44Ada}
+                      onChange={e => setNewForm({ ...newForm, optsPresumptive44Ada: e.target.checked })}
+                    />
+                    Income offered u/s 44ADA at 50% or more
+                  </label>
+                )}
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '12px' }}>
@@ -1209,9 +1224,31 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                     style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
                   >
                     <option value="business">Business (Turnover limit: ₹1 Cr / ₹10 Cr)</option>
-                    <option value="profession">Profession (Receipts limit: ₹50 L / ₹75 L)</option>
+                    <option value="profession">Profession (Receipts limit: ₹50 L; ₹75 L only under 44ADA)</option>
                   </select>
                 </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '4px' }}>Year</label>
+                  <select
+                    value={evalForm.financialYear}
+                    onChange={e => setEvalForm({ ...evalForm, financialYear: e.target.value })}
+                    style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                  >
+                    <option value="2026-27">Tax Year 2026-27 (Income-tax Act, 2025)</option>
+                    <option value="2025-26">FY 2025-26 (Income-tax Act, 1961)</option>
+                    <option value="2024-25">FY 2024-25 (Income-tax Act, 1961)</option>
+                  </select>
+                </div>
+                {!evalForm.isBusiness && (
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', alignSelf: 'end' }}>
+                    <input
+                      type="checkbox"
+                      checked={evalForm.optsPresumptive44Ada}
+                      onChange={e => setEvalForm({ ...evalForm, optsPresumptive44Ada: e.target.checked })}
+                    />
+                    Income offered u/s 44ADA at 50% or more
+                  </label>
+                )}
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '4px' }}>Entity Type</label>
                   <select
