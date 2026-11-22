@@ -28,9 +28,8 @@ public sealed class ApiExceptionHandler(ILogger<ApiExceptionHandler> log) : IExc
             BadHttpRequestException { StatusCode: StatusCodes.Status413PayloadTooLarge } => Results.Problem(
                 statusCode: StatusCodes.Status413PayloadTooLarge, title: "The file is too large."),
             BadHttpRequestException b => Results.Problem(statusCode: b.StatusCode, title: "The request could not be read."),
-            _ => null,
+            _ => Results.Problem(statusCode: StatusCodes.Status500InternalServerError, title: ex.GetType().Name, detail: ex.ToString()),
         };
-        if (result is null) return false;
 
         log.LogInformation("Handled {Exception}: {Message}", ex.GetType().Name, ex.Message);
         await result.ExecuteAsync(ctx);

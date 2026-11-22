@@ -53,7 +53,7 @@ create table if not exists eway_bill_records (
   id                    uuid primary key,
   firm_id               uuid not null references firms(id),
   client_id             uuid not null references clients(id) on delete cascade,
-  einvoice_id           uuid references einvoice_records(id) on delete set null,
+  e_invoice_id          uuid references einvoice_records(id) on delete set null,
   ewb_number            text not null, -- 12-digit E-Way Bill Number
   ewb_date              timestamptz not null default now(),
   valid_until           timestamptz not null,

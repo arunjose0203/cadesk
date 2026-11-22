@@ -41,9 +41,11 @@ public class FixedAssetService(IAppDbContext db) : IFixedAssetService
 
         var verifications = await qVerifications.ToListAsync(ct);
         var totalVerifications = verifications.Count;
-        var twelveMonthsAgo = DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(-12));
-        var verifiedRecent = verifications.Count(v => v.VerificationDate >= twelveMonthsAgo);
-        var compliancePct = totalAssets > 0 ? Math.Round((decimal)verifiedRecent / totalAssets * 100m, 1) : 100m;
+        var cutoff = !string.IsNullOrWhiteSpace(financialYear) && int.TryParse(financialYear.Split('-')[0], out var fyStart)
+            ? new DateOnly(fyStart, 4, 1)
+            : DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-3));
+        var verifiedRecent = verifications.Count(v => v.VerificationDate >= cutoff);
+        var compliancePct = totalAssets > 0 ? Math.Min(100m, Math.Round((decimal)verifiedRecent / totalAssets * 100m, 1)) : 100m;
 
         return new FixedAssetSummaryDto(
             totalAssets,

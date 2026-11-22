@@ -70,7 +70,7 @@ public class PracticeReportTests(ApiFactory api) : IClassFixture<ApiFactory>
             Notes: "Part payment received"
         );
         var payRes = await http.PostAsJsonAsync($"/api/invoices/{invoice.Id}/payments", paymentReq);
-        Assert.Equal(HttpStatusCode.OK, payRes.StatusCode);
+        Assert.Equal(HttpStatusCode.Created, payRes.StatusCode);
 
         // 3. Log Timesheet Entry
         var timeReq = new CreateTimeEntryRequest(
