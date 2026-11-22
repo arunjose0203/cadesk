@@ -11,7 +11,7 @@ namespace CaDesk.IntegrationTests;
 
 public class AntiProfiteeringTests(ApiFactory api) : IClassFixture<ApiFactory>
 {
-    private static readonly Dictionary<string, string> StandardPan = new() { ["PAN"] = "AAACB1234F", ["GSTIN"] = "27AAACB1234F1Z5" };
+    private static readonly Dictionary<string, string> StandardPan = new() { ["PAN"] = "AAACB1234F", ["GSTIN"] = "27AAACB1234F1Z9" };
 
     private async Task<(HttpClient Client, Guid UserId)> NewFirmAsync(string name = "Deloitte Indirect Tax Advisory LLP")
     {

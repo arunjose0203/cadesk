@@ -900,7 +900,7 @@ export const TdsPage: React.FC = () => {
                     checked={deductionForm.forceHigherRate206Ab || false}
                     onChange={(e) => setDeductionForm(prev => ({ ...prev, forceHigherRate206Ab: e.target.checked }))}
                   />
-                  <span>Section 206AB Non-Filer Higher Rate (Double rate or 5%)</span>
+                  <span>Section 206AB Non-Filer Higher Rate (Double rate or 5%) — only for deductions up to 31 Mar 2025; omitted from 1 Apr 2025</span>
                 </label>
               </div>
 

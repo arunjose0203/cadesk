@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import {
+import { toError,
   taxNoticesApi,
   api,
   type TaxNoticeDto,
@@ -133,7 +133,8 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can }) => {
       if (cList.length > 0 && !noticeForm.clientId) {
         setNoticeForm(prev => ({ ...prev, clientId: cList[0].id }))
       }
-    } catch (e: any) {
+    } catch (caught) {
+      const e = toError(caught)
       setError(e.message || 'Failed to load tax notices')
     } finally {
       setLoading(false)
@@ -146,7 +147,8 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can }) => {
     try {
       const list = await taxNoticesApi.getResponses(n.id)
       setNoticeResponses(list)
-    } catch (e: any) {
+    } catch (caught) {
+      const e = toError(caught)
       setError(e.message || 'Failed to load responses for notice')
     }
   }
@@ -158,7 +160,8 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can }) => {
       setSuccess(`DIN status updated to: ${updated.dinStatus}`)
       const sum = await taxNoticesApi.getSummary()
       setSummary(sum)
-    } catch (e: any) {
+    } catch (caught) {
+      const e = toError(caught)
       setError(e.message || 'Failed to verify DIN')
     }
   }
@@ -172,7 +175,8 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can }) => {
       setSuccess('Tax notice registered successfully!')
       setShowNoticeModal(false)
       loadAll()
-    } catch (e: any) {
+    } catch (caught) {
+      const e = toError(caught)
       setError(e.message || 'Failed to register tax notice')
     }
   }
@@ -190,7 +194,8 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can }) => {
       setSuccess('Hearing scheduled successfully!')
       setShowHearingModal(false)
       loadAll()
-    } catch (e: any) {
+    } catch (caught) {
+      const e = toError(caught)
       setError(e.message || 'Failed to schedule hearing')
     }
   }
@@ -207,7 +212,8 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can }) => {
       const list = await taxNoticesApi.getResponses(activeNotice.id)
       setNoticeResponses(list)
       loadAll()
-    } catch (e: any) {
+    } catch (caught) {
+      const e = toError(caught)
       setError(e.message || 'Failed to draft response')
     }
   }
@@ -223,7 +229,8 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can }) => {
         setNoticeResponses(list)
       }
       loadAll()
-    } catch (e: any) {
+    } catch (caught) {
+      const e = toError(caught)
       setError(e.message || 'Failed to approve response')
     }
   }
@@ -242,7 +249,8 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can }) => {
         setNoticeResponses(list)
       }
       loadAll()
-    } catch (e: any) {
+    } catch (caught) {
+      const e = toError(caught)
       setError(e.message || 'Failed to record portal submission')
     }
   }
@@ -257,7 +265,8 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can }) => {
       setSuccess('Demand payment/adjustment recorded!')
       setShowPaymentModal(false)
       loadAll()
-    } catch (e: any) {
+    } catch (caught) {
+      const e = toError(caught)
       setError(e.message || 'Failed to record payment')
     }
   }
@@ -272,7 +281,8 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can }) => {
       setSuccess('Appeal status updated successfully!')
       setShowAppealModal(false)
       loadAll()
-    } catch (e: any) {
+    } catch (caught) {
+      const e = toError(caught)
       setError(e.message || 'Failed to update appeal status')
     }
   }
@@ -432,7 +442,7 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can }) => {
             <span style={{ fontSize: '13px', fontWeight: 600 }}>Authority:</span>
             <select
               value={filterAuthority}
-              onChange={e => setFilterAuthority(e.target.value as any)}
+              onChange={e => setFilterAuthority(e.target.value as TaxAuthority | "")}
               style={{ padding: '6px 12px', borderRadius: '4px', border: '1px solid var(--border, #ccc)' }}
             >
               <option value="">All Authorities</option>
@@ -444,7 +454,7 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can }) => {
             <span style={{ fontSize: '13px', fontWeight: 600, marginLeft: '12px' }}>Status:</span>
             <select
               value={filterStatus}
-              onChange={e => setFilterStatus(e.target.value as any)}
+              onChange={e => setFilterStatus(e.target.value as NoticeStatus | "")}
               style={{ padding: '6px 12px', borderRadius: '4px', border: '1px solid var(--border, #ccc)' }}
             >
               <option value="">All Statuses</option>
@@ -921,7 +931,7 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can }) => {
                   <label style={{ display: 'block', fontWeight: 600, fontSize: '13px', marginBottom: '4px' }}>Authority *</label>
                   <select
                     value={noticeForm.authority}
-                    onChange={e => setNoticeForm({ ...noticeForm, authority: e.target.value as any })}
+                    onChange={e => setNoticeForm({ ...noticeForm, authority: e.target.value as (typeof noticeForm)['authority'] })}
                     style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
                   >
                     <option value="IncomeTax">Income Tax (ITBA / NFAC)</option>
@@ -1086,7 +1096,7 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can }) => {
                 <label style={{ display: 'block', fontWeight: 600, fontSize: '13px', marginBottom: '4px' }}>Hearing Mode</label>
                 <select
                   value={hearingForm.hearingType}
-                  onChange={e => setHearingForm({ ...hearingForm, hearingType: e.target.value as any })}
+                  onChange={e => setHearingForm({ ...hearingForm, hearingType: e.target.value as (typeof hearingForm)['hearingType'] })}
                   style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
                 >
                   <option value="VideoConference">Video Conference (WebEx / Portal VC)</option>
@@ -1281,7 +1291,7 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can }) => {
                 <label style={{ display: 'block', fontWeight: 600, fontSize: '13px', marginBottom: '4px' }}>Appeal Status</label>
                 <select
                   value={appealForm.status}
-                  onChange={e => setAppealForm({ ...appealForm, status: e.target.value as any })}
+                  onChange={e => setAppealForm({ ...appealForm, status: e.target.value as (typeof appealForm)['status'] })}
                   style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
                 >
                   <option value="NotAppealed">Not Appealed</option>

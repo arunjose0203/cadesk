@@ -193,7 +193,7 @@ public class PresumptiveTaxService(IAppDbContext db, ITenantContext tenant)
         };
 
         db.Presumptive44AeVehicles.Add(vehicle);
-        comp.Vehicles.Add(vehicle);
+        if (!comp.Vehicles.Contains(vehicle)) comp.Vehicles.Add(vehicle); // the db Add above already fixes up the navigation
 
         ApplyCalculations(comp);
 
@@ -373,10 +373,10 @@ public class PresumptiveTaxService(IAppDbContext db, ITenantContext tenant)
             var vehicleDeclared = comp.Vehicles.Sum(v => v.DeclaredProfit);
 
             comp.MinimumDeemedProfit = minDeemed;
-            if (comp.DeclaredProfit <= 0)
-            {
+            // each vehicle carries its own declared profit (defaulting to its deemed profit), so the total is
+            // always re-derived; filling it only once left it stale when vehicles were added or removed
+            if (vehicleCount > 0)
                 comp.DeclaredProfit = vehicleDeclared > 0 ? vehicleDeclared : minDeemed;
-            }
 
             if (vehicleCount > PresumptiveTaxEngine.Sec44AEMaxVehiclesLimit)
             {

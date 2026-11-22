@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import {
+import { toError,
   reportsApi,
   type PracticeExecutiveSummaryDto,
   type ClientProfitabilityDto,
@@ -71,7 +71,8 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ can }) => {
           targetComplianceSlaPct: sum.targets.targetComplianceSlaPct
         })
       }
-    } catch (e: any) {
+    } catch (caught) {
+      const e = toError(caught)
       setError(e.message || 'Failed to load practice reports')
     } finally {
       setLoading(false)
@@ -90,7 +91,8 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ can }) => {
       setSuccess('Practice targets updated successfully!')
       setShowTargetModal(false)
       loadAllReports()
-    } catch (e: any) {
+    } catch (caught) {
+      const e = toError(caught)
       setError(e.message || 'Failed to update targets')
     }
   }

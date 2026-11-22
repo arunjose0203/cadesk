@@ -14,8 +14,7 @@ public class CostAuditTests(ApiFactory api) : IClassFixture<ApiFactory>
 {
     private static readonly Dictionary<string, string> StandardPanAndCin = new()
     {
-        ["PAN"] = "AABCT1234F",
-        ["CIN"] = "L24230MH1990PLC056789"
+        ["PAN"] = "AABCT1234F"
     };
 
     private async Task<(HttpClient Client, Guid UserId)> NewFirmAsync(string name = "BDO Cost & Management Advisory LLP")
@@ -89,7 +88,7 @@ public class CostAuditTests(ApiFactory api) : IClassFixture<ApiFactory>
             SeedDefaultHeads: true);
 
         var engRes = await httpA.PostAsJsonAsync("/api/cost-audit/engagements", createEngReq);
-        engRes.EnsureSuccessStatusCode();
+        Assert.True(engRes.IsSuccessStatusCode, await engRes.Content.ReadAsStringAsync());
         var engagement = (await engRes.Content.ReadFromJsonAsync<CostAuditEngagementDto>())!;
         Assert.NotEqual(Guid.Empty, engagement.Id);
         Assert.Equal(30, engagement.RecordHeads.Count); // 30 standard heads seeded

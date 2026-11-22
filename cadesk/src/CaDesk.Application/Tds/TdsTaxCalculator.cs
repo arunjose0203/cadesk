@@ -27,7 +27,8 @@ public static class TdsTaxCalculator
         string section,
         string deducteePan,
         decimal? ldcRate = null,
-        bool isNonFiler206Ab = false)
+        bool isNonFiler206Ab = false,
+        DateOnly? deductionDate = null)
     {
         var pan = deducteePan.Trim().ToUpperInvariant();
 
@@ -37,8 +38,9 @@ public static class TdsTaxCalculator
             return (20.0m, HigherRateReason.NoPan206Aa);
         }
 
-        // 2. Check Section 206AB (Non-filer -> Higher of 2x normal rate or 5%)
-        if (isNonFiler206Ab)
+        // 2. Section 206AB (specified non-filer -> higher of 2x normal rate or 5%). Omitted by the Finance Act 2025
+        //    for deductions from 1 April 2025, so the flag only matters for earlier deductions.
+        if (isNonFiler206Ab && Applies206Ab(deductionDate))
         {
             var baseRate = GetStandardSectionRate(section);
             var rate206Ab = Math.Max(baseRate * 2m, 5.0m);
@@ -54,6 +56,13 @@ public static class TdsTaxCalculator
         // 4. Normal Section Rate
         return (GetStandardSectionRate(section), HigherRateReason.None);
     }
+
+    /// <summary>Last day Section 206AB applied; the Finance Act 2025 omitted it from 1 April 2025.</summary>
+    public static readonly DateOnly Section206AbLastDay = new(2025, 3, 31);
+
+    /// <summary>206AB applies only to deductions up to 31 March 2025; with no date, today's law (omitted) applies.</summary>
+    public static bool Applies206Ab(DateOnly? deductionDate) =>
+        (deductionDate ?? DateOnly.FromDateTime(DateTime.UtcNow)) <= Section206AbLastDay;
 
     public static decimal ComputeTaxAmount(decimal amountPaid, decimal rate)
     {

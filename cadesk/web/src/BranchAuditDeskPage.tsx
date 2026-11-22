@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import {
+import { toError,
   type BranchAuditEngagementDto,
   type BranchAuditOfficeDto,
   type BranchAuditSummaryDto,
@@ -129,7 +129,8 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
       if (res.items && res.items.length > 0 && !engForm.clientId) {
         setEngForm(f => ({ ...f, clientId: res.items[0].id }))
       }
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       console.error('Failed to load clients', err)
     }
   }
@@ -156,7 +157,8 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
       } else {
         setSelectedEngagement(null)
       }
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to load branch audit engagements.')
     } finally {
       setLoading(false)
@@ -170,7 +172,8 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
       setShowNewEngModal(false)
       await loadData()
       setSelectedEngagement(created)
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to create engagement.')
     }
   }
@@ -190,7 +193,8 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
       await loadData()
       const fresh = await branchAuditApi.getEngagementById(selectedEngagement.id)
       setSelectedEngagement(fresh)
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to save branch office.')
     }
   }
@@ -204,7 +208,8 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
       await loadData()
       const fresh = await branchAuditApi.getEngagementById(selectedEngagement.id)
       setSelectedEngagement(fresh)
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to delete branch office.')
     }
   }
@@ -218,7 +223,8 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
       showToast(`Delegated Access Token generated! Submission link copied to clipboard.`)
       const fresh = await branchAuditApi.getEngagementById(selectedEngagement.id)
       setSelectedEngagement(fresh)
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to generate branch access token.')
     }
   }
@@ -241,7 +247,8 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
       await loadData()
       const fresh = await branchAuditApi.getEngagementById(selectedEngagement.id)
       setSelectedEngagement(fresh)
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to review branch.')
     }
   }
@@ -254,7 +261,8 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
       setActiveTab('sa600')
       showToast('Consolidation math executed and SA 600 report paragraph generated.')
       await loadData()
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to consolidate.')
     }
   }
@@ -267,7 +275,8 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
       setSelectedEngagement(res)
       showToast('Engagement successfully finalized pursuant to Section 143(8) and SA 600.')
       await loadData()
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to finalize.')
     }
   }
@@ -282,7 +291,8 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
         const fresh = await branchAuditApi.getEngagementById(selectedEngagement.id)
         setSelectedEngagement(fresh)
       }
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Portal submission simulation failed.')
     }
   }

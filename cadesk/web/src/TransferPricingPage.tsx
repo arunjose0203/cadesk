@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import {
+import { toError,
   api,
   transferPricingApi,
   type Client,
@@ -151,7 +151,8 @@ export const TransferPricingPage: React.FC = () => {
       if (studiesData.length > 0 && !selectedStudyId) {
         setSelectedStudyId(studiesData[0].id)
       }
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to load transfer pricing data.')
     } finally {
       setLoading(false)
@@ -177,7 +178,8 @@ export const TransferPricingPage: React.FC = () => {
         const cList = await transferPricingApi.listComparables(id)
         setComparables(cList)
       }
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to load study details.')
     }
   }
@@ -199,7 +201,8 @@ export const TransferPricingPage: React.FC = () => {
         toleranceBandPercentage: calcToleranceBand,
       })
       setCalcResult(res)
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Benchmark calculation failed.')
     }
   }
@@ -219,7 +222,8 @@ export const TransferPricingPage: React.FC = () => {
       setEditingStudyId(null)
       await loadData()
       if (selectedStudyId) loadStudyDetails(selectedStudyId)
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to save transfer pricing study.')
     }
   }
@@ -232,7 +236,8 @@ export const TransferPricingPage: React.FC = () => {
       setSelectedStudyId(null)
       setCurrentStudy(null)
       await loadData()
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to delete study.')
     }
   }
@@ -246,7 +251,8 @@ export const TransferPricingPage: React.FC = () => {
       setShowCertifyModal(false)
       setSuccessMsg(`Form 3CEB successfully certified with UDIN ${updated.udin}`)
       await loadData()
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Certification failed. Ensure UDIN is 18 characters.')
     }
   }
@@ -257,7 +263,8 @@ export const TransferPricingPage: React.FC = () => {
       const res = await transferPricingApi.generate3CEB(currentStudy.id)
       setCurrentStudy({ ...currentStudy, form3CebReportText: res.reportText })
       setSuccessMsg('Form 3CEB report text regenerated.')
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to regenerate report.')
     }
   }
@@ -278,7 +285,8 @@ export const TransferPricingPage: React.FC = () => {
       setEditingAeId(null)
       await loadStudyDetails(currentStudy.id)
       await loadData()
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to save Associated Enterprise.')
     }
   }
@@ -290,7 +298,8 @@ export const TransferPricingPage: React.FC = () => {
       await transferPricingApi.deleteEnterprise(currentStudy.id, aeId)
       await loadStudyDetails(currentStudy.id)
       await loadData()
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to delete Associated Enterprise.')
     }
   }
@@ -311,7 +320,8 @@ export const TransferPricingPage: React.FC = () => {
       setEditingTxId(null)
       await loadStudyDetails(currentStudy.id)
       await loadData()
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to save transaction.')
     }
   }
@@ -323,7 +333,8 @@ export const TransferPricingPage: React.FC = () => {
       await transferPricingApi.deleteTransaction(currentStudy.id, txId)
       await loadStudyDetails(currentStudy.id)
       await loadData()
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to delete transaction.')
     }
   }
@@ -344,7 +355,8 @@ export const TransferPricingPage: React.FC = () => {
       setEditingCompId(null)
       await loadStudyDetails(currentStudy.id)
       await loadData()
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to save comparable.')
     }
   }
@@ -356,7 +368,8 @@ export const TransferPricingPage: React.FC = () => {
       await transferPricingApi.deleteComparable(currentStudy.id, compId)
       await loadStudyDetails(currentStudy.id)
       await loadData()
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to delete comparable.')
     }
   }

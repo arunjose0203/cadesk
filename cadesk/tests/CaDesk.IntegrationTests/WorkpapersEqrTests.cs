@@ -76,7 +76,7 @@ public class WorkpapersEqrTests(ApiFactory api) : IClassFixture<ApiFactory>
             Notes: "Unmodified true and fair audit report."
         );
         var blockedSignoffRes = await http.PostAsJsonAsync($"/api/audit/engagements/{eng.Id}/signoff", signoffReq);
-        Assert.Equal(HttpStatusCode.InternalServerError, blockedSignoffRes.StatusCode); // throws InvalidOperationException
+        Assert.Equal(HttpStatusCode.Conflict, blockedSignoffRes.StatusCode); // open review notes block sign-off
 
         // 4. Respond to review note
         var respondRes = await http.PostAsJsonAsync($"/api/audit/review-notes/{note.Id}/respond", new RespondReviewNoteRequest(
@@ -144,7 +144,7 @@ public class WorkpapersEqrTests(ApiFactory api) : IClassFixture<ApiFactory>
             Conclusion: AuditConclusion.Satisfactory
         );
         var lockedWpRes = await http.PostAsJsonAsync($"/api/audit/engagements/{eng.Id}/working-papers", wpReq);
-        Assert.Equal(HttpStatusCode.InternalServerError, lockedWpRes.StatusCode); // Blocked by SQC 1 archival lock
+        Assert.Equal(HttpStatusCode.Conflict, lockedWpRes.StatusCode); // blocked by the SQC 1 archival lock
     }
 
     [Fact]

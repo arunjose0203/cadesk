@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react'
-import {
+import { toError,
   payrollApi,
   api,
   type PayrollEmployeeDto,
   type PayrollRunDto,
+  type PayrollRunStatus,
   type PayrollPayslipDto,
   type PayrollSummaryDto,
   type EpfoEcrExportDto,
@@ -90,7 +91,8 @@ export const PayrollPage: React.FC<PayrollPageProps> = ({ can }) => {
         setEmployeeForm(prev => ({ ...prev, clientId: items[0].id }))
         setRunForm(prev => ({ ...prev, clientId: items[0].id }))
       }
-    } catch (e: any) {
+    } catch (caught) {
+      const e = toError(caught)
       setError(e.message || 'Failed to load clients')
     }
   }
@@ -112,7 +114,8 @@ export const PayrollPage: React.FC<PayrollPageProps> = ({ can }) => {
         setSelectedRun(rList[0])
         loadPayslips(rList[0].id)
       }
-    } catch (e: any) {
+    } catch (caught) {
+      const e = toError(caught)
       setError(e.message || 'Failed to load payroll data')
     } finally {
       setLoading(false)
@@ -123,7 +126,8 @@ export const PayrollPage: React.FC<PayrollPageProps> = ({ can }) => {
     try {
       const list = await payrollApi.getPayslips(runId)
       setPayslips(list)
-    } catch (e: any) {
+    } catch (caught) {
+      const e = toError(caught)
       setError(e.message || 'Failed to load payslips')
     }
   }
@@ -139,7 +143,8 @@ export const PayrollPage: React.FC<PayrollPageProps> = ({ can }) => {
       const ecr = await payrollApi.exportEcr(runId)
       setEcrData(ecr)
       setActiveTab('ecr')
-    } catch (e: any) {
+    } catch (caught) {
+      const e = toError(caught)
       setError(e.message || 'Failed to export EPFO ECR')
     }
   }
@@ -159,7 +164,8 @@ export const PayrollPage: React.FC<PayrollPageProps> = ({ can }) => {
       setShowEmployeeModal(false)
       setEditingEmployeeId(null)
       loadClientData(selectedClientId)
-    } catch (e: any) {
+    } catch (caught) {
+      const e = toError(caught)
       setError(e.message || 'Failed to save employee')
     }
   }
@@ -206,12 +212,13 @@ export const PayrollPage: React.FC<PayrollPageProps> = ({ can }) => {
       setSelectedRun(run)
       loadPayslips(run.id)
       setActiveTab('payslips')
-    } catch (e: any) {
+    } catch (caught) {
+      const e = toError(caught)
       setError(e.message || 'Failed to process monthly payroll')
     }
   }
 
-  const handleUpdateRunStatus = async (runId: string, status: any) => {
+  const handleUpdateRunStatus = async (runId: string, status: PayrollRunStatus) => {
     setError(null)
     setSuccess(null)
     try {
@@ -219,7 +226,8 @@ export const PayrollPage: React.FC<PayrollPageProps> = ({ can }) => {
       setSuccess(`Payroll run marked as ${status}!`)
       setRuns(prev => prev.map(r => r.id === runId ? updated : r))
       if (selectedRun?.id === runId) setSelectedRun(updated)
-    } catch (e: any) {
+    } catch (caught) {
+      const e = toError(caught)
       setError(e.message || 'Failed to update payroll status')
     }
   }
@@ -875,7 +883,7 @@ export const PayrollPage: React.FC<PayrollPageProps> = ({ can }) => {
                   <label style={{ display: 'block', fontWeight: 600, fontSize: '13px', marginBottom: '4px' }}>Tax Regime (Sec 192)</label>
                   <select
                     value={employeeForm.taxRegime}
-                    onChange={e => setEmployeeForm({ ...employeeForm, taxRegime: e.target.value as any })}
+                    onChange={e => setEmployeeForm({ ...employeeForm, taxRegime: e.target.value as (typeof employeeForm)['taxRegime'] })}
                     style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
                   >
                     <option value="NewRegime">New Regime (Sec 115BAC - Default)</option>

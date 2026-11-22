@@ -271,7 +271,7 @@ public class BranchAuditService
                 CreatedAt = DateTime.UtcNow
             };
             _db.BranchAuditOffices.Add(office);
-            engagement.Branches.Add(office);
+            if (!engagement.Branches.Contains(office)) engagement.Branches.Add(office); // the db Add above already fixes up the navigation
         }
 
         Sa600Engine.ComputeConsolidationTotals(engagement, engagement.Branches);
@@ -329,23 +329,53 @@ public class BranchAuditService
         );
     }
 
+    /// <summary>
+    /// Finds the branch office for an external auditor's token through branch_portal_find_office (the only query
+    /// that runs before the firm is known), then switches to that firm so both isolation locks apply as usual.
+    /// </summary>
+    private async Task<Guid> OpenBranchPortalAsync(string rawToken, CancellationToken ct)
+    {
+        var tokenHash = Sa600Engine.HashToken(rawToken.Trim());
+        var found = (await _db.Database.SqlQuery<BranchPortalLookup>($"""
+            select id as "Id", firm_id as "FirmId", token_expires_at as "TokenExpiresAt"
+            from branch_portal_find_office({tokenHash})
+            """).ToListAsync(ct)).FirstOrDefault();
+
+        if (found == null)
+            throw new BusinessRuleException("Invalid branch auditor access token.", 401);
+        if (found.TokenExpiresAt.HasValue && found.TokenExpiresAt.Value < DateTime.UtcNow)
+            throw new BusinessRuleException("This branch auditor access token has expired.", 403);
+
+        if (_tenant.HasTenant)
+        {
+            if (_tenant.FirmId != found.FirmId)
+                throw new BusinessRuleException("Invalid branch auditor access token.", 401);
+        }
+        else if (_tenant is ITenantSetter setter)
+            setter.Set(found.FirmId, null, "BranchAuditor");
+        else
+            throw new InvalidOperationException("The tenant context can't be set for the branch auditor portal.");
+
+        return found.Id;
+    }
+
+    /// <summary>Row from branch_portal_find_office (a class with setters, as SqlQuery needs).</summary>
+    public sealed class BranchPortalLookup
+    {
+        public Guid Id { get; set; }
+        public Guid FirmId { get; set; }
+        public DateTime? TokenExpiresAt { get; set; }
+    }
+
     public async Task<BranchAuditOfficeDto> GetBranchPortalInfoByTokenAsync(string rawToken, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(rawToken))
             throw new RequestValidationException(nameof(rawToken), "Access token is required.");
 
-        var tokenHash = Sa600Engine.HashToken(rawToken.Trim());
-
+        var officeId = await OpenBranchPortalAsync(rawToken, ct);
         var office = await _db.BranchAuditOffices
-            .IgnoreQueryFilters()
             .Include(b => b.ReviewedByUser)
-            .FirstOrDefaultAsync(b => b.AccessTokenHash == tokenHash, ct);
-
-        if (office == null)
-            throw new BusinessRuleException("Invalid branch auditor access token.", 401);
-
-        if (office.TokenExpiresAt.HasValue && office.TokenExpiresAt.Value < DateTime.UtcNow)
-            throw new BusinessRuleException("This branch auditor access token has expired.", 403);
+            .FirstAsync(b => b.Id == officeId, ct);
 
         return ToBranchDto(office);
     }
@@ -357,24 +387,10 @@ public class BranchAuditService
         if (string.IsNullOrWhiteSpace(req.Token))
             throw new RequestValidationException(nameof(req.Token), "Access token is required.");
 
-        var tokenHash = Sa600Engine.HashToken(req.Token.Trim());
-
+        var officeId = await OpenBranchPortalAsync(req.Token, ct);
         var office = await _db.BranchAuditOffices
-            .IgnoreQueryFilters()
             .Include(b => b.Engagement)
-            .FirstOrDefaultAsync(b => b.AccessTokenHash == tokenHash, ct);
-
-        if (office == null)
-            throw new BusinessRuleException("Invalid branch auditor access token.", 401);
-
-        if (office.TokenExpiresAt.HasValue && office.TokenExpiresAt.Value < DateTime.UtcNow)
-            throw new BusinessRuleException("This branch auditor access token has expired.", 403);
-
-        // Set tenant context if not set so RLS & audit stamping match
-        if (_tenant is ITenantSetter setter && !_tenant.HasTenant)
-        {
-            setter.Set(office.FirmId, null, "BranchAuditor");
-        }
+            .FirstAsync(b => b.Id == officeId, ct);
 
         office.TotalAssets = req.TotalAssets;
         office.TotalLiabilities = req.TotalLiabilities;
@@ -406,7 +422,6 @@ public class BranchAuditService
 
             // Reload all branches for the engagement to recompute
             var branches = await _db.BranchAuditOffices
-                .IgnoreQueryFilters()
                 .Where(b => b.EngagementId == office.EngagementId)
                 .ToListAsync(ct);
 

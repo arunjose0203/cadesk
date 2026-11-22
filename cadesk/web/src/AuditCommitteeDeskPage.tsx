@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import {
+import { toError,
   type AuditCommitteeEngagementDto,
   type AuditCommitteeSummaryDto,
   type InternalControlDeficiencyDto,
@@ -116,7 +116,8 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
       if (res.items && res.items.length > 0 && !engForm.clientId) {
         setEngForm(f => ({ ...f, clientId: res.items[0].id }))
       }
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       console.error('Failed to load clients', err)
     }
   }
@@ -142,7 +143,8 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
       } else {
         setSelectedEngagement(null)
       }
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to load audit committee engagements.')
     } finally {
       setLoading(false)
@@ -156,7 +158,8 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
       setShowNewEngModal(false)
       await loadData()
       setSelectedEngagement(created)
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to create engagement.')
     }
   }
@@ -176,7 +179,8 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
       await loadData()
       const fresh = await auditCommitteeApi.getEngagementById(selectedEngagement.id)
       setSelectedEngagement(fresh)
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to save deficiency.')
     }
   }
@@ -190,7 +194,8 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
       await loadData()
       const fresh = await auditCommitteeApi.getEngagementById(selectedEngagement.id)
       setSelectedEngagement(fresh)
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to delete deficiency.')
     }
   }
@@ -210,7 +215,8 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
       await loadData()
       const fresh = await auditCommitteeApi.getEngagementById(selectedEngagement.id)
       setSelectedEngagement(fresh)
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to save audit matter.')
     }
   }
@@ -224,7 +230,8 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
       await loadData()
       const fresh = await auditCommitteeApi.getEngagementById(selectedEngagement.id)
       setSelectedEngagement(fresh)
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to delete audit matter.')
     }
   }
@@ -244,7 +251,8 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
       await loadData()
       const fresh = await auditCommitteeApi.getEngagementById(selectedEngagement.id)
       setSelectedEngagement(fresh)
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to save misstatement.')
     }
   }
@@ -258,7 +266,8 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
       await loadData()
       const fresh = await auditCommitteeApi.getEngagementById(selectedEngagement.id)
       setSelectedEngagement(fresh)
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to delete misstatement.')
     }
   }
@@ -271,7 +280,8 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
       setActiveTab('packs')
       showToast('SA 260 Governance Pack & SA 265 Internal Control Letter generated!')
       await loadData()
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to generate pack.')
     }
   }
@@ -284,7 +294,8 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
       setShowSignOffModal(false)
       showToast('Audit Committee engagement signed off and formally archived pursuant to Section 177.')
       await loadData()
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to sign off engagement.')
     }
   }
@@ -327,7 +338,7 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
       estimatedRiskAmount: d.estimatedRiskAmount || 0,
       auditorRecommendation: d.auditorRecommendation,
       managementResponse: d.managementResponse || '',
-      remediationTargetDate: d.remediationTargetDate ? d.remediationTargetDate.split('T')[0] as any : undefined,
+      remediationTargetDate: d.remediationTargetDate ? d.remediationTargetDate.split('T')[0] : undefined,
       status: d.status
     })
     setShowAddDefModal(true)

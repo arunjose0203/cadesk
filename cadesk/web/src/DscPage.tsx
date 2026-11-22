@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { api, type Client, type DscRegister, type DscSummary, type CreateDscRequest, type TransferCustodyRequest } from './api'
+import { toError, api, type Client, type DscRegister, type DscSummary, type CreateDscRequest, type TransferCustodyRequest } from './api'
 import { fmtDate } from './format'
 
 export default function DscPage({ can }: { can: (p: string) => boolean; meId: string }) {
@@ -70,7 +70,8 @@ export default function DscPage({ can }: { can: (p: string) => boolean; meId: st
       ])
       setItems(listRes)
       setSummary(sumRes)
-    } catch (e: any) {
+    } catch (caught) {
+      const e = toError(caught)
       setError(e.message || 'Failed to load DSC records')
     } finally {
       setLoading(false)
@@ -111,7 +112,8 @@ export default function DscPage({ can }: { can: (p: string) => boolean; meId: st
       setUsbTokenId('')
       setNotes('')
       await loadData()
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err.message || 'Failed to register DSC token')
     }
   }
@@ -133,7 +135,8 @@ export default function DscPage({ can }: { can: (p: string) => boolean; meId: st
       setTransferItem(null)
       setTransferRemarks('')
       await loadData()
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err.message || 'Failed to transfer custody')
     }
   }
@@ -143,7 +146,8 @@ export default function DscPage({ can }: { can: (p: string) => boolean; meId: st
     try {
       await api(`/api/dsc/${id}`, { method: 'DELETE' })
       await loadData()
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err.message || 'Failed to delete DSC')
     }
   }

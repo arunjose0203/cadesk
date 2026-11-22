@@ -99,8 +99,7 @@ public static class ForeignRemittanceEndpoints
             ForeignRemittanceService svc,
             CancellationToken ct) =>
         {
-            var sub = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            Guid? userId = Guid.TryParse(sub, out var uid) ? uid : null;
+            Guid? userId = user.UserId();
             var result = await svc.CertifyRemittanceAsync(id, userId, req, ct);
             return Results.Ok(result);
         }).RequirePermission(Perms.ForeignRemittanceCertify);

@@ -148,7 +148,7 @@ public static class BranchAuditEndpoints
             BranchAuditService svc,
             CancellationToken ct) =>
         {
-            var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier) ?? Guid.Empty.ToString());
+            var userId = user.RequiredUserId();
             var reviewed = await svc.ReviewBranchOfficeAsync(id, branchId, req, userId, ct);
             return Results.Ok(reviewed);
         }).RequirePermission(Perms.BranchAuditManage);
@@ -170,7 +170,7 @@ public static class BranchAuditEndpoints
             BranchAuditService svc,
             CancellationToken ct) =>
         {
-            var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier) ?? Guid.Empty.ToString());
+            var userId = user.RequiredUserId();
             var finalized = await svc.FinalizeEngagementAsync(id, userId, ct);
             return Results.Ok(finalized);
         }).RequirePermission(Perms.BranchAuditConsolidate);

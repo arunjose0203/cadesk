@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import {
+import { toError,
   api,
   bankFeedApi,
   type Client,
@@ -94,7 +94,8 @@ export const BankFeedsPage: React.FC = () => {
       if (res.items && res.items.length > 0 && !accountForm.clientId) {
         setAccountForm(prev => ({ ...prev, clientId: res.items[0].id }))
       }
-    } catch (e: any) {
+    } catch (caught) {
+      const e = toError(caught)
       console.error(e)
     }
   }
@@ -107,7 +108,8 @@ export const BankFeedsPage: React.FC = () => {
       if (list.length > 0 && !selectedAccountId) {
         setSelectedAccountId(list[0].id)
       }
-    } catch (e: any) {
+    } catch (caught) {
+      const e = toError(caught)
       setError(e.message || 'Failed to load bank accounts')
     } finally {
       setLoading(false)
@@ -118,7 +120,8 @@ export const BankFeedsPage: React.FC = () => {
     try {
       const list = await bankFeedApi.getStatements(accId)
       setStatements(list)
-    } catch (e: any) {
+    } catch (caught) {
+      const e = toError(caught)
       console.error(e)
     }
   }
@@ -127,7 +130,8 @@ export const BankFeedsPage: React.FC = () => {
     try {
       const list = await bankFeedApi.getTransactions(accId, undefined, selectedStatus || undefined)
       setTransactions(list)
-    } catch (e: any) {
+    } catch (caught) {
+      const e = toError(caught)
       console.error(e)
     }
   }
@@ -136,7 +140,8 @@ export const BankFeedsPage: React.FC = () => {
     try {
       const summary = await bankFeedApi.getBrsSummary(accId, targetDate)
       setBrsSummary(summary)
-    } catch (e: any) {
+    } catch (caught) {
+      const e = toError(caught)
       console.error(e)
     }
   }
@@ -145,7 +150,8 @@ export const BankFeedsPage: React.FC = () => {
     try {
       const list = await bankFeedApi.getRules()
       setRules(list)
-    } catch (e: any) {
+    } catch (caught) {
+      const e = toError(caught)
       console.error(e)
     }
   }
@@ -159,7 +165,8 @@ export const BankFeedsPage: React.FC = () => {
       setSuccess('Bank account added successfully!')
       setShowAccountModal(false)
       loadAccounts()
-    } catch (e: any) {
+    } catch (caught) {
+      const e = toError(caught)
       setError(e.message || 'Failed to create bank account')
     }
   }
@@ -185,7 +192,8 @@ export const BankFeedsPage: React.FC = () => {
       loadStatements(selectedAccountId)
       loadTransactions(selectedAccountId)
       loadBrsSummary(selectedAccountId, asOfDate)
-    } catch (e: any) {
+    } catch (caught) {
+      const e = toError(caught)
       setError(e.message || 'Failed to parse statement')
     }
   }
@@ -201,7 +209,8 @@ export const BankFeedsPage: React.FC = () => {
       setShowMatchModal(false)
       loadTransactions(selectedAccountId)
       loadBrsSummary(selectedAccountId, asOfDate)
-    } catch (e: any) {
+    } catch (caught) {
+      const e = toError(caught)
       setError(e.message || 'Failed to update transaction')
     }
   }
@@ -215,7 +224,8 @@ export const BankFeedsPage: React.FC = () => {
       setSuccess('Categorization rule saved!')
       setShowRuleModal(false)
       loadRules()
-    } catch (e: any) {
+    } catch (caught) {
+      const e = toError(caught)
       setError(e.message || 'Failed to create rule')
     }
   }
@@ -488,14 +498,14 @@ export const BankFeedsPage: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                transactions.map((tx: any) => (
-                  <tr key={tx.id || tx.Id} style={{ borderBottom: '1px solid var(--border, #eee)' }}>
-                    <td style={{ padding: '10px' }}>{tx.transactionDate || tx.TransactionDate}</td>
+                transactions.map((tx) => (
+                  <tr key={tx.id} style={{ borderBottom: '1px solid var(--border, #eee)' }}>
+                    <td style={{ padding: '10px' }}>{tx.transactionDate}</td>
                     <td style={{ padding: '10px', maxWidth: '300px', wordBreak: 'break-word' }}>
-                      {tx.narration || tx.Narration}
+                      {tx.narration}
                     </td>
                     <td style={{ padding: '10px', color: 'var(--muted, #666)' }}>
-                      {tx.referenceNumber || tx.ReferenceNumber || '-'}
+                      {tx.referenceNumber || '-'}
                     </td>
                     <td style={{ padding: '10px' }}>
                       <span
@@ -504,19 +514,19 @@ export const BankFeedsPage: React.FC = () => {
                           borderRadius: '4px',
                           fontSize: '11px',
                           fontWeight: 700,
-                          background: (tx.transactionType || tx.TransactionType) === 'Credit' ? '#e8f5e9' : '#ffebee',
-                          color: (tx.transactionType || tx.TransactionType) === 'Credit' ? '#2e7d32' : '#c62828'
+                          background: (tx.transactionType) === 'Credit' ? '#e8f5e9' : '#ffebee',
+                          color: (tx.transactionType) === 'Credit' ? '#2e7d32' : '#c62828'
                         }}
                       >
-                        {tx.transactionType || tx.TransactionType}
+                        {tx.transactionType}
                       </span>
                     </td>
                     <td style={{ padding: '10px', textAlign: 'right', fontWeight: 600 }}>
-                      {formatCurrency(tx.amount || tx.Amount)}
+                      {formatCurrency(tx.amount)}
                     </td>
                     <td style={{ padding: '10px' }}>
                       <span style={{ background: '#f0f4f8', padding: '3px 8px', borderRadius: '12px', fontSize: '11px' }}>
-                        {tx.category || tx.Category || 'Uncategorized'}
+                        {tx.category || 'Uncategorized'}
                       </span>
                     </td>
                     <td style={{ padding: '10px' }}>
@@ -526,11 +536,11 @@ export const BankFeedsPage: React.FC = () => {
                           borderRadius: '4px',
                           fontSize: '11px',
                           fontWeight: 600,
-                          background: (tx.matchStatus || tx.MatchStatus) === 'Matched' ? '#e8f5e9' : '#fff3e0',
-                          color: (tx.matchStatus || tx.MatchStatus) === 'Matched' ? '#2e7d32' : '#e65100'
+                          background: (tx.matchStatus) === 'Matched' ? '#e8f5e9' : '#fff3e0',
+                          color: (tx.matchStatus) === 'Matched' ? '#2e7d32' : '#e65100'
                         }}
                       >
-                        {tx.matchStatus || tx.MatchStatus}
+                        {tx.matchStatus}
                       </span>
                     </td>
                     <td style={{ padding: '10px', textAlign: 'center' }}>
@@ -542,7 +552,7 @@ export const BankFeedsPage: React.FC = () => {
                             matchStatus: 'Matched',
                             matchedEntityType: 'Expense',
                             matchedEntityId: undefined,
-                            notes: tx.notes || tx.Notes || ''
+                            notes: tx.notes || ''
                           })
                           setShowMatchModal(true)
                         }}
@@ -882,9 +892,9 @@ export const BankFeedsPage: React.FC = () => {
           <div className="card" style={{ background: '#fff', padding: '24px', borderRadius: '8px', width: '480px', maxWidth: '90%' }}>
             <h3 style={{ margin: '0 0 12px 0' }}>Reconcile Transaction</h3>
             <div style={{ background: '#f8f9fa', padding: '12px', borderRadius: '6px', marginBottom: '16px', fontSize: '13px' }}>
-              <div>Narration: <strong>{(selectedTxForMatch as any).narration || (selectedTxForMatch as any).Narration}</strong></div>
-              <div>Amount: <strong>{formatCurrency((selectedTxForMatch as any).amount || (selectedTxForMatch as any).Amount)}</strong> [{(selectedTxForMatch as any).transactionType || (selectedTxForMatch as any).TransactionType}]</div>
-              <div>Date: <strong>{(selectedTxForMatch as any).transactionDate || (selectedTxForMatch as any).TransactionDate}</strong></div>
+              <div>Narration: <strong>{selectedTxForMatch.narration}</strong></div>
+              <div>Amount: <strong>{formatCurrency(selectedTxForMatch.amount)}</strong> [{selectedTxForMatch.transactionType}]</div>
+              <div>Date: <strong>{selectedTxForMatch.transactionDate}</strong></div>
             </div>
 
             <form onSubmit={handleMatchTransaction}>

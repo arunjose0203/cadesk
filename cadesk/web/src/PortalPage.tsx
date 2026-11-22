@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import {
+import { toError,
   api,
   type Client,
   type ServiceRequest,
@@ -61,7 +61,8 @@ export default function PortalPage({ can, meId }: { can: (p: string) => boolean;
 
       const list = await api<ServiceRequest[]>(`/api/service-requests?${q.toString()}`)
       setRequests(list)
-    } catch (e: any) {
+    } catch (caught) {
+      const e = toError(caught)
       setError(e.message || 'Failed to load service requests')
     } finally {
       setLoading(false)
@@ -74,7 +75,8 @@ export default function PortalPage({ can, meId }: { can: (p: string) => boolean;
     try {
       const list = await api<PortalUser[]>('/api/portal/users')
       setPortalUsers(list)
-    } catch (e: any) {
+    } catch (caught) {
+      const e = toError(caught)
       setError(e.message || 'Failed to load client portal users')
     } finally {
       setLoading(false)
@@ -99,7 +101,8 @@ export default function PortalPage({ can, meId }: { can: (p: string) => boolean;
       setSelectedRequest(updated)
       setReplyText('')
       await loadRequests()
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err.message || 'Failed to post reply')
     }
   }
@@ -119,7 +122,8 @@ export default function PortalPage({ can, meId }: { can: (p: string) => boolean;
       })
       setSelectedRequest(updated)
       await loadRequests()
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err.message || 'Failed to update ticket status')
     }
   }
@@ -145,7 +149,8 @@ export default function PortalPage({ can, meId }: { can: (p: string) => boolean;
       setInviteName('')
       setInvitePhone('')
       await loadUsers()
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err.message || 'Failed to create client portal account')
     }
   }
@@ -157,7 +162,8 @@ export default function PortalPage({ can, meId }: { can: (p: string) => boolean;
         body: JSON.stringify(!user.isActive)
       })
       await loadUsers()
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err.message || 'Failed to update portal user status')
     }
   }
@@ -167,7 +173,8 @@ export default function PortalPage({ can, meId }: { can: (p: string) => boolean;
     try {
       await api(`/api/portal/users/${id}`, { method: 'DELETE' })
       await loadUsers()
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err.message || 'Failed to delete user')
     }
   }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import {
+import { toError,
   fixedAssetApi,
   api,
   type FixedAssetDto,
@@ -153,7 +153,8 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
       setAssets(assetList)
       setDeprEntries(deprList)
       setVerifications(verifList)
-    } catch (e: any) {
+    } catch (caught) {
+      const e = toError(caught)
       setError(e.message || 'Failed to load fixed asset data')
     } finally {
       setLoading(false)
@@ -230,7 +231,8 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
       }
       setShowAssetModal(false)
       loadData(selectedClientId || undefined, selectedFy)
-    } catch (e: any) {
+    } catch (caught) {
+      const e = toError(caught)
       setError(e.message || 'Failed to save fixed asset')
     }
   }
@@ -256,7 +258,8 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
       setShowDeprModal(false)
       loadData(selectedClientId || undefined, selectedFy)
       setActiveTab('depreciation')
-    } catch (e: any) {
+    } catch (caught) {
+      const e = toError(caught)
       setError(e.message || 'Failed to run dual depreciation')
     }
   }
@@ -283,7 +286,8 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
       setSuccess(`Physical verification recorded for ${selectedAsset.assetTag}!`)
       setShowVerifModal(false)
       loadData(selectedClientId || undefined, selectedFy)
-    } catch (e: any) {
+    } catch (caught) {
+      const e = toError(caught)
       setError(e.message || 'Failed to record physical verification')
     }
   }
@@ -308,7 +312,8 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
       setSuccess(`Asset ${selectedAsset.assetTag} marked as Disposed!`)
       setShowDisposeModal(false)
       loadData(selectedClientId || undefined, selectedFy)
-    } catch (e: any) {
+    } catch (caught) {
+      const e = toError(caught)
       setError(e.message || 'Failed to dispose asset')
     }
   }
@@ -1199,7 +1204,7 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>Sch II Depr Method</label>
                   <select
                     value={assetForm.companyDepreciationMethod}
-                    onChange={e => setAssetForm({ ...assetForm, companyDepreciationMethod: e.target.value as any })}
+                    onChange={e => setAssetForm({ ...assetForm, companyDepreciationMethod: e.target.value as (typeof assetForm)['companyDepreciationMethod'] })}
                     style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
                   >
                     <option value="SLM">Straight Line Method (SLM)</option>
@@ -1211,7 +1216,7 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>Shift Working</label>
                   <select
                     value={assetForm.shiftType}
-                    onChange={e => setAssetForm({ ...assetForm, shiftType: e.target.value as any })}
+                    onChange={e => setAssetForm({ ...assetForm, shiftType: e.target.value as (typeof assetForm)['shiftType'] })}
                     style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
                   >
                     <option value="SingleShift">Single Shift (1.0x)</option>
@@ -1461,7 +1466,7 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>Condition Status</label>
                 <select
                   value={verifForm.status}
-                  onChange={e => setVerifForm({ ...verifForm, status: e.target.value as any })}
+                  onChange={e => setVerifForm({ ...verifForm, status: e.target.value as (typeof verifForm)['status'] })}
                   style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
                 >
                   <option value="FoundAndGood">Found & Good Condition</option>

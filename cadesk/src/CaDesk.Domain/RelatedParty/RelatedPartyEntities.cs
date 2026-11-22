@@ -196,18 +196,20 @@ public static class RelatedPartyEngine
         sb.AppendLine();
         sb.AppendLine("PART B: Contracts or arrangements with related parties under Section 188");
         sb.AppendLine("----------------------------------------------------------------------------------------------------------------");
-        sb.AppendLine(string.Format("{0,-12} | {1,-32} | {2,-24} | {3,-15} | {4,14} | {5,-10} | {6,-10}",
+        // a statutory register must show full names, so the columns grow to fit instead of truncating
+        var nameWidth = Math.Max(32, transactions.Select(x => (x.RelatedParty?.Name ?? "Unknown").Length).DefaultIfEmpty(0).Max());
+        var relWidth = Math.Max(24, transactions.Select(x => (x.RelatedParty?.RelationshipType ?? "RelatedParty").Length).DefaultIfEmpty(0).Max());
+        var rowFormat = "{0,-12} | {1,-" + nameWidth + "} | {2,-" + relWidth + "} | {3,-15} | {4,14:N2} | {5,-10} | {6,-10}";
+        sb.AppendLine(string.Format(rowFormat.Replace(":N2", ""),
             "Date", "Related Party", "Relationship", "Type", "Amount (INR)", "Arm's Length", "Sec 188 Appr"));
         sb.AppendLine("----------------------------------------------------------------------------------------------------------------");
 
         foreach (var t in transactions.OrderBy(x => x.TransactionDate))
         {
             var partyName = t.RelatedParty?.Name ?? "Unknown";
-            if (partyName.Length > 32) partyName = partyName.Substring(0, 30) + "..";
             var relType = t.RelatedParty?.RelationshipType ?? "RelatedParty";
-            if (relType.Length > 24) relType = relType.Substring(0, 22) + "..";
 
-            sb.AppendLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, "{0,-12} | {1,-32} | {2,-24} | {3,-15} | {4,14:N2} | {5,-10} | {6,-10}",
+            sb.AppendLine(string.Format(System.Globalization.CultureInfo.InvariantCulture, rowFormat,
                 t.TransactionDate.ToString("dd-MM-yyyy"),
                 partyName,
                 relType,

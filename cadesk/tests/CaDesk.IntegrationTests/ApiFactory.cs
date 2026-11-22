@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 
+[assembly: CollectionBehavior(DisableTestParallelization = true)]
+
 namespace CaDesk.IntegrationTests;
 
 /// <summary>
@@ -130,6 +132,7 @@ public static class TestData
     public static readonly string[] AllPermissions =
     [
         "advancetax.calculate", "advancetax.manage", "advancetax.read",
+        "antiprofiteering.certify", "antiprofiteering.manage", "antiprofiteering.read",
         "assets.depreciate", "assets.manage", "assets.read",
         "audit.archive", "audit.manage", "audit.read", "audit.review",
         "auditcommittee.manage", "auditcommittee.read", "auditcommittee.signoff",
@@ -140,26 +143,33 @@ public static class TestData
         "clients.delete", "clients.read", "clients.write",
         "compliance.manage", "compliance.read",
         "computations.approve", "computations.run",
+        "costaudit.certify", "costaudit.manage", "costaudit.read",
         "documents.delete", "documents.read", "documents.upload",
         "dsc.manage", "dsc.read",
         "einvoice.cancel", "einvoice.generate", "einvoice.read",
         "engagement.manage", "engagement.read",
         "eqr.review", "extractions.approve",
+        "foreignremittance.certify", "foreignremittance.manage", "foreignremittance.read",
         "gst.read", "gst.reconcile",
+        "gstr9.certify", "gstr9.manage", "gstr9.read",
+        "internalaudit.manage", "internalaudit.read", "internalaudit.report",
         "kyc.manage", "kyc.read",
         "mca.manage", "mca.read",
         "notices.approve", "notices.manage", "notices.read",
         "payroll.manage", "payroll.process", "payroll.read",
         "portal.manage", "portal.read",
         "presumptive.approve", "presumptive.manage", "presumptive.read",
+        "relatedparty.approve", "relatedparty.manage", "relatedparty.read",
         "reports.manage", "reports.read",
         "roles.manage",
         "schedule3.finalize", "schedule3.manage", "schedule3.read",
+        "secretarialaudit.certify", "secretarialaudit.manage", "secretarialaudit.read",
         "service_requests.manage", "settings.manage",
         "tasks.manage", "tasks.read", "tasks.review",
         "taxaudit.finalize", "taxaudit.manage", "taxaudit.read",
         "tds.manage", "tds.read",
         "timesheets.log", "timesheets.manage", "timesheets.read",
+        "transferpricing.certify", "transferpricing.manage", "transferpricing.read",
         "users.manage", "users.read",
         "workpapers.manage", "workpapers.read",
     ];

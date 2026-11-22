@@ -15,7 +15,8 @@ public static class TaxEngine
         {
             recommended = "new";
             savings = oldResult.TotalTaxLiability - newResult.TotalTaxLiability;
-            reason = $"New Tax Regime saves ₹{savings:N0} in tax due to higher standard deduction (₹75,000), concessional tax slab rates, and ₹7,00,000 zero-tax threshold u/s 87A.";
+            var rules = NewRegimeRules.For(req.FinancialYear, req.AssessmentYear);
+            reason = $"New Tax Regime saves ₹{savings:N0} in tax due to higher standard deduction (₹75,000), concessional tax slab rates, and ₹{rules.RebateIncomeLimit:N0} zero-tax threshold u/s 87A.";
         }
         else if (oldResult.TotalTaxLiability < newResult.TotalTaxLiability)
         {
@@ -150,13 +151,15 @@ public static class TaxEngine
         decimal totalTaxableIncome = taxableNormalIncome + stcgSpecial + totalLtcg;
 
         // 7. Base Slab Tax Computation
+        var newRules = NewRegimeRules.For(req.FinancialYear, req.AssessmentYear);
         var (slabTax, slabs) = isNewRegime
-            ? ComputeNewRegimeSlabs(taxableNormalIncome)
+            ? ComputeNewRegimeSlabs(taxableNormalIncome, newRules)
             : ComputeOldRegimeSlabs(taxableNormalIncome, req.TaxpayerCategory ?? "individual");
 
         // 8. Special Rate Taxes (Capital Gains)
-        // STCG 111A: 15% / 20%
-        decimal stcgTax = Math.Round(stcgSpecial * 0.15m, 2);
+        // STCG 111A: 20% for transfers from 23 July 2024 (Finance (No. 2) Act 2024), 15% before. FY 2024-25 straddles
+        // the change and this engine has no transfer date, so that year keeps 15%; FY 2025-26 onward is 20%.
+        decimal stcgTax = Math.Round(stcgSpecial * newRules.Stcg111ARate, 2); // same rate in both regimes
 
         // LTCG 112A: 12.5% on gains exceeding ₹1,25,000
         decimal ltcg112ATaxable = Math.Max(0, ltcg112A - 125000m);
@@ -173,10 +176,19 @@ public static class TaxEngine
         decimal rebate87A = 0;
         if (isNewRegime)
         {
-            // New Regime 87A: If total taxable income <= ₹7,00,000, 100% rebate (up to ₹25,000)
-            if (totalTaxableIncome <= 700000m)
+            // New Regime 87A (Sec 115BAC(1A)): full rebate up to the year's limit when total income is within the
+            // threshold (FY 2025-26 onward: ₹12,00,000 / ₹60,000; earlier: ₹7,00,000 / ₹25,000), with marginal relief
+            // just above it so the tax never exceeds the income above the threshold.
+            // From FY 2025-26 the rebate is not available against tax on special-rate income (111A / 112 / 112A).
+            decimal rebateBase = newRules.RebateExcludesSpecialRateTax ? slabTax : totalTaxBeforeRebate;
+            if (totalTaxableIncome <= newRules.RebateIncomeLimit)
             {
-                rebate87A = totalTaxBeforeRebate;
+                rebate87A = Math.Min(newRules.MaxRebate, rebateBase);
+            }
+            else
+            {
+                decimal incomeAboveLimit = totalTaxableIncome - newRules.RebateIncomeLimit;
+                if (rebateBase > incomeAboveLimit) rebate87A = rebateBase - incomeAboveLimit; // marginal relief
             }
         }
         else
@@ -192,7 +204,7 @@ public static class TaxEngine
 
         // 10. Surcharge
         decimal surchargeRate = 0;
-        if (totalTaxableIncome > 50000000m) surchargeRate = 0.25m; // > 5 Cr (capped at 25% under New Regime)
+        if (totalTaxableIncome > 50000000m) surchargeRate = isNewRegime ? 0.25m : 0.37m; // > 5 Cr: 37% old regime, capped at 25% new regime
         else if (totalTaxableIncome > 20000000m) surchargeRate = 0.25m; // > 2 Cr
         else if (totalTaxableIncome > 10000000m) surchargeRate = 0.15m; // > 1 Cr
         else if (totalTaxableIncome > 5000000m) surchargeRate = 0.10m;  // > 50 Lakhs
@@ -232,69 +244,58 @@ public static class TaxEngine
         );
     }
 
-    private static (decimal TotalTax, List<TaxSlabBreakdown> Slabs) ComputeNewRegimeSlabs(decimal income)
+    private static (decimal TotalTax, List<TaxSlabBreakdown> Slabs) ComputeNewRegimeSlabs(decimal income, NewRegimeRules rules)
     {
-        // FY 2024-25 / AY 2025-26 New Regime Slabs:
-        // 0 to 3,00,000: Nil
-        // 3,00,001 to 7,00,000: 5% (max 20,000)
-        // 7,00,001 to 10,00,000: 10% (max 30,000)
-        // 10,00,001 to 12,00,000: 15% (max 30,000)
-        // 12,00,001 to 15,00,000: 20% (max 60,000)
-        // Above 15,00,000: 30%
-
         var slabs = new List<TaxSlabBreakdown>();
         decimal tax = 0;
-
-        // Slab 1: 0 - 3L (0%)
-        decimal s1 = Math.Min(income, 300000m);
-        slabs.Add(new("₹0 - ₹3,00,000", 0, s1, 0));
-
-        // Slab 2: 3L - 7L (5%)
-        if (income > 300000m)
+        decimal lower = 0;
+        foreach (var (upper, ratePct) in rules.Slabs)
         {
-            decimal s2 = Math.Min(income - 300000m, 400000m);
-            decimal t2 = s2 * 0.05m;
-            tax += t2;
-            slabs.Add(new("₹3,00,001 - ₹7,00,000", 5, s2, t2));
+            if (income <= lower && lower > 0) break;
+            decimal inSlab = Math.Max(0, Math.Min(income, upper ?? decimal.MaxValue) - lower);
+            decimal slabTax = inSlab * ratePct / 100m;
+            tax += slabTax;
+            var label = upper is null ? $"Above ₹{Inr(lower)}" : lower == 0 ? $"₹0 - ₹{Inr(upper.Value)}" : $"₹{Inr(lower + 1)} - ₹{Inr(upper.Value)}";
+            slabs.Add(new(label, ratePct, inSlab, slabTax));
+            if (upper is null) break;
+            lower = upper.Value;
         }
-
-        // Slab 3: 7L - 10L (10%)
-        if (income > 700000m)
-        {
-            decimal s3 = Math.Min(income - 700000m, 300000m);
-            decimal t3 = s3 * 0.10m;
-            tax += t3;
-            slabs.Add(new("₹7,00,001 - ₹10,00,000", 10, s3, t3));
-        }
-
-        // Slab 4: 10L - 12L (15%)
-        if (income > 1000000m)
-        {
-            decimal s4 = Math.Min(income - 1000000m, 200000m);
-            decimal t4 = s4 * 0.15m;
-            tax += t4;
-            slabs.Add(new("₹10,00,001 - ₹12,00,000", 15, s4, t4));
-        }
-
-        // Slab 5: 12L - 15L (20%)
-        if (income > 1200000m)
-        {
-            decimal s5 = Math.Min(income - 1200000m, 300000m);
-            decimal t5 = s5 * 0.20m;
-            tax += t5;
-            slabs.Add(new("₹12,00,001 - ₹15,00,000", 20, s5, t5));
-        }
-
-        // Slab 6: Above 15L (30%)
-        if (income > 1500000m)
-        {
-            decimal s6 = income - 1500000m;
-            decimal t6 = s6 * 0.30m;
-            tax += t6;
-            slabs.Add(new("Above ₹15,00,000", 30, s6, t6));
-        }
-
         return (tax, slabs);
+    }
+
+    private static readonly System.Globalization.CultureInfo IndianFormat = System.Globalization.CultureInfo.GetCultureInfo("en-IN");
+
+    /// <summary>Indian digit grouping: 300001 → "3,00,001".</summary>
+    private static string Inr(decimal amount) => amount.ToString("N0", IndianFormat);
+
+    /// <summary>
+    /// New-regime (Sec 115BAC(1A)) slabs and 87A rebate, plus the 111A STCG rate (both regimes), for a financial year. Rules are chosen by year, so
+    /// computations for earlier years (revised / belated returns, notices) keep the law that applied then.
+    /// </summary>
+    public sealed record NewRegimeRules(
+        IReadOnlyList<(decimal? UpperLimit, decimal RatePct)> Slabs,
+        decimal RebateIncomeLimit, decimal MaxRebate, bool RebateExcludesSpecialRateTax,
+        decimal Stcg111ARate)
+    {
+        // Finance Act 2025: FY 2025-26 onward (the Income-tax Act, 2025 keeps these rates from tax year 2026-27)
+        private static readonly NewRegimeRules Fy2025 = new(
+            [(400000m, 0m), (800000m, 5m), (1200000m, 10m), (1600000m, 15m), (2000000m, 20m), (2400000m, 25m), (null, 30m)],
+            RebateIncomeLimit: 1200000m, MaxRebate: 60000m, RebateExcludesSpecialRateTax: true, Stcg111ARate: 0.20m);
+
+        // Finance (No. 2) Act 2024: FY 2024-25
+        private static readonly NewRegimeRules Fy2024 = new(
+            [(300000m, 0m), (700000m, 5m), (1000000m, 10m), (1200000m, 15m), (1500000m, 20m), (null, 30m)],
+            RebateIncomeLimit: 700000m, MaxRebate: 25000m, RebateExcludesSpecialRateTax: false, Stcg111ARate: 0.15m);
+
+        public static NewRegimeRules For(string? financialYear, string? assessmentYear)
+        {
+            int? fyStart = StartYear(financialYear) ?? (StartYear(assessmentYear) - 1);
+            return fyStart is null or >= 2025 ? Fy2025 : Fy2024;
+        }
+
+        /// <summary>"2025-26" → 2025.</summary>
+        private static int? StartYear(string? year) =>
+            year is { Length: >= 4 } && int.TryParse(year[..4], out var y) ? y : null;
     }
 
     private static (decimal TotalTax, List<TaxSlabBreakdown> Slabs) ComputeOldRegimeSlabs(decimal income, string category)

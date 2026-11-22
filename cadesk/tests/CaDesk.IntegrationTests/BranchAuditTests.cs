@@ -105,7 +105,7 @@ public class BranchAuditTests(ApiFactory api) : IClassFixture<ApiFactory>
         // 4. External Branch Auditor views branch portal anonymously (without firm JWT token)
         var anonClient = api.CreateClient();
         var portalInfoRes = await anonClient.GetAsync($"/api/branchaudit/portal/branch?token={tokenData.RawToken}");
-        portalInfoRes.EnsureSuccessStatusCode();
+        Assert.True(portalInfoRes.IsSuccessStatusCode, await portalInfoRes.Content.ReadAsStringAsync());
         var portalBranch = (await portalInfoRes.Content.ReadFromJsonAsync<BranchAuditOfficeDto>())!;
         Assert.Equal("BR-MUM", portalBranch.BranchCode);
         Assert.Equal("Desai & Co.", portalBranch.AuditorFirmName);

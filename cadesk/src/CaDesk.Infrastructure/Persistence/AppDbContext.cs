@@ -41,6 +41,7 @@ using CaDesk.Domain.Configuration;
 using CaDesk.Domain.Firms;
 using CaDesk.Domain.Users;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace CaDesk.Infrastructure.Persistence;
 
@@ -178,6 +179,29 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
 
     /// <summary>Read by the query filters at query time. Guid.Empty = no firm = no rows.</summary>
     public Guid CurrentFirmId => tenant.HasTenant ? tenant.FirmId : Guid.Empty;
+
+    /// <summary>
+    /// timestamptz only accepts UTC. Dates posted as "2026-04-01" or built with new DateTime(...) arrive with
+    /// Kind=Unspecified and would fail on save, so every DateTime is treated as UTC on the way in and out.
+    /// </summary>
+    protected override void ConfigureConventions(ModelConfigurationBuilder c)
+    {
+        c.Properties<DateTime>().HaveConversion<UtcDateTimeConverter>();
+        c.Properties<DateTime?>().HaveConversion<NullableUtcDateTimeConverter>();
+    }
+
+    private sealed class UtcDateTimeConverter() : Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<DateTime, DateTime>(
+        v => ToUtc(v), v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
+
+    private sealed class NullableUtcDateTimeConverter() : Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<DateTime?, DateTime?>(
+        v => v.HasValue ? ToUtc(v.Value) : v, v => v.HasValue ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : v);
+
+    private static DateTime ToUtc(DateTime v) => v.Kind switch
+    {
+        DateTimeKind.Utc => v,
+        DateTimeKind.Local => v.ToUniversalTime(),
+        _ => DateTime.SpecifyKind(v, DateTimeKind.Utc),
+    };
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -368,6 +392,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
         b.Entity<AuditEngagement>(e =>
         {
             e.ToTable("audit_engagements");
+            e.HasOne(x => x.ArchivedByUser).WithMany().HasForeignKey(x => x.ArchivedBy).OnDelete(DeleteBehavior.SetNull);
             e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(x => x.LeadPartner).WithMany().HasForeignKey(x => x.LeadPartnerId).OnDelete(DeleteBehavior.SetNull);
             e.HasOne(x => x.Manager).WithMany().HasForeignKey(x => x.ManagerId).OnDelete(DeleteBehavior.SetNull);
@@ -622,17 +647,26 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
         b.Entity<AdvanceTaxInstallment>(e =>
         {
             e.ToTable("advance_tax_installments");
+            e.Property(x => x.Interest234c).HasColumnName("interest_234c");
             e.HasIndex(x => new { x.FirmId, x.PlanId, x.InstallmentNumber }).IsUnique().HasDatabaseName("ux_advance_tax_installments");
         });
 
         b.Entity<TaxInterestComputation>(e =>
         {
             e.ToTable("tax_interest_computations");
+            e.Property(x => x.Interest234a).HasColumnName("interest_234a");
+            e.Property(x => x.Interest234b).HasColumnName("interest_234b");
+            e.Property(x => x.Interest234cTotal).HasColumnName("interest_234c_total");
+            e.Property(x => x.Is234bApplicable).HasColumnName("is_234b_applicable");
+            e.Property(x => x.MonthsDelayed234a).HasColumnName("months_delayed_234a");
+            e.Property(x => x.MonthsDelayed234b).HasColumnName("months_delayed_234b");
         });
 
         b.Entity<Gstr9Return>(e =>
         {
             e.ToTable("gstr9_returns");
+            e.Property(x => x.ItcAsPer2a).HasColumnName("itc_as_per_2a");
+            e.Property(x => x.ItcAvailed3b).HasColumnName("itc_availed_3b");
             e.Property(x => x.Status).HasConversion<string>();
             e.HasIndex(x => new { x.FirmId, x.ClientId, x.FinancialYear }).IsUnique().HasDatabaseName("ux_gstr9_returns_client_fy");
             e.HasMany(x => x.TableEntries).WithOne().HasForeignKey(x => x.Gstr9ReturnId).OnDelete(DeleteBehavior.Cascade);
@@ -699,6 +733,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
         b.Entity<Form3CdAssessment>(e =>
         {
             e.ToTable("form3cd_assessments");
+            e.Property(x => x.Section44AbClause).HasColumnName("section44ab_clause");
+            e.Property(x => x.TotalDisallowanceSec40A3).HasColumnName("total_disallowance_sec40a3");
+            e.Property(x => x.TotalDisallowanceSec43B).HasColumnName("total_disallowance_sec43b");
+            e.Property(x => x.TotalDisallowanceSec43Bh).HasColumnName("total_disallowance_sec43bh");
             e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(x => x.AuditEngagement).WithMany().HasForeignKey(x => x.AuditEngagementId).OnDelete(DeleteBehavior.SetNull);
             e.HasOne(x => x.FinalizedByUser).WithMany().HasForeignKey(x => x.FinalizedByUserId).OnDelete(DeleteBehavior.SetNull);
@@ -735,6 +773,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
         b.Entity<Schedule3AgeingItem>(e =>
         {
             e.ToTable("schedule3_ageing_items");
+            e.Property(x => x.Less6MonthsOr1Year).HasColumnName("less_6_months_or_1_year");
             e.HasOne(x => x.Assessment).WithMany(x => x.AgeingItems).HasForeignKey(x => x.AssessmentId).OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(x => new { x.FirmId, x.AssessmentId }).HasDatabaseName("ix_schedule3_ageing_items_assessment");
         });
@@ -794,6 +833,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
         b.Entity<ForeignRemittanceAssessment>(e =>
         {
             e.ToTable("foreign_remittance_assessments");
+            e.Property(x => x.Form15CaPart).HasColumnName("form15ca_part");
+            e.Property(x => x.Form15CaRoutingReason).HasColumnName("form15ca_routing_reason");
+            e.Property(x => x.Generated15CaXmlPayload).HasColumnName("generated_15ca_xml_payload");
+            e.Property(x => x.Generated15CbCertificateText).HasColumnName("generated_15cb_certificate_text");
+            e.Property(x => x.HasForm10F).HasColumnName("has_form10f");
+            e.Property(x => x.RequiresForm15Cb).HasColumnName("requires_form15cb");
             e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(x => new { x.FirmId, x.ClientId, x.FinancialYear }).HasDatabaseName("ix_foreign_remittance_assessments_client_fy");
         });
@@ -815,6 +860,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
         b.Entity<RelatedPartyTransaction>(e =>
         {
             e.ToTable("related_party_transactions");
+            e.Property(x => x.Section40A2bRisk).HasColumnName("section_40a2b_risk");
             e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(x => x.RelatedParty).WithMany(x => x.Transactions).HasForeignKey(x => x.RelatedPartyId).OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(x => new { x.FirmId, x.ClientId, x.FinancialYear }).HasDatabaseName("ix_related_party_transactions_client_fy");
@@ -909,6 +955,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
         b.Entity<TransferPricingStudy>(e =>
         {
             e.ToTable("transfer_pricing_studies");
+            e.Property(x => x.Form3CebReportText).HasColumnName("form_3ceb_report_text");
+            e.Property(x => x.Rule10DDocumentationMaintained).HasColumnName("rule_10d_documentation_maintained");
+            e.Property(x => x.Rule10DDocumentationPath).HasColumnName("rule_10d_documentation_path");
             e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(x => new { x.FirmId, x.ClientId, x.FinancialYear }).HasDatabaseName("ix_tp_studies_firm_client_fy");
         });
@@ -1086,9 +1135,17 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
     {
         foreach (var et in b.Model.GetEntityTypes())
         {
+            // Ids are made in C# (Guid.CreateVersion7), never by the database. Telling EF so means a new child
+            // added only through a loaded parent's collection is INSERTed; otherwise EF sees a key value, assumes
+            // an existing row, UPDATEs nothing and reports "changed by someone else".
+            if (et.FindPrimaryKey()?.Properties is [{ Name: "Id" } idKey] && idKey.ClrType == typeof(Guid))
+                idKey.ValueGenerated = ValueGenerated.Never;
+
             foreach (var p in et.GetProperties())
             {
                 if (p.ClrType == typeof(uint) && p.Name == nameof(TenantEntity.Version)) continue; // xmin
+                // an explicit HasColumnName wins: some SQL migrations split digits differently (interest_234c, form15ca_part)
+                if (p.FindAnnotation(RelationalAnnotationNames.ColumnName) is not null) continue;
                 p.SetColumnName(p.Name.ToSnakeCase());
             }
             foreach (var k in et.GetKeys()) k.SetName(k.GetName()?.ToSnakeCase());

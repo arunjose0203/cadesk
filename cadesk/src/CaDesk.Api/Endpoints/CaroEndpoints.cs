@@ -55,7 +55,7 @@ public static class CaroEndpoints
             CaroService svc,
             CancellationToken ct) =>
         {
-            var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier) ?? Guid.Empty.ToString());
+            var userId = user.RequiredUserId();
             var created = await svc.CreateAssessmentAsync(req, userId, ct);
             return Results.Created($"/api/caro/assessments/{created.Id}", created);
         }).RequirePermission(Perms.CaroManage);
@@ -68,7 +68,7 @@ public static class CaroEndpoints
             CaroService svc,
             CancellationToken ct) =>
         {
-            var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier) ?? Guid.Empty.ToString());
+            var userId = user.RequiredUserId();
             var updated = await svc.UpdateAssessmentAsync(id, req, userId, ct);
             return Results.Ok(updated);
         }).RequirePermission(Perms.CaroManage);
@@ -82,7 +82,7 @@ public static class CaroEndpoints
             CaroService svc,
             CancellationToken ct) =>
         {
-            var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier) ?? Guid.Empty.ToString());
+            var userId = user.RequiredUserId();
             var updated = await svc.UpdateClauseResponseAsync(id, clauseId, req, userId, ct);
             return Results.Ok(updated);
         }).RequirePermission(Perms.CaroManage);
@@ -102,7 +102,7 @@ public static class CaroEndpoints
             CaroService svc,
             CancellationToken ct) =>
         {
-            var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier) ?? Guid.Empty.ToString());
+            var userId = user.RequiredUserId();
             var finalized = await svc.FinalizeAssessmentAsync(id, req?.Conclusion, userId, ct);
             return Results.Ok(finalized);
         }).RequirePermission(Perms.CaroFinalize);

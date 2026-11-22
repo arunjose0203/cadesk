@@ -11,7 +11,9 @@ create table if not exists practice_targets (
   target_recovery_percentage  numeric(5,2) not null default 85.0 check (target_recovery_percentage between 0 and 100),
   target_compliance_sla_pct   numeric(5,2) not null default 95.0 check (target_compliance_sla_pct between 0 and 100),
   created_at                  timestamptz not null default now(),
+  created_by                  uuid,
   updated_at                  timestamptz,
+  updated_by                  uuid,
   constraint ux_practice_targets_firm_fy unique (firm_id, financial_year)
 );
 

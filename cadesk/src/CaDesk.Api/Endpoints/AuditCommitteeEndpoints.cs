@@ -192,7 +192,7 @@ public static class AuditCommitteeEndpoints
             AuditCommitteeService svc,
             CancellationToken ct) =>
         {
-            var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier) ?? Guid.Empty.ToString());
+            var userId = user.RequiredUserId();
             var signedOff = await svc.SignOffEngagementAsync(id, req, userId, ct);
             return Results.Ok(signedOff);
         }).RequirePermission(Perms.AuditCommitteeSignOff);

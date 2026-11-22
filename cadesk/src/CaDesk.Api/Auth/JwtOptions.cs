@@ -96,4 +96,8 @@ public static class ClaimsPrincipalExtensions
 {
     public static Guid? UserId(this ClaimsPrincipal user) =>
         Guid.TryParse(user.FindFirst(AppClaims.Subject)?.Value, out var id) ? id : null;
+
+    /// <summary>The signed-in user's id; refuses rather than recording the action against an empty id.</summary>
+    public static Guid RequiredUserId(this ClaimsPrincipal user) =>
+        user.UserId() ?? throw new AuthFailedException("Not signed in.");
 }

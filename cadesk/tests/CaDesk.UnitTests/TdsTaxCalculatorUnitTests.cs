@@ -40,14 +40,29 @@ public class TdsTaxCalculatorUnitTests
     public void DetermineRate_NonFilerSection206Ab_AppliesHigherOfTwiceRateOrFivePercent()
     {
         // 194C Company: 1% -> Twice is 2%, but min is 5% -> 5%
-        var (rate1, reason1) = TdsTaxCalculator.DetermineRate(TdsSection.Sec194CCompany, "ABCDE1234F", isNonFiler206Ab: true);
+        var (rate1, reason1) = TdsTaxCalculator.DetermineRate(TdsSection.Sec194CCompany, "ABCDE1234F", isNonFiler206Ab: true, deductionDate: Fy2024Date);
         Assert.Equal(5.0m, rate1);
         Assert.Equal(HigherRateReason.NonFiler206Ab, reason1);
 
         // 194J Fees: 10% -> Twice is 20% -> 20%
-        var (rate2, reason2) = TdsTaxCalculator.DetermineRate(TdsSection.Sec194JFees, "ABCDE1234F", isNonFiler206Ab: true);
+        var (rate2, reason2) = TdsTaxCalculator.DetermineRate(TdsSection.Sec194JFees, "ABCDE1234F", isNonFiler206Ab: true, deductionDate: Fy2024Date);
         Assert.Equal(20.0m, rate2);
         Assert.Equal(HigherRateReason.NonFiler206Ab, reason2);
+    }
+
+    private static readonly DateOnly Fy2024Date = new(2025, 3, 15);
+
+    [Fact]
+    public void DetermineRate_206AbOmittedFromApril2025_NonFilerGetsNormalRate()
+    {
+        // Finance Act 2025 omitted Section 206AB for deductions from 1 April 2025
+        var (rate, reason) = TdsTaxCalculator.DetermineRate(TdsSection.Sec194JFees, "ABCDE1234F",
+            isNonFiler206Ab: true, deductionDate: new DateOnly(2025, 4, 1));
+        Assert.Equal(10.0m, rate);
+        Assert.Equal(HigherRateReason.None, reason);
+
+        // with no date, today's law applies
+        Assert.Equal(10.0m, TdsTaxCalculator.DetermineRate(TdsSection.Sec194JFees, "ABCDE1234F", isNonFiler206Ab: true).FinalRate);
     }
 
     [Fact]

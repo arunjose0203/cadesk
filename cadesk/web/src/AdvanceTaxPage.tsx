@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import {
+import { toError,
   advanceTaxApi,
   api,
   type AdvanceTaxPlanDto,
@@ -121,7 +121,8 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
         setInstallments([])
         setInterestComputations([])
       }
-    } catch (e: any) {
+    } catch (caught) {
+      const e = toError(caught)
       setError(e.message || 'Failed to load advance tax data')
     } finally {
       setLoading(false)
@@ -136,7 +137,8 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
       ])
       setInstallments(instList)
       setInterestComputations(compList)
-    } catch (e: any) {
+    } catch (caught) {
+      const e = toError(caught)
       setError(e.message || 'Failed to load installment details')
     }
   }
@@ -200,7 +202,8 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
       }
       setShowPlanModal(false)
       loadData(selectedClientId || undefined, selectedFy)
-    } catch (e: any) {
+    } catch (caught) {
+      const e = toError(caught)
       setError(e.message || 'Failed to save advance tax plan')
     }
   }
@@ -227,7 +230,8 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
       setShowPayModal(false)
       await loadData(selectedClientId || undefined, selectedFy)
       if (selectedPlan) await loadPlanDetails(selectedPlan.id)
-    } catch (e: any) {
+    } catch (caught) {
+      const e = toError(caught)
       setError(e.message || 'Failed to record installment payment')
     }
   }
@@ -254,7 +258,8 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
       await loadData(selectedClientId || undefined, selectedFy)
       if (selectedPlan) await loadPlanDetails(selectedPlan.id)
       setActiveTab('interest')
-    } catch (e: any) {
+    } catch (caught) {
+      const e = toError(caught)
       setError(e.message || 'Failed to calculate statutory interest')
     }
   }
@@ -983,7 +988,7 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>Tax Regime</label>
                   <select
                     value={planForm.regime}
-                    onChange={e => setPlanForm({ ...planForm, regime: e.target.value as any })}
+                    onChange={e => setPlanForm({ ...planForm, regime: e.target.value as (typeof planForm)['regime'] })}
                     style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
                   >
                     <option value="NewRegime">New Tax Regime (Section 115BAC)</option>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import {
+import { toError,
   api,
   secretarialAuditApi,
   type Client,
@@ -158,7 +158,8 @@ export const SecretarialAuditPage: React.FC = () => {
       if (engsData.length > 0 && !selectedEngId) {
         setSelectedEngId(engsData[0].id)
       }
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to load secretarial audit data.')
     } finally {
       setLoading(false)
@@ -180,7 +181,8 @@ export const SecretarialAuditPage: React.FC = () => {
         const mList = await secretarialAuditApi.listMeetings(id)
         setMeetings(mList)
       }
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to load engagement details.')
     }
   }
@@ -189,7 +191,8 @@ export const SecretarialAuditPage: React.FC = () => {
     try {
       const res = await secretarialAuditApi.checkApplicability(appCalcReq)
       setAppCalcResult(res)
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Applicability calculation failed.')
     }
   }
@@ -209,7 +212,8 @@ export const SecretarialAuditPage: React.FC = () => {
       setEditingEngId(null)
       await loadData()
       if (selectedEngId) loadEngagementDetails(selectedEngId)
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to save engagement.')
     }
   }
@@ -222,7 +226,8 @@ export const SecretarialAuditPage: React.FC = () => {
       setSelectedEngId(null)
       setCurrentEng(null)
       await loadData()
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to delete engagement.')
     }
   }
@@ -236,7 +241,8 @@ export const SecretarialAuditPage: React.FC = () => {
       setShowCertifyModal(false)
       setSuccessMsg(`Form MR-3 successfully certified with UDIN ${updated.udin}`)
       await loadData()
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Certification failed. Ensure UDIN is at least 17 characters.')
     }
   }
@@ -247,7 +253,8 @@ export const SecretarialAuditPage: React.FC = () => {
       const res = await secretarialAuditApi.generateMR3(currentEng.id)
       setCurrentEng({ ...currentEng, formMR3ReportText: res.reportText })
       setSuccessMsg('Form MR-3 report text regenerated with latest findings.')
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to regenerate report.')
     }
   }
@@ -269,7 +276,8 @@ export const SecretarialAuditPage: React.FC = () => {
         actionOwner: item.actionOwner,
       })
       await loadEngagementDetails(currentEng.id)
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to update checklist item.')
     }
   }
@@ -290,7 +298,8 @@ export const SecretarialAuditPage: React.FC = () => {
         actionOwner: item.actionOwner,
       })
       await loadEngagementDetails(currentEng.id)
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to toggle qualification.')
     }
   }
@@ -309,7 +318,8 @@ export const SecretarialAuditPage: React.FC = () => {
       setShowChecklistModal(false)
       setEditingCheckId(null)
       await loadEngagementDetails(currentEng.id)
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to save checklist item.')
     }
   }
@@ -320,7 +330,8 @@ export const SecretarialAuditPage: React.FC = () => {
     try {
       await secretarialAuditApi.deleteChecklistItem(currentEng.id, itemId)
       await loadEngagementDetails(currentEng.id)
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to delete checklist item.')
     }
   }
@@ -340,7 +351,8 @@ export const SecretarialAuditPage: React.FC = () => {
       setShowFilingModal(false)
       setEditingFilingId(null)
       await loadEngagementDetails(currentEng.id)
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to save MCA filing record.')
     }
   }
@@ -351,7 +363,8 @@ export const SecretarialAuditPage: React.FC = () => {
     try {
       await secretarialAuditApi.deleteFiling(currentEng.id, filingId)
       await loadEngagementDetails(currentEng.id)
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to delete filing record.')
     }
   }
@@ -371,7 +384,8 @@ export const SecretarialAuditPage: React.FC = () => {
       setShowMeetingModal(false)
       setEditingMeetingId(null)
       await loadEngagementDetails(currentEng.id)
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to save meeting record.')
     }
   }
@@ -382,7 +396,8 @@ export const SecretarialAuditPage: React.FC = () => {
     try {
       await secretarialAuditApi.deleteMeeting(currentEng.id, meetingId)
       await loadEngagementDetails(currentEng.id)
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to delete meeting record.')
     }
   }

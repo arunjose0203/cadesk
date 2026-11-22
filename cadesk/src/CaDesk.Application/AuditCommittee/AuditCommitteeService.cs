@@ -239,7 +239,7 @@ public class AuditCommitteeService
                 CreatedAt = DateTime.UtcNow
             };
             _db.InternalControlDeficiencies.Add(def);
-            engagement.Deficiencies.Add(def);
+            if (!engagement.Deficiencies.Contains(def)) engagement.Deficiencies.Add(def); // the db Add above already fixes up the navigation
         }
 
         await _db.SaveChangesAsync(ct);
@@ -312,7 +312,7 @@ public class AuditCommitteeService
                 CreatedAt = DateTime.UtcNow
             };
             _db.SignificantAuditMatters.Add(matter);
-            engagement.SignificantMatters.Add(matter);
+            if (!engagement.SignificantMatters.Contains(matter)) engagement.SignificantMatters.Add(matter); // the db Add above already fixes up the navigation
         }
 
         await _db.SaveChangesAsync(ct);
@@ -381,7 +381,7 @@ public class AuditCommitteeService
                 CreatedAt = DateTime.UtcNow
             };
             _db.UncorrectedMisstatements.Add(mis);
-            engagement.UncorrectedMisstatements.Add(mis);
+            if (!engagement.UncorrectedMisstatements.Contains(mis)) engagement.UncorrectedMisstatements.Add(mis); // the db Add above already fixes up the navigation
         }
 
         await _db.SaveChangesAsync(ct);

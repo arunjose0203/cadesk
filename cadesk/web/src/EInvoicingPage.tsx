@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import {
+import { toError,
   eInvoicingApi,
   api,
   type EInvoiceDto,
@@ -180,7 +180,8 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
       setSummary(sum)
       setInvoices(invList)
       setEwaybills(ewbList)
-    } catch (e: any) {
+    } catch (caught) {
+      const e = toError(caught)
       setError(e.message || 'Failed to load E-Invoicing data')
     } finally {
       setLoading(false)
@@ -253,7 +254,8 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
       setSuccess(`E-Invoice generated successfully! IRN: ${created.irn?.substring(0, 16)}...`)
       setShowGenInvoiceModal(false)
       loadData(selectedClientId || undefined)
-    } catch (e: any) {
+    } catch (caught) {
+      const e = toError(caught)
       setError(e.message || 'Failed to generate E-Invoice')
     }
   }
@@ -267,7 +269,8 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
       setSuccess(`E-Way Bill #${created.ewbNumber} generated! Valid until: ${new Date(created.validUntil).toLocaleString('en-IN')}`)
       setShowGenEwbModal(false)
       loadData(selectedClientId || undefined)
-    } catch (e: any) {
+    } catch (caught) {
+      const e = toError(caught)
       setError(e.message || 'Failed to generate E-Way Bill')
     }
   }
@@ -293,7 +296,8 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
       setSuccess(`Part-B vehicle updated to ${partBForm.vehicleNumber} for E-Way Bill #${selectedEwb.ewbNumber}`)
       setShowUpdatePartBModal(false)
       loadData(selectedClientId || undefined)
-    } catch (e: any) {
+    } catch (caught) {
+      const e = toError(caught)
       setError(e.message || 'Failed to update Part-B vehicle')
     }
   }
@@ -317,7 +321,8 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
       setSuccess(`IRN cancelled successfully for invoice ${selectedInvoice.docNumber}`)
       setShowCancelInvoiceModal(false)
       loadData(selectedClientId || undefined)
-    } catch (e: any) {
+    } catch (caught) {
+      const e = toError(caught)
       setError(e.message || 'Failed to cancel E-Invoice')
     }
   }
@@ -340,7 +345,8 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
       setSuccess(`E-Way Bill #${selectedEwb.ewbNumber} cancelled successfully`)
       setShowCancelEwbModal(false)
       loadData(selectedClientId || undefined)
-    } catch (e: any) {
+    } catch (caught) {
+      const e = toError(caught)
       setError(e.message || 'Failed to cancel E-Way Bill')
     }
   }
@@ -1012,7 +1018,7 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>Doc Type</label>
                   <select
                     value={invoiceForm.docType}
-                    onChange={e => setInvoiceForm({ ...invoiceForm, docType: Number(e.target.value) as any })}
+                    onChange={e => setInvoiceForm({ ...invoiceForm, docType: Number(e.target.value) as (typeof invoiceForm)['docType'] })}
                     style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
                   >
                     <option value={1}>INV - Tax Invoice</option>
@@ -1059,7 +1065,7 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>Supply Type</label>
                   <select
                     value={invoiceForm.supplyType}
-                    onChange={e => setInvoiceForm({ ...invoiceForm, supplyType: Number(e.target.value) as any })}
+                    onChange={e => setInvoiceForm({ ...invoiceForm, supplyType: Number(e.target.value) as (typeof invoiceForm)['supplyType'] })}
                     style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
                   >
                     <option value={1}>B2B (Regular)</option>
@@ -1292,7 +1298,7 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>Sub-Supply Type</label>
                   <select
                     value={ewbForm.subSupplyType}
-                    onChange={e => setEwbForm({ ...ewbForm, subSupplyType: Number(e.target.value) as any })}
+                    onChange={e => setEwbForm({ ...ewbForm, subSupplyType: Number(e.target.value) as (typeof ewbForm)['subSupplyType'] })}
                     style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
                   >
                     <option value={1}>Supply (Regular)</option>
@@ -1433,7 +1439,7 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>Vehicle Type</label>
                   <select
                     value={ewbForm.vehicleType}
-                    onChange={e => setEwbForm({ ...ewbForm, vehicleType: Number(e.target.value) as any })}
+                    onChange={e => setEwbForm({ ...ewbForm, vehicleType: Number(e.target.value) as (typeof ewbForm)['vehicleType'] })}
                     style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
                   >
                     <option value={1}>Regular Cargo (1 day / 200 km)</option>

@@ -155,6 +155,13 @@ export function saveBlob(blob: Blob, fileName: string) {
 }
 
 /** Field errors as one list of sentences. */
+/** A caught value as an Error, so handlers can read .message (and .status / .errors from ApiError) without `any`. */
+export type CaughtError = Error & { status?: number; errors?: Record<string, string[]> }
+export function toError(e: unknown): CaughtError {
+  if (e instanceof Error) return e
+  return new Error(typeof e === 'string' ? e : 'Something went wrong.')
+}
+
 export function errorList(e: unknown, fallback = 'Could not save.'): string[] {
   if (e instanceof ApiError) return e.errors ? Object.values(e.errors).flat() : [e.message]
   return [fallback]

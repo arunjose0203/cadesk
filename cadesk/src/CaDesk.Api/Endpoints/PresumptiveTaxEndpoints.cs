@@ -49,7 +49,7 @@ public static class PresumptiveTaxEndpoints
             PresumptiveTaxService svc,
             CancellationToken ct) =>
         {
-            var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier) ?? Guid.Empty.ToString());
+            var userId = user.RequiredUserId();
             var created = await svc.CreateComputationAsync(req, userId, ct);
             return Results.Created($"/api/presumptive/computations/{created.Id}", created);
         }).RequirePermission(Perms.PresumptiveManage);
@@ -62,7 +62,7 @@ public static class PresumptiveTaxEndpoints
             PresumptiveTaxService svc,
             CancellationToken ct) =>
         {
-            var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier) ?? Guid.Empty.ToString());
+            var userId = user.RequiredUserId();
             var updated = await svc.UpdateComputationAsync(id, req, userId, ct);
             return Results.Ok(updated);
         }).RequirePermission(Perms.PresumptiveManage);
@@ -103,7 +103,7 @@ public static class PresumptiveTaxEndpoints
             PresumptiveTaxService svc,
             CancellationToken ct) =>
         {
-            var userId = Guid.Parse(user.FindFirstValue(ClaimTypes.NameIdentifier) ?? Guid.Empty.ToString());
+            var userId = user.RequiredUserId();
             var approved = await svc.ApproveAsync(id, userId, ct);
             return Results.Ok(approved);
         }).RequirePermission(Perms.PresumptiveApprove);

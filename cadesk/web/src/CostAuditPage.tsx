@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import {
+import { toError,
   costAuditApi,
   type CostAuditSummaryDto,
   type CostAuditEngagementDto,
@@ -184,7 +184,8 @@ export function CostAuditPage() {
       } else {
         setSelectedEngagement(null)
       }
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to load Cost Audit data.')
     } finally {
       setLoading(false)
@@ -205,7 +206,8 @@ export function CostAuditPage() {
     try {
       const res = await costAuditApi.checkApplicability(appReq)
       setAppResult(res)
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Error running applicability evaluation.')
     }
   }
@@ -215,7 +217,8 @@ export function CostAuditPage() {
     try {
       const res = await costAuditApi.calculateVariance(varReq)
       setVarResult(res)
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Error running variance computation.')
     }
   }
@@ -234,7 +237,8 @@ export function CostAuditPage() {
       notify(`Engagement ${created.engagementReference} created successfully!`)
       await loadData()
       setSelectedEngagement(created)
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to create Cost Audit engagement.')
     } finally {
       setLoading(false)
@@ -249,7 +253,8 @@ export function CostAuditPage() {
       const updated = await costAuditApi.seedHeads(selectedEngagement.id)
       setSelectedEngagement(updated)
       notify('Seeded standard 30 Form CRA-1 Cost Records heads.')
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to seed cost record heads.')
     } finally {
       setLoading(false)
@@ -282,7 +287,8 @@ export function CostAuditPage() {
       setSelectedEngagement(updated)
       setShowHeadModal(false)
       notify(`Updated CRA-1 Head: ${selectedHead.headName}`)
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to update record head.')
     }
   }
@@ -296,7 +302,8 @@ export function CostAuditPage() {
       setSelectedEngagement(updated)
       setShowProductModal(false)
       notify(`Product ${prodForm.productName} added to Cost Statement.`)
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to add product cost statement.')
     }
   }
@@ -309,7 +316,8 @@ export function CostAuditPage() {
       const updated = await costAuditApi.deleteProduct(selectedEngagement.id, prodId)
       setSelectedEngagement(updated)
       notify('Product cost statement removed.')
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to delete product cost statement.')
     }
   }
@@ -323,7 +331,8 @@ export function CostAuditPage() {
       setSelectedEngagement(updated)
       setShowRecModal(false)
       notify('Reconciliation item added successfully.')
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to add reconciliation item.')
     }
   }
@@ -336,7 +345,8 @@ export function CostAuditPage() {
       const updated = await costAuditApi.deleteReconciliation(selectedEngagement.id, itemId)
       setSelectedEngagement(updated)
       notify('Reconciliation item removed.')
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to remove reconciliation item.')
     }
   }
@@ -353,7 +363,8 @@ export function CostAuditPage() {
       setSelectedEngagement(updated)
       setShowCra2Modal(false)
       notify('Form CRA-2 appointment filing details recorded.')
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to record CRA-2 filing.')
     }
   }
@@ -371,7 +382,8 @@ export function CostAuditPage() {
       setSelectedEngagement(updated)
       setShowCra4Modal(false)
       notify('Form CRA-4 submission to Central Government recorded.')
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to record CRA-4 filing.')
     }
   }
@@ -384,7 +396,8 @@ export function CostAuditPage() {
       const updated = await costAuditApi.generateCra3(selectedEngagement.id)
       setSelectedEngagement(updated)
       notify('Statutory Cost Audit Report (Form CRA-3) generated!')
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to generate Form CRA-3.')
     } finally {
       setLoading(false)
@@ -407,7 +420,8 @@ export function CostAuditPage() {
       setSelectedEngagement(updated)
       setShowCertifyModal(false)
       notify('Form CRA-3 signed & certified with UDIN!')
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Certification failed.')
     }
   }

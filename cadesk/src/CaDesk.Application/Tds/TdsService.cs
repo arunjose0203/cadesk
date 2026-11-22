@@ -175,7 +175,8 @@ public class TdsService(IAppDbContext db, ITenantContext tenant)
             req.Section,
             req.DeducteePan,
             ldcRate,
-            req.ForceHigherRate206Ab == true
+            req.ForceHigherRate206Ab == true,
+            deductionDate
         );
 
         var taxAmount = TdsTaxCalculator.ComputeTaxAmount(req.AmountPaid, rate);

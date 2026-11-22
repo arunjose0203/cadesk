@@ -151,6 +151,6 @@ public class AdvanceTaxTests(ApiFactory api) : IClassFixture<ApiFactory>
             ActualReturnFilingDate: new DateOnly(2025, 8, 15),
             SelfAssessmentTaxPaid: 0m
         ));
-        Assert.Equal(HttpStatusCode.NotFound, resBCalc.StatusCode);
+        Assert.True(resBCalc.StatusCode == HttpStatusCode.NotFound, await resBCalc.Content.ReadAsStringAsync());
     }
 }

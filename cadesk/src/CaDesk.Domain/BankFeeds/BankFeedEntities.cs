@@ -65,7 +65,7 @@ public static class BankMatchedEntityType
 
 public class BankAccount : ITenantOwned
 {
-    public Guid Id { get; set; }
+    public Guid Id { get; set; } = Guid.CreateVersion7();
     public Guid FirmId { get; set; }
     public Guid ClientId { get; set; }
     public string AccountName { get; set; } = string.Empty;
@@ -91,7 +91,7 @@ public class BankAccount : ITenantOwned
 
 public class BankStatement : ITenantOwned
 {
-    public Guid Id { get; set; }
+    public Guid Id { get; set; } = Guid.CreateVersion7();
     public Guid FirmId { get; set; }
     public Guid BankAccountId { get; set; }
     public DateOnly StatementDate { get; set; }
@@ -115,7 +115,7 @@ public class BankStatement : ITenantOwned
 
 public class BankTransaction : ITenantOwned
 {
-    public Guid Id { get; set; }
+    public Guid Id { get; set; } = Guid.CreateVersion7();
     public Guid FirmId { get; set; }
     public Guid StatementId { get; set; }
     public Guid BankAccountId { get; set; }
@@ -140,7 +140,7 @@ public class BankTransaction : ITenantOwned
 
 public class BankReconciliationRule : ITenantOwned
 {
-    public Guid Id { get; set; }
+    public Guid Id { get; set; } = Guid.CreateVersion7();
     public Guid FirmId { get; set; }
     public string RuleName { get; set; } = string.Empty;
     public string MatchKeyword { get; set; } = string.Empty;

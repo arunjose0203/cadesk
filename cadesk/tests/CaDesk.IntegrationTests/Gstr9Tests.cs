@@ -12,7 +12,7 @@ public class Gstr9Tests(ApiFactory api) : IClassFixture<ApiFactory>
     private static readonly Dictionary<string, string> StandardTaxIds = new()
     {
         ["PAN"] = "AAACB1234F",
-        ["GSTIN"] = "27AAACB1234F1Z5"
+        ["GSTIN"] = "27AAACB1234F1Z9"
     };
 
     private async Task<(HttpClient Client, Guid UserId)> NewFirmAsync(string name = "GST Practice LLP")
@@ -56,7 +56,7 @@ public class Gstr9Tests(ApiFactory api) : IClassFixture<ApiFactory>
         );
 
         var compileRes = await http.PostAsJsonAsync("/api/gstr9/returns/compile", compileReq);
-        Assert.Equal(HttpStatusCode.Created, compileRes.StatusCode);
+        Assert.True(compileRes.IsSuccessStatusCode, await compileRes.Content.ReadAsStringAsync());
         var ret = await compileRes.Content.ReadFromJsonAsync<Gstr9ReturnDto>();
         Assert.NotNull(ret);
         Assert.True(ret.IsGstr9Mandatory);

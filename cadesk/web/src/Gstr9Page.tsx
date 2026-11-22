@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import {
+import { toError,
   gstr9Api,
   api,
   type Gstr9ReturnDto,
@@ -119,7 +119,8 @@ export const Gstr9Page: React.FC = () => {
     try {
       const data = await api<ClientPage>('/api/clients?take=200')
       setClients(data.items || [])
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       console.error('Failed to load clients:', err)
     }
   }
@@ -134,7 +135,8 @@ export const Gstr9Page: React.FC = () => {
       ])
       setReturns(returnsData)
       setSummary(summaryData)
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       setError(err?.message || 'Failed to load GSTR-9 returns.')
     } finally {
       setLoading(false)
@@ -173,7 +175,8 @@ export const Gstr9Page: React.FC = () => {
       await gstr9Api.compileReturn(compileForm)
       setShowCompileModal(false)
       loadData()
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       alert(`Error compiling GSTR-9: ${err.message}`)
     }
   }
@@ -184,7 +187,8 @@ export const Gstr9Page: React.FC = () => {
       setViewingReturn(full)
       // fetch entries if any
       setActiveGstr9Tab('outward')
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       alert(`Failed to load return details: ${err.message}`)
     }
   }
@@ -218,7 +222,8 @@ export const Gstr9Page: React.FC = () => {
       } else {
         alert('GSTR-9C statement is not yet initialized for this return.')
       }
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       alert(`Failed to open GSTR-9C: ${err.message}`)
     }
   }
@@ -231,7 +236,8 @@ export const Gstr9Page: React.FC = () => {
       setActiveGstr9c(updated)
       alert('GSTR-9C reconciliation calculations saved.')
       loadData()
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       alert(`Error reconciling GSTR-9C: ${err.message}`)
     }
   }
@@ -252,7 +258,8 @@ export const Gstr9Page: React.FC = () => {
         taxImpact: 0,
         auditorRecommendation: ''
       })
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       alert(`Error adding discrepancy: ${err.message}`)
     }
   }
@@ -266,7 +273,8 @@ export const Gstr9Page: React.FC = () => {
         const rec = await gstr9Api.getGstr9c(viewingReturn.id)
         if (rec) setActiveGstr9c(rec)
       }
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       alert(`Error resolving discrepancy: ${err.message}`)
     }
   }
@@ -280,7 +288,8 @@ export const Gstr9Page: React.FC = () => {
       setShowCertifyModal(false)
       alert('GSTR-9C has been successfully certified!')
       loadData()
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       alert(`Certification failed: ${err.message}`)
     }
   }
@@ -294,7 +303,8 @@ export const Gstr9Page: React.FC = () => {
       setShowDrc03Modal(false)
       alert('DRC-03 payment recorded successfully!')
       loadData()
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       alert(`Failed to record DRC-03: ${err.message}`)
     }
   }
@@ -308,7 +318,8 @@ export const Gstr9Page: React.FC = () => {
       setViewingReturn(null)
       alert('GSTR-9 return marked as filed!')
       loadData()
-    } catch (err: any) {
+    } catch (caught) {
+      const err = toError(caught)
       alert(`Filing failed: ${err.message}`)
     }
   }
@@ -1207,7 +1218,7 @@ export const Gstr9Page: React.FC = () => {
                 <label className="block text-xs font-semibold text-gray-700 mb-1">Category</label>
                 <select
                   value={discrepancyForm.category}
-                  onChange={(e) => setDiscrepancyForm({ ...discrepancyForm, category: e.target.value as any })}
+                  onChange={(e) => setDiscrepancyForm({ ...discrepancyForm, category: e.target.value as (typeof discrepancyForm)['category'] })}
                   className="w-full border rounded-lg p-2 text-sm"
                 >
                   <option value="TurnoverTimingDifference">Turnover Timing Difference</option>

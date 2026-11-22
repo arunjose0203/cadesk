@@ -64,9 +64,10 @@ public class StatutoryAuditTests(ApiFactory api) : IClassFixture<ApiFactory>
         // 2. Verify auto-seeded standard ICAI working paper templates
         var wps = await http.GetFromJsonAsync<List<AuditWorkingPaperDto>>($"/api/audit/engagements/{eng.Id}/working-papers");
         Assert.NotNull(wps);
-        Assert.Equal(5, wps.Count); // Cash, Revenue, Purchases, Fixed Assets, Tax
-        Assert.Contains(wps, x => x.RefCode == "WP/BNK/01");
-        Assert.Contains(wps, x => x.RefCode == "WP/REV/01");
+        // Sprint 28 template set: Revenue, Receivables, Bank, Fixed Assets, Inventory, Statutory dues
+        Assert.Equal(6, wps.Count);
+        Assert.Contains(wps, x => x.RefCode == "WP-BNK-01");
+        Assert.Contains(wps, x => x.RefCode == "WP-REV-01");
 
         // 3. Create custom working paper (e.g. WP/INV/01 Inventory Count)
         var invWpReq = new SaveWorkingPaperRequest(
