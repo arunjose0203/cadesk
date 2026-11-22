@@ -212,3 +212,9 @@ public record Gstr9SummaryDto(
     decimal TotalTaxShortfall,
     decimal TotalDrc03Paid
 );
+
+public sealed record ImportGstJsonToReturnRequest(
+    Guid ClientId,
+    string FinancialYear,
+    string? Gstr1Json = null,
+    string? Gstr2BJson = null);

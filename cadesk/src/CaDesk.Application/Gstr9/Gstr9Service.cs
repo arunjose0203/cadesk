@@ -1,4 +1,5 @@
 using CaDesk.Application.Abstractions;
+using CaDesk.Application.Gst;
 using CaDesk.Domain.Gstr9;
 using Microsoft.EntityFrameworkCore;
 
@@ -123,6 +124,113 @@ public class Gstr9Service(IAppDbContext db, ITenantContext tenant) : IGstr9Servi
         await db.SaveChangesAsync(ct);
 
         return MapReturnToDto(ret, client.Name);
+    }
+
+    public async Task<Gstr9ReturnDto> ImportGstJsonToReturnAsync(
+        Guid clientId,
+        string financialYear,
+        string? gstr1Json,
+        string? gstr2bJson,
+        CancellationToken ct = default)
+    {
+        var client = await db.Clients.FirstOrDefaultAsync(c => c.Id == clientId, ct)
+            ?? throw new KeyNotFoundException($"Client with ID '{clientId}' not found.");
+
+        decimal outwardTaxable = 0m;
+        decimal outwardExempt = 0m;
+        decimal totalTaxPayable = 0m;
+        decimal totalTurnover = 0m;
+        decimal itc2a2b = 0m;
+        decimal itc3b = 0m;
+
+        if (!string.IsNullOrWhiteSpace(gstr1Json))
+        {
+            var gstr1 = GstJsonParser.ParseGstr1(gstr1Json);
+            outwardTaxable = gstr1.OutwardTaxableSupplies;
+            outwardExempt = gstr1.OutwardExemptedSupplies;
+            totalTurnover = gstr1.TotalTurnover;
+            totalTaxPayable = gstr1.TotalIgst + gstr1.TotalCgst + gstr1.TotalSgst + gstr1.TotalCess;
+        }
+
+        if (!string.IsNullOrWhiteSpace(gstr2bJson))
+        {
+            var gstr2b = GstJsonParser.ParseGstr2B(gstr2bJson);
+            itc2a2b = gstr2b.TotalItcAvailable;
+            itc3b = gstr2b.TotalItcAvailable;
+        }
+
+        var existingReturn = await db.Gstr9Returns
+            .Include(r => r.TableEntries)
+            .Include(r => r.Reconciliation)
+                .ThenInclude(rec => rec!.Discrepancies)
+            .FirstOrDefaultAsync(r => r.ClientId == clientId && r.FinancialYear == financialYear, ct);
+
+        if (existingReturn != null)
+        {
+            if (outwardTaxable > 0 || totalTurnover > 0)
+            {
+                existingReturn.OutwardTaxableSupplies = outwardTaxable;
+                existingReturn.OutwardExemptedSupplies = outwardExempt;
+                existingReturn.TotalTurnover = totalTurnover > 0 ? totalTurnover : (outwardTaxable + outwardExempt);
+                existingReturn.AggregateTurnover = existingReturn.TotalTurnover;
+                existingReturn.IsGstr9Mandatory = Gstr9ThresholdEngine.IsGstr9Mandatory(existingReturn.AggregateTurnover);
+                existingReturn.IsGstr9cMandatory = Gstr9ThresholdEngine.IsGstr9cMandatory(existingReturn.AggregateTurnover);
+                existingReturn.TotalTaxPayable = totalTaxPayable;
+            }
+
+            if (itc2a2b > 0)
+            {
+                existingReturn.ItcAsPer2a = itc2a2b;
+                existingReturn.ItcCategorizedB2b = itc2a2b;
+                existingReturn.ItcAvailed3b = itc3b;
+                existingReturn.NetItcAvailed = itc3b - existingReturn.ItcReversed;
+                existingReturn.ItcReconciledVariance = Gstr9CalculationEngine.CalculateTable8ItcVariance(
+                    existingReturn.ItcAsPer2a, existingReturn.ItcCategorizedB2b, 0m);
+            }
+
+            existingReturn.ShortfallTax = Math.Max(0, existingReturn.TotalTaxPayable - (existingReturn.TaxPaidCash + existingReturn.TaxPaidItc));
+            existingReturn.Notes = (existingReturn.Notes ?? "") + $" [Imported from GST JSON]";
+            existingReturn.UpdatedAt = DateTime.UtcNow;
+
+            if (existingReturn.Reconciliation != null)
+            {
+                existingReturn.Reconciliation.AuditedGrossTurnover = existingReturn.AggregateTurnover;
+                existingReturn.Reconciliation.TurnoverAsPerGstr9 = existingReturn.TotalTurnover;
+                existingReturn.Reconciliation.UnreconciledTurnoverVariance = existingReturn.AggregateTurnover - existingReturn.TotalTurnover;
+                existingReturn.Reconciliation.ExemptedNilTurnover = existingReturn.OutwardExemptedSupplies;
+                existingReturn.Reconciliation.TaxableTurnoverGstr9 = existingReturn.OutwardTaxableSupplies;
+                existingReturn.Reconciliation.BookItcTotal = existingReturn.NetItcAvailed;
+                existingReturn.Reconciliation.Gstr9ItcTotal = existingReturn.NetItcAvailed;
+                existingReturn.Reconciliation.UnreconciledItcVariance = 0;
+                existingReturn.Reconciliation.UpdatedAt = DateTime.UtcNow;
+            }
+
+            await db.SaveChangesAsync(ct);
+            return MapReturnToDto(existingReturn, client.Name);
+        }
+        else
+        {
+            var compileReq = new CompileGstr9ReturnRequest(
+                ClientId: clientId,
+                FinancialYear: financialYear,
+                AggregateTurnover: totalTurnover > 0 ? totalTurnover : (outwardTaxable + outwardExempt),
+                OutwardTaxableSupplies: outwardTaxable,
+                OutwardExemptedSupplies: outwardExempt,
+                RcmInwardSupplies: 0m,
+                ItcAvailed3b: itc3b,
+                ItcCategorizedB2b: itc2a2b,
+                ItcReversed: 0m,
+                ItcAsPer2a: itc2a2b,
+                ItcSubsequentFy: 0m,
+                TotalTaxPayable: totalTaxPayable,
+                TaxPaidCash: totalTaxPayable * 0.2m,
+                TaxPaidItc: totalTaxPayable * 0.8m,
+                PreviousFyAmendmentsTax: 0m,
+                Notes: $"Auto-compiled from imported GST JSON (GSTR-1 Turnover: {totalTurnover}, GSTR-2B ITC: {itc2a2b})"
+            );
+
+            return await CompileReturnAsync(compileReq, ct);
+        }
     }
 
     public async Task<Gstr9ReturnDto> UpdateReturnAsync(Guid id, UpdateGstr9ReturnRequest req, CancellationToken ct = default)

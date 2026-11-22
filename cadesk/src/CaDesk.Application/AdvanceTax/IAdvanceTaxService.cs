@@ -11,6 +11,7 @@ public interface IAdvanceTaxService
 
     Task<IReadOnlyList<AdvanceTaxInstallmentDto>> GetInstallmentsAsync(Guid planId, CancellationToken ct = default);
     Task<AdvanceTaxInstallmentDto> RecordPaymentAsync(Guid installmentId, RecordInstallmentPaymentRequest request, CancellationToken ct = default);
+    Task<AdvanceTaxPlanDto> ImportAisToPlanAsync(Guid planId, string aisJson, CancellationToken ct = default);
 
     Task<TaxInterestComputationDto> CalculateInterestAsync(Guid planId, CalculateStatutoryInterestRequest request, CancellationToken ct = default);
     Task<IReadOnlyList<TaxInterestComputationDto>> GetInterestComputationsAsync(Guid planId, CancellationToken ct = default);

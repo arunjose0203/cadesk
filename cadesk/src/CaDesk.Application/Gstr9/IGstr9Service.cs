@@ -5,6 +5,7 @@ public interface IGstr9Service
     Task<IReadOnlyList<Gstr9ReturnDto>> GetReturnsAsync(Guid? clientId = null, string? financialYear = null, CancellationToken ct = default);
     Task<Gstr9ReturnDto?> GetReturnByIdAsync(Guid id, CancellationToken ct = default);
     Task<Gstr9ReturnDto> CompileReturnAsync(CompileGstr9ReturnRequest req, CancellationToken ct = default);
+    Task<Gstr9ReturnDto> ImportGstJsonToReturnAsync(Guid clientId, string financialYear, string? gstr1Json, string? gstr2bJson, CancellationToken ct = default);
     Task<Gstr9ReturnDto> UpdateReturnAsync(Guid id, UpdateGstr9ReturnRequest req, CancellationToken ct = default);
     Task<Gstr9ReturnDto> FileReturnAsync(Guid id, FileGstr9ReturnRequest req, CancellationToken ct = default);
     

@@ -25,6 +25,12 @@ export function TaxPage() {
   // Filter state
   const [filterAy, setFilterAy] = useState('2025-26')
 
+  // AIS Import State
+  const [showAisModal, setShowAisModal] = useState(false)
+  const [aisClientId, setAisClientId] = useState('')
+  const [aisJsonPayload, setAisJsonPayload] = useState('')
+  const [importingAis, setImportingAis] = useState(false)
+
   // Calculator Form State
   const [form, setForm] = useState<CalculateTaxRequest>({
     clientId: '',
@@ -95,6 +101,58 @@ export function TaxPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  async function handleImportAis(e: React.FormEvent) {
+    e.preventDefault()
+    const targetClient = aisClientId || form.clientId
+    if (!targetClient) {
+      setError('Please select a client for AIS import.')
+      return
+    }
+    if (!aisJsonPayload.trim()) {
+      setError('Please provide AIS JSON content.')
+      return
+    }
+    try {
+      setImportingAis(true)
+      setError(null)
+      const res = await taxApi.importAis({ clientId: targetClient, aisJson: aisJsonPayload })
+      setSuccessMsg(`AIS successfully imported! AY ${res.assessmentYear} computed (Gross Salary: ${fmtInr(res.grossSalary)}, Other Sources: ${fmtInr(res.otherSourcesIncome)}).`)
+      setShowAisModal(false)
+      setAisJsonPayload('')
+      await loadComputations()
+      setSelectedComputation(res)
+      setActiveTab('history')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'AIS import failed.')
+    } finally {
+      setImportingAis(false)
+    }
+  }
+
+  function loadSampleAisJson() {
+    setAisJsonPayload(`{
+  "financialYear": "2024-25",
+  "assessmentYear": "2025-26",
+  "pan": "AAACB1234F",
+  "salary": [
+    { "employerName": "Bharat Tech Solutions Ltd", "grossSalary": 2400000, "tds": 280000 }
+  ],
+  "interest": [
+    { "bankName": "HDFC Bank", "accountType": "SAVINGS", "amount": 25000, "tds": 0 },
+    { "bankName": "State Bank of India", "accountType": "TIME_DEPOSIT", "amount": 50000, "tds": 5000 }
+  ],
+  "dividend": [
+    { "companyName": "Reliance Industries Ltd", "amount": 20000, "tds": 2000 }
+  ],
+  "capitalGains": [
+    { "securityName": "Nifty Index Fund", "saleConsideration": 450000, "costOfAcquisition": 300000, "isLongTerm": true, "gain": 150000 }
+  ],
+  "taxPayments": [
+    { "minorHead": "Advance Tax (100)", "bsrCode": "0210045", "challanNumber": "88192", "tenderDate": "2024-06-14", "amount": 50000 }
+  ]
+}`)
   }
 
   async function handleCalculatePreview() {
@@ -170,6 +228,26 @@ export function TaxPage() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
+          <button
+            onClick={() => {
+              setAisClientId(form.clientId || (clients.length > 0 ? clients[0].id : ''))
+              setShowAisModal(true)
+            }}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '6px',
+              background: '#4338ca',
+              color: '#fff',
+              fontWeight: 600,
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            + Import AIS / 26AS JSON
+          </button>
           <button
             onClick={() => { setActiveTab('calculator'); setPreview(null); }}
             style={{
@@ -806,6 +884,79 @@ export function TaxPage() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* AIS Import Modal */}
+      {showAisModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+          <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '12px', width: '650px', maxWidth: '95%', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#111827' }}>
+                Import Annual Information Statement (AIS / 26AS JSON)
+              </h3>
+              <button onClick={() => setShowAisModal(false)} style={{ background: 'transparent', border: 'none', fontSize: '18px', cursor: 'pointer' }}>✕</button>
+            </div>
+
+            <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#64748B' }}>
+              Paste the official JSON exported from the Income Tax e-filing portal (AIS / TIS / Form 26AS). CaDesk automatically categorizes Salary, Savings Interest, FD Interest, Dividends, Capital Gains, and extracts Advance Tax challans.
+            </p>
+
+            <form onSubmit={handleImportAis}>
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>Client</label>
+                <select
+                  value={aisClientId}
+                  onChange={e => setAisClientId(e.target.value)}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '13px' }}
+                  required
+                >
+                  <option value="">-- Choose Client --</option>
+                  {clients.map(c => (
+                    <option key={c.id} value={c.id}>{c.name} {c.taxIds?.['PAN'] ? `(${c.taxIds['PAN']})` : ''}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151' }}>AIS JSON Content</label>
+                  <button
+                    type="button"
+                    onClick={loadSampleAisJson}
+                    style={{ background: 'transparent', border: 'none', color: '#4F46E5', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    Load Sample AIS JSON
+                  </button>
+                </div>
+                <textarea
+                  rows={9}
+                  value={aisJsonPayload}
+                  onChange={e => setAisJsonPayload(e.target.value)}
+                  placeholder="Paste AIS JSON exported from income-tax portal here..."
+                  style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '12px', fontFamily: 'monospace' }}
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowAisModal(false)}
+                  style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #CBD5E1', background: '#FFFFFF', cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={importingAis}
+                  style={{ padding: '8px 20px', borderRadius: '6px', border: 'none', background: '#4338CA', color: '#FFFFFF', fontWeight: 600, cursor: 'pointer' }}
+                >
+                  {importingAis ? 'Importing & Computing...' : 'Import & Compute Tax'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

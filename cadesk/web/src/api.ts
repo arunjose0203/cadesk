@@ -703,6 +703,8 @@ export const taxApi = {
   get: (id: string) => api<TaxComputationDto>(`/api/tax/computations/${id}`),
   updateStatus: (id: string, status: string) => api<TaxComputationDto>(`/api/tax/computations/${id}/status?status=${encodeURIComponent(status)}`, { method: 'PUT' }),
   delete: (id: string) => api<void>(`/api/tax/computations/${id}`, { method: 'DELETE' }),
+  importAis: (req: { clientId: string; aisJson: string }) =>
+    api<TaxComputationDto>('/api/tax/computations/import-ais', { method: 'POST', body: JSON.stringify(req) }),
 }
 
 // -------------------------------------------------------------
@@ -1114,6 +1116,15 @@ export const gstApi = {
     return api<GstReconciliationItemDto[]>(`/api/gst/batches/${batchId}/items${qs ? `?${qs}` : ''}`)
   },
   deleteBatch: (id: string) => api<void>(`/api/gst/batches/${id}`, { method: 'DELETE' }),
+  reconcileJson: (req: {
+    clientId: string
+    returnPeriod: string
+    financialYear: string
+    gstr2bJson: string
+    purchaseInvoices: PurchaseRegisterInvoice[]
+    toleranceAmount?: number
+    notes?: string
+  }) => api<GstReconciliationBatchDto>('/api/gst/reconcile-json', { method: 'POST', body: JSON.stringify(req) }),
 }
 
 // -------------------------------------------------------------
@@ -2978,6 +2989,8 @@ export const advanceTaxApi = {
     api<TaxInterestComputationDto>(`/api/advance-tax/plans/${planId}/calculate-interest`, { method: 'POST', body: JSON.stringify(req) }),
   getInterestComputations: (planId: string) =>
     api<TaxInterestComputationDto[]>(`/api/advance-tax/plans/${planId}/interest-computations`),
+  importAis: (planId: string, aisJson: string) =>
+    api<AdvanceTaxPlanDto>(`/api/advance-tax/plans/${planId}/import-ais`, { method: 'POST', body: JSON.stringify({ aisJson }) }),
 }
 
 export type Gstr9ReturnDto = {
@@ -3225,7 +3238,9 @@ export const gstr9Api = {
     if (financialYear) p.set('financialYear', financialYear)
     const qs = p.toString()
     return api<Gstr9SummaryDto>(`/api/gstr9/summary${qs ? `?${qs}` : ''}`)
-  }
+  },
+  importGstJson: (req: { gstr9Id: string; gstr1Json?: string; gstr2bJson?: string }) =>
+    api<Gstr9ReturnDto>('/api/gstr9/import-gst-json', { method: 'POST', body: JSON.stringify(req) }),
 }
 
 // -------------------------------------------------------------
@@ -6189,6 +6204,117 @@ export const costAuditApi = {
       body: JSON.stringify(req),
     }),
 }
+
+// -------------------------------------------------------------
+// Trial Balance & Multi-Desk Synchronizer (Phase 1 Data In)
+// -------------------------------------------------------------
+
+export interface TrialBalanceImportDto {
+  id: string
+  clientId: string
+  financialYear: string
+  sourceType: string
+  fileName: string
+  uploadedAt: string
+  totalLedgersCount: number
+  mappedLedgersCount: number
+  totalDebit: number
+  totalCredit: number
+  isBalanced: boolean
+  isSynced: boolean
+  lastSyncedAt?: string | null
+  ledgers: TrialBalanceLedgerDto[]
+}
+
+export interface TrialBalanceLedgerDto {
+  id: string
+  importId: string
+  ledgerName: string
+  tallyGroup: string
+  openingBalance: number
+  debitAmount: number
+  creditAmount: number
+  closingBalance: number
+  schedule3Group: string
+  form3CdCategory?: string | null
+  caroCategory?: string | null
+  fixedAssetBlock?: string | null
+  isMapped: boolean
+}
+
+export interface ClientLedgerMappingDto {
+  id: string
+  clientId: string
+  ledgerName: string
+  schedule3Group: string
+  form3CdCategory?: string | null
+  caroCategory?: string | null
+  fixedAssetBlock?: string | null
+  createdAt: string
+  updatedAt?: string | null
+}
+
+export interface UpdateLedgerMappingRequest {
+  schedule3Group: string
+  form3CdCategory?: string | null
+  caroCategory?: string | null
+  fixedAssetBlock?: string | null
+  saveAsClientDefaultRule: boolean
+}
+
+export interface UploadTrialBalanceRequest {
+  clientId: string
+  financialYear: string
+  sourceType: string
+  fileName: string
+  contentPayload: string
+}
+
+export interface SyncTrialBalanceResultDto {
+  importId: string
+  clientId: string
+  financialYear: string
+  statutoryAuditUpdated: boolean
+  schedule3Updated: boolean
+  form3CdUpdated: boolean
+  caroUpdated: boolean
+  fixedAssetsCreatedCount: number
+  summary: string
+}
+
+export const trialBalanceApi = {
+  upload: (req: UploadTrialBalanceRequest) =>
+    api<TrialBalanceImportDto>('/api/trial-balance/upload', {
+      method: 'POST',
+      body: JSON.stringify(req),
+    }),
+
+  listImports: (clientId?: string, financialYear?: string) => {
+    const p = new URLSearchParams()
+    if (clientId) p.set('clientId', clientId)
+    if (financialYear) p.set('financialYear', financialYear)
+    const qs = p.toString()
+    return api<TrialBalanceImportDto[]>(`/api/trial-balance/imports${qs ? `?${qs}` : ''}`)
+  },
+
+  getImport: (id: string) =>
+    api<TrialBalanceImportDto>(`/api/trial-balance/imports/${id}`),
+
+  updateLedgerMapping: (importId: string, ledgerId: string, req: UpdateLedgerMappingRequest) =>
+    api<TrialBalanceLedgerDto>(`/api/trial-balance/imports/${importId}/ledgers/${ledgerId}`, {
+      method: 'PUT',
+      body: JSON.stringify(req),
+    }),
+
+  syncAllDesks: (importId: string) =>
+    api<SyncTrialBalanceResultDto>(`/api/trial-balance/imports/${importId}/sync`, {
+      method: 'POST',
+    }),
+
+  getClientRules: (clientId: string) =>
+    api<ClientLedgerMappingDto[]>(`/api/trial-balance/clients/${clientId}/rules`),
+}
+
 
 
 

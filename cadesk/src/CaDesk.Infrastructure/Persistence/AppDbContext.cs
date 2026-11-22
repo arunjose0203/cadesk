@@ -36,6 +36,7 @@ using CaDesk.Domain.AntiProfiteering;
 using CaDesk.Domain.SecretarialAudit;
 using CaDesk.Domain.TransferPricing;
 using CaDesk.Domain.CostAudit;
+using CaDesk.Domain.TrialBalance;
 using CaDesk.Domain.Common;
 using CaDesk.Domain.Configuration;
 using CaDesk.Domain.Firms;
@@ -171,6 +172,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
     public DbSet<CostRecordHead> CostRecordHeads => Set<CostRecordHead>();
     public DbSet<ProductCostStatement> ProductCostStatements => Set<ProductCostStatement>();
     public DbSet<CostAuditReconciliationItem> CostAuditReconciliationItems => Set<CostAuditReconciliationItem>();
+    public DbSet<TrialBalanceImport> TrialBalanceImports => Set<TrialBalanceImport>();
+    public DbSet<TrialBalanceLedger> TrialBalanceLedgers => Set<TrialBalanceLedger>();
+    public DbSet<ClientLedgerMapping> ClientLedgerMappings => Set<ClientLedgerMapping>();
     public DbSet<ConfigDefinition> ConfigDefinitions => Set<ConfigDefinition>();
     public DbSet<ConfigValue> ConfigValues => Set<ConfigValue>();
     public DbSet<ConfigChangeLog> ConfigChangeLog => Set<ConfigChangeLog>();
@@ -1011,6 +1015,30 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
             e.ToTable("cost_audit_reconciliation_items");
             e.HasOne(x => x.Engagement).WithMany(x => x.ReconciliationItems).HasForeignKey(x => x.EngagementId).OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(x => new { x.FirmId, x.EngagementId }).HasDatabaseName("ix_cost_audit_rec_items_firm_engagement");
+        });
+
+        b.Entity<TrialBalanceImport>(e =>
+        {
+            e.ToTable("trial_balance_imports");
+            e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
+            e.HasMany(x => x.Ledgers).WithOne(x => x.Import).HasForeignKey(x => x.ImportId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.FirmId, x.ClientId, x.FinancialYear }).HasDatabaseName("ix_tb_imports_firm_client_fy");
+        });
+
+        b.Entity<TrialBalanceLedger>(e =>
+        {
+            e.ToTable("trial_balance_ledgers");
+            e.HasOne(x => x.Import).WithMany(x => x.Ledgers).HasForeignKey(x => x.ImportId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.FirmId, x.ImportId }).HasDatabaseName("ix_tb_ledgers_firm_import");
+            e.HasIndex(x => new { x.FirmId, x.LedgerName }).HasDatabaseName("ix_tb_ledgers_name");
+        });
+
+        b.Entity<ClientLedgerMapping>(e =>
+        {
+            e.ToTable("client_ledger_mappings");
+            e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.FirmId, x.ClientId, x.LedgerPattern }).IsUnique().HasDatabaseName("ux_client_ledger_mapping");
+            e.HasIndex(x => new { x.FirmId, x.ClientId }).HasDatabaseName("ix_client_ledger_mappings_firm_client");
         });
 
         b.Entity<TaskTemplate>(e =>

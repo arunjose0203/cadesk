@@ -36,15 +36,23 @@ public static class TaxComputationEndpoints
         // Create & save computation
         g.MapPost("/computations", async (CalculateTaxRequest req, ClaimsPrincipal user, TaxComputationService svc, CancellationToken ct) =>
         {
-            var userId = Guid.Parse(user.FindFirstValue("sub") ?? user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var userId = user.RequiredUserId();
             var comp = await svc.SaveComputationAsync(req, userId, ct);
+            return Results.Created($"/api/tax/computations/{comp.Id}", comp);
+        }).RequirePermission(Perms.ComputationsRun);
+
+        // Import AIS / 26AS JSON and auto-generate dual-regime tax computation
+        g.MapPost("/computations/import-ais", async (ImportAisToComputationRequest req, ClaimsPrincipal user, TaxComputationService svc, CancellationToken ct) =>
+        {
+            var userId = user.RequiredUserId();
+            var comp = await svc.ImportAisToComputationAsync(req.ClientId, req.AisJson, userId, ct);
             return Results.Created($"/api/tax/computations/{comp.Id}", comp);
         }).RequirePermission(Perms.ComputationsRun);
 
         // Update computation status (e.g. approve, mark filed)
         g.MapPut("/computations/{id:guid}/status", async (Guid id, string status, ClaimsPrincipal user, TaxComputationService svc, CancellationToken ct) =>
         {
-            var userId = Guid.Parse(user.FindFirstValue("sub") ?? user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var userId = user.RequiredUserId();
             var updated = await svc.UpdateStatusAsync(id, status, userId, ct);
             return Results.Ok(updated);
         }).RequirePermission(Perms.ComputationsApprove);

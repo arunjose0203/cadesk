@@ -39,6 +39,13 @@ export const Gstr9Page: React.FC = () => {
   const [fileArn, setFileArn] = useState<string>('')
   const [fileNotes, setFileNotes] = useState<string>('')
 
+  // JSON Import State
+  const [showJsonImportModal, setShowJsonImportModal] = useState<boolean>(false)
+  const [targetGstr9Id, setTargetGstr9Id] = useState<string>('')
+  const [gstr1Payload, setGstr1Payload] = useState<string>('')
+  const [gstr2bPayload, setGstr2bPayload] = useState<string>('')
+  const [importingJson, setImportingJson] = useState<boolean>(false)
+
   // Compile Form State
   const [compileForm, setCompileForm] = useState<CompileGstr9ReturnRequest>({
     clientId: '',
@@ -279,6 +286,37 @@ export const Gstr9Page: React.FC = () => {
     }
   }
 
+  const handleImportGstJson = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!targetGstr9Id) {
+      alert('Please select a target GSTR-9 annual return.')
+      return
+    }
+    if (!gstr1Payload.trim() && !gstr2bPayload.trim()) {
+      alert('Please provide at least GSTR-1 or GSTR-2B JSON.')
+      return
+    }
+    try {
+      setImportingJson(true)
+      const res = await gstr9Api.importGstJson({
+        gstr9Id: targetGstr9Id,
+        gstr1Json: gstr1Payload.trim() || undefined,
+        gstr2bJson: gstr2bPayload.trim() || undefined
+      })
+      alert(`GST JSON successfully imported! Aggregate Turnover: ${formatCurrency(res.aggregateTurnover)}, Eligible ITC: ${formatCurrency(res.itcAsPer2a)}.`)
+      setShowJsonImportModal(false)
+      setGstr1Payload('')
+      setGstr2bPayload('')
+      await loadData()
+      setViewingReturn(res)
+    } catch (caught) {
+      const err = toError(caught)
+      alert(`Error importing GST JSON: ${err.message}`)
+    } finally {
+      setImportingJson(false)
+    }
+  }
+
   const handleCertifySubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!viewingReturn) return
@@ -341,6 +379,17 @@ export const Gstr9Page: React.FC = () => {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => {
+              if (returns.length > 0 && !targetGstr9Id) {
+                setTargetGstr9Id(returns[0].id)
+              }
+              setShowJsonImportModal(true)
+            }}
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg shadow-sm transition flex items-center gap-2 text-sm"
+          >
+            <span>📥</span> Import GSTR-1 / 2B JSON
+          </button>
           <button
             onClick={handleOpenCompileModal}
             className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg shadow-sm transition flex items-center gap-2 text-sm"
@@ -1492,6 +1541,135 @@ export const Gstr9Page: React.FC = () => {
                   className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold"
                 >
                   Confirm Filing
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* GSTR-1 & GSTR-2B JSON Import Modal */}
+      {showJsonImportModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b pb-3 mb-4">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Import GSTR-1 &amp; GSTR-2B JSON</h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Direct JSON import from the GST portal to auto-fill Table 4, 5, 6, and 8 of GSTR-9.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowJsonImportModal(false)}
+                className="text-gray-400 hover:text-gray-600 text-lg font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleImportGstJson} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">Target GSTR-9 Return</label>
+                <select
+                  value={targetGstr9Id}
+                  onChange={(e) => setTargetGstr9Id(e.target.value)}
+                  className="w-full border rounded-lg p-2 text-sm"
+                  required
+                >
+                  <option value="">-- Choose Return --</option>
+                  {returns.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.clientName} (FY {r.financialYear}) - Status: {r.status}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="text-xs font-semibold text-gray-700">GSTR-1 JSON (Outward Supplies)</label>
+                  <button
+                    type="button"
+                    onClick={() => setGstr1Payload(`{
+  "gstin": "27AAACB1234F1Z9",
+  "fp": "2024-25",
+  "b2b": [
+    {
+      "inv": [
+        {
+          "val": 1500000.00,
+          "itms": [{ "txval": 1500000.00, "iamt": 0, "camt": 135000.00, "samt": 135000.00, "csamt": 0 }]
+        }
+      ]
+    }
+  ]
+}`)}
+                    className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold"
+                  >
+                    Load Sample GSTR-1
+                  </button>
+                </div>
+                <textarea
+                  value={gstr1Payload}
+                  onChange={(e) => setGstr1Payload(e.target.value)}
+                  rows={4}
+                  placeholder="Paste GSTR-1 JSON (b2b, b2cl, exp, etc.)..."
+                  className="w-full border rounded-lg p-2 text-xs font-mono"
+                />
+              </div>
+
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="text-xs font-semibold text-gray-700">GSTR-2B JSON (Inward Supplies &amp; ITC)</label>
+                  <button
+                    type="button"
+                    onClick={() => setGstr2bPayload(`{
+  "data": {
+    "gstin": "27AAACB1234F1Z9",
+    "fp": "042024",
+    "b2b": [
+      {
+        "ctin": "27BBBCB5678M1Z1",
+        "inv": [
+          {
+            "inum": "INV-1001",
+            "val": 236000.00,
+            "itcavl": "Y",
+            "items": [{ "txval": 200000.00, "iamt": 0, "camt": 18000.00, "samt": 18000.00 }]
+          }
+        ]
+      }
+    ]
+  }
+}`)}
+                    className="text-xs text-emerald-600 hover:text-emerald-800 font-semibold"
+                  >
+                    Load Sample GSTR-2B
+                  </button>
+                </div>
+                <textarea
+                  value={gstr2bPayload}
+                  onChange={(e) => setGstr2bPayload(e.target.value)}
+                  rows={4}
+                  placeholder="Paste GSTR-2B JSON (b2b, cdnr, etc.)..."
+                  className="w-full border rounded-lg p-2 text-xs font-mono"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-3 border-t">
+                <button
+                  type="button"
+                  onClick={() => setShowJsonImportModal(false)}
+                  className="px-4 py-2 border rounded-lg text-sm text-gray-700 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={importingJson}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold"
+                >
+                  {importingJson ? 'Processing JSON...' : 'Auto-Fill GSTR-9'}
                 </button>
               </div>
             </form>

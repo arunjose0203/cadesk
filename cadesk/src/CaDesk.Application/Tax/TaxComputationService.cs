@@ -75,6 +75,62 @@ public class TaxComputationService(IAppDbContext db, ITenantContext tenant)
         return await GetByIdAsync(comp.Id, ct);
     }
 
+    public async Task<TaxComputationDto> ImportAisToComputationAsync(
+        Guid clientId,
+        string aisJson,
+        Guid currentUserId,
+        CancellationToken ct = default)
+    {
+        var client = await db.Clients.FirstOrDefaultAsync(x => x.Id == clientId, ct)
+            ?? throw new BusinessRuleException("Client not found.", 404);
+
+        var parsed = AnnualInformationStatementParser.Parse(aisJson);
+        AnnualInformationStatementParser.EnsureBelongsTo(parsed, client.TaxIds, expectedFinancialYear: null);
+
+        decimal sec80Tta = Math.Min(parsed.SavingsInterest, 10_000m);
+
+        var req = new CalculateTaxRequest(
+            ClientId: clientId,
+            AssessmentYear: parsed.AssessmentYear,
+            FinancialYear: parsed.FinancialYear,
+            TaxpayerCategory: TaxpayerCategory.Individual,
+            OptedRegime: null,
+            GrossSalary: parsed.GrossSalary,
+            HraReceived: 0m,
+            RentPaid: 0m,
+            IsMetro: false,
+            ProfessionalTax: 0m,
+            AnnualRentReceived: 0m,
+            MunicipalTaxesPaid: 0m,
+            HousingLoanInterest: 0m,
+            IsSelfOccupied: true,
+            BusinessGrossTurnover: 0m,
+            NetProfit: 0m,
+            PresumptiveSection: null,
+            Stcg111A: parsed.CapitalGainsStcg,
+            StcgNormal: 0m,
+            Ltcg112A: parsed.CapitalGainsLtcg,
+            Ltcg112: 0m,
+            SavingsInterest: parsed.SavingsInterest,
+            FdInterest: parsed.FixedDepositInterest,
+            DividendIncome: parsed.DividendIncome,
+            OtherIncome: 0m,
+            Section80C: 0m,
+            Section80Ccd1B: 0m,
+            Section80D: 0m,
+            Section80E: 0m,
+            Section80G: 0m,
+            Section80Tta: sec80Tta,
+            TdsPaid: parsed.TotalTds,
+            TcsPaid: parsed.TotalTcs,
+            AdvanceTaxPaid: parsed.TotalAdvanceTaxPaid,
+            SelfAssessmentTaxPaid: parsed.TotalSelfAssessmentTaxPaid,
+            Notes: $"Auto-imported from AIS JSON for PAN {parsed.Pan} (FY {parsed.FinancialYear})"
+        );
+
+        return await SaveComputationAsync(req, currentUserId, ct);
+    }
+
     public async Task<TaxComputationDto> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
         var x = await db.TaxComputations

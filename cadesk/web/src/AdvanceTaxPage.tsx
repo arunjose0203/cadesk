@@ -47,6 +47,9 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
   const [showCalcModal, setShowCalcModal] = useState<boolean>(false)
   const [editingPlanId, setEditingPlanId] = useState<string | null>(null)
   const [selectedInstallment, setSelectedInstallment] = useState<AdvanceTaxInstallmentDto | null>(null)
+  const [showAisModal, setShowAisModal] = useState<boolean>(false)
+  const [aisPayload, setAisPayload] = useState<string>('')
+  const [importingAis, setImportingAis] = useState<boolean>(false)
 
   // Plan Form State
   const [planForm, setPlanForm] = useState<SaveAdvanceTaxPlanRequest>({
@@ -236,6 +239,33 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
     }
   }
 
+  const handleImportAis = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedPlan) {
+      setError('Please select an Advance Tax Plan first.')
+      return
+    }
+    if (!aisPayload.trim()) {
+      setError('Please provide AIS JSON content.')
+      return
+    }
+    try {
+      setImportingAis(true)
+      setError(null)
+      const updated = await advanceTaxApi.importAis(selectedPlan.id, aisPayload)
+      setSuccess(`AIS successfully imported into plan! Assessed Tax: ${formatCurrency(updated.assessedTax)}, Credits: ${formatCurrency(updated.estimatedTdsTcs)}.`)
+      setShowAisModal(false)
+      setAisPayload('')
+      await loadData(selectedClientId || undefined, selectedFy)
+      await loadPlanDetails(updated.id)
+    } catch (caught) {
+      const e = toError(caught)
+      setError(e.message || 'Failed to import AIS into Advance Tax Plan')
+    } finally {
+      setImportingAis(false)
+    }
+  }
+
   const handleOpenCalcInterest = () => {
     if (!selectedPlan) return
     setCalcForm({
@@ -338,23 +368,43 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
           </button>
 
           {(!can || can('advancetax.manage')) && (
-            <button
-              onClick={handleOpenCreatePlan}
-              style={{
-                padding: '8px 16px',
-                borderRadius: '6px',
-                border: 'none',
-                background: '#1a237e',
-                color: '#fff',
-                fontWeight: 600,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}
-            >
-              <span>+</span> New Advance Tax Plan
-            </button>
+            <>
+              <button
+                onClick={() => setShowAisModal(true)}
+                disabled={!selectedPlan}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '6px',
+                  border: '1px solid #4338ca',
+                  background: selectedPlan ? '#EEF2FF' : '#F3F4F6',
+                  color: selectedPlan ? '#4338ca' : '#9CA3AF',
+                  fontWeight: 600,
+                  cursor: selectedPlan ? 'pointer' : 'not-allowed',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <span>📥</span> Import AIS to Plan
+              </button>
+              <button
+                onClick={handleOpenCreatePlan}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  background: '#1a237e',
+                  color: '#fff',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <span>+</span> New Advance Tax Plan
+              </button>
+            </>
           )}
 
           {selectedPlan && (!can || can('advancetax.calculate')) && (
@@ -1297,6 +1347,70 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
                   style={{ padding: '8px 20px', borderRadius: '4px', border: 'none', background: '#c62828', color: '#fff', fontWeight: 600, cursor: 'pointer' }}
                 >
                   {loading ? 'Evaluating...' : 'Compute Statutory Interest'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* AIS Import to Advance Tax Plan Modal */}
+      {showAisModal && selectedPlan && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+          <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '12px', width: '600px', maxWidth: '95%' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#111827' }}>
+                Import AIS / 26AS JSON to Advance Tax Plan
+              </h3>
+              <button onClick={() => setShowAisModal(false)} style={{ background: 'transparent', border: 'none', fontSize: '18px', cursor: 'pointer' }}>✕</button>
+            </div>
+
+            <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#555' }}>
+              Target Plan: <strong>{selectedPlan.clientName} ({selectedPlan.financialYear})</strong>. Paste the CBDT AIS JSON to update estimated income, TDS credits, and advance tax challans directly from the income-tax portal.
+            </p>
+
+            <form onSubmit={handleImportAis}>
+              <div style={{ marginBottom: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: 600, color: '#333' }}>AIS JSON Content</label>
+                  <button
+                    type="button"
+                    onClick={() => setAisPayload(`{
+  "financialYear": "${selectedPlan.financialYear}",
+  "pan": "AAACB1234F",
+  "salary": [{ "grossSalary": 2400000, "tds": 280000 }],
+  "interest": [{ "amount": 75000, "tds": 5000 }],
+  "taxPayments": [{ "minorHead": "Advance Tax (100)", "bsrCode": "0210045", "challanNumber": "88192", "tenderDate": "2024-06-14", "amount": 50000 }]
+}`)}
+                    style={{ background: 'transparent', border: 'none', color: '#1a237e', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    Load Sample JSON
+                  </button>
+                </div>
+                <textarea
+                  rows={8}
+                  value={aisPayload}
+                  onChange={e => setAisPayload(e.target.value)}
+                  placeholder="Paste AIS JSON here..."
+                  style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '12px', fontFamily: 'monospace' }}
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowAisModal(false)}
+                  style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid #ccc', background: '#fff', cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={importingAis}
+                  style={{ padding: '8px 20px', borderRadius: '4px', border: 'none', background: '#1a237e', color: '#fff', fontWeight: 600, cursor: 'pointer' }}
+                >
+                  {importingAis ? 'Importing...' : 'Import to Plan'}
                 </button>
               </div>
             </form>

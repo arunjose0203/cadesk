@@ -135,7 +135,7 @@ public static class GstReconciliationEngine
                     InvoiceNumber = pr.InvoiceNumber,
                     NormalizedInvoiceNumber = normInv,
                     InvoiceDate = pr.InvoiceDate ?? candidate.InvoiceDate,
-                    InvoiceType = pr.InvoiceType ?? GstInvoiceType.Regular,
+                    InvoiceType = NormalizeInvoiceType(pr.InvoiceType ?? candidate.InvoiceType),
                     PrTaxableValue = pr.TaxableValue,
                     PrCgst = pr.Cgst,
                     PrSgst = pr.Sgst,
@@ -168,7 +168,7 @@ public static class GstReconciliationEngine
                     InvoiceNumber = pr.InvoiceNumber,
                     NormalizedInvoiceNumber = normInv,
                     InvoiceDate = pr.InvoiceDate,
-                    InvoiceType = pr.InvoiceType ?? GstInvoiceType.Regular,
+                    InvoiceType = NormalizeInvoiceType(pr.InvoiceType),
                     PrTaxableValue = pr.TaxableValue,
                     PrCgst = pr.Cgst,
                     PrSgst = pr.Sgst,
@@ -219,7 +219,7 @@ public static class GstReconciliationEngine
                     InvoiceNumber = b.InvoiceNumber,
                     NormalizedInvoiceNumber = normInv,
                     InvoiceDate = b.InvoiceDate,
-                    InvoiceType = b.InvoiceType ?? GstInvoiceType.Regular,
+                    InvoiceType = NormalizeInvoiceType(b.InvoiceType),
                     PrTaxableValue = 0,
                     PrCgst = 0,
                     PrSgst = 0,
@@ -240,4 +240,12 @@ public static class GstReconciliationEngine
 
         return new ReconciledResult(batch, items);
     }
+
+    private static string NormalizeInvoiceType(string? raw) => (raw?.Trim().ToLowerInvariant()) switch
+    {
+        "credit_note" or "credit" or "c" or "cdn" or "cdnr" or "cr_note" => GstInvoiceType.CreditNote,
+        "debit_note" or "debit" or "d" or "dn" or "dr_note" => GstInvoiceType.DebitNote,
+        "sez" or "sezwp" or "sezwop" => GstInvoiceType.Sez,
+        _ => GstInvoiceType.Regular
+    };
 }

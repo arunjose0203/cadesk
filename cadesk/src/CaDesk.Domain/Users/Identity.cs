@@ -202,4 +202,7 @@ public static class Perms
     public const string CostAuditRead = "costaudit.read";
     public const string CostAuditManage = "costaudit.manage";
     public const string CostAuditCertify = "costaudit.certify";
+    public const string TrialBalanceRead = "trialbalance.read";
+    public const string TrialBalanceManage = "trialbalance.manage";
+    public const string TrialBalanceSync = "trialbalance.sync";
 }

@@ -127,5 +127,15 @@ public static class Gstr9Endpoints
             var summary = await service.GetSummaryAsync(financialYear, ct);
             return Results.Ok(summary);
         }).RequirePermission(Perms.Gstr9Read);
+
+        // Import GSTR-1 and/or GSTR-2B JSON to populate or update GSTR-9 return
+        g.MapPost("/import-gst-json", async (
+            [FromBody] ImportGstJsonToReturnRequest req,
+            IGstr9Service service,
+            CancellationToken ct) =>
+        {
+            var ret = await service.ImportGstJsonToReturnAsync(req.ClientId, req.FinancialYear, req.Gstr1Json, req.Gstr2BJson, ct);
+            return Results.Ok(ret);
+        }).RequirePermission(Perms.Gstr9Manage);
     }
 }

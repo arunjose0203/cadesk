@@ -11,35 +11,9 @@ import TasksPage from './TasksPage'
 import BillingPage from './BillingPage'
 import DscPage from './DscPage'
 import PortalPage from './PortalPage'
-import { TaxPage } from './TaxPage'
-import { AuditWorkspacePage } from './AuditWorkspacePage'
-import { GstReconciliationPage } from './GstReconciliationPage'
-import { TdsPage } from './TdsPage'
-import { McaCompliancePage } from './McaCompliancePage'
-import { EngagementKycPage } from './EngagementKycPage'
-import { BankFeedsPage } from './BankFeedsPage'
-import { ReportsPage } from './ReportsPage'
-import { TaxNoticesPage } from './TaxNoticesPage'
-import { PayrollPage } from './PayrollPage'
-import { EInvoicingPage } from './EInvoicingPage'
-import { FixedAssetsPage } from './FixedAssetsPage'
-import { AdvanceTaxPage } from './AdvanceTaxPage'
-import { Gstr9Page } from './Gstr9Page'
-import { PresumptiveTaxPage } from './PresumptiveTaxPage'
-import { CaroAuditDeskPage } from './CaroAuditDeskPage'
-import { TaxAuditDeskPage } from './TaxAuditDeskPage'
-import { Schedule3DeskPage } from './Schedule3DeskPage'
-import { BranchAuditDeskPage } from './BranchAuditDeskPage'
-import { AuditCommitteeDeskPage } from './AuditCommitteeDeskPage'
-import { ForeignRemittancePage } from './ForeignRemittancePage'
-import { RelatedPartyPage } from './RelatedPartyPage'
-import { InternalAuditPage } from './InternalAuditPage'
-import { AntiProfiteeringPage } from './AntiProfiteeringPage'
-import { SecretarialAuditPage } from './SecretarialAuditPage'
-import { TransferPricingPage } from './TransferPricingPage'
-import { CostAuditPage } from './CostAuditPage'
+import TrialBalancePage from './TrialBalancePage'
 
-type Page = 'tasks' | 'deadlines' | 'clients' | 'billing' | 'tax' | 'audit-workspace' | 'gst-reconcile' | 'tds' | 'mca' | 'engagement' | 'banking' | 'reports' | 'tax-notices' | 'payroll' | 'einvoicing' | 'fixed-assets' | 'advance-tax' | 'gstr9' | 'presumptive' | 'caro' | 'taxaudit' | 'schedule3' | 'branchaudit' | 'auditcommittee' | 'foreignremittance' | 'relatedparty' | 'internalaudit' | 'antiprofiteering' | 'secretarialaudit' | 'transferpricing' | 'costaudit' | 'dsc' | 'portal' | 'users' | 'settings' | 'audit' | 'security'
+type Page = 'tasks' | 'deadlines' | 'clients' | 'billing' | 'trial-balance' | 'tax' | 'audit-workspace' | 'gst-reconcile' | 'tds' | 'mca' | 'engagement' | 'banking' | 'reports' | 'tax-notices' | 'payroll' | 'einvoicing' | 'fixed-assets' | 'advance-tax' | 'gstr9' | 'presumptive' | 'caro' | 'taxaudit' | 'schedule3' | 'branchaudit' | 'auditcommittee' | 'foreignremittance' | 'relatedparty' | 'internalaudit' | 'antiprofiteering' | 'secretarialaudit' | 'transferpricing' | 'costaudit' | 'dsc' | 'portal' | 'users' | 'settings' | 'audit' | 'security'
 
 export default function App() {
   const [user, setUser] = useState<UserProfile | null>(null)
@@ -64,7 +38,7 @@ export default function App() {
   }
 
   const signOut = async (reason?: string) => {
-    await api('/api/auth/logout', { method: 'POST' }).catch(() => {})
+    await api('/api/auth/logout', { method: 'POST' }).catch(() => { })
     setAccessToken(null)
     setUser(null)
     setNotice(reason ?? null)
@@ -222,6 +196,16 @@ export default function App() {
               <path d="M8 18h.01"></path>
             </svg>
             Tax Desk
+          </button>
+        )}
+        {can('trialbalance.read') && (
+          <button className={page === 'trial-balance' ? 'active' : ''} onClick={() => setPage('trial-balance')}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="20" x2="18" y2="10"></line>
+              <line x1="12" y1="20" x2="12" y2="4"></line>
+              <line x1="6" y1="20" x2="6" y2="14"></line>
+            </svg>
+            Trial Balance Hub
           </button>
         )}
         {can('audit.read') && (
@@ -555,33 +539,7 @@ export default function App() {
       {page === 'deadlines' && can('compliance.read') && <DeadlinesPage can={can} />}
       {page === 'clients' && <ClientsPage can={can} meId={user.id} />}
       {page === 'billing' && <BillingPage can={can} meId={user.id} />}
-      {page === 'tax' && can('computations.run') && <TaxPage />}
-      {page === 'audit-workspace' && can('audit.read') && <AuditWorkspacePage me={user} />}
-      {page === 'gst-reconcile' && can('gst.read') && <GstReconciliationPage />}
-      {page === 'tds' && can('tds.read') && <TdsPage />}
-      {page === 'mca' && can('mca.read') && <McaCompliancePage />}
-      {page === 'engagement' && can('engagement.read') && <EngagementKycPage />}
-      {page === 'banking' && can('bank.read') && <BankFeedsPage />}
-      {page === 'reports' && can('reports.read') && <ReportsPage can={can} />}
-      {page === 'tax-notices' && can('notices.read') && <TaxNoticesPage can={can} />}
-      {page === 'payroll' && can('payroll.read') && <PayrollPage can={can} />}
-      {page === 'einvoicing' && can('einvoice.read') && <EInvoicingPage can={can} />}
-      {page === 'fixed-assets' && can('assets.read') && <FixedAssetsPage can={can} />}
-      {page === 'advance-tax' && can('advancetax.read') && <AdvanceTaxPage can={can} />}
-      {page === 'gstr9' && can('gstr9.read') && <Gstr9Page />}
-      {page === 'presumptive' && can('presumptive.read') && <PresumptiveTaxPage can={can} />}
-      {page === 'caro' && can('caro.read') && <CaroAuditDeskPage can={can} />}
-      {page === 'taxaudit' && can('taxaudit.read') && <TaxAuditDeskPage can={can} />}
-      {page === 'schedule3' && can('schedule3.read') && <Schedule3DeskPage can={can} />}
-      {page === 'branchaudit' && can('branchaudit.read') && <BranchAuditDeskPage can={can} />}
-      {page === 'auditcommittee' && can('auditcommittee.read') && <AuditCommitteeDeskPage can={can} />}
-      {page === 'foreignremittance' && can('foreignremittance.read') && <ForeignRemittancePage />}
-      {page === 'relatedparty' && can('relatedparty.read') && <RelatedPartyPage />}
-      {page === 'internalaudit' && can('internalaudit.read') && <InternalAuditPage />}
-      {page === 'antiprofiteering' && can('antiprofiteering.read') && <AntiProfiteeringPage />}
-      {page === 'secretarialaudit' && can('secretarialaudit.read') && <SecretarialAuditPage />}
-      {page === 'transferpricing' && can('transferpricing.read') && <TransferPricingPage />}
-      {page === 'costaudit' && can('costaudit.read') && <CostAuditPage />}
+      {page === 'trial-balance' && can('trialbalance.read') && <TrialBalancePage can={can} />}
       {page === 'dsc' && can('dsc.read') && <DscPage can={can} meId={user.id} />}
       {page === 'portal' && can('portal.read') && <PortalPage can={can} meId={user.id} />}
       {page === 'users' && can('users.read') && <UsersPage can={can} me={user} />}

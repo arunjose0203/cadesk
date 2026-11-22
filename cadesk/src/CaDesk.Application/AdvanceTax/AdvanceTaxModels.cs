@@ -103,3 +103,5 @@ public record CalculateStatutoryInterestRequest(
     DateOnly ActualReturnFilingDate,
     decimal SelfAssessmentTaxPaid
 );
+
+public record ImportAisToPlanRequest(string AisJson);

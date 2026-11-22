@@ -98,3 +98,13 @@ public record GstReconciliationSummaryDto(
     decimal TotalItcEligible,
     decimal TotalItcAtRisk
 );
+
+public sealed record RunReconciliationFromJsonRequest(
+    Guid ClientId,
+    string ReturnPeriod,
+    string FinancialYear,
+    string Gstr2BJson,
+    List<PurchaseRegisterInvoice>? PurchaseInvoices = null,
+    decimal? ToleranceAmount = null,
+    string? Notes = null
+);

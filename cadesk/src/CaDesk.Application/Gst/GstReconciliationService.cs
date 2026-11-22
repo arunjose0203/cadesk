@@ -43,6 +43,32 @@ public class GstReconciliationService(IAppDbContext db, ITenantContext tenant)
         return await GetBatchByIdAsync(result.Batch.Id, ct);
     }
 
+    public async Task<GstReconciliationBatchDto> RunReconciliationFromGstr2BJsonAsync(
+        Guid clientId,
+        string returnPeriod,
+        string financialYear,
+        string gstr2bJson,
+        List<PurchaseRegisterInvoice>? purchaseInvoices,
+        decimal? toleranceAmount,
+        string? notes,
+        Guid currentUserId,
+        CancellationToken ct = default)
+    {
+        var parsed2B = GstJsonParser.ParseGstr2B(gstr2bJson);
+
+        var req = new RunReconciliationRequest(
+            ClientId: clientId,
+            ReturnPeriod: string.IsNullOrWhiteSpace(returnPeriod) ? parsed2B.ReturnPeriod : returnPeriod,
+            FinancialYear: financialYear,
+            ToleranceAmount: toleranceAmount ?? 1.00m,
+            PurchaseInvoices: purchaseInvoices ?? [],
+            Gstr2BInvoices: parsed2B.Invoices,
+            Notes: notes ?? $"Auto-imported from GSTR-2B JSON (Total ITC Available: ₹{parsed2B.TotalItcAvailable:N2})"
+        );
+
+        return await RunReconciliationAsync(req, currentUserId, ct);
+    }
+
     public async Task<GstReconciliationBatchDto> GetBatchByIdAsync(Guid id, CancellationToken ct = default)
     {
         var b = await db.GstReconciliationBatches

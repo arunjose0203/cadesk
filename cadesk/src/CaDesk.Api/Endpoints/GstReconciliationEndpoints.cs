@@ -35,8 +35,25 @@ public static class GstReconciliationEndpoints
         // Run reconciliation
         g.MapPost("/reconcile", async (RunReconciliationRequest req, ClaimsPrincipal user, GstReconciliationService svc, CancellationToken ct) =>
         {
-            var userId = Guid.Parse(user.FindFirstValue("sub") ?? user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var userId = user.RequiredUserId();
             var batch = await svc.RunReconciliationAsync(req, userId, ct);
+            return Results.Created($"/api/gst/batches/{batch.Id}", batch);
+        }).RequirePermission(Perms.GstReconcile);
+
+        // Run reconciliation from uploaded GSTR-2B JSON
+        g.MapPost("/reconcile-json", async (RunReconciliationFromJsonRequest req, ClaimsPrincipal user, GstReconciliationService svc, CancellationToken ct) =>
+        {
+            var userId = user.RequiredUserId();
+            var batch = await svc.RunReconciliationFromGstr2BJsonAsync(
+                req.ClientId,
+                req.ReturnPeriod,
+                req.FinancialYear,
+                req.Gstr2BJson,
+                req.PurchaseInvoices,
+                req.ToleranceAmount,
+                req.Notes,
+                userId,
+                ct);
             return Results.Created($"/api/gst/batches/{batch.Id}", batch);
         }).RequirePermission(Perms.GstReconcile);
 

@@ -158,7 +158,12 @@ public interface IAppDbContext
     DbSet<CaDesk.Domain.CostAudit.CostRecordHead> CostRecordHeads { get; }
     DbSet<CaDesk.Domain.CostAudit.ProductCostStatement> ProductCostStatements { get; }
     DbSet<CaDesk.Domain.CostAudit.CostAuditReconciliationItem> CostAuditReconciliationItems { get; }
+    DbSet<CaDesk.Domain.TrialBalance.TrialBalanceImport> TrialBalanceImports { get; }
+    DbSet<CaDesk.Domain.TrialBalance.TrialBalanceLedger> TrialBalanceLedgers { get; }
+    DbSet<CaDesk.Domain.TrialBalance.ClientLedgerMapping> ClientLedgerMappings { get; }
     /// <summary>For transactions and the few raw SQL calls (numbering, jsonb lookups). RLS still applies.</summary>
     DatabaseFacade Database { get; }
+    /// <summary>To discard a failed unit of work's unsaved changes (e.g. one desk of a trial balance sync).</summary>
+    Microsoft.EntityFrameworkCore.ChangeTracking.ChangeTracker ChangeTracker { get; }
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 }

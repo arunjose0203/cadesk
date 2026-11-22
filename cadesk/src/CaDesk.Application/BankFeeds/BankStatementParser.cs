@@ -278,4 +278,79 @@ public static class BankStatementParser
         result.Add(current.ToString());
         return result;
     }
+
+    public static ParsedStatementResult ParseOfx(string ofxContent)
+    {
+        if (string.IsNullOrWhiteSpace(ofxContent))
+            throw new ArgumentException("OFX statement content cannot be empty.");
+
+        var items = new List<ParsedTransactionItem>();
+        decimal runningBal = 0m;
+        decimal? openBal = null;
+        decimal? closeBal = null;
+
+        var balMatch = Regex.Match(ofxContent, @"<LEDGERBAL>[\s\S]*?<BALAMT>([-\d.,]+)", RegexOptions.IgnoreCase);
+        if (balMatch.Success && decimal.TryParse(balMatch.Groups[1].Value, NumberStyles.Any, CultureInfo.InvariantCulture, out var balVal))
+        {
+            closeBal = balVal;
+            runningBal = balVal;
+        }
+
+        var trnMatches = Regex.Matches(ofxContent, @"<STMTTRN>([\s\S]*?)</STMTTRN>", RegexOptions.IgnoreCase);
+        foreach (Match m in trnMatches)
+        {
+            var body = m.Groups[1].Value;
+            var trnTypeStr = Regex.Match(body, @"<TRNTYPE>([A-Za-z]+)", RegexOptions.IgnoreCase).Groups[1].Value.ToUpperInvariant();
+            var dtStr = Regex.Match(body, @"<DTPOSTED>(\d{8})", RegexOptions.IgnoreCase).Groups[1].Value;
+            var amtStr = Regex.Match(body, @"<TRNAMT>([-\d.,]+)", RegexOptions.IgnoreCase).Groups[1].Value;
+            var fitId = Regex.Match(body, @"<FITID>([^<\r\n]+)", RegexOptions.IgnoreCase).Groups[1].Value.Trim();
+            var name = Regex.Match(body, @"<NAME>([^<\r\n]+)", RegexOptions.IgnoreCase).Groups[1].Value.Trim();
+            var memo = Regex.Match(body, @"<MEMO>([^<\r\n]+)", RegexOptions.IgnoreCase).Groups[1].Value.Trim();
+
+            if (!decimal.TryParse(amtStr, NumberStyles.Any, CultureInfo.InvariantCulture, out var amt))
+                continue;
+
+            DateOnly txDate = DateOnly.FromDateTime(DateTime.UtcNow);
+            if (DateTime.TryParseExact(dtStr, "yyyyMMdd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var dt))
+            {
+                txDate = DateOnly.FromDateTime(dt);
+            }
+
+            string narration = !string.IsNullOrWhiteSpace(memo) ? memo : (!string.IsNullOrWhiteSpace(name) ? name : "OFX Transaction");
+            string txType = amt < 0 ? BankTransactionType.Debit : (trnTypeStr == "DEBIT" ? BankTransactionType.Debit : BankTransactionType.Credit);
+            decimal absAmt = Math.Abs(amt);
+
+            items.Add(new ParsedTransactionItem(
+                Date: txDate,
+                ValueDate: txDate,
+                Narration: narration,
+                ChqRefNo: string.IsNullOrWhiteSpace(fitId) ? null : fitId,
+                Type: txType,
+                Amount: absAmt,
+                Balance: runningBal
+            ));
+        }
+
+        if (items.Count == 0)
+            throw new ArgumentException("No valid transaction rows found in the provided OFX statement.");
+
+        var orderedItems = items.OrderBy(x => x.Date).ToList();
+        var startDate = orderedItems.First().Date;
+        var endDate = orderedItems.Last().Date;
+
+        var totalDebits = items.Where(x => x.Type == BankTransactionType.Debit).Sum(x => x.Amount);
+        var totalCredits = items.Where(x => x.Type == BankTransactionType.Credit).Sum(x => x.Amount);
+
+        decimal closing = closeBal ?? (totalCredits - totalDebits);
+        decimal opening = openBal ?? (closing - totalCredits + totalDebits);
+
+        return new ParsedStatementResult(
+            StartDate: startDate,
+            EndDate: endDate,
+            OpeningBalance: opening,
+            ClosingBalance: closing,
+            TotalDebits: totalDebits,
+            TotalCredits: totalCredits,
+            Items: items);
+    }
 }

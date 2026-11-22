@@ -170,6 +170,7 @@ public static class TestData
         "tds.manage", "tds.read",
         "timesheets.log", "timesheets.manage", "timesheets.read",
         "transferpricing.certify", "transferpricing.manage", "transferpricing.read",
+        "trialbalance.manage", "trialbalance.read", "trialbalance.sync",
         "users.manage", "users.read",
         "workpapers.manage", "workpapers.read",
     ];

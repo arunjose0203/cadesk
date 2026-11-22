@@ -120,10 +120,34 @@ public class BankFeedService : IBankFeedService
 
         if (string.IsNullOrWhiteSpace(req.FileName))
             throw new ArgumentException("File name is required.");
-        if (string.IsNullOrWhiteSpace(req.CsvContent))
-            throw new ArgumentException("CSV statement content is required.");
 
-        var parsed = BankStatementParser.ParseCsv(req.CsvContent);
+        string? content = !string.IsNullOrWhiteSpace(req.FileBase64) ? req.FileBase64 : req.CsvContent;
+        if (string.IsNullOrWhiteSpace(content))
+            throw new ArgumentException("Statement content (CSV, OFX, or PDF) is required.");
+
+        ParsedStatementResult parsed;
+        string statementFormat;
+
+        if (req.FileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase) ||
+            content.StartsWith("JVBERi", StringComparison.Ordinal) ||
+            content.StartsWith("%PDF", StringComparison.Ordinal))
+        {
+            statementFormat = BankStatementFormat.PDF_PARSED;
+            parsed = PdfBankStatementParser.Parse(content);
+        }
+        else if (req.FileName.EndsWith(".ofx", StringComparison.OrdinalIgnoreCase) ||
+                 content.Contains("<OFX>", StringComparison.OrdinalIgnoreCase) ||
+                 content.Contains("<STMTTRN>", StringComparison.OrdinalIgnoreCase))
+        {
+            statementFormat = BankStatementFormat.OFX;
+            parsed = BankStatementParser.ParseOfx(content);
+        }
+        else
+        {
+            statementFormat = BankStatementFormat.CSV;
+            parsed = BankStatementParser.ParseCsv(content);
+        }
+
         var rules = await _db.BankReconciliationRules.Where(r => r.IsActive).ToListAsync(ct);
 
         var statement = new BankStatement
@@ -134,7 +158,7 @@ public class BankFeedService : IBankFeedService
             StartDate = parsed.StartDate,
             EndDate = parsed.EndDate,
             FileName = req.FileName.Trim(),
-            Format = BankStatementFormat.CSV,
+            Format = statementFormat,
             OpeningBalance = parsed.OpeningBalance,
             ClosingBalance = parsed.ClosingBalance,
             TotalDebits = parsed.TotalDebits,

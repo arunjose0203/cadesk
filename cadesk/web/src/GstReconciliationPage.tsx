@@ -37,6 +37,8 @@ export function GstReconciliationPage() {
 
   const [prInvoices, setPrInvoices] = useState<PurchaseRegisterInvoice[]>([])
   const [twoBInvoices, setTwoBInvoices] = useState<Gstr2BInvoice[]>([])
+  const [useGstr2bJson, setUseGstr2bJson] = useState(false)
+  const [gstr2bRawJson, setGstr2bRawJson] = useState('')
 
   useEffect(() => {
     loadData()
@@ -113,23 +115,40 @@ export function GstReconciliationPage() {
       setError('Please select a client.')
       return
     }
-    if (prInvoices.length === 0 && twoBInvoices.length === 0) {
+    if (!useGstr2bJson && prInvoices.length === 0 && twoBInvoices.length === 0) {
       setError('Please add invoices or click "Load Demo Invoices".')
+      return
+    }
+    if (useGstr2bJson && !gstr2bRawJson.trim()) {
+      setError('Please paste GSTR-2B JSON.')
       return
     }
 
     setRunning(true)
     setError(null)
     try {
-      const created = await gstApi.reconcile({
-        clientId: formClientId,
-        returnPeriod: formPeriod,
-        financialYear: formFy,
-        toleranceAmount: formTolerance,
-        purchaseInvoices: prInvoices,
-        gstr2BInvoices: twoBInvoices,
-        notes: formNotes
-      })
+      let created: GstReconciliationBatchDto
+      if (useGstr2bJson) {
+        created = await gstApi.reconcileJson({
+          clientId: formClientId,
+          returnPeriod: formPeriod,
+          financialYear: formFy,
+          toleranceAmount: formTolerance,
+          purchaseInvoices: prInvoices,
+          gstr2bJson: gstr2bRawJson,
+          notes: formNotes
+        })
+      } else {
+        created = await gstApi.reconcile({
+          clientId: formClientId,
+          returnPeriod: formPeriod,
+          financialYear: formFy,
+          toleranceAmount: formTolerance,
+          purchaseInvoices: prInvoices,
+          gstr2BInvoices: twoBInvoices,
+          notes: formNotes
+        })
+      }
       setShowModal(false)
       await loadData()
       await handleSelectBatch(created)
@@ -544,29 +563,110 @@ export function GstReconciliationPage() {
               />
             </div>
 
-            {/* Invoices Preview */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', background: '#f8fafc', padding: '12px', borderRadius: '6px', border: '1px solid #e2e8f0', marginBottom: '16px' }}>
-              <div>
-                <div style={{ fontWeight: 600, fontSize: '12px', marginBottom: '6px' }}>
-                  Purchase Register Invoices: {prInvoices.length}
-                </div>
-                <div style={{ fontSize: '11px', color: '#64748b', maxHeight: '100px', overflowY: 'auto' }}>
-                  {prInvoices.map((p, i) => (
-                    <div key={i}>{p.invoiceNumber} - {p.supplierName} ({fmtInr(p.taxableValue)})</div>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <div style={{ fontWeight: 600, fontSize: '12px', marginBottom: '6px' }}>
-                  GSTR-2B Portal Invoices: {twoBInvoices.length}
-                </div>
-                <div style={{ fontSize: '11px', color: '#64748b', maxHeight: '100px', overflowY: 'auto' }}>
-                  {twoBInvoices.map((b, i) => (
-                    <div key={i}>{b.invoiceNumber} - {b.supplierName} ({fmtInr(b.taxableValue)})</div>
-                  ))}
-                </div>
-              </div>
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+              <button
+                type="button"
+                onClick={() => setUseGstr2bJson(false)}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '4px',
+                  border: '1px solid #cbd5e1',
+                  background: !useGstr2bJson ? '#2563eb' : '#f8fafc',
+                  color: !useGstr2bJson ? '#fff' : '#475569',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                Preloaded Invoice Mode
+              </button>
+              <button
+                type="button"
+                onClick={() => setUseGstr2bJson(true)}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '4px',
+                  border: '1px solid #cbd5e1',
+                  background: useGstr2bJson ? '#2563eb' : '#f8fafc',
+                  color: useGstr2bJson ? '#fff' : '#475569',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                📥 Direct GSTR-2B JSON (Portal)
+              </button>
             </div>
+
+            {useGstr2bJson ? (
+              <div style={{ marginBottom: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>
+                    GSTR-2B JSON (B2B, CDNR invoices)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setGstr2bRawJson(`{
+  "data": {
+    "gstin": "27AAACB1234F1Z9",
+    "fp": "042024",
+    "b2b": [
+      {
+        "ctin": "27BBBCB5678M1Z1",
+        "cname": "Supplier Logistics Ltd",
+        "inv": [
+          {
+            "inum": "INV-1001",
+            "idt": "12-04-2024",
+            "val": 236000.00,
+            "itcavl": "Y",
+            "items": [
+              { "txval": 200000.00, "igst": 0, "cgst": 18000.00, "sgst": 18000.00, "cess": 0 }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}`)}
+                    style={{ background: 'transparent', border: 'none', color: '#2563eb', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    Load Sample GSTR-2B JSON
+                  </button>
+                </div>
+                <textarea
+                  rows={6}
+                  value={gstr2bRawJson}
+                  onChange={e => setGstr2bRawJson(e.target.value)}
+                  placeholder="Paste official GSTR-2B JSON downloaded from GST portal..."
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontFamily: 'monospace', fontSize: '12px' }}
+                />
+              </div>
+            ) : (
+              /* Invoices Preview */
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', background: '#f8fafc', padding: '12px', borderRadius: '6px', border: '1px solid #e2e8f0', marginBottom: '16px' }}>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: '12px', marginBottom: '6px' }}>
+                    Purchase Register Invoices: {prInvoices.length}
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#64748b', maxHeight: '100px', overflowY: 'auto' }}>
+                    {prInvoices.map((p, i) => (
+                      <div key={i}>{p.invoiceNumber} - {p.supplierName} ({fmtInr(p.taxableValue)})</div>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: '12px', marginBottom: '6px' }}>
+                    GSTR-2B Portal Invoices: {twoBInvoices.length}
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#64748b', maxHeight: '100px', overflowY: 'auto' }}>
+                    {twoBInvoices.map((b, i) => (
+                      <div key={i}>{b.invoiceNumber} - {b.supplierName} ({fmtInr(b.taxableValue)})</div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
               <button

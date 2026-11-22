@@ -93,8 +93,9 @@ public sealed record CreateBankReconciliationRuleRequest(
 
 public sealed record UploadStatementRequest(
     string FileName,
-    string CsvContent,
-    DateOnly? StatementDate);
+    string? CsvContent = null,
+    DateOnly? StatementDate = null,
+    string? FileBase64 = null);
 
 public sealed record BankReconciliationSummaryDto(
     Guid BankAccountId,

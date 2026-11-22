@@ -119,3 +119,5 @@ public record TaxComputationDto(
     DateTime CreatedAt,
     DateTime? UpdatedAt
 );
+
+public record ImportAisToComputationRequest(Guid ClientId, string AisJson);

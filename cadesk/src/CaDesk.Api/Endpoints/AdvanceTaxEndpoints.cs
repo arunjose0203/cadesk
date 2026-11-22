@@ -48,6 +48,13 @@ public static class AdvanceTaxEndpoints
             return Results.NoContent();
         }).RequirePermission(Perms.AdvanceTaxManage);
 
+        // Import AIS / 26AS JSON to populate TDS/TCS and Advance Tax payments
+        g.MapPost("/plans/{id:guid}/import-ais", async (Guid id, ImportAisToPlanRequest req, IAdvanceTaxService svc, CancellationToken ct) =>
+        {
+            var updated = await svc.ImportAisToPlanAsync(id, req.AisJson, ct);
+            return Results.Ok(updated);
+        }).RequirePermission(Perms.AdvanceTaxManage);
+
         // Installments
         g.MapGet("/plans/{id:guid}/installments", async (Guid id, IAdvanceTaxService svc, CancellationToken ct) =>
         {

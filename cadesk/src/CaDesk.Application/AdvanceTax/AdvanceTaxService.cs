@@ -1,4 +1,5 @@
 using CaDesk.Application.Abstractions;
+using CaDesk.Application.Tax;
 using CaDesk.Domain.AdvanceTax;
 using Microsoft.EntityFrameworkCore;
 
@@ -205,6 +206,67 @@ public class AdvanceTaxService(IAppDbContext db) : IAdvanceTaxService
 
         await db.SaveChangesAsync(ct);
         return ToInstallmentDto(inst);
+    }
+
+    public async Task<AdvanceTaxPlanDto> ImportAisToPlanAsync(Guid planId, string aisJson, CancellationToken ct = default)
+    {
+        var plan = await db.AdvanceTaxPlans
+            .Include(p => p.Installments)
+            .Include(p => p.InterestComputations)
+            .Include(p => p.Client)
+            .FirstOrDefaultAsync(p => p.Id == planId, ct)
+            ?? throw new KeyNotFoundException($"Advance tax plan {planId} not found.");
+
+        var parsed = AnnualInformationStatementParser.Parse(aisJson);
+        AnnualInformationStatementParser.EnsureBelongsTo(parsed,
+            plan.Client?.TaxIds ?? throw new BusinessRuleException("Client not found.", 404), plan.FinancialYear);
+
+        if (parsed.TotalTds + parsed.TotalTcs > 0)
+        {
+            plan.EstimatedTdsTcs = parsed.TotalTds + parsed.TotalTcs;
+            plan.AssessedTax = Math.Max(0m, plan.EstimatedTaxBeforeCredits - plan.EstimatedTdsTcs);
+        }
+
+        var installments = plan.Installments.OrderBy(i => i.InstallmentNumber).ToList();
+        foreach (var payment in parsed.TaxPayments)
+        {
+            if (payment.Amount <= 0) continue;
+
+            int instNum = 1;
+            if (payment.TenderDate.Month > 9 || payment.TenderDate.Month <= 3)
+            {
+                instNum = (payment.TenderDate.Month == 12 && payment.TenderDate.Day <= 15) ? 3 : 4;
+            }
+            else if (payment.TenderDate.Month > 6)
+            {
+                instNum = (payment.TenderDate.Month == 9 && payment.TenderDate.Day <= 15) ? 2 : 3;
+            }
+            else
+            {
+                instNum = 1;
+            }
+
+            var targetInst = installments.FirstOrDefault(i => i.InstallmentNumber == instNum) ?? installments.Last();
+            targetInst.AmountPaid += payment.Amount;
+            targetInst.ChallanBsrCode = payment.BsrCode;
+            targetInst.ChallanNumber = payment.ChallanNumber;
+            targetInst.ChallanDate = payment.TenderDate;
+            targetInst.IsPaid = targetInst.AmountPaid > 0;
+            targetInst.ShortfallAmount = Math.Max(0m, targetInst.CumulativeTargetAmount - targetInst.AmountPaid);
+            targetInst.UpdatedAt = DateTime.UtcNow;
+        }
+
+        AdvanceTaxInterestEngine.RecalculateSection234C(
+            installments,
+            plan.AssessedTax,
+            plan.IsPresumptive,
+            plan.IsSeniorCitizen
+        );
+
+        plan.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(ct);
+
+        return ToDto(plan);
     }
 
     public async Task<TaxInterestComputationDto> CalculateInterestAsync(Guid planId, CalculateStatutoryInterestRequest req, CancellationToken ct = default)

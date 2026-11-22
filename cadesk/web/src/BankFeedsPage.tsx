@@ -239,6 +239,27 @@ export const BankFeedsPage: React.FC = () => {
 15/11/2026,BANK SMS & ANNUAL CHARGES,CHG99,500.00,,399500.00`)
   }
 
+  const handleStatementFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadFileName(file.name)
+    if (file.name.toLowerCase().endsWith('.pdf')) {
+      const reader = new FileReader()
+      reader.onload = evt => {
+        const result = (evt.target?.result as string) || ''
+        const base64 = result.includes(',') ? result.split(',')[1] : result
+        setUploadCsvContent(base64)
+      }
+      reader.readAsDataURL(file)
+    } else {
+      const reader = new FileReader()
+      reader.onload = evt => {
+        setUploadCsvContent((evt.target?.result as string) || '')
+      }
+      reader.readAsText(file)
+    }
+  }
+
   const formatCurrency = (val?: number | null) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
@@ -832,12 +853,28 @@ export const BankFeedsPage: React.FC = () => {
       {showUploadModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
           <div className="card" style={{ background: '#fff', padding: '24px', borderRadius: '8px', width: '600px', maxWidth: '90%' }}>
-            <h3 style={{ margin: '0 0 12px 0' }}>Upload Bank Statement (CSV / OFX)</h3>
+            <h3 style={{ margin: '0 0 12px 0' }}>Upload Bank Statement (PDF / CSV / OFX)</h3>
             <p style={{ fontSize: '13px', color: 'var(--muted, #666)', marginTop: 0 }}>
-              Paste or drop your CSV bank statement below. Standard bank columns (Date, Narration, Ref, Debit, Credit, Balance) will be automatically detected.
+              Upload a bank statement in PDF, CSV, or OFX format. Standard Indian bank statements (HDFC, ICICI, SBI, Axis, Kotak) and running balance calculations will be automatically extracted.
             </p>
 
             <form onSubmit={handleUploadStatement}>
+              <div style={{ marginBottom: '12px', padding: '12px', border: '2px dashed #CBD5E1', borderRadius: '6px', textAlign: 'center', background: '#F8FAFC' }}>
+                <input
+                  type="file"
+                  id="bank-file-upload"
+                  accept=".pdf,.csv,.ofx,.txt"
+                  onChange={handleStatementFileChange}
+                  style={{ display: 'none' }}
+                />
+                <label htmlFor="bank-file-upload" style={{ cursor: 'pointer', color: '#4F46E5', fontWeight: 600, fontSize: '13px' }}>
+                  📁 Choose Statement File (.PDF, .CSV, .OFX)
+                </label>
+                <div style={{ fontSize: '11px', color: '#64748B', marginTop: '4px' }}>
+                  Select file to automatically parse and populate fields below
+                </div>
+              </div>
+
               <div style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
                 <div style={{ flex: 1 }}>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '4px' }}>File Name</label>
@@ -862,16 +899,16 @@ export const BankFeedsPage: React.FC = () => {
 
               <div style={{ marginBottom: '16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                  <label style={{ fontSize: '13px', fontWeight: 600 }}>CSV Content</label>
+                  <label style={{ fontSize: '13px', fontWeight: 600 }}>Statement Payload (CSV / OFX / PDF Base64)</label>
                   <button type="button" className="link" onClick={loadSampleCsv} style={{ fontSize: '12px' }}>
                     Load Sample CSV
                   </button>
                 </div>
                 <textarea
-                  rows={8}
+                  rows={6}
                   value={uploadCsvContent}
                   onChange={e => setUploadCsvContent(e.target.value)}
-                  placeholder="Date,Narration,Chq/Ref No,Debit,Credit,Balance..."
+                  placeholder="Date,Narration,Chq/Ref No,Debit,Credit,Balance... or select PDF above"
                   required
                   style={{ width: '100%', padding: '8px', fontFamily: 'monospace', fontSize: '12px', borderRadius: '4px', border: '1px solid #ccc' }}
                 />
