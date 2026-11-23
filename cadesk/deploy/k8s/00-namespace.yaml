@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cadesk-prod
+  labels:
+    app.kubernetes.io/name: cadesk
+    app.kubernetes.io/part-of: cadesk-suite
+    environment: production

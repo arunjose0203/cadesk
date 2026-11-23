@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Threading.RateLimiting;
 using CaDesk.Api;
 using CaDesk.Api.Auth;
@@ -17,6 +18,18 @@ using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 var config = builder.Configuration;
+
+// ---- structured logging: JSON formatting in Production / Container environments
+if (builder.Environment.IsProduction() || config.GetValue<string>("Logging:Console:FormatterName") == "json")
+{
+    builder.Logging.ClearProviders();
+    builder.Logging.AddJsonConsole(options =>
+    {
+        options.IncludeScopes = true;
+        options.TimestampFormat = "yyyy-MM-ddTHH:mm:ss.fffZ ";
+        options.JsonWriterOptions = new System.Text.Json.JsonWriterOptions { Indented = false };
+    });
+}
 
 // ---- database + tenancy
 builder.Services.AddInfrastructure(new DatabaseOptions
@@ -234,6 +247,31 @@ app.UseAuthentication();
 app.UseMiddleware<TenantMiddleware>(); // after authentication, before authorization
 app.UseMiddleware<MfaSetupGate>();
 app.UseAuthorization();
+
+// ---- structured HTTP telemetry middleware (trace latency, status, firm & user)
+app.Use(async (context, next) =>
+{
+    var sw = Stopwatch.StartNew();
+    await next();
+    sw.Stop();
+
+    var path = context.Request.Path.Value ?? string.Empty;
+    // Skip health/metrics polling spam from logs unless request failed
+    if ((!path.StartsWith("/health") && !path.StartsWith("/metrics") && !path.StartsWith("/api/health") && !path.StartsWith("/api/metrics")) || context.Response.StatusCode >= 400)
+    {
+        var firmId = context.User.FindFirst(AppClaims.FirmId)?.Value ?? "anonymous";
+        var userId = context.User.FindFirst(AppClaims.Subject)?.Value ?? "anonymous";
+        var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+        logger.LogInformation(
+            "HTTP {Method} {Path} responded {StatusCode} in {ElapsedMs}ms [Firm: {FirmId}] [User: {UserId}]",
+            context.Request.Method,
+            path,
+            context.Response.StatusCode,
+            sw.ElapsedMilliseconds,
+            firmId,
+            userId);
+    }
+});
 
 app.MapSystemEndpoints();
 app.MapAuthEndpoints();

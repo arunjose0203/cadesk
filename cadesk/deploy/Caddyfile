@@ -1,22 +1,99 @@
-# SITE_ADDRESS: "localhost" for local use; your domain (e.g. app.example.com) on a server,
-# where Caddy gets and renews the HTTPS certificate automatically.
-{$SITE_ADDRESS:localhost} {
-	encode gzip
+# ==============================================================================
+# Caddy 2 Production Reverse Proxy Configuration
+# Automatic Let's Encrypt / ZeroSSL TLS certificates with HTTP/3 & Zstandard
+# ==============================================================================
 
-	handle /api/* {
-		reverse_proxy api:8080
+# Global options
+{
+	# Enable automatic HTTPS
+	email {$LETSENCRYPT_EMAIL:admin@example.com}
+	admin off
+}
+
+# Site block: {$SITE_ADDRESS:localhost}
+# For local development: defaults to localhost (self-signed TLS)
+# For production: set SITE_ADDRESS=app.yourdomain.com in .env or Kubernetes ingress
+{$SITE_ADDRESS:localhost} {
+	# High-performance modern compression
+	encode zstd gzip
+
+	# --------------------------------------------------------------------------
+	# Health & Observability Routing
+	# --------------------------------------------------------------------------
+	handle /health/* {
+		reverse_proxy api:8080 {
+			header_up Host {host}
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto {scheme}
+		}
 	}
 
+	handle /metrics {
+		reverse_proxy api:8080 {
+			header_up Host {host}
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto {scheme}
+		}
+	}
+
+	# --------------------------------------------------------------------------
+	# API Gateway Routing
+	# --------------------------------------------------------------------------
+	handle /api/* {
+		reverse_proxy api:8080 {
+			header_up Host {host}
+			header_up X-Real-IP {remote_host}
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Forwarded-Proto {scheme}
+
+			# Connection pooling and upstream timeouts
+			transport http {
+				keepalive 30s
+				keepalive_idle_conns 100
+				response_header_timeout 60s
+				dial_timeout 5s
+			}
+		}
+	}
+
+	# --------------------------------------------------------------------------
+	# Static Assets & SPA Routing
+	# --------------------------------------------------------------------------
+	# Immutable caching for Vite chunk assets
+	@assets path /assets/*
+	handle @assets {
+		root * /srv
+		header Cache-Control "public, max-age=31536000, immutable"
+		file_server
+	}
+
+	# SPA Fallback for all client-side routes
 	handle {
 		root * /srv
 		try_files {path} /index.html
 		file_server
+		header Cache-Control "no-cache, no-store, must-revalidate"
 	}
 
+	# --------------------------------------------------------------------------
+	# Production Security Headers (A+ SSL Labs rating)
+	# --------------------------------------------------------------------------
 	header {
-		Strict-Transport-Security "max-age=31536000"
+		# Enforce HTTPS for 1 year including all subdomains
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		# Prevent MIME type sniffing
 		X-Content-Type-Options "nosniff"
-		Referrer-Policy "strict-origin-when-cross-origin"
+		# Prevent clickjacking
 		X-Frame-Options "DENY"
+		# Referrer policy
+		Referrer-Policy "strict-origin-when-cross-origin"
+		# Hardware permissions lockdown
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+		# Content Security Policy for React SPA + APIs
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:;"
+		# Remove server identification header
+		-Server
 	}
 }

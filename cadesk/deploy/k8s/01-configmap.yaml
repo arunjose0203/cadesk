@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cadesk-config
+  namespace: cadesk-prod
+data:
+  ASPNETCORE_ENVIRONMENT: "Production"
+  SITE_ADDRESS: "app.cadesk.in"
+  Database__MigrateOnStartup: "true"
+  Documents__StoragePath: "/documents"
+  Documents__Scan__Mode: "None"
+  DataProtection__KeysPath: "/keys"
+  Jwt__Issuer: "cadesk"
+  Jwt__Audience: "cadesk-api"
+  Jwt__AccessTokenMinutes: "15"
+  Jwt__RefreshTokenDays: "14"
+  RateLimits__AuthPerMinute: "20"
+  RateLimits__PortalPerMinute: "60"
+  ForwardedHeaders__KnownNetworks__0: "10.0.0.0/8"
+  ForwardedHeaders__KnownNetworks__1: "172.16.0.0/12"

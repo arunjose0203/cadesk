@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: cadesk-postgres
+  namespace: cadesk-prod
+spec:
+  serviceName: "cadesk-postgres"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cadesk-postgres
+  template:
+    metadata:
+      labels:
+        app: cadesk-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:17-alpine
+          ports:
+            - containerPort: 5432
+              name: postgres
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cadesk-secrets
+                  key: POSTGRES_PASSWORD
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          args:
+            - "postgres"
+            - "-c"
+            - "shared_buffers=512MB"
+            - "-c"
+            - "work_mem=16MB"
+            - "-c"
+            - "wal_buffers=16MB"
+            - "-c"
+            - "max_connections=200"
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: "2"
+              memory: 2Gi
+          readinessProbe:
+            exec:
+              command: ["psql", "-U", "postgres", "-c", "SELECT 1;"]
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "postgres"]
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          volumeMounts:
+            - name: pgdata
+              mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+    - metadata:
+        name: pgdata
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 50Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cadesk-postgres
+  namespace: cadesk-prod
+spec:
+  ports:
+    - port: 5432
+      targetPort: 5432
+      name: postgres
+  selector:
+    app: cadesk-postgres
+  clusterIP: None

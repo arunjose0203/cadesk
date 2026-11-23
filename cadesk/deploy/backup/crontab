@@ -1,0 +1,3 @@
+# CaDesk Daily Automated Backup Cron
+# Runs daily at 02:00 AM UTC
+0 2 * * * /scripts/backup-db.sh >> /var/log/backup.log 2>&1

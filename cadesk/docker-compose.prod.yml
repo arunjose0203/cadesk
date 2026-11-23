@@ -1,0 +1,205 @@
+# ==============================================================================
+# CaDesk Production Docker Compose Stack
+# Usage:
+#   1. Copy .env.production.example to .env and fill in real production secrets
+#   2. Run: docker compose -f docker-compose.prod.yml up -d --build
+# ==============================================================================
+
+services:
+  # ----------------------------------------------------------------------------
+  # PostgreSQL 17 Database Engine with Production Tuning
+  # ----------------------------------------------------------------------------
+  db:
+    image: postgres:17-alpine
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD:?Required}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    command: >
+      postgres
+      -c shared_buffers=512MB
+      -c effective_cache_size=1536MB
+      -c work_mem=16MB
+      -c maintenance_work_mem=128MB
+      -c min_wal_size=1GB
+      -c max_wal_size=4GB
+      -c checkpoint_completion_target=0.9
+      -c checkpoint_timeout=15min
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+      -c max_connections=200
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./deploy/db-init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2048M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  # ----------------------------------------------------------------------------
+  # Automated Encrypted Daily Database Backup Service
+  # ----------------------------------------------------------------------------
+  backup:
+    build:
+      context: .
+      dockerfile: deploy/backup/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: cadesk
+      DB_USER: cadesk_owner
+      PGPASSWORD: ${OWNER_DB_PASSWORD:?Required}
+      BACKUP_ENCRYPTION_KEY: ${BACKUP_ENCRYPTION_KEY:?Required}
+      BACKUP_S3_BUCKET: ${BACKUP_S3_BUCKET:-}
+      BACKUP_GCS_BUCKET: ${BACKUP_GCS_BUCKET:-}
+      HEALTHCHECK_BACKUP_URL: ${HEALTHCHECK_BACKUP_URL:-}
+    volumes:
+      - backup_vault:/backups
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+  # ----------------------------------------------------------------------------
+  # CaDesk .NET 10 Web API Backend
+  # ----------------------------------------------------------------------------
+  api:
+    build:
+      context: .
+      dockerfile: src/CaDesk.Api/Dockerfile
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+      clamav:
+        condition: service_started
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__App: "Host=db;Port=5432;Database=cadesk;Username=cadesk_app;Password=${APP_DB_PASSWORD:?Required}"
+      ConnectionStrings__Owner: "Host=db;Port=5432;Database=cadesk;Username=cadesk_owner;Password=${OWNER_DB_PASSWORD:?Required}"
+      Database__MigrateOnStartup: "true"
+      Jwt__Issuer: ${JWT_ISSUER:-cadesk}
+      Jwt__Audience: ${JWT_AUDIENCE:-cadesk-api}
+      Jwt__SigningKey: ${JWT_SIGNING_KEY:?Required}
+      Jwt__AccessTokenMinutes: 15
+      Jwt__RefreshTokenDays: 14
+      DataProtection__KeysPath: /keys
+      Documents__StoragePath: /documents
+      Documents__Scan__Mode: ClamAv
+      Documents__Scan__Host: clamav
+      Documents__Scan__Port: 3310
+      Documents__Scan__TimeoutSeconds: 60
+      Notifications__Email__Mode: ${EMAIL_MODE:-Smtp}
+      Notifications__Email__Host: ${SMTP_HOST:-}
+      Notifications__Email__Port: ${SMTP_PORT:-587}
+      Notifications__Email__EnableSsl: "true"
+      Notifications__Email__User: ${SMTP_USER:-}
+      Notifications__Email__Password: ${SMTP_PASSWORD:-}
+      Notifications__Email__FromAddress: ${EMAIL_FROM:-}
+      Notifications__WhatsApp__Mode: ${WHATSAPP_MODE:-Log}
+      ForwardedHeaders__KnownNetworks__0: 172.16.0.0/12
+      ForwardedHeaders__KnownNetworks__1: 10.0.0.0/8
+    volumes:
+      - dpkeys:/keys
+      - documents:/documents
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health/live || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2048M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  # ----------------------------------------------------------------------------
+  # ClamAV Antivirus Daemon for Document Vault Scans
+  # ----------------------------------------------------------------------------
+  clamav:
+    image: clamav/clamav:1.4
+    restart: unless-stopped
+    environment:
+      CLAMAV_NO_MILTERD: "true"
+    volumes:
+      - clamav_db:/var/lib/clamav
+    deploy:
+      resources:
+        limits:
+          memory: 1536M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+  # ----------------------------------------------------------------------------
+  # React SPA & Caddy 2 SSL Reverse Proxy (Edge Gateway)
+  # ----------------------------------------------------------------------------
+  web:
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+    restart: always
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-localhost}
+      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL:-admin@example.com}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp" # HTTP/3 QUIC
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://localhost/ || exit 1"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:
+  dpkeys:
+  documents:
+  clamav_db:
+  backup_vault:

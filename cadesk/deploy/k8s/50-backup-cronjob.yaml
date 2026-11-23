@@ -1,0 +1,60 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cadesk-postgres-backup
+  namespace: cadesk-prod
+spec:
+  # Run daily at 02:00 AM UTC
+  schedule: "0 2 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: cadesk-postgres-backup
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: backup
+              image: cadesk-backup:latest
+              command: ["/scripts/backup-db.sh"]
+              env:
+                - name: DB_HOST
+                  value: "cadesk-postgres"
+                - name: DB_PORT
+                  value: "5432"
+                - name: DB_NAME
+                  value: "cadesk"
+                - name: DB_USER
+                  value: "cadesk_owner"
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: cadesk-secrets
+                      key: ConnectionStrings__Owner
+                - name: BACKUP_ENCRYPTION_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: cadesk-secrets
+                      key: BACKUP_ENCRYPTION_KEY
+              volumeMounts:
+                - name: backup-storage
+                  mountPath: /backups
+          volumes:
+            - name: backup-storage
+              persistentVolumeClaim:
+                claimName: cadesk-backups-pvc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: cadesk-backups-pvc
+  namespace: cadesk-prod
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 100Gi
