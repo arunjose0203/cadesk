@@ -101,6 +101,7 @@ public interface IAppDbContext
     DbSet<BankStatement> BankStatements { get; }
     DbSet<BankTransaction> BankTransactions { get; }
     DbSet<BankReconciliationRule> BankReconciliationRules { get; }
+    DbSet<ForensicAnomalyItem> ForensicAnomalies { get; }
     DbSet<PracticeTarget> PracticeTargets { get; }
     DbSet<TaxNotice> TaxNotices { get; }
     DbSet<NoticeHearing> NoticeHearings { get; }

@@ -1902,6 +1902,89 @@ export type CreateBankReconciliationRuleRequest = {
   priority: number
 }
 
+export type ForensicAnomalyDto = {
+  id: string
+  bankAccountId: string
+  transactionId?: string | null
+  transactionDate: string
+  anomalyType: string
+  riskLevel: string
+  amount: number
+  exposureAmount: number
+  counterparty: string
+  narration: string
+  statutorySection: string
+  recommendedAction: string
+  auditorNotes?: string | null
+  status: string
+  createdAt: string
+}
+
+export type ForensicScanSummaryDto = {
+  bankAccountId: string
+  accountName: string
+  bankName: string
+  accountNumber: string
+  totalTransactionsScanned: number
+  totalAnomaliesCount: number
+  sec40A3ExposureAmount: number
+  sec269StExposureAmount: number
+  sec269SsTExposureAmount: number
+  roundTrippingCount: number
+  smurfingCount: number
+  dormancySurgeCount: number
+  highValueRoundSumCount: number
+  criticalCount: number
+  highCount: number
+  mediumCount: number
+  overallRiskScore: number
+  riskCategory: string
+  anomalies: ForensicAnomalyDto[]
+  scannedAt: string
+}
+
+export type TrialBalanceBankMatchDto = {
+  bankAccountId: string
+  bankAccountName: string
+  bankName: string
+  accountNumber: string
+  statementClosingBalance: number
+  tbLedgerBalance?: number | null
+  tbLedgerName?: string | null
+  varianceAmount: number
+  isUnrecordedAccount: boolean
+  isMatched: boolean
+}
+
+export type ClientTbBankReconciliationResultDto = {
+  clientId: string
+  totalBankAccounts: number
+  totalTbBankLedgers: number
+  matchedAccountsCount: number
+  unrecordedAccountsCount: number
+  totalBankStatementsBalance: number
+  totalTbBankLedgerBalance: number
+  netDifference: number
+  matches: TrialBalanceBankMatchDto[]
+}
+
+export type RunForensicScanRequest = {
+  fromDate?: string | null
+  toDate?: string | null
+  overwriteExisting?: boolean
+}
+
+export type UpdateAnomalyStatusRequest = {
+  status: string
+  auditorNotes?: string | null
+}
+
+export type ForensicReportExportDto = {
+  htmlContent: string
+  overallRiskScore: number
+  generatedAt: string
+}
+
 export const bankFeedApi = {
   getAccounts: (clientId?: string) => {
     const p = new URLSearchParams()
@@ -1952,6 +2035,22 @@ export const bankFeedApi = {
   createRule: (req: CreateBankReconciliationRuleRequest) =>
     api<BankReconciliationRuleDto>('/api/bank/rules', { method: 'POST', body: JSON.stringify(req) }),
   deleteRule: (id: string) => api<void>(`/api/bank/rules/${id}`, { method: 'DELETE' }),
+
+  // Forensic Fraud & Statutory Scanners
+  runForensicScan: (accountId: string, req: RunForensicScanRequest = {}) =>
+    api<ForensicScanSummaryDto>(`/api/bank/accounts/${accountId}/forensic-scan`, { method: 'POST', body: JSON.stringify(req) }),
+  getForensicReport: (accountId: string) =>
+    api<ForensicScanSummaryDto>(`/api/bank/accounts/${accountId}/forensic-report`),
+  updateAnomalyStatus: (anomalyId: string, req: UpdateAnomalyStatusRequest) =>
+    api<ForensicAnomalyDto>(`/api/bank/anomalies/${anomalyId}/status`, { method: 'PUT', body: JSON.stringify(req) }),
+  reconcileTrialBalance: (clientId: string, trialBalanceImportId?: string) => {
+    const p = new URLSearchParams()
+    if (trialBalanceImportId) p.set('trialBalanceImportId', trialBalanceImportId)
+    const qs = p.toString()
+    return api<ClientTbBankReconciliationResultDto>(`/api/bank/clients/${clientId}/reconcile-tb${qs ? `?${qs}` : ''}`, { method: 'POST' })
+  },
+  exportForensicReportHtml: (accountId: string) =>
+    api<ForensicReportExportDto>(`/api/bank/accounts/${accountId}/forensic-report/export-html`),
 }
 
 // -------------------------------------------------------------

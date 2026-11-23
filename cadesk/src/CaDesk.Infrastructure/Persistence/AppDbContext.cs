@@ -115,6 +115,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
     public DbSet<BankStatement> BankStatements => Set<BankStatement>();
     public DbSet<BankTransaction> BankTransactions => Set<BankTransaction>();
     public DbSet<BankReconciliationRule> BankReconciliationRules => Set<BankReconciliationRule>();
+    public DbSet<ForensicAnomalyItem> ForensicAnomalies => Set<ForensicAnomalyItem>();
     public DbSet<PracticeTarget> PracticeTargets => Set<PracticeTarget>();
     public DbSet<TaxNotice> TaxNotices => Set<TaxNotice>();
     public DbSet<NoticeHearing> NoticeHearings => Set<NoticeHearing>();
@@ -543,6 +544,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
         b.Entity<BankReconciliationRule>(e =>
         {
             e.ToTable("bank_reconciliation_rules");
+        });
+
+        b.Entity<ForensicAnomalyItem>(e =>
+        {
+            e.ToTable("bank_forensic_anomalies");
+            e.HasOne(x => x.BankAccount).WithMany().HasForeignKey(x => x.BankAccountId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Transaction).WithMany().HasForeignKey(x => x.TransactionId).OnDelete(DeleteBehavior.SetNull);
         });
 
         b.Entity<PracticeTarget>(e =>

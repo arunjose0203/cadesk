@@ -130,3 +130,79 @@ public sealed record ParsedTransactionItem(
     string Type,
     decimal Amount,
     decimal? Balance);
+
+public sealed record ForensicAnomalyDto(
+    Guid Id,
+    Guid BankAccountId,
+    Guid? TransactionId,
+    DateOnly TransactionDate,
+    string AnomalyType,
+    string RiskLevel,
+    decimal Amount,
+    decimal ExposureAmount,
+    string Counterparty,
+    string Narration,
+    string StatutorySection,
+    string RecommendedAction,
+    string? AuditorNotes,
+    string Status,
+    DateTime CreatedAt);
+
+public sealed record ForensicScanSummaryDto(
+    Guid BankAccountId,
+    string AccountName,
+    string BankName,
+    string AccountNumber,
+    int TotalTransactionsScanned,
+    int TotalAnomaliesCount,
+    decimal Sec40A3ExposureAmount,
+    decimal Sec269StExposureAmount,
+    decimal Sec269SsTExposureAmount,
+    int RoundTrippingCount,
+    int SmurfingCount,
+    int DormancySurgeCount,
+    int HighValueRoundSumCount,
+    int CriticalCount,
+    int HighCount,
+    int MediumCount,
+    int OverallRiskScore,
+    string RiskCategory,
+    List<ForensicAnomalyDto> Anomalies,
+    DateTime ScannedAt);
+
+public sealed record TrialBalanceBankMatchDto(
+    Guid BankAccountId,
+    string BankAccountName,
+    string BankName,
+    string AccountNumber,
+    decimal StatementClosingBalance,
+    decimal? TbLedgerBalance,
+    string? TbLedgerName,
+    decimal VarianceAmount,
+    bool IsUnrecordedAccount,
+    bool IsMatched);
+
+public sealed record ClientTbBankReconciliationResultDto(
+    Guid ClientId,
+    int TotalBankAccounts,
+    int TotalTbBankLedgers,
+    int MatchedAccountsCount,
+    int UnrecordedAccountsCount,
+    decimal TotalBankStatementsBalance,
+    decimal TotalTbBankLedgerBalance,
+    decimal NetDifference,
+    List<TrialBalanceBankMatchDto> Matches);
+
+public sealed record RunForensicScanRequest(
+    DateOnly? FromDate = null,
+    DateOnly? ToDate = null,
+    bool OverwriteExisting = true);
+
+public sealed record UpdateAnomalyStatusRequest(
+    string Status,
+    string? AuditorNotes = null);
+
+public sealed record ForensicReportExportDto(
+    string HtmlContent,
+    int OverallRiskScore,
+    DateTime GeneratedAt);

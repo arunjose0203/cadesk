@@ -11,11 +11,14 @@ import { toError,
   type MatchTransactionRequest,
   type BankReconciliationSummaryDto,
   type BankReconciliationRuleDto,
-  type CreateBankReconciliationRuleRequest
+  type CreateBankReconciliationRuleRequest,
+  type ForensicAnomalyDto,
+  type ForensicScanSummaryDto,
+  type ClientTbBankReconciliationResultDto
 } from './api'
 
 export const BankFeedsPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'accounts' | 'transactions' | 'brs' | 'rules'>('accounts')
+  const [activeTab, setActiveTab] = useState<'accounts' | 'transactions' | 'brs' | 'rules' | 'forensic'>('accounts')
   const [clients, setClients] = useState<Client[]>([])
   const [accounts, setAccounts] = useState<BankAccountDto[]>([])
   const [selectedAccountId, setSelectedAccountId] = useState<string>('')
@@ -26,6 +29,13 @@ export const BankFeedsPage: React.FC = () => {
   const [, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+
+  // Forensic Analysis State
+  const [forensicSummary, setForensicSummary] = useState<ForensicScanSummaryDto | null>(null)
+  const [tbRecon, setTbRecon] = useState<ClientTbBankReconciliationResultDto | null>(null)
+  const [forensicFilterType, setForensicFilterType] = useState<string>('All')
+  const [forensicFilterRisk, setForensicFilterRisk] = useState<string>('All')
+  const [scanningForensic, setScanningForensic] = useState<boolean>(false)
 
   // Filters
   const [selectedStatus, setSelectedStatus] = useState<string>('')
@@ -84,6 +94,7 @@ export const BankFeedsPage: React.FC = () => {
       loadStatements(selectedAccountId)
       loadTransactions(selectedAccountId)
       loadBrsSummary(selectedAccountId, asOfDate)
+      loadForensicReport(selectedAccountId)
     }
   }, [selectedAccountId, selectedStatus, asOfDate])
 
@@ -153,6 +164,79 @@ export const BankFeedsPage: React.FC = () => {
     } catch (caught) {
       const e = toError(caught)
       console.error(e)
+    }
+  }
+
+  const loadForensicReport = async (accId: string) => {
+    try {
+      const res = await bankFeedApi.getForensicReport(accId)
+      setForensicSummary(res)
+    } catch {
+      setForensicSummary(null)
+    }
+  }
+
+  const handleRunForensicScan = async () => {
+    if (!selectedAccountId) return
+    try {
+      setScanningForensic(true)
+      setError(null)
+      const res = await bankFeedApi.runForensicScan(selectedAccountId)
+      setForensicSummary(res)
+      setSuccess(`Forensic analysis completed: ${res.totalAnomaliesCount} anomalies flagged across ${res.totalTransactionsScanned} transactions.`)
+    } catch (caught) {
+      setError(toError(caught).message)
+    } finally {
+      setScanningForensic(false)
+    }
+  }
+
+  const handleReconcileTb = async () => {
+    const acc = accounts.find(a => a.id === selectedAccountId)
+    const cId = acc?.clientId || clients[0]?.id
+    if (!cId) {
+      setError('Please select an account with a valid client to reconcile with Trial Balance.')
+      return
+    }
+    try {
+      setLoading(true)
+      setError(null)
+      const res = await bankFeedApi.reconcileTrialBalance(cId)
+      setTbRecon(res)
+      setSuccess(`Trial balance cross-reconciliation complete: ${res.matchedAccountsCount} accounts matched, ${res.unrecordedAccountsCount} unrecorded bank accounts flagged.`)
+    } catch (caught) {
+      setError(toError(caught).message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleUpdateAnomalyStatus = async (anomalyId: string, newStatus: string) => {
+    try {
+      const updated = await bankFeedApi.updateAnomalyStatus(anomalyId, { status: newStatus })
+      if (forensicSummary) {
+        setForensicSummary({
+          ...forensicSummary,
+          anomalies: forensicSummary.anomalies.map(a => a.id === updated.id ? updated : a)
+        })
+      }
+      setSuccess('Anomaly status updated to ' + newStatus)
+    } catch (caught) {
+      setError(toError(caught).message)
+    }
+  }
+
+  const handleExportForensicHtml = async () => {
+    if (!selectedAccountId) return
+    try {
+      const res = await bankFeedApi.exportForensicReportHtml(selectedAccountId)
+      const w = window.open('', '_blank')
+      if (w) {
+        w.document.write(res.htmlContent)
+        w.document.close()
+      }
+    } catch (caught) {
+      setError(toError(caught).message)
     }
   }
 
@@ -406,6 +490,31 @@ export const BankFeedsPage: React.FC = () => {
           }}
         >
           Auto-Categorization Rules ({rules.length})
+        </button>
+        <button
+          onClick={() => {
+            setActiveTab('forensic')
+            if (selectedAccountId) loadForensicReport(selectedAccountId)
+          }}
+          style={{
+            padding: '10px 20px',
+            border: 'none',
+            background: 'none',
+            cursor: 'pointer',
+            fontWeight: activeTab === 'forensic' ? 700 : 400,
+            borderBottom: activeTab === 'forensic' ? '3px solid #dc2626' : 'none',
+            color: activeTab === 'forensic' ? '#dc2626' : 'inherit',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
+        >
+          <span>🔍 Forensic &amp; Fraud Desk</span>
+          {forensicSummary && forensicSummary.totalAnomaliesCount > 0 && (
+            <span style={{ padding: '2px 8px', borderRadius: '10px', fontSize: '11px', background: '#fee2e2', color: '#dc2626', fontWeight: 700 }}>
+              {forensicSummary.totalAnomaliesCount}
+            </span>
+          )}
         </button>
       </div>
 
@@ -740,6 +849,288 @@ export const BankFeedsPage: React.FC = () => {
               )}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Tab 5: Forensic & Fraud Desk */}
+      {activeTab === 'forensic' && (
+        <div>
+          {/* Top Actions & Overview */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+            <div>
+              <h3 style={{ margin: '0 0 4px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>🔍 Forensic Fraud Detection &amp; Statutory Cross-Verification</span>
+                <span style={{ fontSize: '12px', background: '#fee2e2', color: '#dc2626', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>
+                  Statutory Rule 6DD &amp; Sec 40A(3) / 269ST
+                </span>
+              </h3>
+              <p style={{ margin: 0, color: 'var(--muted, #666)', fontSize: '13px' }}>
+                Scans bank feeds for illegal cash structuring, smurfing, circular round-trips, high-value round sums, and verifies against Trial Balance general ledger.
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                className="primary"
+                onClick={handleRunForensicScan}
+                disabled={scanningForensic || !selectedAccountId}
+                style={{ background: '#dc2626', borderColor: '#b91c1c' }}
+              >
+                {scanningForensic ? 'Running 7-Rule Forensic Scan...' : '⚡ Run Forensic Scan'}
+              </button>
+              <button
+                onClick={handleReconcileTb}
+                disabled={!selectedAccountId}
+                style={{ padding: '8px 14px', borderRadius: '4px', border: '1px solid #1976d2', background: '#e3f2fd', color: '#1976d2', cursor: 'pointer', fontWeight: 600 }}
+              >
+                ⚖️ Reconcile with Trial Balance
+              </button>
+              <button
+                onClick={handleExportForensicHtml}
+                disabled={!selectedAccountId}
+                style={{ padding: '8px 14px', borderRadius: '4px', border: '1px solid #ccc', background: '#fff', cursor: 'pointer', fontWeight: 600 }}
+              >
+                📄 Export Forensic Dossier
+              </button>
+            </div>
+          </div>
+
+          {/* Trial Balance Cross-Reconciliation Result Banner */}
+          {tbRecon && (
+            <div style={{
+              marginBottom: '20px',
+              padding: '16px',
+              borderRadius: '8px',
+              border: tbRecon.unrecordedAccountsCount > 0 ? '1px solid #ef4444' : '1px solid #10b981',
+              background: tbRecon.unrecordedAccountsCount > 0 ? '#fef2f2' : '#f0fdf4'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <span style={{ fontWeight: 700, fontSize: '15px', color: tbRecon.unrecordedAccountsCount > 0 ? '#b91c1c' : '#15803d' }}>
+                  {tbRecon.unrecordedAccountsCount > 0
+                    ? `⚠️ High Risk: ${tbRecon.unrecordedAccountsCount} Unrecorded Bank Account(s) Detected in Statements!`
+                    : '✓ Trial Balance Verification Passed: All Bank Accounts Matched in General Ledger'}
+                </span>
+                <span style={{ fontSize: '12px', color: '#6b7280' }}>
+                  Matched: {tbRecon.matchedAccountsCount} / {tbRecon.totalBankAccounts} Accounts
+                </span>
+              </div>
+              <p style={{ margin: '0 0 12px 0', fontSize: '13px', color: '#374151' }}>
+                {tbRecon.unrecordedAccountsCount > 0
+                  ? 'Audit Warning under Sec 68/69: The following bank accounts have active transaction feeds or statements, but NO matching general ledger bank account was identified in the imported Trial Balance.'
+                  : 'All client bank accounts active in statements have been verified against general ledger bank accounts in the client Trial Balance.'}
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '10px' }}>
+                {tbRecon.matches.map((m, idx) => (
+                  <div key={idx} style={{
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    background: '#fff',
+                    border: m.isMatched ? '1px solid #86efac' : '1px solid #fca5a5',
+                    fontSize: '12px'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <strong>{m.bankName} - {m.accountNumber}</strong>
+                      <span style={{ color: m.isMatched ? '#16a34a' : '#dc2626', fontWeight: 600 }}>
+                        {m.isMatched ? '✓ Matched in TB' : '⚠️ Unrecorded in TB'}
+                      </span>
+                    </div>
+                    <div style={{ color: '#666', marginTop: '4px' }}>
+                      Statement Balance: {formatCurrency(m.statementClosingBalance)} | TB Ledger: {m.tbLedgerName || 'None'}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Forensic Risk Meter & Statutory Exposure KPIs */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '20px' }}>
+            {/* Risk Score */}
+            <div className="card" style={{ padding: '16px', borderRadius: '8px', border: '1px solid var(--border, #e0e0e0)' }}>
+              <div style={{ fontSize: '13px', color: 'var(--muted, #666)' }}>Forensic Risk Score</div>
+              <div style={{
+                fontSize: '28px',
+                fontWeight: 800,
+                marginTop: '4px',
+                color: (forensicSummary?.overallRiskScore ?? 0) > 50 ? '#dc2626' : (forensicSummary?.overallRiskScore ?? 0) > 20 ? '#d97706' : '#16a34a'
+              }}>
+                {forensicSummary ? `${forensicSummary.overallRiskScore} / 100` : '—'}
+              </div>
+              <div style={{ fontSize: '11px', color: 'var(--muted, #888)', marginTop: '2px' }}>
+                {(forensicSummary?.overallRiskScore ?? 0) > 50 ? 'Critical Risk: Severe Tax/Fraud Exposure' : (forensicSummary?.overallRiskScore ?? 0) > 20 ? 'Moderate: Inquiries Recommended' : 'Low Anomaly Risk'}
+              </div>
+            </div>
+
+            {/* Sec 40A(3) Exposure */}
+            <div className="card" style={{ padding: '16px', borderRadius: '8px', border: '1px solid var(--border, #e0e0e0)' }}>
+              <div style={{ fontSize: '13px', color: 'var(--muted, #666)' }}>Sec 40A(3) Cash Disallowance</div>
+              <div style={{ fontSize: '24px', fontWeight: 700, marginTop: '4px', color: '#dc2626' }}>
+                {formatCurrency(forensicSummary?.sec40A3ExposureAmount || 0)}
+              </div>
+              <div style={{ fontSize: '11px', color: 'var(--muted, #888)', marginTop: '2px' }}>
+                Payments &gt; ₹10k (or &gt; ₹35k transport)
+              </div>
+            </div>
+
+            {/* Sec 269ST Penalty Exposure */}
+            <div className="card" style={{ padding: '16px', borderRadius: '8px', border: '1px solid var(--border, #e0e0e0)' }}>
+              <div style={{ fontSize: '13px', color: 'var(--muted, #666)' }}>Sec 269ST Cash Receipt Penalty</div>
+              <div style={{ fontSize: '24px', fontWeight: 700, marginTop: '4px', color: '#c026d3' }}>
+                {formatCurrency(forensicSummary?.sec269StExposureAmount || 0)}
+              </div>
+              <div style={{ fontSize: '11px', color: 'var(--muted, #888)', marginTop: '2px' }}>
+                100% Penalty under Sec 271DA (&ge; ₹2 Lakhs)
+              </div>
+            </div>
+
+            {/* Fraud Pattern Flags */}
+            <div className="card" style={{ padding: '16px', borderRadius: '8px', border: '1px solid var(--border, #e0e0e0)' }}>
+              <div style={{ fontSize: '13px', color: 'var(--muted, #666)' }}>Circular Flow &amp; Smurfing</div>
+              <div style={{ fontSize: '24px', fontWeight: 700, marginTop: '4px', color: '#d97706' }}>
+                {(forensicSummary?.roundTrippingCount || 0) + (forensicSummary?.smurfingCount || 0)} Anomalies
+              </div>
+              <div style={{ fontSize: '11px', color: 'var(--muted, #888)', marginTop: '2px' }}>
+                {forensicSummary?.roundTrippingCount || 0} Round-trips | {forensicSummary?.smurfingCount || 0} Split Cash
+              </div>
+            </div>
+          </div>
+
+          {/* Anomaly Filters & Table */}
+          <div className="card" style={{ padding: '16px', borderRadius: '8px', border: '1px solid var(--border, #e0e0e0)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                <span style={{ fontWeight: 600, fontSize: '14px' }}>Filter by Type:</span>
+                <select
+                  value={forensicFilterType}
+                  onChange={e => setForensicFilterType(e.target.value)}
+                  style={{ padding: '6px 12px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '13px' }}
+                >
+                  <option value="All">All Anomaly Types</option>
+                  <option value="Sec40A3CashPayment">Section 40A(3) Cash Payment</option>
+                  <option value="Sec269StCashReceipt">Section 269ST Cash Receipt (&ge; ₹2L)</option>
+                  <option value="Sec269SsLoanAccepted">Section 269SS Cash Loan Accepted</option>
+                  <option value="Sec269TLoanRepaid">Section 269T Cash Loan Repaid</option>
+                  <option value="RoundTripping">Circular Round-Tripping</option>
+                  <option value="SmurfingStructuring">Smurfing / Cash Structuring</option>
+                  <option value="DormancySurge">Dormancy Surge (&gt;60 days)</option>
+                  <option value="HighValueRoundSum">High-Value Round Sum (&ge; ₹5L)</option>
+                </select>
+
+                <span style={{ fontWeight: 600, fontSize: '14px', marginLeft: '8px' }}>Risk Level:</span>
+                <select
+                  value={forensicFilterRisk}
+                  onChange={e => setForensicFilterRisk(e.target.value)}
+                  style={{ padding: '6px 12px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '13px' }}
+                >
+                  <option value="All">All Risk Levels</option>
+                  <option value="High">High Risk Only</option>
+                  <option value="Medium">Medium Risk Only</option>
+                  <option value="Low">Low Risk</option>
+                </select>
+              </div>
+
+              <div style={{ fontSize: '13px', color: 'var(--muted, #666)' }}>
+                Showing <strong>{
+                  (forensicSummary?.anomalies || []).filter((a: ForensicAnomalyDto) => {
+                    const matchType = forensicFilterType === 'All' || a.anomalyType === forensicFilterType
+                    const matchRisk = forensicFilterRisk === 'All' || a.riskLevel === forensicFilterRisk
+                    return matchType && matchRisk
+                  }).length
+                }</strong> flagged anomaly items
+              </div>
+            </div>
+
+            {/* Table */}
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+              <thead>
+                <tr style={{ background: 'var(--bg-card, #f8f9fa)', borderBottom: '2px solid var(--border, #e0e0e0)', textAlign: 'left' }}>
+                  <th style={{ padding: '10px 8px' }}>Date</th>
+                  <th style={{ padding: '10px 8px' }}>Anomaly Category</th>
+                  <th style={{ padding: '10px 8px' }}>Narration / Detail</th>
+                  <th style={{ padding: '10px 8px', textAlign: 'right' }}>Amount</th>
+                  <th style={{ padding: '10px 8px' }}>Risk Level</th>
+                  <th style={{ padding: '10px 8px' }}>Statutory Reason</th>
+                  <th style={{ padding: '10px 8px' }}>Action / Tax Audit Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(!forensicSummary || forensicSummary.anomalies.length === 0) ? (
+                  <tr>
+                    <td colSpan={7} style={{ padding: '32px', textAlign: 'center', color: 'var(--muted, #888)' }}>
+                      No forensic anomalies found. Click <strong>⚡ Run Forensic Scan</strong> to analyze transaction feeds.
+                    </td>
+                  </tr>
+                ) : (
+                  forensicSummary.anomalies
+                    .filter((a: ForensicAnomalyDto) => {
+                      const matchType = forensicFilterType === 'All' || a.anomalyType === forensicFilterType
+                      const matchRisk = forensicFilterRisk === 'All' || a.riskLevel === forensicFilterRisk
+                      return matchType && matchRisk
+                    })
+                    .map((a: ForensicAnomalyDto) => (
+                      <tr key={a.id} style={{ borderBottom: '1px solid var(--border, #eee)' }}>
+                        <td style={{ padding: '10px 8px', whiteSpace: 'nowrap' }}>{a.transactionDate}</td>
+                        <td style={{ padding: '10px 8px' }}>
+                          <span style={{
+                            padding: '2px 8px',
+                            borderRadius: '4px',
+                            fontSize: '11px',
+                            fontWeight: 600,
+                            background: a.anomalyType.includes('40A3') ? '#fee2e2' : a.anomalyType.includes('269') ? '#f3e8ff' : '#fef3c7',
+                            color: a.anomalyType.includes('40A3') ? '#b91c1c' : a.anomalyType.includes('269') ? '#7e22ce' : '#b45309'
+                          }}>
+                            {a.anomalyType}
+                          </span>
+                        </td>
+                        <td style={{ padding: '10px 8px', maxWidth: '280px', wordBreak: 'break-word' }}>
+                          {a.narration}
+                        </td>
+                        <td style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 600 }}>
+                          {formatCurrency(a.amount)}
+                        </td>
+                        <td style={{ padding: '10px 8px' }}>
+                          <span style={{
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            background: a.riskLevel === 'High' ? '#ef4444' : a.riskLevel === 'Medium' ? '#f59e0b' : '#10b981',
+                            color: '#fff'
+                          }}>
+                            {a.riskLevel}
+                          </span>
+                        </td>
+                        <td style={{ padding: '10px 8px', color: '#555', fontSize: '12px' }}>
+                          <div>{a.recommendedAction}</div>
+                          {a.statutorySection && (
+                            <div style={{ fontSize: '11px', color: '#888', marginTop: '2px', fontStyle: 'italic' }}>
+                              Ref: {a.statutorySection}
+                            </div>
+                          )}
+                        </td>
+                        <td style={{ padding: '10px 8px' }}>
+                          <select
+                            value={a.status}
+                            onChange={e => handleUpdateAnomalyStatus(a.id, e.target.value)}
+                            style={{
+                              padding: '4px 8px',
+                              borderRadius: '4px',
+                              fontSize: '12px',
+                              border: '1px solid #ccc',
+                              background: a.status === 'DisallowedIn3CD' ? '#fee2e2' : a.status === 'Reviewed' ? '#dcfce7' : '#fff'
+                            }}
+                          >
+                            <option value="Flagged">Flagged</option>
+                            <option value="Reviewed">Reviewed &amp; Verified</option>
+                            <option value="DisallowedIn3CD">Disallow in Form 3CD</option>
+                            <option value="Dismissed">Dismissed (Rule 6DD)</option>
+                          </select>
+                        </td>
+                      </tr>
+                    ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

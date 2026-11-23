@@ -1343,6 +1343,33 @@ API:
 - `POST /api/audit/dossier/{id}/seal` (`audit.review`)
 - `GET /api/audit/engagements/{id}/dossier/export-html` (`audit.read`)
 
+## Bank Statement Analyzer & Forensic Fraud Detection Engine (Sprint 44)
+
+- **Option 2 (Verification & Fraud Moat)**: Forensic audit engine built directly into the Bank Feeds module to analyze bank transactions and cross-verify statement accounts against the client's Trial Balance general ledger.
+- **7-Rule Statutory & Anti-Avoidance Forensic Scanners**:
+  1. **Section 40A(3) Cash Payment Disallowance**: Scans debit cash withdrawals/bearer payments exceeding ₹10,000 general limit or ₹35,000 goods carriage transport limit under Rule 6DD proviso; calculates 100% tax disallowance exposure for Form 3CD Clause 21(d).
+  2. **Section 269ST Cash Receipt Ban**: Flags single or daily aggregate cash deposits $\ge$ ₹2,00,000; computes 100% statutory penalty exposure under Section 271DA for Form 3CD Clause 31(ba)/(bb).
+  3. **Section 269SS / 269T Cash Loans & Repayments**: Detects loans, hand loans, or deposits accepted or repaid in cash exceeding ₹20,000; flags Section 271D / 271E penalty exposures.
+  4. **Circular Flow & Round-Tripping**: Identifies circular money trails (debits paired with credits of similar amount $\pm 1\%$ within a 5-day window) lacking economic substance (PMLA / CARO 2020 Clause (x)).
+  5. **Smurfing & Structuring Detection**: Catches deliberate structuring patterns (split cash transactions between ₹8,000 and ₹9,999 within 48 hours to evade the ₹10,000 threshold).
+  6. **Dormancy Surge Risk**: Detects sudden high-value transactions ($\ge$ ₹2 Lakhs) following $\ge 60$ days of account inactivity.
+  7. **High-Value Round-Sum Anomalies**: Flags transactions $\ge$ ₹5 Lakhs that are exact multiples of ₹1,00,000 with generic descriptions under SA 240 fraud risk indicators.
+- **Trial Balance Cross-Reconciliation (Unrecorded Account Detection)**:
+  - Automates comparison between statement bank accounts and Trial Balance GL accounts.
+  - Generates critical audit red flags for active bank statement accounts not recorded in books of account (potential undisclosed cash flows under Section 68/69).
+- **Composite Forensic Risk Meter (0–100 Score)**:
+  - Dynamically scores account risk based on weighted criticality of detected anomalies.
+- **Auditor Workpaper Register & 1-Click HTML Dossier Export**:
+  - Allows marking items as `Flagged`, `Reviewed`, `DisallowedIn3CD`, or `Dismissed` (under Rule 6DD exceptions).
+  - Exports a professional, print-ready Forensic Dossier in HTML format.
+
+API:
+- `POST /api/bank/accounts/{id}/forensic-scan` (`bankfeed.read`)
+- `GET /api/bank/accounts/{id}/forensic-report` (`bankfeed.read`)
+- `PUT /api/bank/anomalies/{id}/status` (`bankfeed.manage`)
+- `POST /api/bank/clients/{clientId}/reconcile-tb` (`bankfeed.read`)
+- `GET /api/bank/accounts/{id}/forensic-report/export-html` (`bankfeed.read`)
+
 ## Notes
 
 - Package versions are in `Directory.Packages.props`. If restore can't find a version,

@@ -100,6 +100,37 @@ public static class BankFeedEndpoints
             return Results.NoContent();
         }).RequirePermission(Perms.BankManage);
 
+        // Forensic Fraud Detection & Statutory Scanners (Sec 40A(3), Sec 269ST, Round-Tripping)
+        g.MapPost("/accounts/{id:guid}/forensic-scan", async (Guid id, RunForensicScanRequest req, IBankFeedService svc, CancellationToken ct) =>
+        {
+            var summary = await svc.RunForensicScanAsync(id, req, ct);
+            return Results.Ok(summary);
+        }).RequirePermission(Perms.BankReconcile);
+
+        g.MapGet("/accounts/{id:guid}/forensic-report", async (Guid id, IBankFeedService svc, CancellationToken ct) =>
+        {
+            var summary = await svc.GetForensicReportAsync(id, ct);
+            return Results.Ok(summary);
+        }).RequirePermission(Perms.BankRead);
+
+        g.MapPut("/anomalies/{id:guid}/status", async (Guid id, UpdateAnomalyStatusRequest req, IBankFeedService svc, CancellationToken ct) =>
+        {
+            var anomaly = await svc.UpdateAnomalyStatusAsync(id, req, ct);
+            return Results.Ok(anomaly);
+        }).RequirePermission(Perms.BankReconcile);
+
+        g.MapPost("/clients/{clientId:guid}/reconcile-tb", async (Guid clientId, Guid? trialBalanceImportId, IBankFeedService svc, CancellationToken ct) =>
+        {
+            var report = await svc.ReconcileWithTrialBalanceAsync(clientId, trialBalanceImportId, ct);
+            return Results.Ok(report);
+        }).RequirePermission(Perms.BankRead);
+
+        g.MapGet("/accounts/{id:guid}/forensic-report/export-html", async (Guid id, IBankFeedService svc, CancellationToken ct) =>
+        {
+            var report = await svc.ExportForensicReportHtmlAsync(id, ct);
+            return Results.Ok(report);
+        }).RequirePermission(Perms.BankRead);
+
         return app;
     }
 }

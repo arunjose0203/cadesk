@@ -25,4 +25,11 @@ public interface IBankFeedService
     Task<IReadOnlyList<BankReconciliationRuleDto>> GetRulesAsync(CancellationToken ct = default);
     Task<BankReconciliationRuleDto> CreateRuleAsync(CreateBankReconciliationRuleRequest req, CancellationToken ct = default);
     Task DeleteRuleAsync(Guid id, CancellationToken ct = default);
+
+    // Forensic Fraud Detection & Statutory Compliance Engine
+    Task<ForensicScanSummaryDto> RunForensicScanAsync(Guid bankAccountId, RunForensicScanRequest req, CancellationToken ct = default);
+    Task<ForensicScanSummaryDto> GetForensicReportAsync(Guid bankAccountId, CancellationToken ct = default);
+    Task<ForensicAnomalyDto> UpdateAnomalyStatusAsync(Guid anomalyId, UpdateAnomalyStatusRequest req, CancellationToken ct = default);
+    Task<ClientTbBankReconciliationResultDto> ReconcileWithTrialBalanceAsync(Guid clientId, Guid? trialBalanceImportId = null, CancellationToken ct = default);
+    Task<ForensicReportExportDto> ExportForensicReportHtmlAsync(Guid bankAccountId, CancellationToken ct = default);
 }
