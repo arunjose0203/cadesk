@@ -42,6 +42,9 @@ import CostAuditPage from './CostAuditPage'
 import PublicConfirmationPortal from './PublicConfirmationPortal'
 import SubscriptionsPage from './SubscriptionsPage'
 import AqmmDeskPage from './AqmmDeskPage'
+import { LandingPage } from './LandingPage'
+import { OnboardingWizard } from './OnboardingWizard'
+import { ProductTourModal } from './ProductTourModal'
 
 type Page = 'tasks' | 'deadlines' | 'clients' | 'billing' | 'trial-balance' | 'tax' | 'audit-workspace' | 'aqmm' | 'gst-reconcile' | 'tds' | 'mca' | 'engagement' | 'banking' | 'reports' | 'tax-notices' | 'payroll' | 'einvoicing' | 'fixed-assets' | 'advance-tax' | 'gstr9' | 'presumptive' | 'caro' | 'taxaudit' | 'schedule3' | 'branchaudit' | 'auditcommittee' | 'foreignremittance' | 'relatedparty' | 'internalaudit' | 'antiprofiteering' | 'secretarialaudit' | 'transferpricing' | 'costaudit' | 'dsc' | 'portal' | 'users' | 'settings' | 'audit' | 'security' | 'subscriptions'
 
@@ -55,6 +58,8 @@ export default function App() {
   const [checking, setChecking] = useState(true)
   const [page, setPage] = useState<Page>('clients')
   const [notice, setNotice] = useState<string | null>(null)
+  const [publicView, setPublicView] = useState<'landing' | 'auth' | 'wizard'>('landing')
+  const [showTour, setShowTour] = useState<boolean>(false)
   const idleTimer = useRef<number | undefined>(undefined)
 
   // Restore the session from the refresh cookie on page load.
@@ -77,6 +82,7 @@ export default function App() {
     setAccessToken(null)
     setUser(null)
     setNotice(reason ?? null)
+    setPublicView('auth')
   }
 
   // Sign out after the firm's inactivity limit (security.session_timeout_min). The server enforces it too.
@@ -113,17 +119,49 @@ export default function App() {
 
   if (!user) {
     return (
-      <main className="page">
-        <div style={{ textAlign: 'center', margin: '48px 0 24px' }}>
-          <div className="brand-icon" style={{ margin: '0 auto 16px', width: '56px', height: '56px', fontSize: '24px' }}>CA</div>
-          <h1 style={{ fontSize: '2rem', letterSpacing: '-0.03em', marginBottom: '8px' }}>CA Desk</h1>
-          <p className="muted" style={{ fontSize: '1rem', maxWidth: '460px', margin: '0 auto' }}>
-            Multi-Tenant Practice Management & Regulatory Compliance for Accounting Firms
-          </p>
-        </div>
-        {notice && <p className="notice small" style={{ maxWidth: '440px', margin: '0 auto 16px' }}>{notice}</p>}
-        <AuthScreens onSignedIn={signedIn} />
-      </main>
+      <>
+        {publicView === 'landing' && (
+          <LandingPage
+            onStartTrial={() => setPublicView('wizard')}
+            onSignIn={() => setPublicView('auth')}
+            onOpenTour={() => setShowTour(true)}
+          />
+        )}
+        {publicView === 'wizard' && (
+          <OnboardingWizard
+            onSignedIn={signedIn}
+            onCancel={() => setPublicView('landing')}
+          />
+        )}
+        {publicView === 'auth' && (
+          <main className="page" style={{ maxWidth: '480px', margin: '40px auto' }}>
+            <button
+              className="ghost small"
+              onClick={() => setPublicView('landing')}
+              style={{ marginBottom: '16px', cursor: 'pointer' }}
+            >
+              ← Back to CA Desk Home
+            </button>
+            <div style={{ textAlign: 'center', margin: '20px 0 24px' }}>
+              <div className="brand-icon" style={{ margin: '0 auto 16px', width: '56px', height: '56px', fontSize: '24px' }}>CA</div>
+              <h1 style={{ fontSize: '2rem', letterSpacing: '-0.03em', marginBottom: '8px' }}>CA Desk</h1>
+              <p className="muted" style={{ fontSize: '1rem', maxWidth: '460px', margin: '0 auto' }}>
+                Multi-Tenant Practice Management &amp; Regulatory Compliance for Accounting Firms
+              </p>
+            </div>
+            {notice && <p className="notice small" style={{ maxWidth: '440px', margin: '0 auto 16px' }}>{notice}</p>}
+            <AuthScreens onSignedIn={signedIn} />
+          </main>
+        )}
+        <ProductTourModal
+          isOpen={showTour}
+          onClose={() => setShowTour(false)}
+          onStartTrial={() => {
+            setShowTour(false)
+            setPublicView('wizard')
+          }}
+        />
+      </>
     )
   }
 
