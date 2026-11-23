@@ -189,6 +189,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
     public DbSet<SubscriptionInvoice> SubscriptionInvoices => Set<SubscriptionInvoice>();
     public DbSet<AqmmAssessment> AqmmAssessments => Set<AqmmAssessment>();
     public DbSet<AqmmResponse> AqmmResponses => Set<AqmmResponse>();
+    public DbSet<CaDesk.Domain.SecurityCompliance.SecurityAssessment> SecurityAssessments => Set<CaDesk.Domain.SecurityCompliance.SecurityAssessment>();
+    public DbSet<CaDesk.Domain.SecurityCompliance.SecurityControlEvidence> SecurityControlEvidences => Set<CaDesk.Domain.SecurityCompliance.SecurityControlEvidence>();
     public DbSet<ConfigDefinition> ConfigDefinitions => Set<ConfigDefinition>();
     public DbSet<ConfigValue> ConfigValues => Set<ConfigValue>();
     public DbSet<ConfigChangeLog> ConfigChangeLog => Set<ConfigChangeLog>();
@@ -516,6 +518,18 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
         {
             e.ToTable("aqmm_responses");
             e.HasIndex(x => new { x.FirmId, x.AssessmentId, x.QuestionCode }).HasDatabaseName("ix_aqmm_responses_firm_ass_q");
+        });
+
+        b.Entity<CaDesk.Domain.SecurityCompliance.SecurityAssessment>(e =>
+        {
+            e.ToTable("security_assessments");
+            e.HasIndex(x => new { x.FirmId, x.AssessmentPeriod }).HasDatabaseName("ix_security_assessments_firm_period");
+        });
+
+        b.Entity<CaDesk.Domain.SecurityCompliance.SecurityControlEvidence>(e =>
+        {
+            e.ToTable("security_control_evidences");
+            e.HasIndex(x => new { x.FirmId, x.AssessmentId, x.ControlCode }).HasDatabaseName("ix_security_evidences_firm_ass_c");
         });
 
         b.Entity<GstReconciliationBatch>(e =>

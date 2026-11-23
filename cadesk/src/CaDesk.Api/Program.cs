@@ -134,6 +134,7 @@ builder.Services.AddScoped<CaDesk.Application.TrialBalance.TrialBalanceService>(
 builder.Services.AddScoped<CaDesk.Application.Subscriptions.SubscriptionService>();
 builder.Services.AddScoped<CaDesk.Application.Aqmm.AqmmService>();
 builder.Services.AddScoped<CaDesk.Application.Notifications.CommunicationGatewayService>();
+builder.Services.AddScoped<CaDesk.Application.SecurityCompliance.SecurityComplianceService>();
 var docOptions = config.GetSection("Documents").Get<CaDesk.Api.Documents.DocumentOptions>() ?? new();
 var storagePath = docOptions.StoragePath;
 if (storagePath.Length == 0)
@@ -334,6 +335,7 @@ app.MapTrialBalanceEndpoints();
 app.MapSubscriptionEndpoints();
 app.MapAqmmEndpoints();
 app.MapCommunicationGatewayEndpoints();
+app.MapSecurityComplianceEndpoints();
 
 app.Run();
 

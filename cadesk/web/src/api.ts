@@ -7212,6 +7212,82 @@ export const communicationsApi = {
     })
 }
 
+// ---------------------------------------------------------------- Security & Compliance Vault Types (Sprint 52)
+
+export type SecurityAssessmentSummaryDto = {
+  id: string
+  assessmentPeriod: string
+  status: string
+  overallScorePercentage: number
+  totalControlsCount: number
+  compliantControlsCount: number
+  partiallyCompliantCount: number
+  accessControlScore: number
+  cryptographyScore: number
+  operationsScore: number
+  physicalScore: number
+  privacyScore: number
+  certifiedByPartner?: string
+  partnerMembershipNo?: string
+  lastEvaluatedAt?: string
+  certifiedAt?: string
+}
+
+export type SecurityControlEvidenceDto = {
+  id: string
+  assessmentId: string
+  controlCode: string
+  title: string
+  category: string
+  frameworkMapping: string
+  description: string
+  verificationMethod: string
+  status: string
+  isAutomatedTelemetry: boolean
+  telemetrySignal?: string
+  evidenceNotes?: string
+  lastTestedAt?: string
+}
+
+export type TelemetryScanResultDto = {
+  overallScore: number
+  compliantCount: number
+  evaluatedSignals: string[]
+  scanTimestamp: string
+}
+
+export const securityComplianceApi = {
+  getSummary: (period?: string) =>
+    api<SecurityAssessmentSummaryDto>(`/api/security-compliance/assessment${period ? `?period=${encodeURIComponent(period)}` : ''}`),
+  getControls: (period?: string, category?: string) => {
+    const params = new URLSearchParams()
+    if (period) params.set('period', period)
+    if (category) params.set('category', category)
+    const qs = params.toString() ? `?${params.toString()}` : ''
+    return api<SecurityControlEvidenceDto[]>(`/api/security-compliance/controls${qs}`)
+  },
+  runTelemetryAudit: (period?: string) =>
+    api<TelemetryScanResultDto>(`/api/security-compliance/telemetry/evaluate${period ? `?period=${encodeURIComponent(period)}` : ''}`, {
+      method: 'POST'
+    }),
+  updateEvidence: (controlCode: string, req: { status?: string; evidenceNotes?: string }) =>
+    api<SecurityControlEvidenceDto>(`/api/security-compliance/controls/${controlCode}`, {
+      method: 'POST',
+      body: JSON.stringify(req)
+    }),
+  certify: (req: { partnerName: string; membershipNumber: string; assessmentPeriod?: string }) =>
+    api<SecurityAssessmentSummaryDto>('/api/security-compliance/certify', {
+      method: 'POST',
+      body: JSON.stringify(req)
+    }),
+  getWhitepaperHtml: async (period?: string) => {
+    const res = await fetch(`/api/security-compliance/whitepaper${period ? `?period=${encodeURIComponent(period)}` : ''}`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('accessToken') || ''}` }
+    })
+    return res.text()
+  }
+}
+
 
 
 

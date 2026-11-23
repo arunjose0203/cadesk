@@ -43,11 +43,12 @@ import PublicConfirmationPortal from './PublicConfirmationPortal'
 import SubscriptionsPage from './SubscriptionsPage'
 import AqmmDeskPage from './AqmmDeskPage'
 import CommunicationsGatewayPage from './CommunicationsGatewayPage'
+import SecurityComplianceVaultPage from './SecurityComplianceVaultPage'
 import { LandingPage } from './LandingPage'
 import { OnboardingWizard } from './OnboardingWizard'
 import { ProductTourModal } from './ProductTourModal'
 
-type Page = 'tasks' | 'deadlines' | 'clients' | 'billing' | 'trial-balance' | 'tax' | 'audit-workspace' | 'aqmm' | 'gst-reconcile' | 'tds' | 'mca' | 'engagement' | 'banking' | 'reports' | 'tax-notices' | 'payroll' | 'einvoicing' | 'fixed-assets' | 'advance-tax' | 'gstr9' | 'presumptive' | 'caro' | 'taxaudit' | 'schedule3' | 'branchaudit' | 'auditcommittee' | 'foreignremittance' | 'relatedparty' | 'internalaudit' | 'antiprofiteering' | 'secretarialaudit' | 'transferpricing' | 'costaudit' | 'dsc' | 'portal' | 'users' | 'settings' | 'audit' | 'security' | 'subscriptions' | 'communications'
+type Page = 'tasks' | 'deadlines' | 'clients' | 'billing' | 'trial-balance' | 'tax' | 'audit-workspace' | 'aqmm' | 'gst-reconcile' | 'tds' | 'mca' | 'engagement' | 'banking' | 'reports' | 'tax-notices' | 'payroll' | 'einvoicing' | 'fixed-assets' | 'advance-tax' | 'gstr9' | 'presumptive' | 'caro' | 'taxaudit' | 'schedule3' | 'branchaudit' | 'auditcommittee' | 'foreignremittance' | 'relatedparty' | 'internalaudit' | 'antiprofiteering' | 'secretarialaudit' | 'transferpricing' | 'costaudit' | 'dsc' | 'portal' | 'users' | 'settings' | 'audit' | 'security' | 'subscriptions' | 'communications' | 'security-compliance'
 
 export default function App() {
   const isConfirmLink = window.location.pathname.startsWith('/confirm') || new URLSearchParams(window.location.search).has('confirm')
@@ -610,6 +611,14 @@ export default function App() {
           </button>
         )}
         {can('settings.manage') && (
+          <button className={page === 'security-compliance' ? 'active' : ''} onClick={() => setPage('security-compliance')}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            </svg>
+            Security &amp; Trust Vault
+          </button>
+        )}
+        {can('settings.manage') && (
           <button className={page === 'settings' ? 'active' : ''} onClick={() => setPage('settings')}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="3"></circle>
@@ -673,6 +682,7 @@ export default function App() {
       {page === 'users' && can('users.read') && <UsersPage can={can} me={user} />}
       {page === 'subscriptions' && can('settings.manage') && <SubscriptionsPage />}
       {page === 'communications' && can('settings.manage') && <CommunicationsGatewayPage />}
+      {page === 'security-compliance' && can('settings.manage') && <SecurityComplianceVaultPage />}
       {page === 'settings' && can('settings.manage') && <SettingsPage />}
       {page === 'audit' && can('audit.read') && <AuditPage />}
       {page === 'security' && <SecurityPage me={user} onChanged={afterSecurityChange} />}
