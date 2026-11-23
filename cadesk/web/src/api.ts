@@ -6978,6 +6978,114 @@ export const subscriptionApi = {
   purgeDemoData: () => api<PurgeDemoDataResultDto>('/api/subscriptions/purge-demo', { method: 'POST' })
 }
 
+// -----------------------------------------------------------------------------
+// ICAI AQMM v1.0 (Audit Quality Maturity Model) Desk
+// -----------------------------------------------------------------------------
+export type AqmmScoringCriterion = {
+  points: number
+  label: string
+  description: string
+}
+
+export type AqmmAssessmentSummaryDto = {
+  id: string
+  financialYear: string
+  status: string
+  totalScore: number
+  maxPossibleScore: number
+  overallPercentage: number
+  maturityLevel: string
+  sectionAScore: number
+  sectionBScore: number
+  sectionCScore: number
+  sectionAPercentage: number
+  sectionBPercentage: number
+  sectionCPercentage: number
+  level2Gap: number
+  level3Gap: number
+  leadPartnerName?: string | null
+  partnerMembershipNo?: string | null
+  firmRegistrationNo?: string | null
+  udin?: string | null
+  certifiedAt?: string | null
+  totalQuestionsCount: number
+  answeredQuestionsCount: number
+}
+
+export type AqmmQuestionResponseDto = {
+  responseId?: string | null
+  questionCode: string
+  section: string
+  title: string
+  description: string
+  maxPoints: number
+  awardedPoints: number
+  criteria: AqmmScoringCriterion[]
+  partnerRemarks?: string | null
+  evidenceReference?: string | null
+  isAutoEvaluated: boolean
+  autoEvaluationKey?: string | null
+}
+
+export type UpdateAqmmResponseRequest = {
+  questionCode: string
+  awardedPoints: number
+  partnerRemarks?: string | null
+  evidenceReference?: string | null
+}
+
+export type CertifyAqmmAssessmentRequest = {
+  leadPartnerName: string
+  partnerMembershipNo: string
+  firmRegistrationNo: string
+  udin: string
+}
+
+export type AqmmRecommendationDto = {
+  questionCode: string
+  title: string
+  section: string
+  currentPoints: number
+  maxPoints: number
+  potentialGain: number
+  remedialAction: string
+  priority: string
+}
+
+export type AqmmGapAnalysisDto = {
+  currentScore: number
+  currentLevel: string
+  pointsNeededForLevel2: number
+  pointsNeededForLevel3: number
+  topRecommendations: AqmmRecommendationDto[]
+}
+
+export type AutoScoreResultDto = {
+  totalScoreBefore: number
+  totalScoreAfter: number
+  autoScoredCount: number
+  maturityLevel: string
+  message: string
+}
+
+export const aqmmApi = {
+  getCurrent: (fy?: string) => api<AqmmAssessmentSummaryDto>(`/api/aqmm/current${fy ? `?fy=${encodeURIComponent(fy)}` : ''}`),
+  getQuestions: (fy?: string) => api<AqmmQuestionResponseDto[]>(`/api/aqmm/questions${fy ? `?fy=${encodeURIComponent(fy)}` : ''}`),
+  updateResponse: (req: UpdateAqmmResponseRequest, fy?: string) =>
+    api<AqmmAssessmentSummaryDto>(`/api/aqmm/responses${fy ? `?fy=${encodeURIComponent(fy)}` : ''}`, { method: 'POST', body: JSON.stringify(req) }),
+  autoScore: (fy?: string) =>
+    api<AutoScoreResultDto>(`/api/aqmm/auto-score${fy ? `?fy=${encodeURIComponent(fy)}` : ''}`, { method: 'POST' }),
+  getGapAnalysis: (fy?: string) => api<AqmmGapAnalysisDto>(`/api/aqmm/gap-analysis${fy ? `?fy=${encodeURIComponent(fy)}` : ''}`),
+  certify: (req: CertifyAqmmAssessmentRequest, fy?: string) =>
+    api<AqmmAssessmentSummaryDto>(`/api/aqmm/certify${fy ? `?fy=${encodeURIComponent(fy)}` : ''}`, { method: 'POST', body: JSON.stringify(req) }),
+  getDossierHtml: async (fy?: string) => {
+    const res = await fetch(`/api/aqmm/dossier${fy ? `?fy=${encodeURIComponent(fy)}` : ''}`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('accessToken') || ''}` }
+    })
+    return res.text()
+  }
+}
+
 
 
 

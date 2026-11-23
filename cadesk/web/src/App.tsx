@@ -41,8 +41,9 @@ import { TransferPricingPage } from './TransferPricingPage'
 import CostAuditPage from './CostAuditPage'
 import PublicConfirmationPortal from './PublicConfirmationPortal'
 import SubscriptionsPage from './SubscriptionsPage'
+import AqmmDeskPage from './AqmmDeskPage'
 
-type Page = 'tasks' | 'deadlines' | 'clients' | 'billing' | 'trial-balance' | 'tax' | 'audit-workspace' | 'gst-reconcile' | 'tds' | 'mca' | 'engagement' | 'banking' | 'reports' | 'tax-notices' | 'payroll' | 'einvoicing' | 'fixed-assets' | 'advance-tax' | 'gstr9' | 'presumptive' | 'caro' | 'taxaudit' | 'schedule3' | 'branchaudit' | 'auditcommittee' | 'foreignremittance' | 'relatedparty' | 'internalaudit' | 'antiprofiteering' | 'secretarialaudit' | 'transferpricing' | 'costaudit' | 'dsc' | 'portal' | 'users' | 'settings' | 'audit' | 'security' | 'subscriptions'
+type Page = 'tasks' | 'deadlines' | 'clients' | 'billing' | 'trial-balance' | 'tax' | 'audit-workspace' | 'aqmm' | 'gst-reconcile' | 'tds' | 'mca' | 'engagement' | 'banking' | 'reports' | 'tax-notices' | 'payroll' | 'einvoicing' | 'fixed-assets' | 'advance-tax' | 'gstr9' | 'presumptive' | 'caro' | 'taxaudit' | 'schedule3' | 'branchaudit' | 'auditcommittee' | 'foreignremittance' | 'relatedparty' | 'internalaudit' | 'antiprofiteering' | 'secretarialaudit' | 'transferpricing' | 'costaudit' | 'dsc' | 'portal' | 'users' | 'settings' | 'audit' | 'security' | 'subscriptions'
 
 export default function App() {
   const isConfirmLink = window.location.pathname.startsWith('/confirm') || new URLSearchParams(window.location.search).has('confirm')
@@ -252,6 +253,15 @@ export default function App() {
               <polyline points="10 9 9 9 8 9"></polyline>
             </svg>
             Audit Workspace
+          </button>
+        )}
+        {can('audit.read') && (
+          <button className={page === 'aqmm' ? 'active' : ''} onClick={() => setPage('aqmm')}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+              <path d="M9 12l2 2 4-4"></path>
+            </svg>
+            AQMM Desk (ICAI)
           </button>
         )}
         {can('gst.read') && (
@@ -585,6 +595,7 @@ export default function App() {
       {page === 'trial-balance' && can('trialbalance.read') && <TrialBalancePage can={can} />}
       {page === 'tax' && can('computations.run') && <TaxPage />}
       {page === 'audit-workspace' && can('audit.read') && <AuditWorkspacePage me={user} />}
+      {page === 'aqmm' && can('audit.read') && <AqmmDeskPage />}
       {page === 'gst-reconcile' && can('gst.read') && <GstReconciliationPage />}
       {page === 'tds' && can('tds.read') && <TdsPage />}
       {page === 'mca' && can('mca.read') && <McaCompliancePage />}

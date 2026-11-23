@@ -38,6 +38,7 @@ using CaDesk.Domain.SecretarialAudit;
 using CaDesk.Domain.TransferPricing;
 using CaDesk.Domain.CostAudit;
 using CaDesk.Domain.TrialBalance;
+using CaDesk.Domain.Aqmm;
 using CaDesk.Domain.Common;
 using CaDesk.Domain.Configuration;
 using CaDesk.Domain.Firms;
@@ -186,6 +187,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
     public DbSet<ClientLedgerMapping> ClientLedgerMappings => Set<ClientLedgerMapping>();
     public DbSet<FirmSubscription> FirmSubscriptions => Set<FirmSubscription>();
     public DbSet<SubscriptionInvoice> SubscriptionInvoices => Set<SubscriptionInvoice>();
+    public DbSet<AqmmAssessment> AqmmAssessments => Set<AqmmAssessment>();
+    public DbSet<AqmmResponse> AqmmResponses => Set<AqmmResponse>();
     public DbSet<ConfigDefinition> ConfigDefinitions => Set<ConfigDefinition>();
     public DbSet<ConfigValue> ConfigValues => Set<ConfigValue>();
     public DbSet<ConfigChangeLog> ConfigChangeLog => Set<ConfigChangeLog>();
@@ -501,6 +504,18 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
         {
             e.ToTable("subscription_invoices");
             e.HasIndex(x => new { x.FirmId, x.InvoiceNumber }).HasDatabaseName("ix_sub_invoices_firm_inv");
+        });
+
+        b.Entity<AqmmAssessment>(e =>
+        {
+            e.ToTable("aqmm_assessments");
+            e.HasIndex(x => new { x.FirmId, x.FinancialYear }).HasDatabaseName("ix_aqmm_assessments_firm_fy");
+        });
+
+        b.Entity<AqmmResponse>(e =>
+        {
+            e.ToTable("aqmm_responses");
+            e.HasIndex(x => new { x.FirmId, x.AssessmentId, x.QuestionCode }).HasDatabaseName("ix_aqmm_responses_firm_ass_q");
         });
 
         b.Entity<GstReconciliationBatch>(e =>
