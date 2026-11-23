@@ -2765,6 +2765,187 @@ export const taxNoticesApi = {
 }
 
 // ---------------------------------------------------------------------------
+// Sprint 55: CA Copilot: Statutory Citation & Tax Notice Defense Drafter
+// ---------------------------------------------------------------------------
+export type PrecedentCategory =
+  | 'JurisdictionAndLimitation'
+  | 'NaturalJusticeAndFairHearing'
+  | 'ClericalAndBonaFideError'
+  | 'TdsCreditMismatch'
+  | 'ReassessmentValiditySec148'
+  | 'CashCreditsSec68'
+  | 'GstItcBonaFideBuyer'
+  | 'GstRule88Discrepancy'
+  | 'PenaltyReliefSec270A'
+  | 'GeneralPrinciples'
+
+export type DefenseDraftStatus = 'Draft' | 'UnderReview' | 'PartnerApproved' | 'Finalized'
+
+export type StatutoryPrecedentDto = {
+  id: string
+  firmId?: string | null
+  authority: TaxAuthority
+  category: PrecedentCategory
+  caseTitle: string
+  citation: string
+  courtBench: string
+  judgmentYear: number
+  applicableSections: string
+  keyRatioDecidendi: string
+  defenseGroundTemplate: string
+  isLandmark: boolean
+  keywords: string
+}
+
+export type ParsedNoticeResultDto = {
+  authority: TaxAuthority
+  category: NoticeCategory
+  section: string
+  din?: string | null
+  dinStatus: DinStatus
+  panOrGstin?: string | null
+  assessmentYear?: string | null
+  financialYear?: string | null
+  issueDate?: string | null
+  dueDate?: string | null
+  demandAmount: number
+  officerJurisdiction: string
+  extractedIssue: string
+  summaryOfAllegations: string
+  recommendedPreliminaryObjections: string[]
+  recommendedGrounds: string[]
+  matchedPrecedents: StatutoryPrecedentDto[]
+  confidenceScore: number
+}
+
+export type FactualItem = {
+  itemNo: number
+  eventDate: string
+  description: string
+  annexureRef: string
+}
+
+export type MeritGroundItem = {
+  groundNo: number
+  title: string
+  argument: string
+  relevantSection: string
+  citedPrecedent?: string | null
+}
+
+export type CitedPrecedentItem = {
+  precedentId?: string | null
+  caseTitle: string
+  citation: string
+  courtBench: string
+  relevantHolding: string
+}
+
+export type AnnexureItem = {
+  annexureNo: string
+  title: string
+  documentType: string
+  pageCount: number
+}
+
+export type TaxDefenseDraftDto = {
+  id: string
+  noticeId: string
+  clientId: string
+  clientName: string
+  draftNumber: string
+  title: string
+  subject: string
+  addressedTo: string
+  clientPanOrGstin: string
+  assessmentYear: string
+  financialYear: string
+  noticeRefNumber: string
+  noticeDin: string
+  noticeIssueDate: string
+  noticeDueDate: string
+  preliminaryObjections: string[]
+  factualMatrix: FactualItem[]
+  meritGrounds: MeritGroundItem[]
+  citedPrecedents: CitedPrecedentItem[]
+  prayerForRelief: string
+  annexureIndex: AnnexureItem[]
+  status: DefenseDraftStatus
+  preparedByUserId?: string | null
+  preparedByName?: string | null
+  approvedByUserId?: string | null
+  approvedByName?: string | null
+  approvedAt?: string | null
+  partnerUdin?: string | null
+  generatedHtml?: string | null
+  createdAt: string
+}
+
+export type CreateDefenseDraftRequest = {
+  noticeId: string
+  title?: string
+  subject?: string
+  addressedTo?: string
+  preliminaryObjections?: string[]
+  factualMatrix?: FactualItem[]
+  meritGrounds?: MeritGroundItem[]
+  citedPrecedents?: CitedPrecedentItem[]
+  prayerForRelief?: string
+  annexureIndex?: AnnexureItem[]
+}
+
+export type UpdateDefenseDraftRequest = {
+  title: string
+  subject: string
+  addressedTo: string
+  preliminaryObjections: string[]
+  factualMatrix: FactualItem[]
+  meritGrounds: MeritGroundItem[]
+  citedPrecedents: CitedPrecedentItem[]
+  prayerForRelief: string
+  annexureIndex: AnnexureItem[]
+}
+
+export type ApproveDefenseDraftRequest = {
+  partnerUdin?: string
+  partnerNotes?: string
+}
+
+export const taxCopilotApi = {
+  parseNotice: (req: { rawText: string; clientId?: string }) =>
+    api<ParsedNoticeResultDto>('/api/tax-copilot/parse', { method: 'POST', body: JSON.stringify(req) }),
+
+  getPrecedents: (params?: { authority?: string; category?: string; search?: string }) => {
+    const p = new URLSearchParams()
+    if (params?.authority) p.set('authority', params.authority)
+    if (params?.category) p.set('category', params.category)
+    if (params?.search) p.set('search', params.search)
+    const qs = p.toString()
+    return api<StatutoryPrecedentDto[]>(`/api/tax-copilot/precedents${qs ? `?${qs}` : ''}`)
+  },
+
+  createCustomPrecedent: (req: any) =>
+    api<StatutoryPrecedentDto>('/api/tax-copilot/precedents', { method: 'POST', body: JSON.stringify(req) }),
+
+  createDefenseDraft: (req: CreateDefenseDraftRequest) =>
+    api<TaxDefenseDraftDto>('/api/tax-copilot/drafts', { method: 'POST', body: JSON.stringify(req) }),
+
+  getDefenseDraft: (id: string) =>
+    api<TaxDefenseDraftDto>(`/api/tax-copilot/drafts/${id}`),
+
+  getNoticeDrafts: (noticeId: string) =>
+    api<TaxDefenseDraftDto[]>(`/api/tax-copilot/notices/${noticeId}/drafts`),
+
+  updateDefenseDraft: (id: string, req: UpdateDefenseDraftRequest) =>
+    api<TaxDefenseDraftDto>(`/api/tax-copilot/drafts/${id}`, { method: 'PUT', body: JSON.stringify(req) }),
+
+  approveDefenseDraft: (id: string, req: ApproveDefenseDraftRequest) =>
+    api<TaxDefenseDraftDto>(`/api/tax-copilot/drafts/${id}/approve`, { method: 'POST', body: JSON.stringify(req) }),
+
+  exportHtmlUrl: (id: string) => `/api/tax-copilot/drafts/${id}/export-html`
+}
+
+// ---------------------------------------------------------------------------
 // Sprint 23: Payroll, Salary TDS & Statutory PF / ESIC Engine
 // ---------------------------------------------------------------------------
 export type PayrollTaxRegime = 'NewRegime' | 'OldRegime'

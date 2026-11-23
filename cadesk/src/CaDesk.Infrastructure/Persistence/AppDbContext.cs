@@ -128,6 +128,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
     public DbSet<NoticeHearing> NoticeHearings => Set<NoticeHearing>();
     public DbSet<NoticeResponse> NoticeResponses => Set<NoticeResponse>();
     public DbSet<TaxDemand> TaxDemands => Set<TaxDemand>();
+    public DbSet<StatutoryPrecedent> StatutoryPrecedents => Set<StatutoryPrecedent>();
+    public DbSet<TaxDefenseDraft> TaxDefenseDrafts => Set<TaxDefenseDraft>();
     public DbSet<PayrollEmployee> PayrollEmployees => Set<PayrollEmployee>();
     public DbSet<PayrollRun> PayrollRuns => Set<PayrollRun>();
     public DbSet<PayrollPayslip> PayrollPayslips => Set<PayrollPayslip>();
@@ -703,6 +705,21 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
             e.ToTable("tax_demands");
             e.Property(x => x.AppealStatus).HasConversion<string>();
             e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<StatutoryPrecedent>(e =>
+        {
+            e.ToTable("statutory_precedents");
+            e.Property(x => x.Authority).HasConversion<string>();
+            e.Property(x => x.Category).HasConversion<string>();
+        });
+
+        b.Entity<TaxDefenseDraft>(e =>
+        {
+            e.ToTable("tax_defense_drafts");
+            e.Property(x => x.Status).HasConversion<string>();
+            e.HasOne(x => x.Notice).WithMany().HasForeignKey(x => x.NoticeId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<Client>().WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
         });
 
         b.Entity<PayrollEmployee>(e =>

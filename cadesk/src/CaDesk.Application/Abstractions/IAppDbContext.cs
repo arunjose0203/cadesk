@@ -112,6 +112,8 @@ public interface IAppDbContext
     DbSet<NoticeHearing> NoticeHearings { get; }
     DbSet<NoticeResponse> NoticeResponses { get; }
     DbSet<TaxDemand> TaxDemands { get; }
+    DbSet<StatutoryPrecedent> StatutoryPrecedents { get; }
+    DbSet<TaxDefenseDraft> TaxDefenseDrafts { get; }
     DbSet<PayrollEmployee> PayrollEmployees { get; }
     DbSet<PayrollRun> PayrollRuns { get; }
     DbSet<PayrollPayslip> PayrollPayslips { get; }

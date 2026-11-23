@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { TaxCopilotDesk } from './TaxCopilotDesk'
 import { toError,
   taxNoticesApi,
   api,
@@ -24,7 +25,8 @@ interface TaxNoticesPageProps {
 }
 
 export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can }) => {
-  const [activeTab, setActiveTab] = useState<'notices' | 'hearings' | 'responses' | 'demands'>('notices')
+  const [activeTab, setActiveTab] = useState<'notices' | 'copilot' | 'hearings' | 'responses' | 'demands'>('notices')
+  const [copilotNoticeId, setCopilotNoticeId] = useState<string | null>(null)
   const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
@@ -391,6 +393,23 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can }) => {
           Notices & Inquiries ({notices.length})
         </button>
         <button
+          onClick={() => setActiveTab('copilot')}
+          style={{
+            padding: '10px 18px',
+            border: 'none',
+            background: 'none',
+            cursor: 'pointer',
+            fontWeight: activeTab === 'copilot' ? 700 : 400,
+            borderBottom: activeTab === 'copilot' ? '3px solid #6366f1' : 'none',
+            color: activeTab === 'copilot' ? '#4f46e5' : 'inherit',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
+          }}
+        >
+          <span>🤖</span> CA Copilot: Notice Defense Drafter
+        </button>
+        <button
           onClick={() => setActiveTab('hearings')}
           style={{
             padding: '10px 18px',
@@ -552,6 +571,17 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can }) => {
                       <td style={{ padding: '12px', textAlign: 'center' }}>
                         <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
                           <button
+                            className="primary small"
+                            style={{ background: '#4f46e5', borderColor: '#4f46e5', color: '#fff', fontWeight: 600 }}
+                            onClick={() => {
+                              setCopilotNoticeId(n.id)
+                              setActiveTab('copilot')
+                            }}
+                            title="Open CA Copilot Notice Defense Drafter"
+                          >
+                            🤖 Copilot
+                          </button>
+                          <button
                             className="secondary small"
                             onClick={() => handleSelectNoticeForResponses(n)}
                             title="Submissions & Rebuttal"
@@ -591,6 +621,15 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can }) => {
             </table>
           </div>
         </div>
+      )}
+
+      {/* Tab: CA Copilot Notice Defense Drafter */}
+      {activeTab === 'copilot' && (
+        <TaxCopilotDesk
+          can={can}
+          initialNoticeId={copilotNoticeId}
+          onOpenNoticeLedger={() => setActiveTab('notices')}
+        />
       )}
 
       {/* Tab 2: Faceless Hearings & VC Schedule */}
