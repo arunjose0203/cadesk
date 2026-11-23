@@ -316,3 +316,121 @@ public record DossierExportHtmlDto(
     string IntegritySha256,
     DateTime GeneratedAt
 );
+
+// =========================================================================
+// Sprint 45: SA 505 External Confirmation DTOs
+// =========================================================================
+
+public record ConfirmationCampaignDto(
+    Guid Id,
+    Guid AuditEngagementId,
+    string Title,
+    string? Description,
+    DateOnly AsOfDate,
+    DateOnly CutoffDate,
+    string Status,
+    int TotalRequestsCount,
+    int ConfirmedAgreedCount,
+    int DisputedCount,
+    int PendingCount,
+    decimal TotalBookBalanceAmount,
+    decimal TotalConfirmedAmount,
+    decimal VarianceAmountTotal,
+    DateTime CreatedAt,
+    DateTime? UpdatedAt
+);
+
+public record ExternalConfirmationRequestDto(
+    Guid Id,
+    Guid CampaignId,
+    Guid AuditEngagementId,
+    string LeadScheduleRef,
+    string PartyType,
+    string PartyName,
+    string PartyContactEmail,
+    string? PartyContactPhone,
+    string? PartyPanGstin,
+    string ConfirmationType,
+    decimal BookBalanceAmount,
+    string Currency,
+    DateOnly AsOfDate,
+    string SecureAccessToken,
+    DateTime TokenExpiresAt,
+    string Status,
+    DateTime? SentAt,
+    DateTime? RespondedAt,
+    decimal? ConfirmedBalanceAmount,
+    decimal? VarianceAmount,
+    string DisputeReason,
+    string? ThirdPartyRemarks,
+    string? ThirdPartySignatoryName,
+    string? ThirdPartyDesignation,
+    string? AlternativeProceduresPerformed,
+    string AuditorConclusion,
+    decimal? ProposedAdjustmentAmount,
+    string? AuditorNotes,
+    Guid? ReviewedBy,
+    DateTime? ReviewedAt,
+    DateTime CreatedAt
+);
+
+public record CreateConfirmationCampaignRequest(
+    string Title,
+    string? Description,
+    DateOnly AsOfDate,
+    DateOnly CutoffDate
+);
+
+public record CreateConfirmationRequest(
+    string LeadScheduleRef,
+    string PartyType,
+    string PartyName,
+    string PartyContactEmail,
+    string? PartyContactPhone,
+    string? PartyPanGstin,
+    string ConfirmationType,
+    decimal BookBalanceAmount,
+    DateOnly AsOfDate
+);
+
+public record AutoPopulateConfirmationsRequest(
+    Guid? TrialBalanceImportId,
+    decimal MinimumDebtorBalance = 100_000m,
+    decimal MinimumCreditorBalance = 100_000m,
+    int TopNCount = 20
+);
+
+public record SubmitConfirmationResponseRequest(
+    decimal ConfirmedBalanceAmount,
+    string DisputeReason,
+    string? ThirdPartyRemarks,
+    string? ThirdPartySignatoryName,
+    string? ThirdPartyDesignation
+);
+
+public record UpdateConfirmationAuditorEvaluationRequest(
+    string Status,
+    string? AlternativeProceduresPerformed,
+    string AuditorConclusion,
+    decimal? ProposedAdjustmentAmount,
+    string? AuditorNotes
+);
+
+public record PublicConfirmationDetailsDto(
+    string ClientName,
+    string AuditorFirmName,
+    string PartyName,
+    string PartyType,
+    string ConfirmationType,
+    decimal? BookBalanceAmount,
+    DateOnly AsOfDate,
+    bool IsExpired,
+    bool AlreadyResponded,
+    string CurrentStatus
+);
+
+public record ConfirmationSummaryExportHtmlDto(
+    string HtmlContent,
+    DateTime GeneratedAt
+);
+

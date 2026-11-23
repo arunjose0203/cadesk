@@ -1370,6 +1370,38 @@ API:
 - `POST /api/bank/clients/{clientId}/reconcile-tb` (`bankfeed.read`)
 - `GET /api/bank/accounts/{id}/forensic-report/export-html` (`bankfeed.read`)
 
+## SA 505 Automated External Confirmations Desk (Sprint 45)
+
+- **Option 3 (The Administrative Moat)**: Full end-to-end third-party balance circularization campaign manager for statutory audits under ICAI Standard on Auditing (SA) 505 "External Confirmations".
+- **Multi-Category Confirmation Engine**:
+  - Supports confirmation targets across Trade Debtors (Sundry Debtors / Schedule III Line B), Trade Creditors (Sundry Creditors / Line G), Bank Accounts, Loans & Advances Given, Borrowings, Security Deposits, and Legal Counsel (pending litigation).
+  - Configurable confirmation styles: Positive Stated Balance, Positive Blank Balance, and Negative Confirmation.
+- **1-Click Auto-Population from Trial Balance**:
+  - Automatically identifies high-value Debtors and Creditors from imported Trial Balance ledgers exceeding custom materiality thresholds (e.g., $\ge$ ₹50,000) and populates circularization batches in seconds.
+- **Tokenized Digital Verification Portal (`/confirm/{token}`)**:
+  - Dispatches secure, tokenized circularization links with 32-byte cryptographic access tokens.
+  - Public mobile-responsive verification portal allows third-party CFOs/accountants to directly verify balances, enter their ledger balance, indicate discrepancy reasons (Goods in Transit, Cheque in Transit, Rate Dispute, TDS Mismatch, Unadjusted Credit Note), attach remarks, and provide signatory credentials.
+- **Automated Exception Matching & SA 505 Para 12 Alternative Procedures**:
+  - Automatic variance computation with ₹1 tolerance; flags disputed items into exception workpapers.
+  - Full support for recording alternative audit procedures for non-responses (subsequent cash collection/payment verification in bank statements, dispatch documents, delivery proofs).
+  - Management refusal inquiries (SA 505 para 8) tracking and proposed audit adjustment entries.
+- **1-Click SA 505 Summary Workpaper & Circularization Letter Export**:
+  - Generates formal, printable audit confirmation request letters on auditor letterhead.
+  - Exports a peer-review-ready SA 505 Summary Workpaper in standalone HTML for inclusion into Section `IDX-600` of the SA 230 Audit Dossier Vault.
+
+API:
+- `GET /api/audit/engagements/{id}/confirmation-campaigns` (`audit.read`)
+- `POST /api/audit/engagements/{id}/confirmation-campaigns` (`audit.manage`)
+- `GET /api/audit/confirmation-campaigns/{campaignId}/requests` (`audit.read`)
+- `POST /api/audit/confirmation-campaigns/{campaignId}/requests` (`audit.manage`)
+- `POST /api/audit/confirmation-campaigns/{campaignId}/auto-populate` (`audit.manage`)
+- `POST /api/audit/confirmation-campaigns/{campaignId}/send` (`audit.manage`)
+- `PUT /api/audit/confirmations/{requestId}/evaluate` (`audit.manage`)
+- `GET /api/audit/confirmation-campaigns/{campaignId}/export-summary` (`audit.read`)
+- `GET /api/audit/confirmations/{requestId}/letter-html` (`audit.read`)
+- `GET /api/audit/confirmations/public/{token}` (Public Anonymous)
+- `POST /api/audit/confirmations/public/{token}/respond` (Public Anonymous)
+
 ## Notes
 
 - Package versions are in `Directory.Packages.props`. If restore can't find a version,

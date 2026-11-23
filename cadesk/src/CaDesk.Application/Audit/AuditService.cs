@@ -1514,4 +1514,454 @@ public class AuditService(IAppDbContext db, ITenantContext tenant)
             d.CreatedAt
         );
     }
+
+    // =========================================================================
+    // Sprint 45: SA 505 Automated External Confirmations Desk
+    // =========================================================================
+
+    public async Task<List<ConfirmationCampaignDto>> GetConfirmationCampaignsAsync(Guid engagementId, CancellationToken ct = default)
+    {
+        var campaigns = await db.ConfirmationCampaigns
+            .Include(c => c.Requests)
+            .Where(c => c.AuditEngagementId == engagementId)
+            .OrderByDescending(c => c.CreatedAt)
+            .ToListAsync(ct);
+
+        return campaigns.Select(ToCampaignDto).ToList();
+    }
+
+    public async Task<ConfirmationCampaignDto> CreateConfirmationCampaignAsync(
+        Guid engagementId,
+        CreateConfirmationCampaignRequest req,
+        Guid currentUserId,
+        CancellationToken ct = default)
+    {
+        var eng = await db.AuditEngagements.FirstOrDefaultAsync(e => e.Id == engagementId, ct)
+            ?? throw new KeyNotFoundException($"Audit engagement '{engagementId}' not found.");
+        AssertNotArchived(eng);
+
+        var campaign = new ConfirmationCampaign
+        {
+            FirmId = eng.FirmId,
+            AuditEngagementId = engagementId,
+            Title = req.Title,
+            Description = req.Description,
+            AsOfDate = req.AsOfDate,
+            CutoffDate = req.CutoffDate,
+            Status = "Active",
+            CreatedBy = currentUserId
+        };
+
+        db.ConfirmationCampaigns.Add(campaign);
+        await db.SaveChangesAsync(ct);
+
+        return ToCampaignDto(campaign);
+    }
+
+    public async Task<List<ExternalConfirmationRequestDto>> GetConfirmationRequestsAsync(Guid campaignId, CancellationToken ct = default)
+    {
+        var list = await db.ExternalConfirmations
+            .Where(r => r.CampaignId == campaignId)
+            .OrderBy(r => r.PartyType)
+            .ThenBy(r => r.PartyName)
+            .ToListAsync(ct);
+
+        return list.Select(ToConfirmationRequestDto).ToList();
+    }
+
+    public async Task<ExternalConfirmationRequestDto> CreateConfirmationRequestAsync(
+        Guid campaignId,
+        CreateConfirmationRequest req,
+        Guid currentUserId,
+        CancellationToken ct = default)
+    {
+        var campaign = await db.ConfirmationCampaigns
+            .Include(c => c.AuditEngagement)
+            .FirstOrDefaultAsync(c => c.Id == campaignId, ct)
+            ?? throw new KeyNotFoundException($"Confirmation campaign '{campaignId}' not found.");
+        AssertNotArchived(campaign.AuditEngagement!);
+
+        var confirmation = new ExternalConfirmationRequest
+        {
+            FirmId = campaign.FirmId,
+            CampaignId = campaignId,
+            AuditEngagementId = campaign.AuditEngagementId,
+            LeadScheduleRef = req.LeadScheduleRef,
+            PartyType = req.PartyType,
+            PartyName = req.PartyName,
+            PartyContactEmail = req.PartyContactEmail,
+            PartyContactPhone = req.PartyContactPhone,
+            PartyPanGstin = req.PartyPanGstin,
+            ConfirmationType = req.ConfirmationType,
+            BookBalanceAmount = req.BookBalanceAmount,
+            AsOfDate = req.AsOfDate,
+            Status = ConfirmationStatus.Draft,
+            CreatedBy = currentUserId
+        };
+
+        db.ExternalConfirmations.Add(confirmation);
+        await db.SaveChangesAsync(ct);
+
+        await RecalculateCampaignMetricsAsync(campaignId, ct);
+
+        return ToConfirmationRequestDto(confirmation);
+    }
+
+    public async Task<List<ExternalConfirmationRequestDto>> AutoPopulateConfirmationsFromTrialBalanceAsync(
+        Guid campaignId,
+        AutoPopulateConfirmationsRequest req,
+        Guid currentUserId,
+        CancellationToken ct = default)
+    {
+        var campaign = await db.ConfirmationCampaigns
+            .Include(c => c.AuditEngagement)
+            .FirstOrDefaultAsync(c => c.Id == campaignId, ct)
+            ?? throw new KeyNotFoundException($"Confirmation campaign '{campaignId}' not found.");
+        AssertNotArchived(campaign.AuditEngagement!);
+
+        // Find relevant Trial Balance
+        var clientId = campaign.AuditEngagement!.ClientId;
+        var fy = campaign.AuditEngagement.FinancialYear;
+
+        var tbQuery = db.TrialBalanceImports
+            .Include(tb => tb.Ledgers)
+            .Where(tb => tb.ClientId == clientId);
+
+        if (req.TrialBalanceImportId.HasValue)
+        {
+            tbQuery = tbQuery.Where(tb => tb.Id == req.TrialBalanceImportId.Value);
+        }
+        else
+        {
+            tbQuery = tbQuery.Where(tb => tb.FinancialYear == fy).OrderByDescending(tb => tb.CreatedAt);
+        }
+
+        var tbImport = await tbQuery.FirstOrDefaultAsync(ct);
+        if (tbImport == null || tbImport.Ledgers.Count == 0)
+        {
+            return new List<ExternalConfirmationRequestDto>();
+        }
+
+        var existingNames = await db.ExternalConfirmations
+            .Where(r => r.CampaignId == campaignId)
+            .Select(r => r.PartyName.ToLowerInvariant())
+            .ToListAsync(ct);
+
+        var created = new List<ExternalConfirmationRequest>();
+
+        // 1. Trade Debtors (Receivables)
+        var debtors = tbImport.Ledgers
+            .Where(l => l.Schedule3Group == TrialBalanceConstants.S3TradeReceivables ||
+                        l.LedgerName.Contains("Debtor", StringComparison.OrdinalIgnoreCase) ||
+                        l.LedgerName.Contains("Customer", StringComparison.OrdinalIgnoreCase) ||
+                        (!string.IsNullOrEmpty(l.TallyGroup) && l.TallyGroup.Contains("Debtor", StringComparison.OrdinalIgnoreCase)))
+            .Where(l => Math.Abs(l.ClosingBalance) >= req.MinimumDebtorBalance)
+            .OrderByDescending(l => Math.Abs(l.ClosingBalance))
+            .Take(req.TopNCount)
+            .ToList();
+
+        foreach (var d in debtors)
+        {
+            if (existingNames.Contains(d.LedgerName.ToLowerInvariant())) continue;
+
+            var safeEmailName = new string(d.LedgerName.Where(char.IsLetterOrDigit).ToArray()).ToLowerInvariant();
+            var email = string.IsNullOrWhiteSpace(safeEmailName) ? "contact@example.com" : $"{safeEmailName}@example.com";
+
+            var item = new ExternalConfirmationRequest
+            {
+                FirmId = campaign.FirmId,
+                CampaignId = campaignId,
+                AuditEngagementId = campaign.AuditEngagementId,
+                LeadScheduleRef = LeadScheduleRef.B_TradeReceivables,
+                PartyType = ConfirmationPartyType.TradeDebtor,
+                PartyName = d.LedgerName,
+                PartyContactEmail = email,
+                ConfirmationType = ConfirmationType.PositiveStatedBalance,
+                BookBalanceAmount = Math.Abs(d.ClosingBalance),
+                AsOfDate = campaign.AsOfDate,
+                Status = ConfirmationStatus.Draft,
+                CreatedBy = currentUserId
+            };
+
+            db.ExternalConfirmations.Add(item);
+            created.Add(item);
+            existingNames.Add(d.LedgerName.ToLowerInvariant());
+        }
+
+        // 2. Trade Creditors (Payables)
+        var creditors = tbImport.Ledgers
+            .Where(l => l.Schedule3Group == TrialBalanceConstants.S3TradePayablesOthers ||
+                        l.Schedule3Group == TrialBalanceConstants.S3TradePayablesMsme ||
+                        l.LedgerName.Contains("Creditor", StringComparison.OrdinalIgnoreCase) ||
+                        l.LedgerName.Contains("Vendor", StringComparison.OrdinalIgnoreCase) ||
+                        l.LedgerName.Contains("Supplier", StringComparison.OrdinalIgnoreCase) ||
+                        (!string.IsNullOrEmpty(l.TallyGroup) && l.TallyGroup.Contains("Creditor", StringComparison.OrdinalIgnoreCase)))
+            .Where(l => Math.Abs(l.ClosingBalance) >= req.MinimumCreditorBalance)
+            .OrderByDescending(l => Math.Abs(l.ClosingBalance))
+            .Take(req.TopNCount)
+            .ToList();
+
+        foreach (var c in creditors)
+        {
+            if (existingNames.Contains(c.LedgerName.ToLowerInvariant())) continue;
+
+            var safeEmailName = new string(c.LedgerName.Where(char.IsLetterOrDigit).ToArray()).ToLowerInvariant();
+            var email = string.IsNullOrWhiteSpace(safeEmailName) ? "contact@example.com" : $"{safeEmailName}@example.com";
+
+            var item = new ExternalConfirmationRequest
+            {
+                FirmId = campaign.FirmId,
+                CampaignId = campaignId,
+                AuditEngagementId = campaign.AuditEngagementId,
+                LeadScheduleRef = LeadScheduleRef.G_TradePayables,
+                PartyType = ConfirmationPartyType.TradeCreditor,
+                PartyName = c.LedgerName,
+                PartyContactEmail = email,
+                ConfirmationType = ConfirmationType.PositiveStatedBalance,
+                BookBalanceAmount = Math.Abs(c.ClosingBalance),
+                AsOfDate = campaign.AsOfDate,
+                Status = ConfirmationStatus.Draft,
+                CreatedBy = currentUserId
+            };
+
+            db.ExternalConfirmations.Add(item);
+            created.Add(item);
+            existingNames.Add(c.LedgerName.ToLowerInvariant());
+        }
+
+        await db.SaveChangesAsync(ct);
+        await RecalculateCampaignMetricsAsync(campaignId, ct);
+
+        return created.Select(ToConfirmationRequestDto).ToList();
+    }
+
+    public async Task<int> SendConfirmationRequestsAsync(Guid campaignId, List<Guid>? requestIds = null, CancellationToken ct = default)
+    {
+        var query = db.ExternalConfirmations.Where(r => r.CampaignId == campaignId);
+        if (requestIds != null && requestIds.Count > 0)
+        {
+            query = query.Where(r => requestIds.Contains(r.Id));
+        }
+
+        var items = await query.ToListAsync(ct);
+        var now = DateTime.UtcNow;
+        foreach (var r in items)
+        {
+            if (r.Status == ConfirmationStatus.Draft)
+            {
+                r.Status = ConfirmationStatus.Sent;
+                r.SentAt = now;
+            }
+        }
+
+        await db.SaveChangesAsync(ct);
+        await RecalculateCampaignMetricsAsync(campaignId, ct);
+        return items.Count;
+    }
+
+    public async Task<PublicConfirmationDetailsDto> GetPublicConfirmationByTokenAsync(string token, CancellationToken ct = default)
+    {
+        var req = await db.ExternalConfirmations
+            .IgnoreQueryFilters()
+            .Include(r => r.AuditEngagement)
+                .ThenInclude(e => e!.Client)
+            .Include(r => r.Firm)
+            .FirstOrDefaultAsync(r => r.SecureAccessToken == token, ct)
+            ?? throw new KeyNotFoundException("Invalid or expired confirmation access link.");
+
+        var isExpired = DateTime.UtcNow > req.TokenExpiresAt;
+        var alreadyResponded = req.Status is ConfirmationStatus.ConfirmedAgreed or ConfirmationStatus.Disputed;
+
+        return new PublicConfirmationDetailsDto(
+            ClientName: req.AuditEngagement?.Client?.Name ?? "Client Entity",
+            AuditorFirmName: req.Firm?.Name ?? "Statutory Auditor",
+            PartyName: req.PartyName,
+            PartyType: req.PartyType,
+            ConfirmationType: req.ConfirmationType,
+            BookBalanceAmount: req.ConfirmationType == ConfirmationType.PositiveBlankBalance ? null : req.BookBalanceAmount,
+            AsOfDate: req.AsOfDate,
+            IsExpired: isExpired,
+            AlreadyResponded: alreadyResponded,
+            CurrentStatus: req.Status
+        );
+    }
+
+    public async Task<ExternalConfirmationRequestDto> SubmitPublicConfirmationResponseAsync(
+        string token,
+        SubmitConfirmationResponseRequest req,
+        CancellationToken ct = default)
+    {
+        var item = await db.ExternalConfirmations
+            .IgnoreQueryFilters()
+            .Include(r => r.Campaign)
+            .FirstOrDefaultAsync(r => r.SecureAccessToken == token, ct)
+            ?? throw new KeyNotFoundException("Invalid or expired confirmation access token.");
+
+        if (DateTime.UtcNow > item.TokenExpiresAt)
+        {
+            throw new InvalidOperationException("This confirmation request link has expired. Please contact the statutory auditors.");
+        }
+
+        var evaluatedStatus = ConfirmationDeskEngine.EvaluateConfirmationResponse(
+            item.BookBalanceAmount,
+            req.ConfirmedBalanceAmount,
+            req.DisputeReason);
+
+        item.ConfirmedBalanceAmount = req.ConfirmedBalanceAmount;
+        item.VarianceAmount = ConfirmationDeskEngine.CalculateVariance(item.BookBalanceAmount, req.ConfirmedBalanceAmount);
+        item.DisputeReason = string.IsNullOrWhiteSpace(req.DisputeReason) ? ConfirmationDisputeReason.None : req.DisputeReason;
+        item.ThirdPartyRemarks = req.ThirdPartyRemarks;
+        item.ThirdPartySignatoryName = req.ThirdPartySignatoryName;
+        item.ThirdPartyDesignation = req.ThirdPartyDesignation;
+        item.Status = evaluatedStatus;
+        item.RespondedAt = DateTime.UtcNow;
+
+        await db.SaveChangesAsync(ct);
+
+        await RecalculateCampaignMetricsAsync(item.CampaignId, ct);
+
+        return ToConfirmationRequestDto(item);
+    }
+
+    public async Task<ExternalConfirmationRequestDto> UpdateConfirmationAuditorEvaluationAsync(
+        Guid requestId,
+        UpdateConfirmationAuditorEvaluationRequest req,
+        Guid currentUserId,
+        CancellationToken ct = default)
+    {
+        var item = await db.ExternalConfirmations
+            .Include(r => r.AuditEngagement)
+            .FirstOrDefaultAsync(r => r.Id == requestId, ct)
+            ?? throw new KeyNotFoundException($"External confirmation request '{requestId}' not found.");
+        AssertNotArchived(item.AuditEngagement!);
+
+        item.Status = req.Status;
+        item.AlternativeProceduresPerformed = req.AlternativeProceduresPerformed;
+        item.AuditorConclusion = req.AuditorConclusion;
+        item.ProposedAdjustmentAmount = req.ProposedAdjustmentAmount;
+        item.AuditorNotes = req.AuditorNotes;
+        item.ReviewedBy = currentUserId;
+        item.ReviewedAt = DateTime.UtcNow;
+
+        await db.SaveChangesAsync(ct);
+        await RecalculateCampaignMetricsAsync(item.CampaignId, ct);
+
+        return ToConfirmationRequestDto(item);
+    }
+
+    public async Task<ConfirmationSummaryExportHtmlDto> ExportConfirmationSummaryHtmlAsync(Guid campaignId, CancellationToken ct = default)
+    {
+        var campaign = await db.ConfirmationCampaigns
+            .Include(c => c.AuditEngagement)
+                .ThenInclude(e => e!.Client)
+            .Include(c => c.Firm)
+            .Include(c => c.Requests)
+            .FirstOrDefaultAsync(c => c.Id == campaignId, ct)
+            ?? throw new KeyNotFoundException($"Confirmation campaign '{campaignId}' not found.");
+
+        var clientName = campaign.AuditEngagement?.Client?.Name ?? "Client";
+        var auditorFirmName = campaign.Firm?.Name ?? "Statutory Auditor";
+
+        var html = ConfirmationDeskEngine.GenerateSa505SummaryHtml(campaign, campaign.Requests, clientName, auditorFirmName);
+
+        return new ConfirmationSummaryExportHtmlDto(
+            HtmlContent: html,
+            GeneratedAt: DateTime.UtcNow
+        );
+    }
+
+    public async Task<string> ExportConfirmationLetterHtmlAsync(Guid requestId, CancellationToken ct = default)
+    {
+        var req = await db.ExternalConfirmations
+            .Include(r => r.AuditEngagement)
+                .ThenInclude(e => e!.Client)
+            .Include(r => r.Firm)
+            .FirstOrDefaultAsync(r => r.Id == requestId, ct)
+            ?? throw new KeyNotFoundException($"Confirmation request '{requestId}' not found.");
+
+        var clientName = req.AuditEngagement?.Client?.Name ?? "Client";
+        var auditorFirmName = req.Firm?.Name ?? "Statutory Auditor";
+
+        return ConfirmationDeskEngine.GenerateConfirmationLetterHtml(req, clientName, auditorFirmName);
+    }
+
+    private async Task RecalculateCampaignMetricsAsync(Guid campaignId, CancellationToken ct = default)
+    {
+        var campaign = await db.ConfirmationCampaigns
+            .IgnoreQueryFilters()
+            .Include(c => c.Requests)
+            .FirstOrDefaultAsync(c => c.Id == campaignId, ct);
+
+        if (campaign == null) return;
+
+        campaign.TotalRequestsCount = campaign.Requests.Count;
+        campaign.ConfirmedAgreedCount = campaign.Requests.Count(r => r.Status == ConfirmationStatus.ConfirmedAgreed);
+        campaign.DisputedCount = campaign.Requests.Count(r => r.Status == ConfirmationStatus.Disputed);
+        campaign.PendingCount = campaign.Requests.Count(r => r.Status is ConfirmationStatus.Sent or ConfirmationStatus.Draft);
+        campaign.TotalBookBalanceAmount = campaign.Requests.Sum(r => r.BookBalanceAmount);
+        campaign.TotalConfirmedAmount = campaign.Requests.Where(r => r.ConfirmedBalanceAmount.HasValue).Sum(r => r.ConfirmedBalanceAmount!.Value);
+        campaign.UpdatedAt = DateTime.UtcNow;
+
+        await db.SaveChangesAsync(ct);
+    }
+
+    private static ConfirmationCampaignDto ToCampaignDto(ConfirmationCampaign c)
+    {
+        var varianceTotal = c.TotalBookBalanceAmount - c.TotalConfirmedAmount;
+        return new ConfirmationCampaignDto(
+            c.Id,
+            c.AuditEngagementId,
+            c.Title,
+            c.Description,
+            c.AsOfDate,
+            c.CutoffDate,
+            c.Status,
+            c.TotalRequestsCount,
+            c.ConfirmedAgreedCount,
+            c.DisputedCount,
+            c.PendingCount,
+            c.TotalBookBalanceAmount,
+            c.TotalConfirmedAmount,
+            varianceTotal,
+            c.CreatedAt,
+            c.UpdatedAt
+        );
+    }
+
+    private static ExternalConfirmationRequestDto ToConfirmationRequestDto(ExternalConfirmationRequest r)
+    {
+        return new ExternalConfirmationRequestDto(
+            r.Id,
+            r.CampaignId,
+            r.AuditEngagementId,
+            r.LeadScheduleRef,
+            r.PartyType,
+            r.PartyName,
+            r.PartyContactEmail,
+            r.PartyContactPhone,
+            r.PartyPanGstin,
+            r.ConfirmationType,
+            r.BookBalanceAmount,
+            r.Currency,
+            r.AsOfDate,
+            r.SecureAccessToken,
+            r.TokenExpiresAt,
+            r.Status,
+            r.SentAt,
+            r.RespondedAt,
+            r.ConfirmedBalanceAmount,
+            r.VarianceAmount,
+            r.DisputeReason,
+            r.ThirdPartyRemarks,
+            r.ThirdPartySignatoryName,
+            r.ThirdPartyDesignation,
+            r.AlternativeProceduresPerformed,
+            r.AuditorConclusion,
+            r.ProposedAdjustmentAmount,
+            r.AuditorNotes,
+            r.ReviewedBy,
+            r.ReviewedAt,
+            r.CreatedAt
+        );
+    }
 }

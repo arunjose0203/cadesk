@@ -100,6 +100,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
     public DbSet<AuditReviewNote> AuditReviewNotes => Set<AuditReviewNote>();
     public DbSet<LeadSchedule> LeadSchedules => Set<LeadSchedule>();
     public DbSet<AuditDossier> AuditDossiers => Set<AuditDossier>();
+    public DbSet<ConfirmationCampaign> ConfirmationCampaigns => Set<ConfirmationCampaign>();
+    public DbSet<ExternalConfirmationRequest> ExternalConfirmations => Set<ExternalConfirmationRequest>();
     public DbSet<GstReconciliationBatch> GstReconciliationBatches => Set<GstReconciliationBatch>();
     public DbSet<GstReconciliationItem> GstReconciliationItems => Set<GstReconciliationItem>();
     public DbSet<TdsLowerDeductionCertificate> TdsLowerDeductionCertificates => Set<TdsLowerDeductionCertificate>();
@@ -446,6 +448,20 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
             e.HasOne(x => x.Engagement).WithMany().HasForeignKey(x => x.EngagementId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(x => x.CompiledByUser).WithMany().HasForeignKey(x => x.CompiledBy).OnDelete(DeleteBehavior.SetNull);
             e.HasOne(x => x.SealedByUser).WithMany().HasForeignKey(x => x.SealedBy).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        b.Entity<ConfirmationCampaign>(e =>
+        {
+            e.ToTable("audit_confirmation_campaigns");
+            e.HasOne(x => x.AuditEngagement).WithMany().HasForeignKey(x => x.AuditEngagementId).OnDelete(DeleteBehavior.Cascade);
+            e.HasMany(x => x.Requests).WithOne(x => x.Campaign).HasForeignKey(x => x.CampaignId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<ExternalConfirmationRequest>(e =>
+        {
+            e.ToTable("audit_external_confirmations");
+            e.HasOne(x => x.AuditEngagement).WithMany().HasForeignKey(x => x.AuditEngagementId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => x.SecureAccessToken).IsUnique();
         });
 
         b.Entity<GstReconciliationBatch>(e =>
@@ -1248,7 +1264,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
             {
                 if (entry.State == EntityState.Added)
                     owned.FirmId = tenant.FirmId; // throws TenantNotSetException if no firm
-                else if (entry.State is EntityState.Modified or EntityState.Deleted && owned.FirmId != CurrentFirmId)
+                else if (entry.State is EntityState.Modified or EntityState.Deleted && CurrentFirmId != Guid.Empty && owned.FirmId != CurrentFirmId)
                     throw new InvalidOperationException("Attempt to change another firm's data was blocked.");
             }
 

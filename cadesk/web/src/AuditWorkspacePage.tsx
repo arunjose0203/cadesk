@@ -7,6 +7,11 @@ import {
   type AuditReviewNoteDto,
   type LeadScheduleDto,
   type AuditDossierDto,
+  type ConfirmationCampaignDto,
+  type ExternalConfirmationRequestDto,
+  type CreateConfirmationCampaignRequest,
+  type CreateConfirmationRequest,
+  type UpdateConfirmationAuditorEvaluationRequest,
   type Client,
   type UserProfile,
   auditApi,
@@ -24,8 +29,8 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
   const [error, setError] = useState<string | null>(null)
   const [selectedEng, setSelectedEng] = useState<AuditEngagementDto | null>(null)
 
-  // Selected engagement sub-view: workpapers, lead_schedules, dossier_vault, eqr, review_notes
-  const [activeTab, setActiveTab] = useState<'workpapers' | 'lead_schedules' | 'dossier_vault' | 'eqr' | 'review_notes'>('workpapers')
+  // Selected engagement sub-view: workpapers, lead_schedules, dossier_vault, confirmations, eqr, review_notes
+  const [activeTab, setActiveTab] = useState<'workpapers' | 'lead_schedules' | 'dossier_vault' | 'confirmations' | 'eqr' | 'review_notes'>('workpapers')
 
   // Data for active engagement
   const [workingPapers, setWorkingPapers] = useState<AuditWorkingPaperDto[]>([])
@@ -34,6 +39,44 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
   const [eqrReview, setEqrReview] = useState<AuditEqrReviewDto | null>(null)
   const [reviewNotes, setReviewNotes] = useState<AuditReviewNoteDto[]>([])
   const [loadingWps, setLoadingWps] = useState(false)
+
+  // Sprint 45: SA 505 External Confirmations State
+  const [confirmationCampaigns, setConfirmationCampaigns] = useState<ConfirmationCampaignDto[]>([])
+  const [selectedCampaignId, setSelectedCampaignId] = useState<string>('')
+  const [confirmationRequests, setConfirmationRequests] = useState<ExternalConfirmationRequestDto[]>([])
+  const [loadingConfirmations, setLoadingConfirmations] = useState<boolean>(false)
+  const [showNewCampaignModal, setShowNewCampaignModal] = useState<boolean>(false)
+  const [showNewReqModal, setShowNewReqModal] = useState<boolean>(false)
+  const [evaluatingReq, setEvaluatingReq] = useState<ExternalConfirmationRequestDto | null>(null)
+  const [filterPartyType, setFilterPartyType] = useState<string>('All')
+  const [filterConfStatus, setFilterConfStatus] = useState<string>('All')
+
+  const [campaignForm, setCampaignForm] = useState<CreateConfirmationCampaignRequest>({
+    title: 'FY 2024-25 External Balance Confirmations',
+    description: 'Year-end debtor and creditor balance circularization under SA 505',
+    asOfDate: '2025-03-31',
+    cutoffDate: '2025-04-30'
+  })
+
+  const [reqForm, setReqForm] = useState<CreateConfirmationRequest>({
+    leadScheduleRef: 'B',
+    partyType: 'TradeDebtor',
+    partyName: '',
+    partyContactEmail: '',
+    partyContactPhone: '',
+    partyPanGstin: '',
+    confirmationType: 'PositiveStatedBalance',
+    bookBalanceAmount: 0,
+    asOfDate: '2025-03-31'
+  })
+
+  const [evaluationForm, setEvaluationForm] = useState<UpdateConfirmationAuditorEvaluationRequest>({
+    status: 'ConfirmedAgreed',
+    alternativeProceduresPerformed: '',
+    auditorConclusion: 'ReconciledSatisfactory',
+    proposedAdjustmentAmount: 0,
+    auditorNotes: ''
+  })
 
   // Modals & Forms for Lead Schedules and SA 230 Dossier
   const [editingSchedule, setEditingSchedule] = useState<LeadScheduleDto | null>(null)
@@ -137,13 +180,14 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
   async function loadEngagementDetails(engId: string) {
     try {
       setLoadingWps(true)
-      const [wps, eqr, notes, eng, lss, dos] = await Promise.all([
+      const [wps, eqr, notes, eng, lss, dos, campaigns] = await Promise.all([
         auditApi.listWorkingPapers(engId),
         auditApi.getEqrReview(engId).catch(() => null),
         auditApi.listReviewNotes(engId),
         auditApi.getEngagement(engId),
         auditApi.getLeadSchedules(engId).catch(() => []),
-        auditApi.getDossier(engId).catch(() => null)
+        auditApi.getDossier(engId).catch(() => null),
+        auditApi.getConfirmationCampaigns(engId).catch(() => [])
       ])
       setWorkingPapers(wps || [])
       setEqrReview(eqr)
@@ -151,10 +195,163 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
       setSelectedEng(eng)
       setLeadSchedules(lss || [])
       setDossier(dos)
+      setConfirmationCampaigns(campaigns || [])
+      if (campaigns && campaigns.length > 0) {
+        setSelectedCampaignId(campaigns[0].id)
+        loadConfirmationRequests(campaigns[0].id)
+      } else {
+        setSelectedCampaignId('')
+        setConfirmationRequests([])
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load engagement details.')
     } finally {
       setLoadingWps(false)
+    }
+  }
+
+  async function loadConfirmationRequests(campaignId: string) {
+    if (!campaignId) return
+    try {
+      setLoadingConfirmations(true)
+      const list = await auditApi.getConfirmationRequests(campaignId)
+      setConfirmationRequests(list || [])
+    } catch (err: unknown) {
+      console.error(err)
+    } finally {
+      setLoadingConfirmations(false)
+    }
+  }
+
+  async function handleCreateCampaign() {
+    if (!selectedEng) return
+    try {
+      setLoadingConfirmations(true)
+      const created = await auditApi.createConfirmationCampaign(selectedEng.id, campaignForm)
+      setConfirmationCampaigns(prev => [created, ...prev])
+      setSelectedCampaignId(created.id)
+      setShowNewCampaignModal(false)
+      loadConfirmationRequests(created.id)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to create confirmation campaign.')
+    } finally {
+      setLoadingConfirmations(false)
+    }
+  }
+
+  async function handleCreateRequest() {
+    if (!selectedCampaignId) return
+    try {
+      setLoadingConfirmations(true)
+      const created = await auditApi.createConfirmationRequest(selectedCampaignId, reqForm)
+      setConfirmationRequests(prev => [...prev, created])
+      setShowNewReqModal(false)
+      setReqForm({
+        leadScheduleRef: 'B',
+        partyType: 'TradeDebtor',
+        partyName: '',
+        partyContactEmail: '',
+        partyContactPhone: '',
+        partyPanGstin: '',
+        confirmationType: 'PositiveStatedBalance',
+        bookBalanceAmount: 0,
+        asOfDate: '2025-03-31'
+      })
+      if (selectedEng) {
+        const updated = await auditApi.getConfirmationCampaigns(selectedEng.id)
+        setConfirmationCampaigns(updated)
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to create confirmation request.')
+    } finally {
+      setLoadingConfirmations(false)
+    }
+  }
+
+  async function handleAutoPopulateConfirmations() {
+    if (!selectedCampaignId) return
+    try {
+      setLoadingConfirmations(true)
+      const items = await auditApi.autoPopulateConfirmations(selectedCampaignId, {
+        minimumDebtorBalance: 50000,
+        minimumCreditorBalance: 50000,
+        topNCount: 25
+      })
+      await loadConfirmationRequests(selectedCampaignId)
+      if (selectedEng) {
+        const updated = await auditApi.getConfirmationCampaigns(selectedEng.id)
+        setConfirmationCampaigns(updated)
+      }
+      alert(`Auto-populated ${items.length} debtors and creditors from Trial Balance!`)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to auto-populate from Trial Balance.')
+    } finally {
+      setLoadingConfirmations(false)
+    }
+  }
+
+  async function handleSendConfirmationRequests() {
+    if (!selectedCampaignId) return
+    try {
+      setLoadingConfirmations(true)
+      const res = await auditApi.sendConfirmationRequests(selectedCampaignId)
+      await loadConfirmationRequests(selectedCampaignId)
+      if (selectedEng) {
+        const updated = await auditApi.getConfirmationCampaigns(selectedEng.id)
+        setConfirmationCampaigns(updated)
+      }
+      alert(`Dispatched ${res.sentCount} balance confirmation request links!`)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to send confirmation requests.')
+    } finally {
+      setLoadingConfirmations(false)
+    }
+  }
+
+  async function handleUpdateEvaluation() {
+    if (!evaluatingReq) return
+    try {
+      setLoadingConfirmations(true)
+      await auditApi.updateConfirmationEvaluation(evaluatingReq.id, evaluationForm)
+      setEvaluatingReq(null)
+      if (selectedCampaignId) {
+        await loadConfirmationRequests(selectedCampaignId)
+      }
+      if (selectedEng) {
+        const updated = await auditApi.getConfirmationCampaigns(selectedEng.id)
+        setConfirmationCampaigns(updated)
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to save evaluation.')
+    } finally {
+      setLoadingConfirmations(false)
+    }
+  }
+
+  async function handleExportConfirmationSummaryHtml() {
+    if (!selectedCampaignId) return
+    try {
+      const res = await auditApi.exportConfirmationSummaryHtml(selectedCampaignId)
+      const w = window.open('', '_blank')
+      if (w) {
+        w.document.write(res.htmlContent)
+        w.document.close()
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to export SA 505 Summary.')
+    }
+  }
+
+  async function handleExportConfirmationLetterHtml(requestId: string) {
+    try {
+      const html = await auditApi.getConfirmationLetterHtml(requestId)
+      const w = window.open('', '_blank')
+      if (w) {
+        w.document.write(html)
+        w.document.close()
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to export letter.')
     }
   }
 
@@ -767,6 +964,37 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
               </span>
             </button>
             <button
+              onClick={() => {
+                setActiveTab('confirmations')
+                if (selectedCampaignId) loadConfirmationRequests(selectedCampaignId)
+              }}
+              style={{
+                padding: '10px 18px',
+                border: 'none',
+                background: 'none',
+                borderBottom: activeTab === 'confirmations' ? '2px solid #2563eb' : '2px solid transparent',
+                color: activeTab === 'confirmations' ? '#2563eb' : '#64748b',
+                fontWeight: 600,
+                fontSize: '14px',
+                cursor: 'pointer',
+                marginBottom: '-2px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              <span>✉️ SA 505 Confirmations</span>
+              <span style={{
+                padding: '1px 6px',
+                borderRadius: '10px',
+                fontSize: '10px',
+                background: '#e0e7ff',
+                color: '#4338ca'
+              }}>
+                {confirmationRequests.length}
+              </span>
+            </button>
+            <button
               onClick={() => setActiveTab('eqr')}
               style={{
                 padding: '10px 18px',
@@ -1170,6 +1398,319 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                     ))}
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* TAB: SA 505 External Confirmations Desk */}
+          {activeTab === 'confirmations' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {/* Campaign Selector & Actions Bar */}
+              <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px', marginBottom: '16px' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '20px' }}>✉️</span>
+                      <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#1e3a8a' }}>
+                        SA 505 Automated External Confirmations Desk
+                      </h3>
+                      <span style={{ fontSize: '11px', background: '#e0e7ff', color: '#4338ca', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>
+                        Independent Third-Party Evidence
+                      </span>
+                    </div>
+                    <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '13px' }}>
+                      Direct external circularization for Trade Debtors, Creditors, Banks, and Loans with tokenized digital verification links, dispute capture, and alternative audit procedures.
+                    </p>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <button
+                      onClick={() => setShowNewCampaignModal(true)}
+                      style={{ padding: '8px 14px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: '13px' }}
+                    >
+                      + New Campaign
+                    </button>
+                    <button
+                      onClick={handleAutoPopulateConfirmations}
+                      disabled={!selectedCampaignId || loadingConfirmations}
+                      style={{ padding: '8px 14px', borderRadius: '6px', border: '1px solid #0284c7', background: '#f0f9ff', color: '#0284c7', cursor: 'pointer', fontWeight: 600, fontSize: '13px' }}
+                    >
+                      ⚡ Auto-Populate from TB
+                    </button>
+                    <button
+                      onClick={() => setShowNewReqModal(true)}
+                      disabled={!selectedCampaignId}
+                      style={{ padding: '8px 14px', borderRadius: '6px', border: 'none', background: '#2563eb', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: '13px' }}
+                    >
+                      + Add Party
+                    </button>
+                    <button
+                      onClick={handleSendConfirmationRequests}
+                      disabled={!selectedCampaignId || confirmationRequests.filter(r => r.status === 'Draft').length === 0}
+                      style={{ padding: '8px 14px', borderRadius: '6px', border: 'none', background: '#16a34a', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: '13px' }}
+                    >
+                      📤 Send Draft Confirmations ({confirmationRequests.filter(r => r.status === 'Draft').length})
+                    </button>
+                    <button
+                      onClick={handleExportConfirmationSummaryHtml}
+                      disabled={!selectedCampaignId}
+                      style={{ padding: '8px 14px', borderRadius: '6px', border: '1px solid #475569', background: '#334155', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: '13px' }}
+                    >
+                      🖨️ Export SA 505 Summary
+                    </button>
+                  </div>
+                </div>
+
+                {/* Campaign Selection Row */}
+                {confirmationCampaigns.length > 0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: '#f8fafc', padding: '10px 14px', borderRadius: '6px' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>Active Campaign:</span>
+                    <select
+                      value={selectedCampaignId}
+                      onChange={e => {
+                        setSelectedCampaignId(e.target.value)
+                        loadConfirmationRequests(e.target.value)
+                      }}
+                      style={{ padding: '6px 12px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '13px', flex: 1, maxWidth: '420px' }}
+                    >
+                      {confirmationCampaigns.map(c => (
+                        <option key={c.id} value={c.id}>
+                          {c.title} (As of {c.asOfDate} • Cut-off {c.cutoffDate}) [{c.status}]
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              {/* KPI Highlights for Active Campaign */}
+              {selectedCampaignId && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                  <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px' }}>
+                    <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Total Circularized</div>
+                    <div style={{ fontSize: '24px', fontWeight: 800, marginTop: '4px', color: '#0f172a' }}>
+                      {confirmationRequests.length} Parties
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                      Book Bal: {fmtInr(confirmationRequests.reduce((sum, r) => sum + r.bookBalanceAmount, 0))}
+                    </div>
+                  </div>
+
+                  <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px' }}>
+                    <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Confirmed &amp; Agreed</div>
+                    <div style={{ fontSize: '24px', fontWeight: 800, marginTop: '4px', color: '#16a34a' }}>
+                      {confirmationRequests.filter(r => r.status === 'ConfirmedAgreed').length}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#15803d', marginTop: '2px' }}>
+                      {fmtInr(confirmationRequests.filter(r => r.status === 'ConfirmedAgreed').reduce((sum, r) => sum + (r.confirmedBalanceAmount || r.bookBalanceAmount), 0))} verified
+                    </div>
+                  </div>
+
+                  <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px' }}>
+                    <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Disputed / Differences</div>
+                    <div style={{ fontSize: '24px', fontWeight: 800, marginTop: '4px', color: '#dc2626' }}>
+                      {confirmationRequests.filter(r => r.status === 'Disputed').length}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#b91c1c', marginTop: '2px' }}>
+                      Variance: {fmtInr(confirmationRequests.filter(r => r.status === 'Disputed').reduce((sum, r) => sum + Math.abs(r.varianceAmount || 0), 0))}
+                    </div>
+                  </div>
+
+                  <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px' }}>
+                    <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Pending / In Transit</div>
+                    <div style={{ fontSize: '24px', fontWeight: 800, marginTop: '4px', color: '#0284c7' }}>
+                      {confirmationRequests.filter(r => r.status === 'Sent' || r.status === 'Draft').length}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#0369a1', marginTop: '2px' }}>
+                      {confirmationRequests.filter(r => r.status === 'Sent').length} Sent • {confirmationRequests.filter(r => r.status === 'Draft').length} Draft
+                    </div>
+                  </div>
+
+                  <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px' }}>
+                    <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Alt Procedures (SA 505 p12)</div>
+                    <div style={{ fontSize: '24px', fontWeight: 800, marginTop: '4px', color: '#d97706' }}>
+                      {confirmationRequests.filter(r => r.status === 'NonResponseAlternativeDone').length}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#b45309', marginTop: '2px' }}>
+                      Subsequent cash/docs verified
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Confirmations Register & Filtering */}
+              <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 600 }}>Filter Category:</span>
+                    <select
+                      value={filterPartyType}
+                      onChange={e => setFilterPartyType(e.target.value)}
+                      style={{ padding: '6px 10px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                    >
+                      <option value="All">All Categories</option>
+                      <option value="TradeDebtor">Trade Debtors (Receivables)</option>
+                      <option value="TradeCreditor">Trade Creditors (Payables)</option>
+                      <option value="Bank">Bank Balances &amp; Loans</option>
+                      <option value="LoanGiven">Loans &amp; Advances Given</option>
+                      <option value="Borrowing">Borrowings &amp; Deposits</option>
+                    </select>
+
+                    <span style={{ fontSize: '13px', fontWeight: 600, marginLeft: '8px' }}>Status:</span>
+                    <select
+                      value={filterConfStatus}
+                      onChange={e => setFilterConfStatus(e.target.value)}
+                      style={{ padding: '6px 10px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                    >
+                      <option value="All">All Statuses</option>
+                      <option value="ConfirmedAgreed">Confirmed &amp; Agreed</option>
+                      <option value="Disputed">Disputed / Exception</option>
+                      <option value="Sent">Sent / Pending</option>
+                      <option value="Draft">Draft</option>
+                      <option value="NonResponseAlternativeDone">Alternative Done</option>
+                      <option value="ManagementRefusal">Management Refusal</option>
+                    </select>
+                  </div>
+
+                  <div style={{ fontSize: '13px', color: '#64748b' }}>
+                    Showing <strong>{
+                      confirmationRequests.filter(r => {
+                        const matchType = filterPartyType === 'All' || r.partyType === filterPartyType
+                        const matchStat = filterConfStatus === 'All' || r.status === filterConfStatus
+                        return matchType && matchStat
+                      }).length
+                    }</strong> confirmation records
+                  </div>
+                </div>
+
+                {/* Table */}
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                  <thead>
+                    <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', textAlign: 'left' }}>
+                      <th style={{ padding: '10px 8px' }}>Party Name</th>
+                      <th style={{ padding: '10px 8px' }}>Type / Sched</th>
+                      <th style={{ padding: '10px 8px', textAlign: 'right' }}>Book Balance</th>
+                      <th style={{ padding: '10px 8px', textAlign: 'right' }}>Confirmed Balance</th>
+                      <th style={{ padding: '10px 8px', textAlign: 'right' }}>Variance</th>
+                      <th style={{ padding: '10px 8px' }}>Status</th>
+                      <th style={{ padding: '10px 8px' }}>Dispute / Alt Audit Procedure</th>
+                      <th style={{ padding: '10px 8px', textAlign: 'right' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {confirmationRequests.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} style={{ padding: '36px', textAlign: 'center', color: '#64748b' }}>
+                          No confirmation requests circularized in this campaign. Click <strong>"⚡ Auto-Populate from TB"</strong> or <strong>"+ Add Party"</strong> to begin.
+                        </td>
+                      </tr>
+                    ) : (
+                      confirmationRequests
+                        .filter(r => {
+                          const matchType = filterPartyType === 'All' || r.partyType === filterPartyType
+                          const matchStat = filterConfStatus === 'All' || r.status === filterConfStatus
+                          return matchType && matchStat
+                        })
+                        .map(r => (
+                          <tr key={r.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                            <td style={{ padding: '10px 8px' }}>
+                              <div style={{ fontWeight: 600, color: '#0f172a' }}>{r.partyName}</div>
+                              <div style={{ fontSize: '11px', color: '#64748b' }}>{r.partyContactEmail || 'No email registered'}</div>
+                            </td>
+                            <td style={{ padding: '10px 8px' }}>
+                              <span style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '11px', background: '#f1f5f9', color: '#334155', fontWeight: 600 }}>
+                                {r.partyType} ({r.leadScheduleRef})
+                              </span>
+                            </td>
+                            <td style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 600 }}>
+                              {fmtInr(r.bookBalanceAmount)}
+                            </td>
+                            <td style={{ padding: '10px 8px', textAlign: 'right' }}>
+                              {r.confirmedBalanceAmount != null ? fmtInr(r.confirmedBalanceAmount) : <span style={{ color: '#94a3b8' }}>—</span>}
+                            </td>
+                            <td style={{
+                              padding: '10px 8px',
+                              textAlign: 'right',
+                              fontWeight: 700,
+                              color: r.varianceAmount && r.varianceAmount !== 0 ? '#dc2626' : '#16a34a'
+                            }}>
+                              {r.varianceAmount != null ? (r.varianceAmount === 0 ? '₹0.00' : fmtInr(r.varianceAmount)) : '—'}
+                            </td>
+                            <td style={{ padding: '10px 8px' }}>
+                              <span style={{
+                                padding: '2px 8px',
+                                borderRadius: '12px',
+                                fontSize: '11px',
+                                fontWeight: 700,
+                                background: r.status === 'ConfirmedAgreed' ? '#dcfce7' : r.status === 'Disputed' ? '#fee2e2' : r.status === 'Sent' ? '#e0f2fe' : r.status === 'NonResponseAlternativeDone' ? '#fef3c7' : '#f1f5f9',
+                                color: r.status === 'ConfirmedAgreed' ? '#15803d' : r.status === 'Disputed' ? '#b91c1c' : r.status === 'Sent' ? '#0369a1' : r.status === 'NonResponseAlternativeDone' ? '#b45309' : '#475569'
+                              }}>
+                                {r.status}
+                              </span>
+                            </td>
+                            <td style={{ padding: '10px 8px', fontSize: '12px' }}>
+                              {r.disputeReason !== 'None' && (
+                                <div style={{ color: '#b91c1c', fontWeight: 600 }}>
+                                  Reason: {r.disputeReason}
+                                </div>
+                              )}
+                              {r.thirdPartyRemarks && (
+                                <div style={{ color: '#475569', fontSize: '11px', fontStyle: 'italic' }}>
+                                  "{r.thirdPartyRemarks}"
+                                </div>
+                              )}
+                              {r.alternativeProceduresPerformed && (
+                                <div style={{ color: '#b45309', fontSize: '11px', marginTop: '2px' }}>
+                                  <strong>Alt Proc:</strong> {r.alternativeProceduresPerformed}
+                                </div>
+                              )}
+                              {r.auditorConclusion && r.auditorConclusion !== 'PendingVerification' && (
+                                <div style={{ color: '#0369a1', fontSize: '11px', marginTop: '2px' }}>
+                                  <strong>Conclusion:</strong> {r.auditorConclusion}
+                                </div>
+                              )}
+                            </td>
+                            <td style={{ padding: '10px 8px', textAlign: 'right' }}>
+                              <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                                <button
+                                  onClick={() => {
+                                    const link = `${window.location.origin}/confirm/${r.secureAccessToken}`
+                                    navigator.clipboard.writeText(link)
+                                    alert(`Digital verification link copied to clipboard!\n\n${link}`)
+                                  }}
+                                  style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', background: '#fff', fontSize: '11px', cursor: 'pointer' }}
+                                  title="Copy Direct Digital Confirmation Link"
+                                >
+                                  🔗 Copy Link
+                                </button>
+                                <button
+                                  onClick={() => handleExportConfirmationLetterHtml(r.id)}
+                                  style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', background: '#fff', fontSize: '11px', cursor: 'pointer' }}
+                                  title="Print Formal Confirmation Letter"
+                                >
+                                  📄 Letter
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setEvaluatingReq(r)
+                                    setEvaluationForm({
+                                      status: r.status,
+                                      alternativeProceduresPerformed: r.alternativeProceduresPerformed || '',
+                                      auditorConclusion: r.auditorConclusion || 'ReconciledSatisfactory',
+                                      proposedAdjustmentAmount: r.proposedAdjustmentAmount || 0,
+                                      auditorNotes: r.auditorNotes || ''
+                                    })
+                                  }}
+                                  style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #2563eb', background: '#eff6ff', color: '#2563eb', fontWeight: 600, fontSize: '11px', cursor: 'pointer' }}
+                                >
+                                  ⚖️ Evaluate
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
           )}
@@ -1861,6 +2402,248 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
               <button onClick={() => setShowSealModal(false)} style={{ padding: '8px 16px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer' }}>Cancel</button>
               <button onClick={handleSealDossier} style={{ padding: '8px 16px', background: '#dc2626', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 600, cursor: 'pointer' }}>Confirm Seal &amp; Lock</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: New Confirmation Campaign */}
+      {showNewCampaignModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: '#fff', borderRadius: '8px', width: '500px', padding: '24px' }}>
+            <h3 style={{ margin: '0 0 12px 0', fontSize: '18px', color: '#1e3a8a' }}>New SA 505 Confirmation Campaign</h3>
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>Campaign Title *</label>
+              <input
+                type="text"
+                value={campaignForm.title}
+                onChange={e => setCampaignForm({ ...campaignForm, title: e.target.value })}
+                required
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+              />
+            </div>
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>Description / Scope</label>
+              <textarea
+                rows={2}
+                value={campaignForm.description || ''}
+                onChange={e => setCampaignForm({ ...campaignForm, description: e.target.value })}
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+              />
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>As of Date *</label>
+                <input
+                  type="date"
+                  value={campaignForm.asOfDate}
+                  onChange={e => setCampaignForm({ ...campaignForm, asOfDate: e.target.value })}
+                  required
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>Response Cut-off Date *</label>
+                <input
+                  type="date"
+                  value={campaignForm.cutoffDate}
+                  onChange={e => setCampaignForm({ ...campaignForm, cutoffDate: e.target.value })}
+                  required
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                />
+              </div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+              <button onClick={() => setShowNewCampaignModal(false)} style={{ padding: '8px 16px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={handleCreateCampaign} style={{ padding: '8px 16px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 600, cursor: 'pointer' }}>Create Campaign</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: New Confirmation Request */}
+      {showNewReqModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: '#fff', borderRadius: '8px', width: '560px', padding: '24px' }}>
+            <h3 style={{ margin: '0 0 12px 0', fontSize: '18px', color: '#1e3a8a' }}>Add Third-Party Confirmation Request</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px', marginBottom: '12px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>Party Name *</label>
+                <input
+                  type="text"
+                  value={reqForm.partyName}
+                  onChange={e => setReqForm({ ...reqForm, partyName: e.target.value })}
+                  placeholder="e.g. Acme Industries Ltd / HDFC Bank"
+                  required
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>Party Category</label>
+                <select
+                  value={reqForm.partyType}
+                  onChange={e => setReqForm({ ...reqForm, partyType: e.target.value })}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                >
+                  <option value="TradeDebtor">Trade Debtor</option>
+                  <option value="TradeCreditor">Trade Creditor</option>
+                  <option value="Bank">Bank Account / Loan</option>
+                  <option value="LoanGiven">Loan Given</option>
+                  <option value="Borrowing">Borrowing</option>
+                  <option value="SecurityDeposit">Security Deposit</option>
+                  <option value="LegalCounsel">Legal Counsel</option>
+                </select>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>Contact Email *</label>
+                <input
+                  type="email"
+                  value={reqForm.partyContactEmail}
+                  onChange={e => setReqForm({ ...reqForm, partyContactEmail: e.target.value })}
+                  placeholder="finance@party.com"
+                  required
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>GSTIN / PAN</label>
+                <input
+                  type="text"
+                  value={reqForm.partyPanGstin || ''}
+                  onChange={e => setReqForm({ ...reqForm, partyPanGstin: e.target.value })}
+                  placeholder="27AABCT1234F1Z5"
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>Book Balance (₹) *</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={reqForm.bookBalanceAmount}
+                  onChange={e => setReqForm({ ...reqForm, bookBalanceAmount: parseFloat(e.target.value) || 0 })}
+                  required
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>Confirmation Type</label>
+                <select
+                  value={reqForm.confirmationType}
+                  onChange={e => setReqForm({ ...reqForm, confirmationType: e.target.value })}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                >
+                  <option value="PositiveStatedBalance">Positive (Stated Balance)</option>
+                  <option value="PositiveBlankBalance">Positive (Blank Balance)</option>
+                  <option value="Negative">Negative Confirmation</option>
+                </select>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '16px' }}>
+              <button onClick={() => setShowNewReqModal(false)} style={{ padding: '8px 16px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={handleCreateRequest} style={{ padding: '8px 16px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 600, cursor: 'pointer' }}>Create Request</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Auditor Evaluation & Alternative Procedures (SA 505) */}
+      {evaluatingReq && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: '#fff', borderRadius: '8px', width: '600px', maxHeight: '90vh', overflowY: 'auto', padding: '24px' }}>
+            <h3 style={{ margin: '0 0 12px 0', fontSize: '18px', color: '#1e3a8a' }}>Auditor Evaluation &amp; Alternative Procedures (SA 505)</h3>
+            <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '6px', border: '1px solid #e2e8f0', marginBottom: '16px', fontSize: '13px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                <strong>{evaluatingReq.partyName}</strong>
+                <span style={{ color: '#64748b' }}>{evaluatingReq.partyType} ({evaluatingReq.leadScheduleRef})</span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginTop: '8px' }}>
+                <div>Book Balance: <strong>{fmtInr(evaluatingReq.bookBalanceAmount)}</strong></div>
+                <div>Confirmed: <strong>{evaluatingReq.confirmedBalanceAmount != null ? fmtInr(evaluatingReq.confirmedBalanceAmount) : '—'}</strong></div>
+                <div>Variance: <strong style={{ color: evaluatingReq.varianceAmount && evaluatingReq.varianceAmount !== 0 ? '#dc2626' : '#16a34a' }}>{evaluatingReq.varianceAmount != null ? fmtInr(evaluatingReq.varianceAmount) : '—'}</strong></div>
+              </div>
+              {evaluatingReq.disputeReason !== 'None' && (
+                <div style={{ color: '#b91c1c', marginTop: '6px' }}>Third Party Difference Reason: <strong>{evaluatingReq.disputeReason}</strong></div>
+              )}
+              {evaluatingReq.thirdPartyRemarks && (
+                <div style={{ color: '#475569', fontStyle: 'italic', marginTop: '4px' }}>Remarks: "{evaluatingReq.thirdPartyRemarks}"</div>
+              )}
+            </div>
+
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>Confirmation Status</label>
+              <select
+                value={evaluationForm.status}
+                onChange={e => setEvaluationForm({ ...evaluationForm, status: e.target.value })}
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+              >
+                <option value="ConfirmedAgreed">Confirmed &amp; Agreed (Zero Variance)</option>
+                <option value="Disputed">Disputed / Exception (Timing/Ledger Difference)</option>
+                <option value="NonResponseAlternativeDone">Non-Response - Alternative Procedures Done (SA 505 p12)</option>
+                <option value="ManagementRefusal">Management Refusal (Inquiry Required SA 505 p8)</option>
+              </select>
+            </div>
+
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>
+                Alternative Audit Procedures Performed (SA 505 Paragraph 12) *
+              </label>
+              <textarea
+                rows={3}
+                value={evaluationForm.alternativeProceduresPerformed || ''}
+                onChange={e => setEvaluationForm({ ...evaluationForm, alternativeProceduresPerformed: e.target.value })}
+                placeholder="e.g. Subsequent payment of ₹4,50,000 verified from April 2025 bank statement; dispatch lorry receipt and customer delivery acknowledgment examined."
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+              />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>Auditor Conclusion</label>
+                <select
+                  value={evaluationForm.auditorConclusion}
+                  onChange={e => setEvaluationForm({ ...evaluationForm, auditorConclusion: e.target.value })}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                >
+                  <option value="ReconciledSatisfactory">Reconciled Satisfactorily</option>
+                  <option value="TimingDifferenceAcceptable">Timing Difference Acceptable</option>
+                  <option value="InvestigationRequired">Investigation Required</option>
+                  <option value="ProposedAdjustmentEntry">Proposed Audit Adjustment Entry</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>Proposed Adjustment Amount (₹)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={evaluationForm.proposedAdjustmentAmount || 0}
+                  onChange={e => setEvaluationForm({ ...evaluationForm, proposedAdjustmentAmount: parseFloat(e.target.value) || 0 })}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                />
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>Auditor Workpaper Notes</label>
+              <input
+                type="text"
+                value={evaluationForm.auditorNotes || ''}
+                onChange={e => setEvaluationForm({ ...evaluationForm, auditorNotes: e.target.value })}
+                placeholder="Reference to supporting vouchers or e-way bills..."
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+              <button onClick={() => setEvaluatingReq(null)} style={{ padding: '8px 16px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={handleUpdateEvaluation} style={{ padding: '8px 16px', background: '#1e3a8a', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 600, cursor: 'pointer' }}>Save Evaluation</button>
             </div>
           </div>
         </div>

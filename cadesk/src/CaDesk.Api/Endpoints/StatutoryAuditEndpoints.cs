@@ -239,6 +239,109 @@ public static class StatutoryAuditEndpoints
             return Results.Ok(html);
         }).RequirePermission(Perms.AuditRead);
 
+        // =========================================================================
+        // Sprint 45: SA 505 Automated External Confirmations Endpoints
+        // =========================================================================
+
+        g.MapGet("/engagements/{id:guid}/confirmation-campaigns", async (Guid id, AuditService svc, CancellationToken ct) =>
+        {
+            var campaigns = await svc.GetConfirmationCampaignsAsync(id, ct);
+            return Results.Ok(campaigns);
+        }).RequirePermission(Perms.AuditRead);
+
+        g.MapPost("/engagements/{id:guid}/confirmation-campaigns", async (
+            Guid id,
+            CreateConfirmationCampaignRequest req,
+            ClaimsPrincipal user,
+            AuditService svc,
+            CancellationToken ct) =>
+        {
+            var userId = Guid.Parse(user.FindFirstValue("sub") ?? user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var campaign = await svc.CreateConfirmationCampaignAsync(id, req, userId, ct);
+            return Results.Created($"/api/audit/confirmation-campaigns/{campaign.Id}", campaign);
+        }).RequirePermission(Perms.AuditManage);
+
+        g.MapGet("/confirmation-campaigns/{campaignId:guid}/requests", async (Guid campaignId, AuditService svc, CancellationToken ct) =>
+        {
+            var requests = await svc.GetConfirmationRequestsAsync(campaignId, ct);
+            return Results.Ok(requests);
+        }).RequirePermission(Perms.AuditRead);
+
+        g.MapPost("/confirmation-campaigns/{campaignId:guid}/requests", async (
+            Guid campaignId,
+            CreateConfirmationRequest req,
+            ClaimsPrincipal user,
+            AuditService svc,
+            CancellationToken ct) =>
+        {
+            var userId = Guid.Parse(user.FindFirstValue("sub") ?? user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var item = await svc.CreateConfirmationRequestAsync(campaignId, req, userId, ct);
+            return Results.Created($"/api/audit/confirmations/{item.Id}", item);
+        }).RequirePermission(Perms.AuditManage);
+
+        g.MapPost("/confirmation-campaigns/{campaignId:guid}/auto-populate", async (
+            Guid campaignId,
+            AutoPopulateConfirmationsRequest req,
+            ClaimsPrincipal user,
+            AuditService svc,
+            CancellationToken ct) =>
+        {
+            var userId = Guid.Parse(user.FindFirstValue("sub") ?? user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var items = await svc.AutoPopulateConfirmationsFromTrialBalanceAsync(campaignId, req, userId, ct);
+            return Results.Ok(items);
+        }).RequirePermission(Perms.AuditManage);
+
+        g.MapPost("/confirmation-campaigns/{campaignId:guid}/send", async (
+            Guid campaignId,
+            List<Guid>? requestIds,
+            AuditService svc,
+            CancellationToken ct) =>
+        {
+            var count = await svc.SendConfirmationRequestsAsync(campaignId, requestIds, ct);
+            return Results.Ok(new { sentCount = count });
+        }).RequirePermission(Perms.AuditManage);
+
+        g.MapPut("/confirmations/{requestId:guid}/evaluate", async (
+            Guid requestId,
+            UpdateConfirmationAuditorEvaluationRequest req,
+            ClaimsPrincipal user,
+            AuditService svc,
+            CancellationToken ct) =>
+        {
+            var userId = Guid.Parse(user.FindFirstValue("sub") ?? user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var item = await svc.UpdateConfirmationAuditorEvaluationAsync(requestId, req, userId, ct);
+            return Results.Ok(item);
+        }).RequirePermission(Perms.AuditManage);
+
+        g.MapGet("/confirmation-campaigns/{campaignId:guid}/export-summary", async (Guid campaignId, AuditService svc, CancellationToken ct) =>
+        {
+            var summary = await svc.ExportConfirmationSummaryHtmlAsync(campaignId, ct);
+            return Results.Ok(summary);
+        }).RequirePermission(Perms.AuditRead);
+
+        g.MapGet("/confirmations/{requestId:guid}/letter-html", async (Guid requestId, AuditService svc, CancellationToken ct) =>
+        {
+            var html = await svc.ExportConfirmationLetterHtmlAsync(requestId, ct);
+            return Results.Content(html, "text/html");
+        }).RequirePermission(Perms.AuditRead);
+
+        // Anonymous Public Confirmation Portal Endpoints
+        app.MapGet("/api/audit/confirmations/public/{token}", async (string token, AuditService svc, CancellationToken ct) =>
+        {
+            var details = await svc.GetPublicConfirmationByTokenAsync(token, ct);
+            return Results.Ok(details);
+        }).AllowAnonymous();
+
+        app.MapPost("/api/audit/confirmations/public/{token}/respond", async (
+            string token,
+            SubmitConfirmationResponseRequest req,
+            AuditService svc,
+            CancellationToken ct) =>
+        {
+            var res = await svc.SubmitPublicConfirmationResponseAsync(token, req, ct);
+            return Results.Ok(res);
+        }).AllowAnonymous();
+
         return app;
     }
 }

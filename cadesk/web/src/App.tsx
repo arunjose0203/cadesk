@@ -39,10 +39,16 @@ import { AntiProfiteeringPage } from './AntiProfiteeringPage'
 import { SecretarialAuditPage } from './SecretarialAuditPage'
 import { TransferPricingPage } from './TransferPricingPage'
 import CostAuditPage from './CostAuditPage'
+import PublicConfirmationPortal from './PublicConfirmationPortal'
 
 type Page = 'tasks' | 'deadlines' | 'clients' | 'billing' | 'trial-balance' | 'tax' | 'audit-workspace' | 'gst-reconcile' | 'tds' | 'mca' | 'engagement' | 'banking' | 'reports' | 'tax-notices' | 'payroll' | 'einvoicing' | 'fixed-assets' | 'advance-tax' | 'gstr9' | 'presumptive' | 'caro' | 'taxaudit' | 'schedule3' | 'branchaudit' | 'auditcommittee' | 'foreignremittance' | 'relatedparty' | 'internalaudit' | 'antiprofiteering' | 'secretarialaudit' | 'transferpricing' | 'costaudit' | 'dsc' | 'portal' | 'users' | 'settings' | 'audit' | 'security'
 
 export default function App() {
+  const isConfirmLink = window.location.pathname.startsWith('/confirm') || new URLSearchParams(window.location.search).has('confirm')
+  if (isConfirmLink) {
+    return <PublicConfirmationPortal />
+  }
+
   const [user, setUser] = useState<UserProfile | null>(null)
   const [checking, setChecking] = useState(true)
   const [page, setPage] = useState<Page>('clients')

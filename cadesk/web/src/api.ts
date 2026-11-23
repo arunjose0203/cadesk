@@ -1028,6 +1028,123 @@ export type DossierExportHtmlDto = {
   generatedAt: string
 }
 
+// -------------------------------------------------------------
+// Sprint 45: SA 505 External Confirmation Types
+// -------------------------------------------------------------
+
+export type ConfirmationCampaignDto = {
+  id: string
+  auditEngagementId: string
+  title: string
+  description?: string | null
+  asOfDate: string
+  cutoffDate: string
+  status: string
+  totalRequestsCount: number
+  confirmedAgreedCount: number
+  disputedCount: number
+  pendingCount: number
+  totalBookBalanceAmount: number
+  totalConfirmedAmount: number
+  varianceAmountTotal: number
+  createdAt: string
+  updatedAt?: string | null
+}
+
+export type ExternalConfirmationRequestDto = {
+  id: string
+  campaignId: string
+  auditEngagementId: string
+  leadScheduleRef: string
+  partyType: string
+  partyName: string
+  partyContactEmail: string
+  partyContactPhone?: string | null
+  partyPanGstin?: string | null
+  confirmationType: string
+  bookBalanceAmount: number
+  currency: string
+  asOfDate: string
+  secureAccessToken: string
+  tokenExpiresAt: string
+  status: string
+  sentAt?: string | null
+  respondedAt?: string | null
+  confirmedBalanceAmount?: number | null
+  varianceAmount?: number | null
+  disputeReason: string
+  thirdPartyRemarks?: string | null
+  thirdPartySignatoryName?: string | null
+  thirdPartyDesignation?: string | null
+  alternativeProceduresPerformed?: string | null
+  auditorConclusion: string
+  proposedAdjustmentAmount?: number | null
+  auditorNotes?: string | null
+  reviewedBy?: string | null
+  reviewedAt?: string | null
+  createdAt: string
+}
+
+export type CreateConfirmationCampaignRequest = {
+  title: string
+  description?: string | null
+  asOfDate: string
+  cutoffDate: string
+}
+
+export type CreateConfirmationRequest = {
+  leadScheduleRef: string
+  partyType: string
+  partyName: string
+  partyContactEmail: string
+  partyContactPhone?: string | null
+  partyPanGstin?: string | null
+  confirmationType: string
+  bookBalanceAmount: number
+  asOfDate: string
+}
+
+export type AutoPopulateConfirmationsRequest = {
+  trialBalanceImportId?: string | null
+  minimumDebtorBalance?: number
+  minimumCreditorBalance?: number
+  topNCount?: number
+}
+
+export type SubmitConfirmationResponseRequest = {
+  confirmedBalanceAmount: number
+  disputeReason: string
+  thirdPartyRemarks?: string | null
+  thirdPartySignatoryName?: string | null
+  thirdPartyDesignation?: string | null
+}
+
+export type UpdateConfirmationAuditorEvaluationRequest = {
+  status: string
+  alternativeProceduresPerformed?: string | null
+  auditorConclusion: string
+  proposedAdjustmentAmount?: number | null
+  auditorNotes?: string | null
+}
+
+export type PublicConfirmationDetailsDto = {
+  clientName: string
+  auditorFirmName: string
+  partyName: string
+  partyType: string
+  confirmationType: string
+  bookBalanceAmount?: number | null
+  asOfDate: string
+  isExpired: boolean
+  alreadyResponded: boolean
+  currentStatus: string
+}
+
+export type ConfirmationSummaryExportHtmlDto = {
+  htmlContent: string
+  generatedAt: string
+}
+
 export const auditApi = {
   summary: () => api<AuditSummaryDto>('/api/audit/summary'),
   listEngagements: (clientId?: string, fy?: string, status?: string) => {
@@ -1089,6 +1206,30 @@ export const auditApi = {
   compileDossier: (engagementId: string, req: CompileDossierRequest = {}) => api<AuditDossierDto>(`/api/audit/engagements/${engagementId}/dossier/compile`, { method: 'POST', body: JSON.stringify(req) }),
   sealDossier: (dossierId: string, req: SealDossierRequest) => api<AuditDossierDto>(`/api/audit/dossier/${dossierId}/seal`, { method: 'POST', body: JSON.stringify(req) }),
   exportDossierHtml: (engagementId: string) => api<DossierExportHtmlDto>(`/api/audit/engagements/${engagementId}/dossier/export-html`),
+
+  // SA 505 External Confirmations Desk
+  getConfirmationCampaigns: (engagementId: string) =>
+    api<ConfirmationCampaignDto[]>(`/api/audit/engagements/${engagementId}/confirmation-campaigns`),
+  createConfirmationCampaign: (engagementId: string, req: CreateConfirmationCampaignRequest) =>
+    api<ConfirmationCampaignDto>(`/api/audit/engagements/${engagementId}/confirmation-campaigns`, { method: 'POST', body: JSON.stringify(req) }),
+  getConfirmationRequests: (campaignId: string) =>
+    api<ExternalConfirmationRequestDto[]>(`/api/audit/confirmation-campaigns/${campaignId}/requests`),
+  createConfirmationRequest: (campaignId: string, req: CreateConfirmationRequest) =>
+    api<ExternalConfirmationRequestDto>(`/api/audit/confirmation-campaigns/${campaignId}/requests`, { method: 'POST', body: JSON.stringify(req) }),
+  autoPopulateConfirmations: (campaignId: string, req: AutoPopulateConfirmationsRequest = {}) =>
+    api<ExternalConfirmationRequestDto[]>(`/api/audit/confirmation-campaigns/${campaignId}/auto-populate`, { method: 'POST', body: JSON.stringify(req) }),
+  sendConfirmationRequests: (campaignId: string, requestIds?: string[]) =>
+    api<{ sentCount: number }>(`/api/audit/confirmation-campaigns/${campaignId}/send`, { method: 'POST', body: JSON.stringify(requestIds || null) }),
+  updateConfirmationEvaluation: (requestId: string, req: UpdateConfirmationAuditorEvaluationRequest) =>
+    api<ExternalConfirmationRequestDto>(`/api/audit/confirmations/${requestId}/evaluate`, { method: 'PUT', body: JSON.stringify(req) }),
+  exportConfirmationSummaryHtml: (campaignId: string) =>
+    api<ConfirmationSummaryExportHtmlDto>(`/api/audit/confirmation-campaigns/${campaignId}/export-summary`),
+  getConfirmationLetterHtml: (requestId: string) =>
+    fetch(`/api/audit/confirmations/${requestId}/letter-html`, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }).then(r => r.text()),
+  getPublicConfirmation: (token: string) =>
+    api<PublicConfirmationDetailsDto>(`/api/audit/confirmations/public/${token}`),
+  submitPublicConfirmation: (token: string, req: SubmitConfirmationResponseRequest) =>
+    api<ExternalConfirmationRequestDto>(`/api/audit/confirmations/public/${token}/respond`, { method: 'POST', body: JSON.stringify(req) }),
 }
 
 // -------------------------------------------------------------
