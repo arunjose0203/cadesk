@@ -7086,6 +7086,132 @@ export const aqmmApi = {
   }
 }
 
+// ---------------------------------------------------------------- Communications & Gateway Types (Sprint 51)
+
+export type MetaWhatsAppGatewayStatus = {
+  isConnected: boolean
+  mode: string
+  phoneNumberId: string
+  displayPhoneNumber: string
+  wabaId: string
+  webhookUrl: string
+  templateLanguage: string
+  activeTemplatesCount: number
+  sentCount: number
+  deliveredCount: number
+  failedCount: number
+}
+
+export type TransactionalEmailGatewayStatus = {
+  provider: string
+  fromAddress: string
+  host: string
+  port: number
+  sslEnabled: boolean
+  apiKeyConfigured: boolean
+  sentCount: number
+  failedCount: number
+}
+
+export type CommunicationsOverviewDto = {
+  whatsAppStatus: MetaWhatsAppGatewayStatus
+  emailStatus: TransactionalEmailGatewayStatus
+  totalDispatched: number
+  deliverySuccessRate: number
+  recentDispatches: NotificationItem[]
+}
+
+export type StatutoryDispatchFilter = {
+  regime: 'GST' | 'AdvanceTax' | 'ITR' | 'All'
+  daysHorizon?: number
+  sendWhatsApp: boolean
+  sendEmail: boolean
+}
+
+export type StatutoryDispatchResult = {
+  deadlinesEvaluated: number
+  clientsNotified: number
+  whatsAppMessagesQueued: number
+  emailMessagesQueued: number
+  dispatchedItems: string[]
+}
+
+export type Sa505DispatchFilter = {
+  campaignId: string
+  requestIds?: string[]
+  sendWhatsApp: boolean
+  sendEmail: boolean
+}
+
+export type Sa505DispatchResult = {
+  totalProcessed: number
+  whatsAppSent: number
+  emailSent: number
+  dispatchedParties: string[]
+}
+
+export type SendPortalOtpRequest = {
+  destination: string
+  channel: 'whatsapp' | 'email'
+}
+
+export type SendPortalOtpResult = {
+  success: boolean
+  channel: string
+  maskedDestination: string
+  message: string
+  expiresAtUtc: string
+}
+
+export type DispatchInvoiceNotificationRequest = {
+  invoiceId: string
+  sendEmailWithAttachment?: boolean
+  sendWhatsApp?: boolean
+}
+
+export type DispatchInvoiceNotificationResult = {
+  success: boolean
+  invoiceNumber: string
+  totalAmount: number
+  recipientEmail: string
+  recipientPhone?: string
+  message: string
+}
+
+export const communicationsApi = {
+  getGatewayStatus: () => api<CommunicationsOverviewDto>('/api/communications/gateway/status'),
+  testWhatsApp: (data: { toPhone: string; templateKey?: string; customMessage?: string }) =>
+    api<{ success: boolean; providerMessageId?: string; normalizedPhone: string; message: string }>('/api/communications/gateway/test-whatsapp', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    }),
+  testEmail: (data: { toEmail: string; subject?: string; body?: string }) =>
+    api<{ success: boolean; providerMessageId?: string; message: string }>('/api/communications/gateway/test-email', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    }),
+  dispatchStatutoryDeadlines: (filter: StatutoryDispatchFilter) =>
+    api<StatutoryDispatchResult>('/api/communications/deadlines/dispatch', {
+      method: 'POST',
+      body: JSON.stringify(filter)
+    }),
+  dispatchSa505Confirmations: (filter: Sa505DispatchFilter) =>
+    api<Sa505DispatchResult>('/api/communications/sa505/dispatch', {
+      method: 'POST',
+      body: JSON.stringify(filter)
+    }),
+  sendPortalOtp: (req: SendPortalOtpRequest) =>
+    api<SendPortalOtpResult>('/api/communications/portal/otp', {
+      method: 'POST',
+      body: JSON.stringify(req)
+    }),
+  dispatchInvoice: (req: DispatchInvoiceNotificationRequest) =>
+    api<DispatchInvoiceNotificationResult>('/api/communications/invoices/dispatch', {
+      method: 'POST',
+      body: JSON.stringify(req)
+    })
+}
+
 
 
 

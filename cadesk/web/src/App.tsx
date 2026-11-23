@@ -42,11 +42,12 @@ import CostAuditPage from './CostAuditPage'
 import PublicConfirmationPortal from './PublicConfirmationPortal'
 import SubscriptionsPage from './SubscriptionsPage'
 import AqmmDeskPage from './AqmmDeskPage'
+import CommunicationsGatewayPage from './CommunicationsGatewayPage'
 import { LandingPage } from './LandingPage'
 import { OnboardingWizard } from './OnboardingWizard'
 import { ProductTourModal } from './ProductTourModal'
 
-type Page = 'tasks' | 'deadlines' | 'clients' | 'billing' | 'trial-balance' | 'tax' | 'audit-workspace' | 'aqmm' | 'gst-reconcile' | 'tds' | 'mca' | 'engagement' | 'banking' | 'reports' | 'tax-notices' | 'payroll' | 'einvoicing' | 'fixed-assets' | 'advance-tax' | 'gstr9' | 'presumptive' | 'caro' | 'taxaudit' | 'schedule3' | 'branchaudit' | 'auditcommittee' | 'foreignremittance' | 'relatedparty' | 'internalaudit' | 'antiprofiteering' | 'secretarialaudit' | 'transferpricing' | 'costaudit' | 'dsc' | 'portal' | 'users' | 'settings' | 'audit' | 'security' | 'subscriptions'
+type Page = 'tasks' | 'deadlines' | 'clients' | 'billing' | 'trial-balance' | 'tax' | 'audit-workspace' | 'aqmm' | 'gst-reconcile' | 'tds' | 'mca' | 'engagement' | 'banking' | 'reports' | 'tax-notices' | 'payroll' | 'einvoicing' | 'fixed-assets' | 'advance-tax' | 'gstr9' | 'presumptive' | 'caro' | 'taxaudit' | 'schedule3' | 'branchaudit' | 'auditcommittee' | 'foreignremittance' | 'relatedparty' | 'internalaudit' | 'antiprofiteering' | 'secretarialaudit' | 'transferpricing' | 'costaudit' | 'dsc' | 'portal' | 'users' | 'settings' | 'audit' | 'security' | 'subscriptions' | 'communications'
 
 export default function App() {
   const isConfirmLink = window.location.pathname.startsWith('/confirm') || new URLSearchParams(window.location.search).has('confirm')
@@ -601,6 +602,14 @@ export default function App() {
           </button>
         )}
         {can('settings.manage') && (
+          <button className={page === 'communications' ? 'active' : ''} onClick={() => setPage('communications')}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+            Communications
+          </button>
+        )}
+        {can('settings.manage') && (
           <button className={page === 'settings' ? 'active' : ''} onClick={() => setPage('settings')}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="3"></circle>
@@ -663,6 +672,7 @@ export default function App() {
       {page === 'portal' && can('portal.read') && <PortalPage can={can} meId={user.id} />}
       {page === 'users' && can('users.read') && <UsersPage can={can} me={user} />}
       {page === 'subscriptions' && can('settings.manage') && <SubscriptionsPage />}
+      {page === 'communications' && can('settings.manage') && <CommunicationsGatewayPage />}
       {page === 'settings' && can('settings.manage') && <SettingsPage />}
       {page === 'audit' && can('audit.read') && <AuditPage />}
       {page === 'security' && <SecurityPage me={user} onChanged={afterSecurityChange} />}

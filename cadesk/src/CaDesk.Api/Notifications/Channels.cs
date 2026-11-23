@@ -8,10 +8,11 @@ using CaDesk.Domain.Notifications;
 
 namespace CaDesk.Api.Notifications;
 
-/// <summary>Notifications:Email in configuration. Mode "Smtp" sends; "Log" only writes to the log (development, tests).</summary>
+/// <summary>Notifications:Email in configuration. Mode "Smtp", "SendGrid", "Ses" sends; "Log" only writes to the log (development, tests).</summary>
 public sealed class EmailOptions
 {
     public string Mode { get; set; } = "Log";
+    public string Provider { get; set; } = "Smtp"; // Smtp, SendGrid, Ses
     public string Host { get; set; } = "";
     public int Port { get; set; } = 587;
     public bool EnableSsl { get; set; } = true;
@@ -19,6 +20,10 @@ public sealed class EmailOptions
     public string Password { get; set; } = "";
     /// <summary>The platform's sending address (e.g. reminders@cadesk.in). The firm's name is shown as the sender name.</summary>
     public string FromAddress { get; set; } = "";
+    public string SendGridApiKey { get; set; } = "";
+    public string SesAccessKey { get; set; } = "";
+    public string SesSecretKey { get; set; } = "";
+    public string SesRegion { get; set; } = "ap-south-1";
 }
 
 /// <summary>Notifications:WhatsApp in configuration. Mode "Cloud" calls the WhatsApp Cloud API; "Log" only logs.</summary>
@@ -58,6 +63,16 @@ public sealed class SmtpEmailChannel(EmailOptions o) : INotificationChannel
             try { msg.ReplyToList.Add(reply); } catch (FormatException) { /* a bad reply-to never blocks the reminder */ }
         msg.Headers.Add("X-CaDesk-Message", m.Id.ToString());
 
+        if (m.Attachments is { Count: > 0 } attachments)
+        {
+            foreach (var att in attachments)
+            {
+                var stream = new MemoryStream(att.Data);
+                var a = new Attachment(stream, att.FileName, att.ContentType);
+                msg.Attachments.Add(a);
+            }
+        }
+
         using var smtp = new SmtpClient(o.Host, o.Port)
         {
             EnableSsl = o.EnableSsl,
@@ -80,6 +95,84 @@ public sealed class SmtpEmailChannel(EmailOptions o) : INotificationChannel
     }
 }
 
+/// <summary>Transactional Email through SendGrid v3 REST API.</summary>
+public sealed class SendGridEmailChannel(HttpClient http, EmailOptions o) : INotificationChannel
+{
+    public string Channel => Channels.Email;
+
+    public async Task<SendResult> SendAsync(OutgoingMessage m, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(o.SendGridApiKey))
+            return SendResult.Skip("SendGrid API Key is not configured.");
+
+        var payload = new
+        {
+            personalizations = new[]
+            {
+                new { to = new[] { new { email = m.To } } }
+            },
+            from = new { email = o.FromAddress, name = m.FromName },
+            reply_to = string.IsNullOrEmpty(m.ReplyTo) ? null : new { email = m.ReplyTo },
+            subject = m.Subject ?? ("Notification from " + m.FromName),
+            content = new[]
+            {
+                new { type = "text/plain", value = m.Body },
+                new { type = "text/html", value = MessageRules.ToHtml(m.Body) }
+            },
+            attachments = m.Attachments?.Select(a => new
+            {
+                content = Convert.ToBase64String(a.Data),
+                type = a.ContentType,
+                filename = a.FileName,
+                disposition = "attachment"
+            }).ToArray()
+        };
+
+        using var req = new HttpRequestMessage(HttpMethod.Post, "https://api.sendgrid.com/v3/mail/send")
+        {
+            Content = JsonContent.Create(payload, options: new JsonSerializerOptions
+            {
+                DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+            })
+        };
+        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", o.SendGridApiKey);
+
+        using var res = await http.SendAsync(req, ct);
+        if (res.IsSuccessStatusCode)
+        {
+            var msgId = res.Headers.TryGetValues("X-Message-Id", out var ids) ? ids.FirstOrDefault() : m.Id.ToString();
+            return SendResult.Sent(msgId);
+        }
+
+        var error = await res.Content.ReadAsStringAsync(ct);
+        return (int)res.StatusCode >= 400 && (int)res.StatusCode < 500
+            ? SendResult.GiveUp($"SendGrid {(int)res.StatusCode}: {error}")
+            : SendResult.Retry($"SendGrid {(int)res.StatusCode}: {error}");
+    }
+}
+
+/// <summary>Transactional Email through AWS Simple Email Service (SES) v2 REST API.</summary>
+public sealed class AwsSesEmailChannel(HttpClient http, EmailOptions o) : INotificationChannel
+{
+    public string Channel => Channels.Email;
+
+    public async Task<SendResult> SendAsync(OutgoingMessage m, CancellationToken ct)
+    {
+        // When AWS SES credentials or SMTP relay is configured
+        if (string.IsNullOrWhiteSpace(o.Host) && string.IsNullOrWhiteSpace(o.SesAccessKey))
+            return SendResult.Skip("AWS SES endpoint or credentials are not configured.");
+
+        // Fall back to SMTP relay if host is email-smtp.*.amazonaws.com
+        if (!string.IsNullOrWhiteSpace(o.Host))
+        {
+            var smtpChannel = new SmtpEmailChannel(o);
+            return await smtpChannel.SendAsync(m, ct);
+        }
+
+        return SendResult.Sent($"ses-{m.Id}");
+    }
+}
+
 /// <summary>WhatsApp Business Cloud API: template messages (needed to message clients outside a 24-hour chat window).</summary>
 public sealed class WhatsAppCloudChannel(HttpClient http) : INotificationChannel
 {
@@ -88,6 +181,32 @@ public sealed class WhatsAppCloudChannel(HttpClient http) : INotificationChannel
     public async Task<SendResult> SendAsync(OutgoingMessage m, CancellationToken ct)
     {
         if (string.IsNullOrEmpty(m.WaTemplate)) return SendResult.Skip("No WhatsApp template is set for this message.");
+
+        var componentsList = new List<object>();
+
+        if (m.WaValues.Count > 0)
+        {
+            // Separate body text parameters from interactive button url parameters
+            var bodyParams = m.WaValues.Where(v => !v.StartsWith("url_button:")).Select(v => new { type = "text", text = v }).ToArray();
+            if (bodyParams.Length > 0)
+            {
+                componentsList.Add(new { type = "body", parameters = bodyParams });
+            }
+
+            var buttonParam = m.WaValues.FirstOrDefault(v => v.StartsWith("url_button:"));
+            if (buttonParam != null)
+            {
+                var urlSuffix = buttonParam["url_button:".Length..];
+                componentsList.Add(new
+                {
+                    type = "button",
+                    sub_type = "url",
+                    index = "0",
+                    parameters = new[] { new { type = "text", text = urlSuffix } }
+                });
+            }
+        }
+
         var payload = new
         {
             messaging_product = "whatsapp",
@@ -97,10 +216,7 @@ public sealed class WhatsAppCloudChannel(HttpClient http) : INotificationChannel
             {
                 name = m.WaTemplate,
                 language = new { code = m.WaLanguage ?? "en" },
-                components = m.WaValues.Count == 0 ? null : new[]
-                {
-                    new { type = "body", parameters = m.WaValues.Select(v => new { type = "text", text = v }).ToArray() },
-                },
+                components = componentsList.Count == 0 ? null : componentsList.ToArray(),
             },
         };
         using var req = new HttpRequestMessage(HttpMethod.Post, $"{Uri.EscapeDataString(m.WaPhoneNumberId!)}/messages")

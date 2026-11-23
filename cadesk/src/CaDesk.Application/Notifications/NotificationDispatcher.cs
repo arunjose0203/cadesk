@@ -8,7 +8,8 @@ namespace CaDesk.Application.Notifications;
 
 /// <summary>What a channel needs to deliver one message, including the firm's own channel settings.</summary>
 public sealed record OutgoingMessage(Guid Id, string To, string? Subject, string Body, string? ReplyTo, string FromName,
-    string? WaTemplate, IReadOnlyList<string> WaValues, string? WaLanguage, string? WaPhoneNumberId, string? WaToken);
+    string? WaTemplate, IReadOnlyList<string> WaValues, string? WaLanguage, string? WaPhoneNumberId, string? WaToken,
+    IReadOnlyList<NotificationAttachment>? Attachments = null);
 
 public sealed record SendResult(bool Ok, string? ProviderId = null, string? Error = null, bool Permanent = false, bool Skipped = false)
 {

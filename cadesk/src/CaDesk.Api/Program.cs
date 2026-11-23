@@ -61,6 +61,20 @@ if (emailOptions.Mode.Equals("Smtp", StringComparison.OrdinalIgnoreCase))
     builder.Services.AddSingleton(emailOptions);
     builder.Services.AddSingleton<CaDesk.Application.Notifications.INotificationChannel, CaDesk.Api.Notifications.SmtpEmailChannel>();
 }
+else if (emailOptions.Mode.Equals("SendGrid", StringComparison.OrdinalIgnoreCase))
+{
+    builder.Services.AddSingleton(emailOptions);
+    builder.Services.AddHttpClient<CaDesk.Api.Notifications.SendGridEmailChannel>();
+    builder.Services.AddTransient<CaDesk.Application.Notifications.INotificationChannel>(sp =>
+        sp.GetRequiredService<CaDesk.Api.Notifications.SendGridEmailChannel>());
+}
+else if (emailOptions.Mode.Equals("Ses", StringComparison.OrdinalIgnoreCase))
+{
+    builder.Services.AddSingleton(emailOptions);
+    builder.Services.AddHttpClient<CaDesk.Api.Notifications.AwsSesEmailChannel>();
+    builder.Services.AddTransient<CaDesk.Application.Notifications.INotificationChannel>(sp =>
+        sp.GetRequiredService<CaDesk.Api.Notifications.AwsSesEmailChannel>());
+}
 else
 {
     if (!builder.Environment.IsDevelopment() && !builder.Environment.IsEnvironment("Testing"))
@@ -119,6 +133,7 @@ builder.Services.AddScoped<CaDesk.Application.TrialBalance.TrialBalanceSyncEngin
 builder.Services.AddScoped<CaDesk.Application.TrialBalance.TrialBalanceService>();
 builder.Services.AddScoped<CaDesk.Application.Subscriptions.SubscriptionService>();
 builder.Services.AddScoped<CaDesk.Application.Aqmm.AqmmService>();
+builder.Services.AddScoped<CaDesk.Application.Notifications.CommunicationGatewayService>();
 var docOptions = config.GetSection("Documents").Get<CaDesk.Api.Documents.DocumentOptions>() ?? new();
 var storagePath = docOptions.StoragePath;
 if (storagePath.Length == 0)
@@ -318,6 +333,7 @@ app.MapAuditEndpoints();
 app.MapTrialBalanceEndpoints();
 app.MapSubscriptionEndpoints();
 app.MapAqmmEndpoints();
+app.MapCommunicationGatewayEndpoints();
 
 app.Run();
 

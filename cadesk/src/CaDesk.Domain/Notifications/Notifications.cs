@@ -77,6 +77,15 @@ public static class NotificationKeys
     public const string ReviewRequested = "staff.review_requested";
     public const string Escalation = "staff.escalation";
 
+    // Sprint 51: Real-Time Automation & Communication Moat
+    public const string StatutoryDeadlineGst = "client.statutory_gst";
+    public const string StatutoryDeadlineAdvanceTax = "client.statutory_advancetax";
+    public const string StatutoryDeadlineItr = "client.statutory_itr";
+    public const string Sa505Confirmation = "client.sa505_confirmation";
+    public const string PortalQueryAlert = "client.portal_query";
+    public const string PortalOtp = "client.portal_otp";
+    public const string InvoiceDelivery = "client.invoice_delivery";
+
     /// <summary>Placeholders each message may use; anything else is refused when a firm edits a template.</summary>
     public static readonly IReadOnlyDictionary<string, string[]> Placeholders = new Dictionary<string, string[]>
     {
@@ -86,5 +95,14 @@ public static class NotificationKeys
         [TaskSentBack] = ["firm", "user", "task", "client", "comment"],
         [ReviewRequested] = ["firm", "user", "task", "client"],
         [Escalation] = ["firm", "user", "client", "compliance", "period", "due_date", "days_overdue"],
+        [StatutoryDeadlineGst] = ["firm", "client", "contact", "compliance", "period", "due_date", "days_left", "portal_url"],
+        [StatutoryDeadlineAdvanceTax] = ["firm", "client", "contact", "installment", "fy", "due_date", "days_left", "estimated_tax", "portal_url"],
+        [StatutoryDeadlineItr] = ["firm", "client", "contact", "ay", "due_date", "days_left", "portal_url"],
+        [Sa505Confirmation] = ["firm", "client", "party_name", "as_of_date", "balance", "confirmation_url", "token_expires"],
+        [PortalQueryAlert] = ["firm", "client", "user", "ticket_number", "subject", "status", "portal_url"],
+        [PortalOtp] = ["firm", "otp_code", "valid_minutes"],
+        [InvoiceDelivery] = ["firm", "client", "contact", "invoice_number", "invoice_date", "total_amount", "due_date", "payment_url"],
     };
 }
+
+public sealed record NotificationAttachment(string FileName, string ContentType, byte[] Data);
