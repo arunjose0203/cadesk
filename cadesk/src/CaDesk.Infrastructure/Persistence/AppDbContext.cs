@@ -28,6 +28,7 @@ using CaDesk.Domain.Caro;
 using CaDesk.Domain.TaxAudit;
 using CaDesk.Domain.Schedule3;
 using CaDesk.Domain.BranchAudit;
+using CaDesk.Domain.Subscriptions;
 using CaDesk.Domain.AuditCommittee;
 using CaDesk.Domain.ForeignRemittance;
 using CaDesk.Domain.RelatedParty;
@@ -183,6 +184,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
     public DbSet<TrialBalanceImport> TrialBalanceImports => Set<TrialBalanceImport>();
     public DbSet<TrialBalanceLedger> TrialBalanceLedgers => Set<TrialBalanceLedger>();
     public DbSet<ClientLedgerMapping> ClientLedgerMappings => Set<ClientLedgerMapping>();
+    public DbSet<FirmSubscription> FirmSubscriptions => Set<FirmSubscription>();
+    public DbSet<SubscriptionInvoice> SubscriptionInvoices => Set<SubscriptionInvoice>();
     public DbSet<ConfigDefinition> ConfigDefinitions => Set<ConfigDefinition>();
     public DbSet<ConfigValue> ConfigValues => Set<ConfigValue>();
     public DbSet<ConfigChangeLog> ConfigChangeLog => Set<ConfigChangeLog>();
@@ -486,6 +489,18 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
             e.Property(x => x.ProfitAndLossNotesJson).HasColumnType("jsonb");
             e.Property(x => x.RegulatoryRatiosJson).HasColumnType("jsonb");
             e.HasOne(x => x.AuditEngagement).WithMany().HasForeignKey(x => x.AuditEngagementId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<FirmSubscription>(e =>
+        {
+            e.ToTable("firm_subscriptions");
+            e.HasIndex(x => x.FirmId).HasDatabaseName("ix_firm_subscriptions_firm");
+        });
+
+        b.Entity<SubscriptionInvoice>(e =>
+        {
+            e.ToTable("subscription_invoices");
+            e.HasIndex(x => new { x.FirmId, x.InvoiceNumber }).HasDatabaseName("ix_sub_invoices_firm_inv");
         });
 
         b.Entity<GstReconciliationBatch>(e =>

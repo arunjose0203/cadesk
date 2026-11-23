@@ -169,6 +169,8 @@ public interface IAppDbContext
     DbSet<CaDesk.Domain.TrialBalance.TrialBalanceImport> TrialBalanceImports { get; }
     DbSet<CaDesk.Domain.TrialBalance.TrialBalanceLedger> TrialBalanceLedgers { get; }
     DbSet<CaDesk.Domain.TrialBalance.ClientLedgerMapping> ClientLedgerMappings { get; }
+    DbSet<CaDesk.Domain.Subscriptions.FirmSubscription> FirmSubscriptions { get; }
+    DbSet<CaDesk.Domain.Subscriptions.SubscriptionInvoice> SubscriptionInvoices { get; }
     /// <summary>For transactions and the few raw SQL calls (numbering, jsonb lookups). RLS still applies.</summary>
     DatabaseFacade Database { get; }
     /// <summary>To discard a failed unit of work's unsaved changes (e.g. one desk of a trial balance sync).</summary>

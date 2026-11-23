@@ -104,6 +104,7 @@ builder.Services.AddScoped<CaDesk.Application.TransferPricing.TransferPricingSer
 builder.Services.AddScoped<CaDesk.Application.CostAudit.CostAuditService>();
 builder.Services.AddScoped<CaDesk.Application.TrialBalance.TrialBalanceSyncEngine>();
 builder.Services.AddScoped<CaDesk.Application.TrialBalance.TrialBalanceService>();
+builder.Services.AddScoped<CaDesk.Application.Subscriptions.SubscriptionService>();
 var docOptions = config.GetSection("Documents").Get<CaDesk.Api.Documents.DocumentOptions>() ?? new();
 var storagePath = docOptions.StoragePath;
 if (storagePath.Length == 0)
@@ -276,6 +277,7 @@ app.MapCostAuditEndpoints();
 app.MapSettingsEndpoints();
 app.MapAuditEndpoints();
 app.MapTrialBalanceEndpoints();
+app.MapSubscriptionEndpoints();
 
 app.Run();
 

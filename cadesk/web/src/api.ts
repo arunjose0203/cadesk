@@ -6874,6 +6874,111 @@ export const trialBalanceApi = {
     api<ClientLedgerMappingDto[]>(`/api/trial-balance/clients/${clientId}/rules`),
 }
 
+// -------------------------------------------------------------
+// Sprint 47: Commercial SaaS Monetization, Subscriptions & Demo Seeder
+// -------------------------------------------------------------
+
+export type SubscriptionStatusDto = {
+  planTier: string
+  displayName: string
+  status: string
+  billingInterval: string
+  trialStartsAt: string
+  trialEndsAt: string
+  daysRemainingInTrial: number
+  isTrialActive: boolean
+  currentPeriodEnd: string
+  cancelAtPeriodEnd: boolean
+  currentUsersCount: number
+  userLimit: number
+  currentClientsCount: number
+  clientLimit: number
+  activeAuditsCount: number
+  activeAuditsLimit: number
+  isDemoDataSeeded: boolean
+  includedFeatures: string[]
+  lastPaymentAmount: number
+  lastPaymentDate?: string | null
+  lastPaymentInvoiceNumber?: string | null
+}
+
+export type PlanPricingOptionDto = {
+  tierCode: string
+  displayName: string
+  description: string
+  monthlyPrice: number
+  annualPrice: number
+  userLimit: number
+  clientLimit: number
+  activeAuditsLimit: number
+  includedFeatures: string[]
+  isPopular: boolean
+}
+
+export type UpgradePlanRequest = {
+  targetTier: string
+  billingInterval?: string
+  paymentMethod?: string
+  firmGstin?: string | null
+  transactionReference?: string | null
+}
+
+export type UpgradePlanResponseDto = {
+  success: boolean
+  planTier: string
+  status: string
+  invoiceNumber: string
+  totalAmountPaid: number
+  cgstAmount: number
+  sgstAmount: number
+  igstAmount: number
+  message: string
+}
+
+export type SubscriptionInvoiceDto = {
+  id: string
+  invoiceNumber: string
+  invoiceDate: string
+  planTier: string
+  billingInterval: string
+  baseAmount: number
+  cgstAmount: number
+  sgstAmount: number
+  igstAmount: number
+  totalAmount: number
+  sacCode: string
+  paymentStatus: string
+  paymentMethod: string
+  transactionReference: string
+  createdAt: string
+}
+
+export type SeedDemoDataResultDto = {
+  success: boolean
+  clientsCreated: number
+  auditEngagementsCreated: number
+  bankTransactionsCreated: number
+  confirmationsCreated: number
+  message: string
+}
+
+export type PurgeDemoDataResultDto = {
+  success: boolean
+  clientsPurged: number
+  message: string
+}
+
+export const subscriptionApi = {
+  getStatus: () => api<SubscriptionStatusDto>('/api/subscriptions/status'),
+  getPlans: () => api<PlanPricingOptionDto[]>('/api/subscriptions/plans'),
+  upgradePlan: (req: UpgradePlanRequest) =>
+    api<UpgradePlanResponseDto>('/api/subscriptions/upgrade', { method: 'POST', body: JSON.stringify(req) }),
+  getInvoices: () => api<SubscriptionInvoiceDto[]>('/api/subscriptions/invoices'),
+  seedDemoData: () => api<SeedDemoDataResultDto>('/api/subscriptions/seed-demo', { method: 'POST' }),
+  purgeDemoData: () => api<PurgeDemoDataResultDto>('/api/subscriptions/purge-demo', { method: 'POST' })
+}
+
+
 
 
 

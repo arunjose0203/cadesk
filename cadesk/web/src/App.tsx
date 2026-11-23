@@ -40,8 +40,9 @@ import { SecretarialAuditPage } from './SecretarialAuditPage'
 import { TransferPricingPage } from './TransferPricingPage'
 import CostAuditPage from './CostAuditPage'
 import PublicConfirmationPortal from './PublicConfirmationPortal'
+import SubscriptionsPage from './SubscriptionsPage'
 
-type Page = 'tasks' | 'deadlines' | 'clients' | 'billing' | 'trial-balance' | 'tax' | 'audit-workspace' | 'gst-reconcile' | 'tds' | 'mca' | 'engagement' | 'banking' | 'reports' | 'tax-notices' | 'payroll' | 'einvoicing' | 'fixed-assets' | 'advance-tax' | 'gstr9' | 'presumptive' | 'caro' | 'taxaudit' | 'schedule3' | 'branchaudit' | 'auditcommittee' | 'foreignremittance' | 'relatedparty' | 'internalaudit' | 'antiprofiteering' | 'secretarialaudit' | 'transferpricing' | 'costaudit' | 'dsc' | 'portal' | 'users' | 'settings' | 'audit' | 'security'
+type Page = 'tasks' | 'deadlines' | 'clients' | 'billing' | 'trial-balance' | 'tax' | 'audit-workspace' | 'gst-reconcile' | 'tds' | 'mca' | 'engagement' | 'banking' | 'reports' | 'tax-notices' | 'payroll' | 'einvoicing' | 'fixed-assets' | 'advance-tax' | 'gstr9' | 'presumptive' | 'caro' | 'taxaudit' | 'schedule3' | 'branchaudit' | 'auditcommittee' | 'foreignremittance' | 'relatedparty' | 'internalaudit' | 'antiprofiteering' | 'secretarialaudit' | 'transferpricing' | 'costaudit' | 'dsc' | 'portal' | 'users' | 'settings' | 'audit' | 'security' | 'subscriptions'
 
 export default function App() {
   const isConfirmLink = window.location.pathname.startsWith('/confirm') || new URLSearchParams(window.location.search).has('confirm')
@@ -543,6 +544,15 @@ export default function App() {
           </button>
         )}
         {can('settings.manage') && (
+          <button className={page === 'subscriptions' ? 'active' : ''} onClick={() => setPage('subscriptions')}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+              <line x1="1" y1="10" x2="23" y2="10"></line>
+            </svg>
+            Plan &amp; Billing
+          </button>
+        )}
+        {can('settings.manage') && (
           <button className={page === 'settings' ? 'active' : ''} onClick={() => setPage('settings')}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="3"></circle>
@@ -603,6 +613,7 @@ export default function App() {
       {page === 'dsc' && can('dsc.read') && <DscPage can={can} meId={user.id} />}
       {page === 'portal' && can('portal.read') && <PortalPage can={can} meId={user.id} />}
       {page === 'users' && can('users.read') && <UsersPage can={can} me={user} />}
+      {page === 'subscriptions' && can('settings.manage') && <SubscriptionsPage />}
       {page === 'settings' && can('settings.manage') && <SettingsPage />}
       {page === 'audit' && can('audit.read') && <AuditPage />}
       {page === 'security' && <SecurityPage me={user} onChanged={afterSecurityChange} />}
