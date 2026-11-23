@@ -138,6 +138,7 @@ builder.Services.AddScoped<CaDesk.Application.SecurityCompliance.SecurityComplia
 builder.Services.AddScoped<CaDesk.Application.PartnerCompanion.PartnerCompanionService>();
 builder.Services.AddScoped<CaDesk.Application.ConnectedBanking.ConnectedBankingService>();
 builder.Services.AddScoped<CaDesk.Application.TaxNotices.ITaxCopilotService, CaDesk.Application.TaxNotices.TaxCopilotService>();
+builder.Services.AddScoped<CaDesk.Application.UaeTax.IUaeCorporateTaxService, CaDesk.Application.UaeTax.UaeCorporateTaxService>();
 var docOptions = config.GetSection("Documents").Get<CaDesk.Api.Documents.DocumentOptions>() ?? new();
 var storagePath = docOptions.StoragePath;
 if (storagePath.Length == 0)
@@ -342,6 +343,7 @@ app.MapSecurityComplianceEndpoints();
 app.MapPartnerCompanionEndpoints();
 app.MapConnectedBankingEndpoints();
 app.MapTaxCopilotEndpoints();
+app.MapUaeCorporateTaxEndpoints();
 
 app.Run();
 

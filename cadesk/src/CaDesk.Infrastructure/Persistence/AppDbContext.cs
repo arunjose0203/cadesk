@@ -18,6 +18,7 @@ using CaDesk.Domain.Tasks;
 using CaDesk.Domain.Notifications;
 using CaDesk.Domain.Reports;
 using CaDesk.Domain.TaxNotices;
+using CaDesk.Domain.UaeTax;
 using CaDesk.Domain.Payroll;
 using CaDesk.Domain.EInvoicing;
 using CaDesk.Domain.FixedAssets;
@@ -130,6 +131,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
     public DbSet<TaxDemand> TaxDemands => Set<TaxDemand>();
     public DbSet<StatutoryPrecedent> StatutoryPrecedents => Set<StatutoryPrecedent>();
     public DbSet<TaxDefenseDraft> TaxDefenseDrafts => Set<TaxDefenseDraft>();
+    public DbSet<UaeTaxProfile> UaeTaxProfiles => Set<UaeTaxProfile>();
+    public DbSet<UaeCorporateTaxReturn> UaeCorporateTaxReturns => Set<UaeCorporateTaxReturn>();
     public DbSet<PayrollEmployee> PayrollEmployees => Set<PayrollEmployee>();
     public DbSet<PayrollRun> PayrollRuns => Set<PayrollRun>();
     public DbSet<PayrollPayslip> PayrollPayslips => Set<PayrollPayslip>();
@@ -720,6 +723,23 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
             e.Property(x => x.Status).HasConversion<string>();
             e.HasOne(x => x.Notice).WithMany().HasForeignKey(x => x.NoticeId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne<Client>().WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<UaeTaxProfile>(e =>
+        {
+            e.ToTable("uae_tax_profiles");
+            e.Property(x => x.Category).HasConversion<string>();
+            e.Property(x => x.FreeZoneRegime).HasConversion<string>();
+            e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<UaeCorporateTaxReturn>(e =>
+        {
+            e.ToTable("uae_corporate_tax_returns");
+            e.Property(x => x.Status).HasConversion<string>();
+            e.Property(x => x.SmallBusinessReliefElection).HasConversion<string>();
+            e.HasOne(x => x.TaxProfile).WithMany().HasForeignKey(x => x.TaxProfileId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
         });
 
         b.Entity<PayrollEmployee>(e =>

@@ -7762,6 +7762,229 @@ export const connectedBankingApi = {
     })
 }
 
+// ---------------------------------------------------------------- UAE Corporate Tax & EmaraTax Desk
+export type UaeTaxpayerCategory = 'ResidentJuridicalPerson' | 'NonResidentJuridicalPerson' | 'QualifyingFreeZonePerson' | 'ResidentNaturalPerson'
+export type FreeZoneRegime = 'Mainland' | 'DesignatedFreeZone' | 'NonDesignatedFreeZone'
+export type SmallBusinessReliefStatus = 'NotEligible' | 'EligibleNotElected' | 'Elected'
+export type ReturnFilingStatus = 'Draft' | 'SubmittedForReview' | 'Approved' | 'Exported' | 'Filed'
+
+export type UaeTaxProfileDto = {
+  id: string
+  clientId: string
+  clientName: string
+  clientCode: string
+  corporateTaxTrn: string
+  emirate: string
+  freeZoneName: string
+  category: UaeTaxpayerCategory
+  freeZoneRegime: FreeZoneRegime
+  financialYearStartMonth: number
+  isMneGroupConstituent: boolean
+  accountingStandard: string
+  auditedFinancialsAvailable: boolean
+  createdAt: string
+}
+
+export type CreateOrUpdateTaxProfileRequest = {
+  clientId: string
+  corporateTaxTrn: string
+  emirate: string
+  freeZoneName: string
+  category: UaeTaxpayerCategory
+  freeZoneRegime: FreeZoneRegime
+  financialYearStartMonth: number
+  isMneGroupConstituent: boolean
+  accountingStandard: string
+  auditedFinancialsAvailable: boolean
+}
+
+export type CalculateUaeTaxRequest = {
+  category: UaeTaxpayerCategory
+  grossRevenue: number
+  costOfSales: number
+  operatingExpenses: number
+  netAccountingProfitLoss: number
+  smallBusinessReliefElection: SmallBusinessReliefStatus
+  priorYear1Revenue: number
+  priorYear2Revenue: number
+  isMneConstituent: boolean
+  qualifyingRevenue: number
+  nonQualifyingRevenue: number
+  exemptIncome: number
+  unrealizedGainsLossesAdjustment: number
+  entertainmentExpenditureTotal: number
+  finesAndPenaltiesDisallowed: number
+  recoverableVatDisallowed: number
+  donationsToUnapprovedEntitiesDisallowed: number
+  netInterestExpense: number
+  adjustedEbitda: number
+  broughtForwardTaxLosses: number
+  foreignTaxCreditReliefAed: number
+  exchangeRateToInr: number
+}
+
+export type UaeComputationResult = {
+  sbrEligible: boolean
+  qfzpDeMinimisPassed: boolean
+  deMinimisThresholdAed: number
+  disallowedInterestAed: number
+  disallowedEntertainmentAed: number
+  totalAdditionsAed: number
+  totalDeductionsAed: number
+  adjustedTaxableIncomeAed: number
+  taxLossesUtilizedAed: number
+  remainingTaxLossesAed: number
+  finalTaxableIncomeAed: number
+  incomeSubjectToZeroPctAed: number
+  incomeSubjectToNinePctAed: number
+  grossTaxPayableAed: number
+  netTaxPayableAed: number
+  netTaxPayableInr: number
+}
+
+export type SaveUaeCorporateTaxReturnRequest = {
+  taxProfileId: string
+  returnYear: number
+  taxPeriodStart: string
+  taxPeriodEnd: string
+  grossRevenue: number
+  costOfSales: number
+  operatingExpenses: number
+  netAccountingProfitLoss: number
+  smallBusinessReliefElection: SmallBusinessReliefStatus
+  priorYear1Revenue: number
+  priorYear2Revenue: number
+  qualifyingRevenue: number
+  nonQualifyingRevenue: number
+  exemptIncome: number
+  unrealizedGainsLossesAdjustment: number
+  entertainmentExpenditureTotal: number
+  finesAndPenaltiesDisallowed: number
+  recoverableVatDisallowed: number
+  donationsToUnapprovedEntitiesDisallowed: number
+  netInterestExpense: number
+  adjustedEbitda: number
+  broughtForwardTaxLosses: number
+  foreignTaxCreditReliefAed: number
+  exchangeRateToInr: number
+}
+
+export type UaeCorporateTaxReturnDto = {
+  id: string
+  taxProfileId: string
+  clientId: string
+  clientName: string
+  corporateTaxTrn: string
+  returnReference: string
+  returnYear: number
+  taxPeriodStart: string
+  taxPeriodEnd: string
+  dueDate: string
+  status: ReturnFilingStatus
+  functionalCurrency: string
+  exchangeRateToInr: number
+
+  grossRevenue: number
+  costOfSales: number
+  grossProfit: number
+  operatingExpenses: number
+  netAccountingProfitLoss: number
+
+  smallBusinessReliefElection: SmallBusinessReliefStatus
+  sbrEligible: boolean
+  priorYear1Revenue: number
+  priorYear2Revenue: number
+
+  isQfzp: boolean
+  qualifyingRevenue: number
+  nonQualifyingRevenue: number
+  deMinimisThreshold: number
+  deMinimisSatisfied: boolean
+  qualifyingIncome: number
+  taxableNonQualifyingIncome: number
+
+  exemptIncome: number
+  unrealizedGainsLossesAdjustment: number
+  entertainmentExpenditureTotal: number
+  entertainmentExpenditureDisallowed: number
+  finesAndPenaltiesDisallowed: number
+  recoverableVatDisallowed: number
+  donationsToUnapprovedEntitiesDisallowed: number
+
+  netInterestExpense: number
+  adjustedEbitda: number
+  interestCapThreshold: number
+  disallowedInterestExpense: number
+
+  broughtForwardTaxLosses: number
+  taxLossesUtilized: number
+  carriedForwardTaxLosses: number
+
+  adjustedTaxableIncome: number
+  taxableIncomeSubjectToZeroPct: number
+  taxableIncomeSubjectToNinePct: number
+  corporateTaxPayableAed: number
+  foreignTaxCreditReliefAed: number
+  netTaxPayableAed: number
+  netTaxPayableInr: number
+
+  ftaSubmissionReference?: string | null
+  preparedByName?: string | null
+  approvedByName?: string | null
+  approvedAt?: string | null
+  partnerNotes?: string | null
+  createdAt: string
+}
+
+export type ApproveUaeReturnRequest = {
+  partnerNotes?: string
+}
+
+export type EmaraTaxSubmissionExportDto = {
+  returnReference: string
+  corporateTaxTrn: string
+  legalEntityName: string
+  formVersion: string
+  submissionXml: string
+  submissionJson: string
+  totalTaxPayableAed: number
+  totalTaxPayableInr: number
+}
+
+export const uaeTaxApi = {
+  getProfiles: (clientId?: string) =>
+    api<UaeTaxProfileDto[]>(`/api/uae-tax/profiles${clientId ? `?clientId=${clientId}` : ''}`),
+  getProfile: (id: string) =>
+    api<UaeTaxProfileDto>(`/api/uae-tax/profiles/${id}`),
+  saveProfile: (req: CreateOrUpdateTaxProfileRequest) =>
+    api<UaeTaxProfileDto>('/api/uae-tax/profiles', {
+      method: 'POST',
+      body: JSON.stringify(req)
+    }),
+  calculateTax: (req: CalculateUaeTaxRequest) =>
+    api<UaeComputationResult>('/api/uae-tax/calculate', {
+      method: 'POST',
+      body: JSON.stringify(req)
+    }),
+  saveReturn: (req: SaveUaeCorporateTaxReturnRequest) =>
+    api<UaeCorporateTaxReturnDto>('/api/uae-tax/returns', {
+      method: 'POST',
+      body: JSON.stringify(req)
+    }),
+  getReturn: (id: string) =>
+    api<UaeCorporateTaxReturnDto>(`/api/uae-tax/returns/${id}`),
+  getProfileReturns: (profileId: string) =>
+    api<UaeCorporateTaxReturnDto[]>(`/api/uae-tax/profiles/${profileId}/returns`),
+  approveReturn: (id: string, req: ApproveUaeReturnRequest) =>
+    api<UaeCorporateTaxReturnDto>(`/api/uae-tax/returns/${id}/approve`, {
+      method: 'POST',
+      body: JSON.stringify(req)
+    }),
+  exportEmaraTax: (id: string) =>
+    api<EmaraTaxSubmissionExportDto>(`/api/uae-tax/returns/${id}/export-emaratax`)
+}
+
+
 
 
 

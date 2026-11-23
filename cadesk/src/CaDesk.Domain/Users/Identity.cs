@@ -210,4 +210,7 @@ public static class Perms
     public const string BankingConnectedManage = "banking.connected.manage";
     public const string BankingPayoutMaker = "banking.payout.maker";
     public const string BankingPayoutChecker = "banking.payout.checker";
+    public const string UaeCorporateTaxRead = "uaecorporatetax.read";
+    public const string UaeCorporateTaxManage = "uaecorporatetax.manage";
+    public const string UaeCorporateTaxFile = "uaecorporatetax.file";
 }
