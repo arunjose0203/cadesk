@@ -84,6 +84,8 @@ public interface IAppDbContext
     DbSet<AuditWorkingPaper> AuditWorkingPapers { get; }
     DbSet<AuditEqrReview> AuditEqrReviews { get; }
     DbSet<AuditReviewNote> AuditReviewNotes { get; }
+    DbSet<LeadSchedule> LeadSchedules { get; }
+    DbSet<AuditDossier> AuditDossiers { get; }
     DbSet<GstReconciliationBatch> GstReconciliationBatches { get; }
     DbSet<GstReconciliationItem> GstReconciliationItems { get; }
     DbSet<TdsLowerDeductionCertificate> TdsLowerDeductionCertificates { get; }

@@ -942,6 +942,92 @@ export type AuditSummaryDto = {
   exceptionsFlaggedCount: number
 }
 
+export type LeadScheduleDto = {
+  id: string
+  engagementId: string
+  leadCode: string
+  leadTitle: string
+  scheduleCategory: string
+  unadjustedBookBalance: number
+  auditAdjustmentsDebit: number
+  auditAdjustmentsCredit: number
+  auditedBalance: number
+  priorYearBalance: number
+  varianceAmount: number
+  variancePercentage: number
+  isMaterialVariance: boolean
+  auditProceduresSummary?: string | null
+  exceptionsNoted?: string | null
+  status: string
+  signedOffByUserId?: string | null
+  signedOffByName?: string | null
+  signedOffAt?: string | null
+  createdAt: string
+  updatedAt?: string | null
+}
+
+export type UpdateLeadScheduleRequest = {
+  auditAdjustmentsDebit: number
+  auditAdjustmentsCredit: number
+  priorYearBalance: number
+  auditProceduresSummary?: string | null
+  exceptionsNoted?: string | null
+  status: string
+  signOff: boolean
+}
+
+export type GenerateLeadSchedulesRequest = {
+  trialBalanceImportId?: string | null
+}
+
+export type DossierIndexSectionDto = {
+  indexCode: string
+  sectionTitle: string
+  saStandard: string
+  mandatory: boolean
+  status: string
+  itemsCount: number
+  summaryNotes: string
+}
+
+export type AuditDossierDto = {
+  id: string
+  engagementId: string
+  dossierType: string
+  version: number
+  status: string
+  integritySha256: string
+  nfraInspectionReady: boolean
+  totalWorkingPapersIncluded: number
+  leadSchedulesCount: number
+  totalExceptionsNoted: number
+  totalOpenNotes: number
+  partnerSignoffRemarks?: string | null
+  indexSections: DossierIndexSectionDto[]
+  compiledAt: string
+  compiledBy?: string | null
+  compiledByName?: string | null
+  sealedAt?: string | null
+  sealedBy?: string | null
+  sealedByName?: string | null
+  createdAt: string
+}
+
+export type CompileDossierRequest = {
+  dossierType?: string
+  notes?: string | null
+}
+
+export type SealDossierRequest = {
+  partnerSignoffRemarks: string
+}
+
+export type DossierExportHtmlDto = {
+  htmlContent: string
+  integritySha256: string
+  generatedAt: string
+}
+
 export const auditApi = {
   summary: () => api<AuditSummaryDto>('/api/audit/summary'),
   listEngagements: (clientId?: string, fy?: string, status?: string) => {
@@ -992,6 +1078,17 @@ export const auditApi = {
   updateWorkingPaper: (id: string, req: SaveWorkingPaperRequest) => api<AuditWorkingPaperDto>(`/api/audit/working-papers/${id}`, { method: 'PUT', body: JSON.stringify(req) }),
   reviewWorkingPaper: (id: string, req: ReviewWorkingPaperRequest) => api<AuditWorkingPaperDto>(`/api/audit/working-papers/${id}/review`, { method: 'PUT', body: JSON.stringify(req) }),
   deleteWorkingPaper: (id: string) => api<void>(`/api/audit/working-papers/${id}`, { method: 'DELETE' }),
+
+  // Lead Schedules (A to Q) & SA 230
+  getLeadSchedules: (engagementId: string) => api<LeadScheduleDto[]>(`/api/audit/engagements/${engagementId}/lead-schedules`),
+  generateLeadSchedules: (engagementId: string, req: GenerateLeadSchedulesRequest = {}) => api<LeadScheduleDto[]>(`/api/audit/engagements/${engagementId}/lead-schedules/generate`, { method: 'POST', body: JSON.stringify(req) }),
+  updateLeadSchedule: (id: string, req: UpdateLeadScheduleRequest) => api<LeadScheduleDto>(`/api/audit/lead-schedules/${id}`, { method: 'PUT', body: JSON.stringify(req) }),
+
+  // SA 230 / SQC 1 Digital Audit Dossier & NFRA Defense Vault
+  getDossier: (engagementId: string) => api<AuditDossierDto>(`/api/audit/engagements/${engagementId}/dossier`),
+  compileDossier: (engagementId: string, req: CompileDossierRequest = {}) => api<AuditDossierDto>(`/api/audit/engagements/${engagementId}/dossier/compile`, { method: 'POST', body: JSON.stringify(req) }),
+  sealDossier: (dossierId: string, req: SealDossierRequest) => api<AuditDossierDto>(`/api/audit/dossier/${dossierId}/seal`, { method: 'POST', body: JSON.stringify(req) }),
+  exportDossierHtml: (engagementId: string) => api<DossierExportHtmlDto>(`/api/audit/engagements/${engagementId}/dossier/export-html`),
 }
 
 // -------------------------------------------------------------

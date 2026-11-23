@@ -1283,6 +1283,66 @@ API:
 - `POST /api/cost-audit/engagements/{id}/generate-cra3` (`costaudit.manage`)
 - `POST /api/cost-audit/engagements/{id}/certify` (`costaudit.certify`)
 
+### Sprint 42: Universal Trial Balance & Financial Data Importer (The "Friction Killer")
+
+Universal multi-format financial data ingestion engine supporting instant onboarding for prospective CA firms in under 60 seconds:
+- **Multi-Format Parsing Engine**: Ingests Tally Prime / ERP 9 XML, Tally CSV, Busy Accounting CSV/TSV with Dr/Cr amount suffixes, SAP ERP General Ledger statements (100000-700000 series in INR), and direct clipboard TSV copy-paste from Excel or Google Sheets.
+- **Auto-Detection & Normalization**: Auto-detects delimiters (tab, comma, semicolon, pipe) and case-insensitive headers. Normalizes Indian number formats (lakhs, crores, `Rs.`, `₹`, trailing `Dr`/`Cr`).
+- **Heuristic Auto-Classifier**: Auto-classifies ledgers across Schedule III Balance Sheet/P&L, Form 3CD (Turnover, Sec 43B, 43B(h) MSME, 36(1)(va)), CARO 2020 (inventory, working capital, borrowings, statutory dues), and Fixed Asset blocks.
+- **Preloaded Test-Drive Datasets**: 3 real-world mathematically balanced datasets (Tally Manufacturing ₹46.45 Cr, Busy Trading ₹18.20 Cr, SAP Cloud Services ₹85.00 Cr).
+- **Cascading Multi-Desk Sync**: Synchronizes trial balance figures across 6 statutory desks (Statutory Audit SA 320 materiality, Schedule III 11 ratios, Form 3CD Tax Audit, CARO 2020, Fixed Assets register, and Cost Audit Form CRA-1/3).
+
+### Sprint 43: 1-Click ICAI SA 230 Digital Audit Dossier & Peer Review Vault (Option 1 - The Core Audit Moat)
+
+End-to-end digital audit documentation and regulatory inspection defense platform compliant with ICAI Standards on Auditing (SA 230, SA 220, SA 500, SA 520, SA 530) and NFRA / ICAI Quality Review Board standards:
+- **17 Standard Lead Schedules (A to Q)**:
+  - Automates substantive analytical lead schedules mapped directly from ingested Trial Balance figures:
+    - `A` Cash & Bank Balances (SA 505 / BRS)
+    - `B` Trade Receivables / Debtors (SA 505)
+    - `C` Inventories & WIP (SA 501 NRV)
+    - `D` Loans, Advances & Other Current Assets
+    - `E` Property, Plant & Equipment (Fixed Assets Block)
+    - `F` Non-Current Investments & Financial Assets
+    - `G` Trade Payables & MSME Dues (Sec 43B(h))
+    - `H` Borrowings (Working Capital CC / Term Loans)
+    - `I` Other Liabilities, Provisions & Statutory Dues
+    - `J` Share Capital & Reserves and Surplus
+    - `K` Revenue from Operations (Turnover Cut-off)
+    - `L` Other Non-Operating Income
+    - `M` Cost of Materials Consumed & Direct Purchases
+    - `N` Employee Benefit Expenses (PF, ESIC, Gratuity)
+    - `O` Finance Costs & Bank Borrowing Interest
+    - `P` Depreciation & Amortization (Companies Act Sch II)
+    - `Q` Other Operating, Administrative & Selling Expenses
+  - Supports audit adjustment journal entries (Dr/Cr adjustments), automated audited final balance computation, prior year comparative variance analysis, and material variance alerts ($> 20\%$ or exceeding SA 320 performance materiality).
+- **9-Section ICAI Peer Review & NFRA Inspection Master Index**:
+  - `IDX-100`: Appointment, Engagement Terms & Independence Evaluation (SA 210 / SA 220 / SQC 1)
+  - `IDX-200`: Audit Planning, Risk Assessment & Materiality Thresholds (SA 300 / SA 315 / SA 320)
+  - `IDX-300`: Internal Financial Controls (IFC) & Fraud Risk Assessment (SA 240 / Sec 143(3)(i))
+  - `IDX-400`: Lead Schedules (A–Q) & Substantive Testing Workpapers (SA 500 / SA 530 / SA 501)
+  - `IDX-500`: Substantive Analytical Procedures & Ratio Variances (SA 520 / Schedule III)
+  - `IDX-600`: External Confirmations (Banks, Debtors & Creditors) (SA 505)
+  - `IDX-700`: Companies (Auditor's Report) Order (CARO 2020) 21 Clauses
+  - `IDX-800`: Subsequent Events, Going Concern & Management Representation Letter (SA 560 / SA 570 / SA 580)
+  - `IDX-900`: Engagement Quality Review (EQR) Clearance & Independent Auditor's Report (SA 220 / SA 700 / SA 705)
+- **1-Click Cryptographic Audit File Packaging**:
+  - Automatically compiles all engagement artifacts, lead schedules, substantive working papers, query resolutions, and CARO findings into a unified digital audit dossier.
+  - Generates an immutable **SHA-256 cryptographic digest** over the dossier manifest for tamper-evident regulatory proof.
+  - Generates standalone, printable, beautifully formatted HTML dossiers for ICAI Peer Reviewers and NFRA inspection officers.
+- **SQC 1 Paragraph 74 Sealing & Archival Lock**:
+  - Enforces strict 60-day post-audit report archival deadline.
+  - Once signed off by the Engagement Partner, locks working papers and lead schedules against subsequent edits.
+- **Complete Desk Navigation**: Wired all statutory compliance desks directly in `App.tsx` navigation.
+
+API:
+- `GET /api/audit/engagements/{id}/lead-schedules` (`audit.read`)
+- `POST /api/audit/engagements/{id}/lead-schedules/generate` (`audit.manage`)
+- `PUT /api/audit/lead-schedules/{id}` (`audit.manage`)
+- `GET /api/audit/engagements/{id}/dossier` (`audit.read`)
+- `POST /api/audit/engagements/{id}/dossier/compile` (`audit.manage`)
+- `POST /api/audit/dossier/{id}/seal` (`audit.review`)
+- `GET /api/audit/engagements/{id}/dossier/export-html` (`audit.read`)
+
 ## Notes
 
 - Package versions are in `Directory.Packages.props`. If restore can't find a version,

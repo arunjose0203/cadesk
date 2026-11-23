@@ -98,6 +98,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
     public DbSet<AuditWorkingPaper> AuditWorkingPapers => Set<AuditWorkingPaper>();
     public DbSet<AuditEqrReview> AuditEqrReviews => Set<AuditEqrReview>();
     public DbSet<AuditReviewNote> AuditReviewNotes => Set<AuditReviewNote>();
+    public DbSet<LeadSchedule> LeadSchedules => Set<LeadSchedule>();
+    public DbSet<AuditDossier> AuditDossiers => Set<AuditDossier>();
     public DbSet<GstReconciliationBatch> GstReconciliationBatches => Set<GstReconciliationBatch>();
     public DbSet<GstReconciliationItem> GstReconciliationItems => Set<GstReconciliationItem>();
     public DbSet<TdsLowerDeductionCertificate> TdsLowerDeductionCertificates => Set<TdsLowerDeductionCertificate>();
@@ -427,6 +429,22 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
             e.HasOne(x => x.RaisedByUser).WithMany().HasForeignKey(x => x.RaisedByUserId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.ResponseByUser).WithMany().HasForeignKey(x => x.ResponseByUserId).OnDelete(DeleteBehavior.SetNull);
             e.HasOne(x => x.ClearedByUser).WithMany().HasForeignKey(x => x.ClearedByUserId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        b.Entity<LeadSchedule>(e =>
+        {
+            e.ToTable("audit_lead_schedules");
+            e.HasOne(x => x.Engagement).WithMany().HasForeignKey(x => x.EngagementId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.SignedOffByUser).WithMany().HasForeignKey(x => x.SignedOffByUserId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        b.Entity<AuditDossier>(e =>
+        {
+            e.ToTable("audit_dossiers");
+            e.Property(x => x.DossierManifestJson).HasColumnType("jsonb");
+            e.HasOne(x => x.Engagement).WithMany().HasForeignKey(x => x.EngagementId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.CompiledByUser).WithMany().HasForeignKey(x => x.CompiledBy).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.SealedByUser).WithMany().HasForeignKey(x => x.SealedBy).OnDelete(DeleteBehavior.SetNull);
         });
 
         b.Entity<GstReconciliationBatch>(e =>

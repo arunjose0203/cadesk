@@ -230,3 +230,89 @@ public record AuditSummaryDto(
     int OpenReviewNotesCount,
     int ExceptionsFlaggedCount
 );
+
+public record LeadScheduleDto(
+    Guid Id,
+    Guid EngagementId,
+    string LeadCode,
+    string LeadTitle,
+    string ScheduleCategory,
+    decimal UnadjustedBookBalance,
+    decimal AuditAdjustmentsDebit,
+    decimal AuditAdjustmentsCredit,
+    decimal AuditedBalance,
+    decimal PriorYearBalance,
+    decimal VarianceAmount,
+    decimal VariancePercentage,
+    bool IsMaterialVariance,
+    string? AuditProceduresSummary,
+    string? ExceptionsNoted,
+    string Status,
+    Guid? SignedOffByUserId,
+    string? SignedOffByName,
+    DateTime? SignedOffAt,
+    DateTime CreatedAt,
+    DateTime? UpdatedAt
+);
+
+public record UpdateLeadScheduleRequest(
+    decimal AuditAdjustmentsDebit,
+    decimal AuditAdjustmentsCredit,
+    decimal PriorYearBalance,
+    string? AuditProceduresSummary,
+    string? ExceptionsNoted,
+    string Status,
+    bool SignOff
+);
+
+public record GenerateLeadSchedulesRequest(
+    Guid? TrialBalanceImportId
+);
+
+public record DossierIndexSectionDto(
+    string IndexCode,
+    string SectionTitle,
+    string SaStandard,
+    bool Mandatory,
+    string Status, // Complete, InProgress, Pending
+    int ItemsCount,
+    string SummaryNotes
+);
+
+public record AuditDossierDto(
+    Guid Id,
+    Guid EngagementId,
+    string DossierType,
+    int Version,
+    string Status,
+    string IntegritySha256,
+    bool NfraInspectionReady,
+    int TotalWorkingPapersIncluded,
+    int LeadSchedulesCount,
+    int TotalExceptionsNoted,
+    int TotalOpenNotes,
+    string? PartnerSignoffRemarks,
+    List<DossierIndexSectionDto> IndexSections,
+    DateTime CompiledAt,
+    Guid? CompiledBy,
+    string? CompiledByName,
+    DateTime? SealedAt,
+    Guid? SealedBy,
+    string? SealedByName,
+    DateTime CreatedAt
+);
+
+public record CompileDossierRequest(
+    string DossierType = "COMBINED_PEER_REVIEW",
+    string? Notes = null
+);
+
+public record SealDossierRequest(
+    string PartnerSignoffRemarks
+);
+
+public record DossierExportHtmlDto(
+    string HtmlContent,
+    string IntegritySha256,
+    DateTime GeneratedAt
+);

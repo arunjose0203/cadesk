@@ -191,6 +191,54 @@ public static class StatutoryAuditEndpoints
             return Results.Ok(AuditService.GetChecklistTemplate());
         }).RequirePermission(Perms.AuditRead);
 
+        // SA 230 Lead Schedules (A to Q) & Trial Balance Ingestion
+        g.MapGet("/engagements/{id:guid}/lead-schedules", async (Guid id, AuditService svc, CancellationToken ct) =>
+        {
+            var list = await svc.GetLeadSchedulesAsync(id, ct);
+            return Results.Ok(list);
+        }).RequirePermission(Perms.AuditRead);
+
+        g.MapPost("/engagements/{id:guid}/lead-schedules/generate", async (Guid id, GenerateLeadSchedulesRequest req, ClaimsPrincipal user, AuditService svc, CancellationToken ct) =>
+        {
+            var userId = Guid.Parse(user.FindFirstValue("sub") ?? user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var list = await svc.GenerateLeadSchedulesFromTrialBalanceAsync(id, req.TrialBalanceImportId, userId, ct);
+            return Results.Ok(list);
+        }).RequirePermission(Perms.AuditManage);
+
+        g.MapPut("/lead-schedules/{id:guid}", async (Guid id, UpdateLeadScheduleRequest req, ClaimsPrincipal user, AuditService svc, CancellationToken ct) =>
+        {
+            var userId = Guid.Parse(user.FindFirstValue("sub") ?? user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var item = await svc.UpdateLeadScheduleAsync(id, req, userId, ct);
+            return Results.Ok(item);
+        }).RequirePermission(Perms.AuditManage);
+
+        // SA 230 / SQC 1 Digital Audit Dossier & NFRA Defense Vault
+        g.MapGet("/engagements/{id:guid}/dossier", async (Guid id, AuditService svc, CancellationToken ct) =>
+        {
+            var dossier = await svc.GetDossierAsync(id, ct);
+            return dossier is not null ? Results.Ok(dossier) : Results.NotFound();
+        }).RequirePermission(Perms.AuditRead);
+
+        g.MapPost("/engagements/{id:guid}/dossier/compile", async (Guid id, CompileDossierRequest req, ClaimsPrincipal user, AuditService svc, CancellationToken ct) =>
+        {
+            var userId = Guid.Parse(user.FindFirstValue("sub") ?? user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var dossier = await svc.CompileDossierAsync(id, req, userId, ct);
+            return Results.Ok(dossier);
+        }).RequirePermission(Perms.AuditManage);
+
+        g.MapPost("/dossier/{id:guid}/seal", async (Guid id, SealDossierRequest req, ClaimsPrincipal user, AuditService svc, CancellationToken ct) =>
+        {
+            var userId = Guid.Parse(user.FindFirstValue("sub") ?? user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var dossier = await svc.SealDossierAsync(id, req, userId, ct);
+            return Results.Ok(dossier);
+        }).RequirePermission(Perms.AuditReview);
+
+        g.MapGet("/engagements/{id:guid}/dossier/export-html", async (Guid id, AuditService svc, CancellationToken ct) =>
+        {
+            var html = await svc.ExportDossierHtmlAsync(id, ct);
+            return Results.Ok(html);
+        }).RequirePermission(Perms.AuditRead);
+
         return app;
     }
 }

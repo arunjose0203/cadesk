@@ -5,6 +5,8 @@ import {
   type AuditSummaryDto,
   type AuditEqrReviewDto,
   type AuditReviewNoteDto,
+  type LeadScheduleDto,
+  type AuditDossierDto,
   type Client,
   type UserProfile,
   auditApi,
@@ -22,16 +24,33 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
   const [error, setError] = useState<string | null>(null)
   const [selectedEng, setSelectedEng] = useState<AuditEngagementDto | null>(null)
 
-  // Selected engagement sub-view: workpapers, eqr, review_notes
-  const [activeTab, setActiveTab] = useState<'workpapers' | 'eqr' | 'review_notes'>('workpapers')
+  // Selected engagement sub-view: workpapers, lead_schedules, dossier_vault, eqr, review_notes
+  const [activeTab, setActiveTab] = useState<'workpapers' | 'lead_schedules' | 'dossier_vault' | 'eqr' | 'review_notes'>('workpapers')
 
   // Data for active engagement
   const [workingPapers, setWorkingPapers] = useState<AuditWorkingPaperDto[]>([])
+  const [leadSchedules, setLeadSchedules] = useState<LeadScheduleDto[]>([])
+  const [dossier, setDossier] = useState<AuditDossierDto | null>(null)
   const [eqrReview, setEqrReview] = useState<AuditEqrReviewDto | null>(null)
   const [reviewNotes, setReviewNotes] = useState<AuditReviewNoteDto[]>([])
   const [loadingWps, setLoadingWps] = useState(false)
 
-  // Modals
+  // Modals & Forms for Lead Schedules and SA 230 Dossier
+  const [editingSchedule, setEditingSchedule] = useState<LeadScheduleDto | null>(null)
+  const [leadScheduleForm, setLeadScheduleForm] = useState({
+    auditAdjustmentsDebit: 0,
+    auditAdjustmentsCredit: 0,
+    priorYearBalance: 0,
+    auditProceduresSummary: '',
+    exceptionsNoted: '',
+    status: 'InReview',
+    signOff: false
+  })
+  const [showSealModal, setShowSealModal] = useState(false)
+  const [sealRemarks, setSealRemarks] = useState('Reviewed workpapers, lead schedules, and CARO 2020 matrix. Approved for issuance under SA 700 & sealed under SQC 1.')
+  const [compilingDossier, setCompilingDossier] = useState(false)
+
+  // Existing Modals
   const [showNewEngModal, setShowNewEngModal] = useState(false)
   const [showNewWpModal, setShowNewWpModal] = useState(false)
   const [reviewingWp, setReviewingWp] = useState<AuditWorkingPaperDto | null>(null)
@@ -118,20 +137,100 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
   async function loadEngagementDetails(engId: string) {
     try {
       setLoadingWps(true)
-      const [wps, eqr, notes, eng] = await Promise.all([
+      const [wps, eqr, notes, eng, lss, dos] = await Promise.all([
         auditApi.listWorkingPapers(engId),
         auditApi.getEqrReview(engId).catch(() => null),
         auditApi.listReviewNotes(engId),
-        auditApi.getEngagement(engId)
+        auditApi.getEngagement(engId),
+        auditApi.getLeadSchedules(engId).catch(() => []),
+        auditApi.getDossier(engId).catch(() => null)
       ])
       setWorkingPapers(wps || [])
       setEqrReview(eqr)
       setReviewNotes(notes || [])
       setSelectedEng(eng)
+      setLeadSchedules(lss || [])
+      setDossier(dos)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load engagement details.')
     } finally {
       setLoadingWps(false)
+    }
+  }
+
+  async function handleGenerateLeadSchedules() {
+    if (!selectedEng) return
+    try {
+      setLoadingWps(true)
+      const res = await auditApi.generateLeadSchedules(selectedEng.id)
+      setLeadSchedules(res || [])
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to generate lead schedules.')
+    } finally {
+      setLoadingWps(false)
+    }
+  }
+
+  function handleStartEditSchedule(s: LeadScheduleDto) {
+    setEditingSchedule(s)
+    setLeadScheduleForm({
+      auditAdjustmentsDebit: s.auditAdjustmentsDebit,
+      auditAdjustmentsCredit: s.auditAdjustmentsCredit,
+      priorYearBalance: s.priorYearBalance,
+      auditProceduresSummary: s.auditProceduresSummary || '',
+      exceptionsNoted: s.exceptionsNoted || '',
+      status: s.status,
+      signOff: false
+    })
+  }
+
+  async function handleSaveLeadSchedule() {
+    if (!editingSchedule) return
+    try {
+      const updated = await auditApi.updateLeadSchedule(editingSchedule.id, leadScheduleForm)
+      setLeadSchedules(prev => prev.map(s => s.id === updated.id ? updated : s))
+      setEditingSchedule(null)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to update lead schedule.')
+    }
+  }
+
+  async function handleCompileDossier() {
+    if (!selectedEng) return
+    try {
+      setCompilingDossier(true)
+      const res = await auditApi.compileDossier(selectedEng.id, { dossierType: 'COMBINED_PEER_REVIEW' })
+      setDossier(res)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to compile audit dossier.')
+    } finally {
+      setCompilingDossier(false)
+    }
+  }
+
+  async function handleSealDossier() {
+    if (!dossier) return
+    try {
+      const sealed = await auditApi.sealDossier(dossier.id, { partnerSignoffRemarks: sealRemarks })
+      setDossier(sealed)
+      setShowSealModal(false)
+      if (selectedEng) await loadEngagementDetails(selectedEng.id)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to seal audit dossier.')
+    }
+  }
+
+  async function handleExportHtml() {
+    if (!selectedEng) return
+    try {
+      const res = await auditApi.exportDossierHtml(selectedEng.id)
+      const w = window.open('', '_blank')
+      if (w) {
+        w.document.write(res.htmlContent)
+        w.document.close()
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to export dossier HTML.')
     }
   }
 
@@ -612,6 +711,62 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
               Digital Workpapers ({workingPapers.length})
             </button>
             <button
+              onClick={() => setActiveTab('lead_schedules')}
+              style={{
+                padding: '10px 18px',
+                border: 'none',
+                background: 'none',
+                borderBottom: activeTab === 'lead_schedules' ? '2px solid #2563eb' : '2px solid transparent',
+                color: activeTab === 'lead_schedules' ? '#2563eb' : '#64748b',
+                fontWeight: 600,
+                fontSize: '14px',
+                cursor: 'pointer',
+                marginBottom: '-2px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              <span>Lead Schedules A–Q</span>
+              <span style={{
+                padding: '1px 6px',
+                borderRadius: '10px',
+                fontSize: '10px',
+                background: '#e0f2fe',
+                color: '#0369a1'
+              }}>
+                {leadSchedules.length}
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveTab('dossier_vault')}
+              style={{
+                padding: '10px 18px',
+                border: 'none',
+                background: 'none',
+                borderBottom: activeTab === 'dossier_vault' ? '2px solid #2563eb' : '2px solid transparent',
+                color: activeTab === 'dossier_vault' ? '#2563eb' : '#64748b',
+                fontWeight: 600,
+                fontSize: '14px',
+                cursor: 'pointer',
+                marginBottom: '-2px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              <span>📑 SA 230 Dossier Vault</span>
+              <span style={{
+                padding: '1px 6px',
+                borderRadius: '10px',
+                fontSize: '10px',
+                background: dossier?.status === 'sealed_sqc1' ? '#dcfce7' : (dossier ? '#fef3c7' : '#f1f5f9'),
+                color: dossier?.status === 'sealed_sqc1' ? '#15803d' : (dossier ? '#92400e' : '#64748b')
+              }}>
+                {dossier ? (dossier.status === 'sealed_sqc1' ? 'SEALED' : 'COMPILED') : 'READY'}
+              </span>
+            </button>
+            <button
               onClick={() => setActiveTab('eqr')}
               style={{
                 padding: '10px 18px',
@@ -792,7 +947,234 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
             </div>
           )}
 
-          {/* TAB 2: EQR Review Desk */}
+          {/* TAB 2: Lead Schedules (A to Q) */}
+          {activeTab === 'lead_schedules' && (
+            <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
+                <div>
+                  <h3 style={{ fontSize: '16px', fontWeight: 600, margin: 0 }}>Lead Schedules Directory (A–Q)</h3>
+                  <p style={{ fontSize: '12px', color: '#64748b', margin: '4px 0 0 0' }}>
+                    Substantive Analytical Groupings mapped to ICAI Standards on Auditing (SA 500 / SA 520) &amp; Schedule III
+                  </p>
+                </div>
+                {!selectedEng.isArchived && (
+                  <button
+                    onClick={handleGenerateLeadSchedules}
+                    style={{ padding: '8px 16px', background: '#0284c7', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 600, fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    🔄 Ingest / Sync from Trial Balance
+                  </button>
+                )}
+              </div>
+
+              {leadSchedules.length === 0 ? (
+                <div style={{ padding: '36px', textAlign: 'center', color: '#64748b' }}>
+                  <p style={{ margin: '0 0 12px 0', fontSize: '14px' }}>No lead schedules generated yet for this engagement.</p>
+                  <button
+                    onClick={handleGenerateLeadSchedules}
+                    style={{ padding: '8px 18px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}
+                  >
+                    Generate Standard A–Q Lead Schedules from Trial Balance
+                  </button>
+                </div>
+              ) : (
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                    <thead>
+                      <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                        <th style={{ padding: '10px 8px', textAlign: 'left' }}>Code</th>
+                        <th style={{ padding: '10px 8px', textAlign: 'left' }}>Lead Schedule Title</th>
+                        <th style={{ padding: '10px 8px', textAlign: 'left' }}>Category</th>
+                        <th style={{ padding: '10px 8px', textAlign: 'right' }}>Unadjusted (₹)</th>
+                        <th style={{ padding: '10px 8px', textAlign: 'right' }}>Dr Adj (₹)</th>
+                        <th style={{ padding: '10px 8px', textAlign: 'right' }}>Cr Adj (₹)</th>
+                        <th style={{ padding: '10px 8px', textAlign: 'right' }}>Audited Final (₹)</th>
+                        <th style={{ padding: '10px 8px', textAlign: 'right' }}>Prior Year (₹)</th>
+                        <th style={{ padding: '10px 8px', textAlign: 'right' }}>Variance %</th>
+                        <th style={{ padding: '10px 8px', textAlign: 'center' }}>Status</th>
+                        <th style={{ padding: '10px 8px', textAlign: 'center' }}>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {leadSchedules.map(ls => (
+                        <tr key={ls.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <td style={{ padding: '10px 8px', fontWeight: 700, color: '#0f172a' }}>{ls.leadCode}</td>
+                          <td style={{ padding: '10px 8px' }}>
+                            <div style={{ fontWeight: 600, color: '#1e293b' }}>{ls.leadTitle}</div>
+                            {ls.auditProceduresSummary && <div style={{ fontSize: '11px', color: '#64748b' }}>{ls.auditProceduresSummary}</div>}
+                            {ls.exceptionsNoted && <div style={{ fontSize: '11px', color: '#dc2626', fontWeight: 600 }}>⚠️ {ls.exceptionsNoted}</div>}
+                          </td>
+                          <td style={{ padding: '10px 8px' }}>
+                            <span style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 600, background: ls.scheduleCategory === 'Asset' ? '#e0f2fe' : ls.scheduleCategory === 'Liability' ? '#fef3c7' : ls.scheduleCategory === 'Income' ? '#dcfce7' : '#fee2e2', color: '#334155' }}>
+                              {ls.scheduleCategory}
+                            </span>
+                          </td>
+                          <td style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 500 }}>{fmtInr(ls.unadjustedBookBalance)}</td>
+                          <td style={{ padding: '10px 8px', textAlign: 'right', color: ls.auditAdjustmentsDebit > 0 ? '#16a34a' : '#94a3b8' }}>
+                            {ls.auditAdjustmentsDebit > 0 ? fmtInr(ls.auditAdjustmentsDebit) : '-'}
+                          </td>
+                          <td style={{ padding: '10px 8px', textAlign: 'right', color: ls.auditAdjustmentsCredit > 0 ? '#dc2626' : '#94a3b8' }}>
+                            {ls.auditAdjustmentsCredit > 0 ? fmtInr(ls.auditAdjustmentsCredit) : '-'}
+                          </td>
+                          <td style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 700, color: '#0f172a' }}>{fmtInr(ls.auditedBalance)}</td>
+                          <td style={{ padding: '10px 8px', textAlign: 'right', color: '#64748b' }}>{fmtInr(ls.priorYearBalance)}</td>
+                          <td style={{ padding: '10px 8px', textAlign: 'right' }}>
+                            <span style={{ fontWeight: 600, color: ls.isMaterialVariance ? '#dc2626' : '#64748b' }}>
+                              {ls.variancePercentage > 0 ? `+${ls.variancePercentage}%` : `${ls.variancePercentage}%`}
+                            </span>
+                            {ls.isMaterialVariance && <span title="Material variance (>20% or > Materiality)" style={{ marginLeft: '4px', color: '#dc2626', fontSize: '11px' }}>⚠️</span>}
+                          </td>
+                          <td style={{ padding: '10px 8px', textAlign: 'center' }}>
+                            <span style={{ padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 600, background: ls.status === 'Approved' ? '#dcfce7' : '#f1f5f9', color: ls.status === 'Approved' ? '#15803d' : '#475569' }}>
+                              {ls.status}
+                            </span>
+                          </td>
+                          <td style={{ padding: '10px 8px', textAlign: 'center' }}>
+                            {!selectedEng.isArchived && (
+                              <button
+                                onClick={() => handleStartEditSchedule(ls)}
+                                style={{ padding: '4px 10px', fontSize: '11px', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer', fontWeight: 600, color: '#2563eb' }}
+                              >
+                                Edit / Adjust
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 3: SA 230 Digital Audit Dossier & NFRA Defense Vault */}
+          {activeTab === 'dossier_vault' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {/* Hero Banner */}
+              <div style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', color: '#fff', padding: '24px', borderRadius: '10px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '24px' }}>🛡️</span>
+                      <h2 style={{ fontSize: '20px', fontWeight: 700, margin: 0, color: '#f8fafc' }}>
+                        ICAI SA 230 Digital Audit File &amp; Peer Review Vault
+                      </h2>
+                    </div>
+                    <p style={{ margin: 0, fontSize: '13px', color: '#94a3b8', maxWidth: '640px' }}>
+                      Standard on Auditing 230 (Audit Documentation), SA 220 (Quality Control), and NFRA / ICAI Quality Review Board Inspection Shield. Assembles lead schedules, sampling tests, and working papers into a tamper-evident dossier.
+                    </p>
+                  </div>
+                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                    <button
+                      onClick={handleCompileDossier}
+                      disabled={compilingDossier || selectedEng.isArchived}
+                      style={{ padding: '10px 18px', background: '#0284c7', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 600, fontSize: '13px', cursor: compilingDossier ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                    >
+                      {compilingDossier ? '⏳ Compiling...' : '⚡ 1-Click Compile Audit Dossier'}
+                    </button>
+                    {dossier && (
+                      <>
+                        <button
+                          onClick={handleExportHtml}
+                          style={{ padding: '10px 18px', background: '#334155', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 600, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                        >
+                          🖨️ Export / Print Dossier
+                        </button>
+                        {dossier.status !== 'sealed_sqc1' && !selectedEng.isArchived && (
+                          <button
+                            onClick={() => setShowSealModal(true)}
+                            style={{ padding: '10px 18px', background: '#16a34a', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 600, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                          >
+                            🔒 Seal &amp; Lock File (SQC 1)
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* Key Status Row */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginTop: '20px', borderTop: '1px solid #334155', paddingTop: '16px' }}>
+                  <div>
+                    <div style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600 }}>Dossier Status</div>
+                    <div style={{ fontSize: '15px', fontWeight: 700, color: dossier?.status === 'sealed_sqc1' ? '#4ade80' : dossier ? '#fbbf24' : '#cbd5e1' }}>
+                      {dossier ? (dossier.status === 'sealed_sqc1' ? 'SEALED & ARCHIVED (SQC 1)' : 'COMPILED (READY)') : 'UNCOMPILED'}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600 }}>NFRA Inspection Readiness</div>
+                    <div style={{ fontSize: '15px', fontWeight: 700, color: dossier?.nfraInspectionReady ? '#4ade80' : '#f87171' }}>
+                      {dossier?.nfraInspectionReady ? '✓ INSPECTION READY' : '⚠️ ACTIONS PENDING'}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600 }}>Total Evidence Packed</div>
+                    <div style={{ fontSize: '15px', fontWeight: 700, color: '#f8fafc' }}>
+                      {leadSchedules.length} Leads • {workingPapers.length} WPs
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600 }}>SQC 1 Archival Deadline</div>
+                    <div style={{ fontSize: '15px', fontWeight: 700, color: selectedEng.isArchived ? '#4ade80' : '#cbd5e1' }}>
+                      {selectedEng.archivalStatus}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Cryptographic Hash Card */}
+                {dossier && (
+                  <div style={{ marginTop: '16px', background: 'rgba(255,255,255,0.06)', borderRadius: '6px', padding: '12px 16px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: '12px', color: '#38bdf8', fontWeight: 600 }}>🔒 Cryptographic Integrity Digest (SHA-256)</span>
+                      <span style={{ fontSize: '11px', color: '#94a3b8' }}>Version {dossier.version} • Compiled {new Date(dossier.compiledAt).toLocaleDateString()}</span>
+                    </div>
+                    <div style={{ fontFamily: 'monospace', fontSize: '13px', color: '#f1f5f9', wordBreak: 'break-all', marginTop: '4px' }}>
+                      {dossier.integritySha256}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* 9-Section ICAI Peer Review Index */}
+              <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: 600, margin: '0 0 16px 0' }}>
+                  ICAI Peer Review &amp; NFRA Inspection 9-Section Master Index
+                </h3>
+                {(!dossier || !dossier.indexSections || dossier.indexSections.length === 0) ? (
+                  <div style={{ textAlign: 'center', padding: '24px', color: '#64748b' }}>
+                    Click <strong>"⚡ 1-Click Compile Audit Dossier"</strong> above to generate the structured 9-section master index.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {dossier.indexSections.map(sec => (
+                      <div key={sec.indexCode} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: '6px', border: '1px solid #e2e8f0', background: sec.status === 'Complete' ? '#f0fdf4' : '#fffbeb' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <span style={{ fontWeight: 700, fontSize: '13px', padding: '3px 8px', borderRadius: '4px', background: '#e2e8f0', color: '#0f172a' }}>
+                            {sec.indexCode}
+                          </span>
+                          <div>
+                            <div style={{ fontWeight: 600, fontSize: '13px', color: '#1e293b' }}>{sec.sectionTitle}</div>
+                            <div style={{ fontSize: '11px', color: '#64748b' }}>
+                              Standard: <code style={{ color: '#0284c7' }}>{sec.saStandard}</code> • {sec.summaryNotes}
+                            </div>
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 500 }}>{sec.itemsCount} Items</span>
+                          <span style={{ padding: '3px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: 700, background: sec.status === 'Complete' ? '#dcfce7' : '#fef3c7', color: sec.status === 'Complete' ? '#15803d' : '#b45309' }}>
+                            {sec.status === 'Complete' ? '✓ VERIFIED' : 'PENDING'}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 4: EQR Review Desk */}
           {activeTab === 'eqr' && (
             <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
@@ -1350,6 +1732,135 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
               <button onClick={() => setRespondingNote(null)} style={{ padding: '8px 16px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer' }}>Cancel</button>
               <button onClick={handleRespondReviewNote} style={{ padding: '8px 16px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 600, cursor: 'pointer' }}>Submit Response</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Edit / Adjust Lead Schedule */}
+      {editingSchedule && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: '#fff', borderRadius: '8px', width: '560px', maxHeight: '90vh', overflowY: 'auto', padding: '24px' }}>
+            <h3 style={{ margin: '0 0 4px 0', fontSize: '18px' }}>
+              Lead Schedule [{editingSchedule.leadCode}] Audit Adjustment
+            </h3>
+            <p style={{ margin: '0 0 16px 0', fontSize: '12px', color: '#64748b' }}>
+              {editingSchedule.leadTitle} ({editingSchedule.scheduleCategory})
+            </p>
+
+            <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '6px', border: '1px solid #e2e8f0', marginBottom: '16px' }}>
+              <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>UNADJUSTED TRIAL BALANCE FIGURE</div>
+              <div style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a' }}>{fmtInr(editingSchedule.unadjustedBookBalance)}</div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>Audit Adjustment Debit (₹)</label>
+                <input
+                  type="number"
+                  value={leadScheduleForm.auditAdjustmentsDebit}
+                  onChange={e => setLeadScheduleForm({ ...leadScheduleForm, auditAdjustmentsDebit: parseFloat(e.target.value) || 0 })}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>Audit Adjustment Credit (₹)</label>
+                <input
+                  type="number"
+                  value={leadScheduleForm.auditAdjustmentsCredit}
+                  onChange={e => setLeadScheduleForm({ ...leadScheduleForm, auditAdjustmentsCredit: parseFloat(e.target.value) || 0 })}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                />
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>Prior Year Audited Balance (₹)</label>
+              <input
+                type="number"
+                value={leadScheduleForm.priorYearBalance}
+                onChange={e => setLeadScheduleForm({ ...leadScheduleForm, priorYearBalance: parseFloat(e.target.value) || 0 })}
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>Audit Procedures Summary</label>
+              <textarea
+                value={leadScheduleForm.auditProceduresSummary}
+                onChange={e => setLeadScheduleForm({ ...leadScheduleForm, auditProceduresSummary: e.target.value })}
+                rows={3}
+                placeholder="Document testing performed, verification against third-party ledgers, and sampling results..."
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>Exceptions / Misstatements Noted</label>
+              <input
+                type="text"
+                value={leadScheduleForm.exceptionsNoted}
+                onChange={e => setLeadScheduleForm({ ...leadScheduleForm, exceptionsNoted: e.target.value })}
+                placeholder="Leave blank or 'None' if clean"
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+              />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>Review Status</label>
+                <select
+                  value={leadScheduleForm.status}
+                  onChange={e => setLeadScheduleForm({ ...leadScheduleForm, status: e.target.value })}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                >
+                  <option value="Draft">Draft</option>
+                  <option value="InReview">In Review</option>
+                  <option value="Approved">Approved</option>
+                </select>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', marginTop: '20px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={leadScheduleForm.signOff}
+                    onChange={e => setLeadScheduleForm({ ...leadScheduleForm, signOff: e.target.checked })}
+                  />
+                  <span>Sign off as Auditor</span>
+                </label>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+              <button onClick={() => setEditingSchedule(null)} style={{ padding: '8px 16px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={handleSaveLeadSchedule} style={{ padding: '8px 16px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 600, cursor: 'pointer' }}>Save Adjustments</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Seal & Lock Audit File under SQC 1 */}
+      {showSealModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: '#fff', borderRadius: '8px', width: '500px', padding: '24px' }}>
+            <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', color: '#0f172a' }}>🔒 Seal &amp; Lock Audit File (ICAI SQC 1)</h3>
+            <div style={{ padding: '12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', marginBottom: '16px', fontSize: '12px', color: '#991b1b' }}>
+              <strong>Caution:</strong> Sealing this audit file generates an immutable cryptographic SHA-256 integrity seal under <strong>SQC 1 Paragraph 74</strong> (60-day archival lock). Once sealed, lead schedules and working papers cannot be modified.
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>Engagement Partner Sign-off Remarks *</label>
+              <textarea
+                value={sealRemarks}
+                onChange={e => setSealRemarks(e.target.value)}
+                rows={4}
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+              <button onClick={() => setShowSealModal(false)} style={{ padding: '8px 16px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={handleSealDossier} style={{ padding: '8px 16px', background: '#dc2626', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 600, cursor: 'pointer' }}>Confirm Seal &amp; Lock</button>
             </div>
           </div>
         </div>
