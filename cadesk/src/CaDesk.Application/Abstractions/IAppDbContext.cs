@@ -88,6 +88,9 @@ public interface IAppDbContext
     DbSet<AuditDossier> AuditDossiers { get; }
     DbSet<ConfirmationCampaign> ConfirmationCampaigns { get; }
     DbSet<ExternalConfirmationRequest> ExternalConfirmations { get; }
+    DbSet<IndependentAuditorReport> AuditorReports { get; }
+    DbSet<KeyAuditMatterItem> KeyAuditMatters { get; }
+    DbSet<NotesToAccountsMaster> NotesToAccounts { get; }
     DbSet<GstReconciliationBatch> GstReconciliationBatches { get; }
     DbSet<GstReconciliationItem> GstReconciliationItems { get; }
     DbSet<TdsLowerDeductionCertificate> TdsLowerDeductionCertificates { get; }

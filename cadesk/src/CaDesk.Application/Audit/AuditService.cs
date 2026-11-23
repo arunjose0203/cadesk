@@ -1964,4 +1964,384 @@ public class AuditService(IAppDbContext db, ITenantContext tenant)
             r.CreatedAt
         );
     }
+
+    // =========================================================================
+    // Sprint 46: 1-Click ICAI Independent Auditor's Report & Notes Generator
+    // =========================================================================
+
+    public async Task<IndependentAuditorReportDto?> GetAuditorReportAsync(Guid engagementId, CancellationToken ct = default)
+    {
+        var report = await db.AuditorReports
+            .Include(r => r.KeyAuditMatters)
+            .FirstOrDefaultAsync(r => r.AuditEngagementId == engagementId, ct);
+
+        return report == null ? null : ToAuditorReportDto(report);
+    }
+
+    public async Task<IndependentAuditorReportDto> GenerateAuditorReportAsync(
+        Guid engagementId,
+        GenerateAuditorReportRequest req,
+        Guid currentUserId,
+        CancellationToken ct = default)
+    {
+        var eng = await db.AuditEngagements
+            .Include(e => e.Client)
+            .Include(e => e.Firm)
+            .Include(e => e.LeadPartner)
+            .FirstOrDefaultAsync(e => e.Id == engagementId, ct)
+            ?? throw new KeyNotFoundException($"Audit engagement '{engagementId}' not found.");
+        AssertNotArchived(eng);
+
+        var existing = await db.AuditorReports
+            .Include(r => r.KeyAuditMatters)
+            .FirstOrDefaultAsync(r => r.AuditEngagementId == engagementId, ct);
+
+        var clientName = eng.Client?.Name ?? "Client Company Limited";
+        var asOfDate = eng.PlannedEndDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
+
+        var (opinionText, basisText) = AuditorReportEngine.GenerateDefaultOpinionVerbiage(
+            req.OpinionType,
+            clientName,
+            eng.FinancialYear,
+            asOfDate,
+            req.QualificationDetails);
+
+        var mgmtResp = $"The Company's Board of Directors is responsible for the matters stated in Section 134(5) of the Companies Act, 2013 ('the Act') with respect to the preparation of these financial statements that give a true and fair view of the financial position, financial performance, and cash flows of the Company in accordance with the accounting principles generally accepted in India, including the Accounting Standards specified under Section 133 of the Act. This responsibility also includes maintenance of adequate accounting records in accordance with the provisions of the Act for safeguarding of the assets of the Company and for preventing and detecting frauds and other irregularities; selection and application of appropriate accounting policies; making judgments and estimates that are reasonable and prudent; and design, implementation and maintenance of adequate internal financial controls, that were operating effectively for ensuring the accuracy and completeness of the accounting records, relevant to the preparation and presentation of the financial statements that give a true and fair view and are free from material misstatement, whether due to fraud or error.";
+
+        var audResp = $"Our objectives are to obtain reasonable assurance about whether the financial statements as a whole are free from material misstatement, whether due to fraud or error, and to issue an auditor's report that includes our opinion. Reasonable assurance is a high level of assurance, but is not a guarantee that an audit conducted in accordance with SAs will always detect a material misstatement when it exists. Misstatements can arise from fraud or error and are considered material if, individually or in the aggregate, they could reasonably be expected to influence the economic decisions of users taken on the basis of these financial statements. As part of an audit in accordance with SAs, we exercise professional judgment and maintain professional skepticism throughout the audit.";
+
+        var firmName = eng.Firm?.Name ?? "Statutory Auditor Firm";
+        var partnerName = eng.LeadPartner?.Name ?? "Lead Audit Partner";
+
+        var report = existing ?? new IndependentAuditorReport
+        {
+            FirmId = eng.FirmId,
+            AuditEngagementId = engagementId,
+            AuditorFirmName = firmName,
+            FirmRegistrationNumber = "100123W",
+            PartnerName = partnerName,
+            PartnerMembershipNumber = "045678"
+        };
+
+        report.OpinionType = req.OpinionType;
+        report.ReportDate = asOfDate;
+        report.PlaceOfSignature = req.PlaceOfSignature;
+        report.OpinionParagraph = opinionText;
+        report.BasisForOpinionParagraph = basisText;
+        report.MaterialUncertaintyGoingConcernParagraph = req.MaterialUncertaintyGoingConcern;
+        report.EmphasisOfMatterParagraph = req.EmphasisOfMatter;
+        report.ResponsibilitiesOfManagementParagraph = mgmtResp;
+        report.AuditorResponsibilitiesParagraph = audResp;
+        report.IncludeKeyAuditMatters = req.IncludeKeyAuditMatters;
+        report.HasCaro2020Annexure = true;
+        report.Status = "Draft";
+        report.UpdatedAt = DateTime.UtcNow;
+
+        if (existing == null)
+        {
+            report.CreatedBy = currentUserId;
+            db.AuditorReports.Add(report);
+            await db.SaveChangesAsync(ct);
+        }
+
+        // Auto-populate 2 Key Audit Matters if empty and KAM is enabled
+        if (req.IncludeKeyAuditMatters && report.KeyAuditMatters.Count == 0)
+        {
+            var kam1 = new KeyAuditMatterItem
+            {
+                FirmId = report.FirmId,
+                ReportId = report.Id,
+                Category = "RevenueRecognition",
+                Title = "Accuracy of Revenue Recognition and Cut-off (SA 240 / Ind AS 115)",
+                DescriptionOfMatter = $"Revenue from operations for the year ended {asOfDate:dd-MMM-yyyy} is a key performance metric and carries an inherent risk of management override of controls in cut-off near balance sheet date.",
+                WhyConsideredSignificant = "Considered a matter of most significance due to high volume of transactions, sales incentives, credit terms, and period-end cut-off sensitivity.",
+                HowAddressedInAudit = "Tested operating effectiveness of internal controls over order dispatch, invoice generation, and customer acknowledgments. Performed substantive cut-off testing on sales transactions 15 days before and after balance sheet date against shipping bills and e-way bill records.",
+                KeyDocumentationRef = "WP/REV/01"
+            };
+
+            var kam2 = new KeyAuditMatterItem
+            {
+                FirmId = report.FirmId,
+                ReportId = report.Id,
+                Category = "InventoryValuation",
+                Title = "Physical Verification and Valuation of Inventories (SA 501 / AS 2)",
+                DescriptionOfMatter = "Inventories constitute a substantial proportion of current assets comprising raw materials, work-in-progress, and finished goods valued at lower of cost or net realizable value (NRV).",
+                WhyConsideredSignificant = "Involves significant management estimates in allocation of production overheads and assessment of slow-moving/obsolete inventory provisions.",
+                HowAddressedInAudit = "Observed year-end physical inventory counts on a sample basis across manufacturing facilities. Tested standard cost formulas against purchase invoices and verified NRV by examining subsequent selling prices.",
+                KeyDocumentationRef = "WP/INV/01"
+            };
+
+            db.KeyAuditMatters.AddRange(kam1, kam2);
+            report.KeyAuditMatters.Add(kam1);
+            report.KeyAuditMatters.Add(kam2);
+            await db.SaveChangesAsync(ct);
+        }
+        else
+        {
+            await db.SaveChangesAsync(ct);
+        }
+
+        return ToAuditorReportDto(report);
+    }
+
+    public async Task<IndependentAuditorReportDto> UpdateAuditorReportAsync(
+        Guid reportId,
+        UpdateAuditorReportRequest req,
+        Guid currentUserId,
+        CancellationToken ct = default)
+    {
+        var report = await db.AuditorReports
+            .Include(r => r.KeyAuditMatters)
+            .Include(r => r.AuditEngagement)
+            .FirstOrDefaultAsync(r => r.Id == reportId, ct)
+            ?? throw new KeyNotFoundException($"Auditor's report '{reportId}' not found.");
+        AssertNotArchived(report.AuditEngagement!);
+
+        report.OpinionType = req.OpinionType;
+        report.PlaceOfSignature = req.PlaceOfSignature;
+        report.OpinionParagraph = req.OpinionParagraph;
+        report.BasisForOpinionParagraph = req.BasisForOpinionParagraph;
+        report.MaterialUncertaintyGoingConcernParagraph = req.MaterialUncertaintyGoingConcernParagraph;
+        report.EmphasisOfMatterParagraph = req.EmphasisOfMatterParagraph;
+        report.OtherMatterParagraph = req.OtherMatterParagraph;
+        report.IncludeKeyAuditMatters = req.IncludeKeyAuditMatters;
+        report.KeyAuditMattersIntro = req.KeyAuditMattersIntro;
+        report.ResponsibilitiesOfManagementParagraph = req.ResponsibilitiesOfManagementParagraph;
+        report.AuditorResponsibilitiesParagraph = req.AuditorResponsibilitiesParagraph;
+        report.Rule11_g_AuditTrailStatus = req.Rule11_g_AuditTrailStatus;
+        report.Rule11_g_AuditTrailRemarks = req.Rule11_g_AuditTrailRemarks;
+        report.UpdatedAt = DateTime.UtcNow;
+        report.UpdatedBy = currentUserId;
+
+        await db.SaveChangesAsync(ct);
+
+        return ToAuditorReportDto(report);
+    }
+
+    public async Task<IndependentAuditorReportDto> IssueReportWithUdinAsync(
+        Guid reportId,
+        IssueReportWithUdinRequest req,
+        Guid currentUserId,
+        CancellationToken ct = default)
+    {
+        var report = await db.AuditorReports
+            .Include(r => r.KeyAuditMatters)
+            .Include(r => r.AuditEngagement)
+            .FirstOrDefaultAsync(r => r.Id == reportId, ct)
+            ?? throw new KeyNotFoundException($"Auditor's report '{reportId}' not found.");
+        AssertNotArchived(report.AuditEngagement!);
+
+        if (!AuditorReportEngine.IsValidUdin(req.Udin))
+        {
+            throw new ArgumentException("Invalid 18-character ICAI UDIN format. Standard format: 2-digit FY, 6-digit membership, 4-char form code, 6-char alphanumeric hash (e.g. 24045678ABCD123456).");
+        }
+
+        report.Udin = req.Udin.Trim().ToUpperInvariant();
+        report.ReportDate = req.ReportDate;
+        report.Status = "IssuedWithUdin";
+        report.UpdatedAt = DateTime.UtcNow;
+        report.UpdatedBy = currentUserId;
+
+        await db.SaveChangesAsync(ct);
+
+        return ToAuditorReportDto(report);
+    }
+
+    public async Task<AuditorReportHtmlExportDto> ExportAuditorReportHtmlAsync(Guid engagementId, CancellationToken ct = default)
+    {
+        var report = await db.AuditorReports
+            .Include(r => r.KeyAuditMatters)
+            .Include(r => r.AuditEngagement)
+                .ThenInclude(e => e!.Client)
+            .FirstOrDefaultAsync(r => r.AuditEngagementId == engagementId, ct)
+            ?? throw new KeyNotFoundException($"Auditor's report not generated yet for engagement '{engagementId}'.");
+
+        var clientName = report.AuditEngagement?.Client?.Name ?? "Client Company Limited";
+        var clientCin = "U74999MH2018PTC305123";
+        var fy = report.AuditEngagement?.FinancialYear ?? "2024-25";
+
+        var html = AuditorReportEngine.GenerateFullAuditorReportHtml(report, clientName, clientCin, fy);
+
+        return new AuditorReportHtmlExportDto(
+            HtmlContent: html,
+            OpinionType: report.OpinionType,
+            Udin: report.Udin,
+            GeneratedAt: DateTime.UtcNow
+        );
+    }
+
+    // =========================================================================
+    // Notes to Accounts
+    // =========================================================================
+
+    public async Task<NotesToAccountsDto?> GetNotesToAccountsAsync(Guid engagementId, CancellationToken ct = default)
+    {
+        var notes = await db.NotesToAccounts.FirstOrDefaultAsync(n => n.AuditEngagementId == engagementId, ct);
+        return notes == null ? null : ToNotesDto(notes);
+    }
+
+    public async Task<NotesToAccountsDto> GenerateNotesToAccountsAsync(
+        Guid engagementId,
+        GenerateNotesToAccountsRequest req,
+        Guid currentUserId,
+        CancellationToken ct = default)
+    {
+        var eng = await db.AuditEngagements
+            .Include(e => e.Client)
+            .FirstOrDefaultAsync(e => e.Id == engagementId, ct)
+            ?? throw new KeyNotFoundException($"Audit engagement '{engagementId}' not found.");
+        AssertNotArchived(eng);
+
+        var existing = await db.NotesToAccounts.FirstOrDefaultAsync(n => n.AuditEngagementId == engagementId, ct);
+
+        var clientName = eng.Client?.Name ?? "The Company";
+        var cin = "U74999MH2018PTC305123";
+        var pan = eng.Client?.TaxIds.GetValueOrDefault("PAN") ?? "AABCT1234F";
+
+        var note1 = $"{clientName} ('the Company') is a public/private limited company domiciled in India and incorporated under the provisions of the Companies Act, 2013 (CIN: {cin}, PAN: {pan}). The Company is primarily engaged in the business of manufacturing, trading, and providing related engineering services. The financial statements were approved and authorized for issue in accordance with a resolution of the Board of Directors.";
+
+        var note2 = $"The financial statements of the Company have been prepared in accordance with the Generally Accepted Accounting Principles in India ('Indian GAAP') to comply with the Accounting Standards specified under Section 133 of the Companies Act, 2013, read with Rule 7 of the Companies (Accounts) Rules, 2014 and the relevant provisions of the Act. The financial statements have been prepared on an accrual basis under the historical cost convention. The accounting policies adopted in the preparation of the financial statements are consistent with those followed in the previous year.";
+
+        var additionalDisclosures = $"1. Title Deeds of Immovable Property: The title deeds of all the immovable properties (other than properties where the Company is the lessee and the lease agreements are duly executed in favour of the lessee) are held in the name of the Company.\n2. Revaluation of Assets: The Company has not revalued its Property, Plant and Equipment or intangible assets during the current year.\n3. Benami Property: No proceedings have been initiated or are pending against the Company for holding any benami property under the Benami Transactions (Prohibition) Act, 1988.\n4. Wilful Defaulter: The Company has not been declared as a wilful defaulter by any bank or financial institution or other lender.\n5. Relationship with Struck off Companies: The Company has no transactions with companies struck off under Section 248 of the Companies Act, 2013.\n6. Undisclosed Income: The Company does not have any transaction not recorded in the books of account that has been surrendered or disclosed as income during the year in the tax assessments under the Income Tax Act, 1961.\n7. Crypto Currency: The Company has not traded or invested in Crypto currency or Virtual Digital Assets during the financial year.";
+
+        var master = existing ?? new NotesToAccountsMaster
+        {
+            FirmId = eng.FirmId,
+            AuditEngagementId = engagementId,
+            FinancialYear = eng.FinancialYear
+        };
+
+        master.Note1CorporateInformation = note1;
+        master.Note2AccountingPolicies = note2;
+        master.AdditionalRegulatoryDisclosures = additionalDisclosures;
+        master.Status = "Generated";
+        master.UpdatedAt = DateTime.UtcNow;
+        master.UpdatedBy = currentUserId;
+
+        if (existing == null)
+        {
+            master.CreatedBy = currentUserId;
+            db.NotesToAccounts.Add(master);
+        }
+
+        await db.SaveChangesAsync(ct);
+        return ToNotesDto(master);
+    }
+
+    public async Task<NotesToAccountsDto> UpdateNotesToAccountsAsync(
+        Guid notesId,
+        UpdateNotesToAccountsRequest req,
+        Guid currentUserId,
+        CancellationToken ct = default)
+    {
+        var item = await db.NotesToAccounts
+            .Include(n => n.AuditEngagement)
+            .FirstOrDefaultAsync(n => n.Id == notesId, ct)
+            ?? throw new KeyNotFoundException($"Notes to accounts '{notesId}' not found.");
+        AssertNotArchived(item.AuditEngagement!);
+
+        item.Note1CorporateInformation = req.Note1CorporateInformation;
+        item.Note2AccountingPolicies = req.Note2AccountingPolicies;
+        item.AdditionalRegulatoryDisclosures = req.AdditionalRegulatoryDisclosures;
+        item.Status = req.Status;
+        item.UpdatedAt = DateTime.UtcNow;
+        item.UpdatedBy = currentUserId;
+
+        await db.SaveChangesAsync(ct);
+        return ToNotesDto(item);
+    }
+
+    public async Task<NotesToAccountsHtmlExportDto> ExportNotesToAccountsHtmlAsync(Guid engagementId, CancellationToken ct = default)
+    {
+        var notes = await db.NotesToAccounts
+            .Include(n => n.AuditEngagement)
+                .ThenInclude(e => e!.Client)
+            .FirstOrDefaultAsync(n => n.AuditEngagementId == engagementId, ct)
+            ?? throw new KeyNotFoundException($"Notes to accounts not generated yet for engagement '{engagementId}'.");
+
+        var clientName = notes.AuditEngagement?.Client?.Name ?? "Client Company Limited";
+        var fy = notes.FinancialYear;
+
+        var html = AuditorReportEngine.GenerateNotesToAccountsHtml(notes, clientName, fy);
+
+        return new NotesToAccountsHtmlExportDto(
+            HtmlContent: html,
+            GeneratedAt: DateTime.UtcNow
+        );
+    }
+
+    private static IndependentAuditorReportDto ToAuditorReportDto(IndependentAuditorReport r)
+    {
+        var kams = r.KeyAuditMatters.Select(k => new KeyAuditMatterDto(
+            k.Id,
+            k.ReportId,
+            k.Category,
+            k.Title,
+            k.DescriptionOfMatter,
+            k.WhyConsideredSignificant,
+            k.HowAddressedInAudit,
+            k.KeyDocumentationRef
+        )).ToList();
+
+        return new IndependentAuditorReportDto(
+            r.Id,
+            r.AuditEngagementId,
+            r.ReportTitle,
+            r.OpinionType,
+            r.ReportDate,
+            r.PlaceOfSignature,
+            r.AuditorFirmName,
+            r.FirmRegistrationNumber,
+            r.PartnerName,
+            r.PartnerMembershipNumber,
+            r.Udin,
+            r.OpinionParagraph,
+            r.BasisForOpinionParagraph,
+            r.MaterialUncertaintyGoingConcernParagraph,
+            r.EmphasisOfMatterParagraph,
+            r.OtherMatterParagraph,
+            r.IncludeKeyAuditMatters,
+            r.KeyAuditMattersIntro,
+            r.ResponsibilitiesOfManagementParagraph,
+            r.AuditorResponsibilitiesParagraph,
+            r.Clause143_3_a_InformationObtained,
+            r.Clause143_3_b_ProperBooksKept,
+            r.Clause143_3_c_AgreementWithBooks,
+            r.Clause143_3_d_ComplianceWithAS,
+            r.Clause143_3_e_AdverseFunctioningRemarks,
+            r.Clause143_3_f_DirectorsDisqualified,
+            r.Clause143_3_g_MaintenanceAccountsQualifications,
+            r.Clause143_3_h_InternalFinancialControlsAnnexure,
+            r.Rule11_a_PendingLitigations,
+            r.Rule11_b_ForeseeableLosses,
+            r.Rule11_c_IepfTransfers,
+            r.Rule11_e_IntermediaryFunds,
+            r.Rule11_f_DividendCompliance,
+            r.Rule11_g_AuditTrailStatus,
+            r.Rule11_g_AuditTrailRemarks,
+            r.HasCaro2020Annexure,
+            r.Status,
+            kams,
+            r.CreatedAt,
+            r.UpdatedAt
+        );
+    }
+
+    private static NotesToAccountsDto ToNotesDto(NotesToAccountsMaster n)
+    {
+        return new NotesToAccountsDto(
+            n.Id,
+            n.AuditEngagementId,
+            n.FinancialYear,
+            n.Note1CorporateInformation,
+            n.Note2AccountingPolicies,
+            n.BalanceSheetNotesJson,
+            n.ProfitAndLossNotesJson,
+            n.RegulatoryRatiosJson,
+            n.AdditionalRegulatoryDisclosures,
+            n.Status,
+            n.CreatedAt,
+            n.UpdatedAt
+        );
+    }
 }

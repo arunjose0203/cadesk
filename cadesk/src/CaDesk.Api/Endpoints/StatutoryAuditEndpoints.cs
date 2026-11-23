@@ -342,6 +342,94 @@ public static class StatutoryAuditEndpoints
             return Results.Ok(res);
         }).AllowAnonymous();
 
+        // =========================================================================
+        // Sprint 46: 1-Click ICAI Independent Auditor's Report & Notes Endpoints
+        // =========================================================================
+
+        g.MapGet("/engagements/{id:guid}/auditor-report", async (Guid id, AuditService svc, CancellationToken ct) =>
+        {
+            var report = await svc.GetAuditorReportAsync(id, ct);
+            return report == null ? Results.NotFound() : Results.Ok(report);
+        }).RequirePermission(Perms.AuditRead);
+
+        g.MapPost("/engagements/{id:guid}/auditor-report/generate", async (
+            Guid id,
+            GenerateAuditorReportRequest req,
+            ClaimsPrincipal user,
+            AuditService svc,
+            CancellationToken ct) =>
+        {
+            var userId = Guid.Parse(user.FindFirstValue("sub") ?? user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var report = await svc.GenerateAuditorReportAsync(id, req, userId, ct);
+            return Results.Ok(report);
+        }).RequirePermission(Perms.AuditManage);
+
+        g.MapPut("/auditor-reports/{id:guid}", async (
+            Guid id,
+            UpdateAuditorReportRequest req,
+            ClaimsPrincipal user,
+            AuditService svc,
+            CancellationToken ct) =>
+        {
+            var userId = Guid.Parse(user.FindFirstValue("sub") ?? user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var report = await svc.UpdateAuditorReportAsync(id, req, userId, ct);
+            return Results.Ok(report);
+        }).RequirePermission(Perms.AuditManage);
+
+        g.MapPost("/auditor-reports/{id:guid}/issue-udin", async (
+            Guid id,
+            IssueReportWithUdinRequest req,
+            ClaimsPrincipal user,
+            AuditService svc,
+            CancellationToken ct) =>
+        {
+            var userId = Guid.Parse(user.FindFirstValue("sub") ?? user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var report = await svc.IssueReportWithUdinAsync(id, req, userId, ct);
+            return Results.Ok(report);
+        }).RequirePermission(Perms.AuditReview);
+
+        g.MapGet("/engagements/{id:guid}/auditor-report/export-html", async (Guid id, AuditService svc, CancellationToken ct) =>
+        {
+            var export = await svc.ExportAuditorReportHtmlAsync(id, ct);
+            return Results.Ok(export);
+        }).RequirePermission(Perms.AuditRead);
+
+        g.MapGet("/engagements/{id:guid}/notes-to-accounts", async (Guid id, AuditService svc, CancellationToken ct) =>
+        {
+            var notes = await svc.GetNotesToAccountsAsync(id, ct);
+            return notes == null ? Results.NotFound() : Results.Ok(notes);
+        }).RequirePermission(Perms.AuditRead);
+
+        g.MapPost("/engagements/{id:guid}/notes-to-accounts/generate", async (
+            Guid id,
+            GenerateNotesToAccountsRequest req,
+            ClaimsPrincipal user,
+            AuditService svc,
+            CancellationToken ct) =>
+        {
+            var userId = Guid.Parse(user.FindFirstValue("sub") ?? user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var notes = await svc.GenerateNotesToAccountsAsync(id, req, userId, ct);
+            return Results.Ok(notes);
+        }).RequirePermission(Perms.AuditManage);
+
+        g.MapPut("/notes-to-accounts/{id:guid}", async (
+            Guid id,
+            UpdateNotesToAccountsRequest req,
+            ClaimsPrincipal user,
+            AuditService svc,
+            CancellationToken ct) =>
+        {
+            var userId = Guid.Parse(user.FindFirstValue("sub") ?? user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var notes = await svc.UpdateNotesToAccountsAsync(id, req, userId, ct);
+            return Results.Ok(notes);
+        }).RequirePermission(Perms.AuditManage);
+
+        g.MapGet("/engagements/{id:guid}/notes-to-accounts/export-html", async (Guid id, AuditService svc, CancellationToken ct) =>
+        {
+            var export = await svc.ExportNotesToAccountsHtmlAsync(id, ct);
+            return Results.Ok(export);
+        }).RequirePermission(Perms.AuditRead);
+
         return app;
     }
 }

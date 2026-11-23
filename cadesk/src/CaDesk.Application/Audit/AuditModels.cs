@@ -434,3 +434,131 @@ public record ConfirmationSummaryExportHtmlDto(
     DateTime GeneratedAt
 );
 
+// =========================================================================
+// Sprint 46: 1-Click ICAI Independent Auditor's Report & Notes Generator DTOs
+// =========================================================================
+
+public record KeyAuditMatterDto(
+    Guid Id,
+    Guid ReportId,
+    string Category,
+    string Title,
+    string DescriptionOfMatter,
+    string WhyConsideredSignificant,
+    string HowAddressedInAudit,
+    string? KeyDocumentationRef
+);
+
+public record IndependentAuditorReportDto(
+    Guid Id,
+    Guid AuditEngagementId,
+    string ReportTitle,
+    string OpinionType,
+    DateOnly ReportDate,
+    string PlaceOfSignature,
+    string AuditorFirmName,
+    string FirmRegistrationNumber,
+    string PartnerName,
+    string PartnerMembershipNumber,
+    string? Udin,
+    string OpinionParagraph,
+    string BasisForOpinionParagraph,
+    string? MaterialUncertaintyGoingConcernParagraph,
+    string? EmphasisOfMatterParagraph,
+    string? OtherMatterParagraph,
+    bool IncludeKeyAuditMatters,
+    string? KeyAuditMattersIntro,
+    string ResponsibilitiesOfManagementParagraph,
+    string AuditorResponsibilitiesParagraph,
+    bool Clause143_3_a_InformationObtained,
+    bool Clause143_3_b_ProperBooksKept,
+    bool Clause143_3_c_AgreementWithBooks,
+    bool Clause143_3_d_ComplianceWithAS,
+    string? Clause143_3_e_AdverseFunctioningRemarks,
+    bool Clause143_3_f_DirectorsDisqualified,
+    string? Clause143_3_g_MaintenanceAccountsQualifications,
+    bool Clause143_3_h_InternalFinancialControlsAnnexure,
+    string Rule11_a_PendingLitigations,
+    string Rule11_b_ForeseeableLosses,
+    string Rule11_c_IepfTransfers,
+    string Rule11_e_IntermediaryFunds,
+    string Rule11_f_DividendCompliance,
+    string Rule11_g_AuditTrailStatus,
+    string Rule11_g_AuditTrailRemarks,
+    bool HasCaro2020Annexure,
+    string Status,
+    List<KeyAuditMatterDto> KeyAuditMatters,
+    DateTime CreatedAt,
+    DateTime? UpdatedAt
+);
+
+public record GenerateAuditorReportRequest(
+    string OpinionType = "Unmodified",
+    string PlaceOfSignature = "Mumbai",
+    string? QualificationDetails = null,
+    bool IncludeKeyAuditMatters = true,
+    string? EmphasisOfMatter = null,
+    string? MaterialUncertaintyGoingConcern = null
+);
+
+public record UpdateAuditorReportRequest(
+    string OpinionType,
+    string PlaceOfSignature,
+    string OpinionParagraph,
+    string BasisForOpinionParagraph,
+    string? MaterialUncertaintyGoingConcernParagraph,
+    string? EmphasisOfMatterParagraph,
+    string? OtherMatterParagraph,
+    bool IncludeKeyAuditMatters,
+    string? KeyAuditMattersIntro,
+    string ResponsibilitiesOfManagementParagraph,
+    string AuditorResponsibilitiesParagraph,
+    string Rule11_g_AuditTrailStatus,
+    string Rule11_g_AuditTrailRemarks,
+    List<KeyAuditMatterDto>? KeyAuditMatters
+);
+
+public record IssueReportWithUdinRequest(
+    string Udin,
+    DateOnly ReportDate
+);
+
+public record AuditorReportHtmlExportDto(
+    string HtmlContent,
+    string OpinionType,
+    string? Udin,
+    DateTime GeneratedAt
+);
+
+public record NotesToAccountsDto(
+    Guid Id,
+    Guid AuditEngagementId,
+    string FinancialYear,
+    string Note1CorporateInformation,
+    string Note2AccountingPolicies,
+    string BalanceSheetNotesJson,
+    string ProfitAndLossNotesJson,
+    string RegulatoryRatiosJson,
+    string AdditionalRegulatoryDisclosures,
+    string Status,
+    DateTime CreatedAt,
+    DateTime? UpdatedAt
+);
+
+public record GenerateNotesToAccountsRequest(
+    Guid? TrialBalanceImportId = null
+);
+
+public record UpdateNotesToAccountsRequest(
+    string Note1CorporateInformation,
+    string Note2AccountingPolicies,
+    string AdditionalRegulatoryDisclosures,
+    string Status
+);
+
+public record NotesToAccountsHtmlExportDto(
+    string HtmlContent,
+    DateTime GeneratedAt
+);
+
+

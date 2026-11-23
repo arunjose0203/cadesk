@@ -1145,6 +1145,133 @@ export type ConfirmationSummaryExportHtmlDto = {
   generatedAt: string
 }
 
+// -------------------------------------------------------------
+// Sprint 46: 1-Click ICAI Independent Auditor's Report & Schedule III Notes
+// -------------------------------------------------------------
+
+export type KeyAuditMatterDto = {
+  id: string
+  reportId: string
+  category: string
+  title: string
+  descriptionOfMatter: string
+  whyConsideredSignificant: string
+  howAddressedInAudit: string
+  keyDocumentationRef?: string | null
+}
+
+export type IndependentAuditorReportDto = {
+  id: string
+  auditEngagementId: string
+  reportTitle: string
+  opinionType: string
+  reportDate: string
+  placeOfSignature: string
+  auditorFirmName: string
+  firmRegistrationNumber: string
+  partnerName: string
+  partnerMembershipNumber: string
+  udin?: string | null
+  opinionParagraph: string
+  basisForOpinionParagraph: string
+  materialUncertaintyGoingConcernParagraph?: string | null
+  emphasisOfMatterParagraph?: string | null
+  otherMatterParagraph?: string | null
+  includeKeyAuditMatters: boolean
+  keyAuditMattersIntro?: string | null
+  responsibilitiesOfManagementParagraph: string
+  auditorResponsibilitiesParagraph: string
+  clause143_3_a_InformationObtained: boolean
+  clause143_3_b_ProperBooksKept: boolean
+  clause143_3_c_AgreementWithBooks: boolean
+  clause143_3_d_ComplianceWithAS: boolean
+  clause143_3_e_AdverseFunctioningRemarks?: string | null
+  clause143_3_f_DirectorsDisqualified: boolean
+  clause143_3_g_MaintenanceAccountsQualifications?: string | null
+  clause143_3_h_InternalFinancialControlsAnnexure: boolean
+  rule11_a_PendingLitigations: string
+  rule11_b_ForeseeableLosses: string
+  rule11_c_IepfTransfers: string
+  rule11_e_IntermediaryFunds: string
+  rule11_f_DividendCompliance: string
+  rule11_g_AuditTrailStatus: string
+  rule11_g_AuditTrailRemarks: string
+  hasCaro2020Annexure: boolean
+  status: string
+  keyAuditMatters: KeyAuditMatterDto[]
+  createdAt: string
+  updatedAt?: string | null
+}
+
+export type GenerateAuditorReportRequest = {
+  opinionType?: string
+  placeOfSignature?: string
+  qualificationDetails?: string | null
+  includeKeyAuditMatters?: boolean
+  emphasisOfMatter?: string | null
+  materialUncertaintyGoingConcern?: string | null
+}
+
+export type UpdateAuditorReportRequest = {
+  opinionType: string
+  placeOfSignature: string
+  opinionParagraph: string
+  basisForOpinionParagraph: string
+  materialUncertaintyGoingConcernParagraph?: string | null
+  emphasisOfMatterParagraph?: string | null
+  otherMatterParagraph?: string | null
+  includeKeyAuditMatters: boolean
+  keyAuditMattersIntro?: string | null
+  responsibilitiesOfManagementParagraph: string
+  auditorResponsibilitiesParagraph: string
+  rule11_g_AuditTrailStatus: string
+  rule11_g_AuditTrailRemarks: string
+  keyAuditMatters?: KeyAuditMatterDto[]
+}
+
+export type IssueReportWithUdinRequest = {
+  udin: string
+  reportDate: string
+}
+
+export type AuditorReportHtmlExportDto = {
+  htmlContent: string
+  opinionType: string
+  udin?: string | null
+  generatedAt: string
+}
+
+export type NotesToAccountsDto = {
+  id: string
+  auditEngagementId: string
+  financialYear: string
+  note1CorporateInformation: string
+  note2AccountingPolicies: string
+  balanceSheetNotesJson: string
+  profitAndLossNotesJson: string
+  regulatoryRatiosJson: string
+  additionalRegulatoryDisclosures: string
+  status: string
+  createdAt: string
+  updatedAt?: string | null
+}
+
+export type GenerateNotesToAccountsRequest = {
+  trialBalanceImportId?: string | null
+}
+
+export type UpdateNotesToAccountsRequest = {
+  note1CorporateInformation: string
+  note2AccountingPolicies: string
+  additionalRegulatoryDisclosures: string
+  status: string
+}
+
+export type NotesToAccountsHtmlExportDto = {
+  htmlContent: string
+  generatedAt: string
+}
+
 export const auditApi = {
   summary: () => api<AuditSummaryDto>('/api/audit/summary'),
   listEngagements: (clientId?: string, fy?: string, status?: string) => {
@@ -1230,6 +1357,27 @@ export const auditApi = {
     api<PublicConfirmationDetailsDto>(`/api/audit/confirmations/public/${token}`),
   submitPublicConfirmation: (token: string, req: SubmitConfirmationResponseRequest) =>
     api<ExternalConfirmationRequestDto>(`/api/audit/confirmations/public/${token}/respond`, { method: 'POST', body: JSON.stringify(req) }),
+
+  // 1-Click ICAI Independent Auditor's Report (SA 700/701/705/706) & Schedule III Notes (Sprint 46)
+  getAuditorReport: (engagementId: string) =>
+    api<IndependentAuditorReportDto>(`/api/audit/engagements/${engagementId}/auditor-report`),
+  generateAuditorReport: (engagementId: string, req: GenerateAuditorReportRequest = {}) =>
+    api<IndependentAuditorReportDto>(`/api/audit/engagements/${engagementId}/auditor-report/generate`, { method: 'POST', body: JSON.stringify(req) }),
+  updateAuditorReport: (id: string, req: UpdateAuditorReportRequest) =>
+    api<IndependentAuditorReportDto>(`/api/audit/auditor-reports/${id}`, { method: 'PUT', body: JSON.stringify(req) }),
+  issueReportWithUdin: (id: string, req: IssueReportWithUdinRequest) =>
+    api<IndependentAuditorReportDto>(`/api/audit/auditor-reports/${id}/issue-udin`, { method: 'POST', body: JSON.stringify(req) }),
+  exportAuditorReportHtml: (engagementId: string) =>
+    api<AuditorReportHtmlExportDto>(`/api/audit/engagements/${engagementId}/auditor-report/export-html`),
+
+  getNotesToAccounts: (engagementId: string) =>
+    api<NotesToAccountsDto>(`/api/audit/engagements/${engagementId}/notes-to-accounts`),
+  generateNotesToAccounts: (engagementId: string, req: GenerateNotesToAccountsRequest = {}) =>
+    api<NotesToAccountsDto>(`/api/audit/engagements/${engagementId}/notes-to-accounts/generate`, { method: 'POST', body: JSON.stringify(req) }),
+  updateNotesToAccounts: (id: string, req: UpdateNotesToAccountsRequest) =>
+    api<NotesToAccountsDto>(`/api/audit/notes-to-accounts/${id}`, { method: 'PUT', body: JSON.stringify(req) }),
+  exportNotesToAccountsHtml: (engagementId: string) =>
+    api<NotesToAccountsHtmlExportDto>(`/api/audit/engagements/${engagementId}/notes-to-accounts/export-html`),
 }
 
 // -------------------------------------------------------------

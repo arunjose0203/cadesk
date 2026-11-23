@@ -102,6 +102,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
     public DbSet<AuditDossier> AuditDossiers => Set<AuditDossier>();
     public DbSet<ConfirmationCampaign> ConfirmationCampaigns => Set<ConfirmationCampaign>();
     public DbSet<ExternalConfirmationRequest> ExternalConfirmations => Set<ExternalConfirmationRequest>();
+    public DbSet<IndependentAuditorReport> AuditorReports => Set<IndependentAuditorReport>();
+    public DbSet<KeyAuditMatterItem> KeyAuditMatters => Set<KeyAuditMatterItem>();
+    public DbSet<NotesToAccountsMaster> NotesToAccounts => Set<NotesToAccountsMaster>();
     public DbSet<GstReconciliationBatch> GstReconciliationBatches => Set<GstReconciliationBatch>();
     public DbSet<GstReconciliationItem> GstReconciliationItems => Set<GstReconciliationItem>();
     public DbSet<TdsLowerDeductionCertificate> TdsLowerDeductionCertificates => Set<TdsLowerDeductionCertificate>();
@@ -462,6 +465,27 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
             e.ToTable("audit_external_confirmations");
             e.HasOne(x => x.AuditEngagement).WithMany().HasForeignKey(x => x.AuditEngagementId).OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(x => x.SecureAccessToken).IsUnique();
+        });
+
+        b.Entity<IndependentAuditorReport>(e =>
+        {
+            e.ToTable("audit_independent_auditor_reports");
+            e.HasOne(x => x.AuditEngagement).WithMany().HasForeignKey(x => x.AuditEngagementId).OnDelete(DeleteBehavior.Cascade);
+            e.HasMany(x => x.KeyAuditMatters).WithOne(x => x.Report).HasForeignKey(x => x.ReportId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<KeyAuditMatterItem>(e =>
+        {
+            e.ToTable("audit_key_audit_matters");
+        });
+
+        b.Entity<NotesToAccountsMaster>(e =>
+        {
+            e.ToTable("audit_notes_to_accounts");
+            e.Property(x => x.BalanceSheetNotesJson).HasColumnType("jsonb");
+            e.Property(x => x.ProfitAndLossNotesJson).HasColumnType("jsonb");
+            e.Property(x => x.RegulatoryRatiosJson).HasColumnType("jsonb");
+            e.HasOne(x => x.AuditEngagement).WithMany().HasForeignKey(x => x.AuditEngagementId).OnDelete(DeleteBehavior.Cascade);
         });
 
         b.Entity<GstReconciliationBatch>(e =>

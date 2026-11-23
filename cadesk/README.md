@@ -45,6 +45,10 @@ Multi-tenant SaaS for CA and accounting firms (India first, GCC later).
 | 40 | Transfer Pricing Study & Form 3CEB Certification Desk (Income Tax Act Sec 92E / Rule 10D & 10E): Section 92A Associated Enterprises (AEs) registry, Clauses 11–20 international transactions & Clauses 21–25 Specified Domestic Transactions (SDT), Most Appropriate Method (MAM) benchmarking engine (CUP, RPM, CPM, PSM, TNMM, Other Method), Rule 10CA 35th–65th percentile range calculator with +/- 3% tolerance band, automated Section 92CA primary TP adjustment quantification, and official Form No. 3CEB Accountant's Report generator with 18-digit ICAI UDIN | Full-stack transfer pricing desk with Rule 10CA percentile range engine, tolerance band checks, AE register, primary TP adjustment calculator, official Form 3CEB compilation, and two-lock multi-tenancy |
 | 41 | Cost Audit & Form CRA-1 to CRA-4 Desk (Companies Act 2013 Sec 148 / Cost Records and Audit Rules 2014): Rule 3 cost records applicability (≥ ₹35 Cr) & Rule 4 cost audit thresholds (Table A Regulated: ≥ ₹50 Cr overall & ≥ ₹25 Cr product; Table B Non-Regulated: ≥ ₹100 Cr overall & ≥ ₹35 Cr product; > 75% export / SEZ / captive power exemptions), 30 standard Form CRA-1 cost record heads verification matrix, Annexure Part B manufacturing product-wise cost statements with capacity utilization, prime/works/production/sales cost breakdowns, Material Cost/Price/Usage variance calculator, Annexure Part D profit reconciliation between cost accounts and audited P&L, Form CRA-2 auditor appointment tracking (earlier of 30 days from Board meeting or 180 days of FY), Form CRA-4 MCA XBRL filing tracker, and official Form CRA-3 Cost Audit Report generator with 18-digit ICMAI / ICAI UDIN | Full-stack statutory cost audit and CRA-1 to CRA-4 workbench with automated applicability gating, baseline 30 heads seeding, product costing sheets, material variance analytics, P&L profit reconciliation, MCA filing timeline monitors, CRA-3 report auto-drafting, and two-lock multi-tenancy |
 | 42 | Universal Trial Balance & Financial Data Importer (Tally, Busy, SAP, Excel Clipboard TSV): Multi-format intelligent ingestion hub, fuzzy column header heuristic matcher, Indian Chart of Accounts auto-classifier (Schedule III Division I/II, Form 3CD, CARO 2020, Fixed Assets, Cost Audit CRA-1/3), 60-second interactive CA test drive with 3 pre-loaded real-world datasets (Tally Prime Manufacturing ₹46.5 Cr, Busy Accounting Trading ₹18.2 Cr, SAP ERP Services ₹85.0 Cr), live preview diagnostics with financial performance KPIs (Revenue, EBITDA, Assets, Debt, Current Ratio), and 6-desk cascading synchronization | Full-stack financial data ingestion hub supporting Tally XML, Busy TSV/CSV, SAP GL, and Excel clipboard paste; 1-click test drives for prospective CA firms; 558 passing unit tests; zero frontend build errors; two-lock multi-tenancy |
+| 43 | 1-Click SA 230 Digital Audit Workpaper & Peer Review Dossier Generator (ICAI / NFRA Inspection Vault): 17 substantive analytical lead schedules (A to Q), SHA-256 tamper-evident integrity hash, SQC 1 cold review sign-off lock, complete indexed peer review dossier in standalone HTML | Full-stack audit dossier compiler with lead schedules A-Q, partner lock, and tamper-evident SHA-256 seal |
+| 44 | Bank Statement Analyzer & Forensic Fraud Detection Engine: Ingests Indian bank statements (PDF/CSV/Excel), Trial Balance bank ledger cross-reconciliation, and 7-rule forensic audit engine (Sec 40A(3), Sec 269ST, Sec 269SS/T, Round-Tripping, Smurfing, Dormancy surges, High-Value round sums) | Full-stack forensic audit engine with statutory disallowance quantification, risk scoring meter, and automated anomalies register |
+| 45 | SA 505 Automated External Confirmations Desk: End-to-end third-party balance confirmation campaign manager with tokenized digital verification links, public party confirmation portal, ledger discrepancy auto-matching, and SA 505 paragraph 12 alternative audit procedures | Full-stack SA 505 circularization desk with public client portal, alternative procedure logs, and peer-review-ready HTML export |
+| 46 | 1-Click ICAI Independent Auditor's Report (SA 700/701/705/706) & Schedule III Notes to Accounts Generator: Automated statutory opinion engine (Unmodified, Qualified, Adverse, Disclaimer), SA 701 Key Audit Matters (KAM) panel, Section 143(3) statutory matrix, Rule 11(g) software audit trail edit log verification, 18-character ICAI UDIN cryptographically bound attestations, and Schedule III Notes to Accounts with 11 mandatory financial ratios and >25% variance alerts | Full-stack ICAI Independent Auditor's Report & Notes generator with UDIN validator, Rule 11(g) compliance, Schedule III ratios, and print-ready HTML exports; 593 passing unit tests; two-lock multi-tenancy |
 
 ## What's inside
 
@@ -1401,6 +1405,45 @@ API:
 - `GET /api/audit/confirmations/{requestId}/letter-html` (`audit.read`)
 - `GET /api/audit/confirmations/public/{token}` (Public Anonymous)
 - `POST /api/audit/confirmations/public/{token}/respond` (Public Anonymous)
+
+## 1-Click ICAI Independent Auditor's Report & Schedule III Notes to Accounts (Sprint 46)
+
+- **Option 4 (The Reporting Moat)**: Automated publication engine for the final statutory audit deliverable compliant with ICAI Standards on Auditing (SA 700, 701, 705, 706), Companies Act, 2013 Section 143(3), MCA Rule 11(g) Audit Trail mandate, and Schedule III Division I/II reporting.
+- **Statutory Opinion Architecture (SA 700 / SA 705 / SA 706)**:
+  - Formulates standard statutory audit opinions:
+    - **Unmodified (Clean Opinion)**: Standard SA 700 true and fair view verbiage.
+    - **Qualified Opinion (SA 705)**: Automated "except for the effects of the matter described in the Basis for Qualified Opinion" formulation with parameterized qualification details.
+    - **Adverse Opinion (SA 705)**: Standard adverse verbiage when fundamental accounting assumptions (e.g. going concern) are vitiated.
+    - **Disclaimer of Opinion (SA 705)**: Standard disclaimer verbiage when audit evidence is unavailable or scope is restricted.
+  - Optional Emphasis of Matter (SA 706) and Material Uncertainty Related to Going Concern (SA 570) paragraphs.
+- **Key Audit Matters (KAM - SA 701)**:
+  - Communicates matters of most significance in the audit of financial statements (Revenue Recognition under Ind AS 115, Inventory Valuation, Recoverability of Receivables).
+  - Outlines: Category, Why Considered Significant, How Addressed in the Audit, and Lead Schedule / Working Paper references.
+- **Section 143(3) Statutory Affirmations & Rule 11 Checklist**:
+  - Automatically assesses and renders statutory reporting requirements under Section 143(3)(a) through 143(3)(i).
+  - **Rule 11(g) MCA Audit Trail (Edit Log) Compliance**:
+    - Evaluates whether the client's accounting software features an audit trail facility operating throughout the year without being tampered with, with preserved logs and auditor verification remarks.
+- **ICAI UDIN Validation & Cryptographic Binding**:
+  - Enforces mandatory 18-character alphanumeric format: `[2-digit FY][6-digit M.No.][4-digit DocCode][6-digit Hash]`.
+  - Validates and binds the partner's UDIN to the final report deliverable.
+- **Schedule III Notes to Accounts & 11 Mandatory Financial Ratios**:
+  - Automatically generates Note 1 (Corporate Information & Domicile) and Note 2 (Significant Accounting Policies - Indian GAAP / Ind AS accrual basis).
+  - Generates Note 23: 11 Mandatory Analytical Ratios (Current Ratio, Debt-Equity Ratio, DSCR, ROE, Inventory Turnover, Trade Receivables Turnover, Trade Payables Turnover, Net Capital Turnover, Net Profit Ratio, ROCE, ROI).
+  - Auto-flags any ratio variance exceeding **25%** with mandatory statutory disclosure explanations.
+  - Compiles Note 24: Additional Regulatory Disclosures (Benami properties, Wilful Defaulter status, Struck-off companies, Title deeds of immovable property, Crypto currency / Virtual Digital Assets).
+- **Print-Ready HTML Publication Engine**:
+  - 1-click standalone HTML exports for both the Independent Auditor's Report and the Notes to Accounts, complete with firm letterheads, partner signature blocks, and UDIN badges.
+
+API:
+- `GET /api/audit/engagements/{id}/auditor-report` (`audit.read`)
+- `POST /api/audit/engagements/{id}/auditor-report/generate` (`audit.manage`)
+- `PUT /api/audit/auditor-reports/{id}` (`audit.manage`)
+- `POST /api/audit/auditor-reports/{id}/issue-udin` (`audit.manage`)
+- `GET /api/audit/engagements/{id}/auditor-report/export-html` (`audit.read`)
+- `GET /api/audit/engagements/{id}/notes-to-accounts` (`audit.read`)
+- `POST /api/audit/engagements/{id}/notes-to-accounts/generate` (`audit.manage`)
+- `PUT /api/audit/notes-to-accounts/{id}` (`audit.manage`)
+- `GET /api/audit/engagements/{id}/notes-to-accounts/export-html` (`audit.read`)
 
 ## Notes
 

@@ -12,6 +12,9 @@ import {
   type CreateConfirmationCampaignRequest,
   type CreateConfirmationRequest,
   type UpdateConfirmationAuditorEvaluationRequest,
+  type IndependentAuditorReportDto,
+  type NotesToAccountsDto,
+  type GenerateAuditorReportRequest,
   type Client,
   type UserProfile,
   auditApi,
@@ -29,8 +32,8 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
   const [error, setError] = useState<string | null>(null)
   const [selectedEng, setSelectedEng] = useState<AuditEngagementDto | null>(null)
 
-  // Selected engagement sub-view: workpapers, lead_schedules, dossier_vault, confirmations, eqr, review_notes
-  const [activeTab, setActiveTab] = useState<'workpapers' | 'lead_schedules' | 'dossier_vault' | 'confirmations' | 'eqr' | 'review_notes'>('workpapers')
+  // Selected engagement sub-view: workpapers, lead_schedules, dossier_vault, confirmations, auditor_report, eqr, review_notes
+  const [activeTab, setActiveTab] = useState<'workpapers' | 'lead_schedules' | 'dossier_vault' | 'confirmations' | 'auditor_report' | 'eqr' | 'review_notes'>('workpapers')
 
   // Data for active engagement
   const [workingPapers, setWorkingPapers] = useState<AuditWorkingPaperDto[]>([])
@@ -77,6 +80,24 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
     proposedAdjustmentAmount: 0,
     auditorNotes: ''
   })
+
+  // Sprint 46: 1-Click ICAI Independent Auditor's Report & Notes State
+  const [auditorReport, setAuditorReport] = useState<IndependentAuditorReportDto | null>(null)
+  const [notesToAccounts, setNotesToAccounts] = useState<NotesToAccountsDto | null>(null)
+  const [loadingReport, setLoadingReport] = useState<boolean>(false)
+  const [reportSubTab, setReportSubTab] = useState<'report' | 'notes'>('report')
+  const [showGenerateReportModal, setShowGenerateReportModal] = useState<boolean>(false)
+  const [reportGenForm, setReportGenForm] = useState<GenerateAuditorReportRequest>({
+    opinionType: 'Unmodified',
+    placeOfSignature: 'Mumbai',
+    qualificationDetails: '',
+    includeKeyAuditMatters: true,
+    emphasisOfMatter: '',
+    materialUncertaintyGoingConcern: ''
+  })
+  const [showUdinModal, setShowUdinModal] = useState<boolean>(false)
+  const [udinCode, setUdinCode] = useState<string>('')
+  const [udinDate, setUdinDate] = useState<string>(new Date().toISOString().split('T')[0])
 
   // Modals & Forms for Lead Schedules and SA 230 Dossier
   const [editingSchedule, setEditingSchedule] = useState<LeadScheduleDto | null>(null)
@@ -180,14 +201,16 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
   async function loadEngagementDetails(engId: string) {
     try {
       setLoadingWps(true)
-      const [wps, eqr, notes, eng, lss, dos, campaigns] = await Promise.all([
+      const [wps, eqr, notes, eng, lss, dos, campaigns, rep, nts] = await Promise.all([
         auditApi.listWorkingPapers(engId),
         auditApi.getEqrReview(engId).catch(() => null),
         auditApi.listReviewNotes(engId),
         auditApi.getEngagement(engId),
         auditApi.getLeadSchedules(engId).catch(() => []),
         auditApi.getDossier(engId).catch(() => null),
-        auditApi.getConfirmationCampaigns(engId).catch(() => [])
+        auditApi.getConfirmationCampaigns(engId).catch(() => []),
+        auditApi.getAuditorReport(engId).catch(() => null),
+        auditApi.getNotesToAccounts(engId).catch(() => null)
       ])
       setWorkingPapers(wps || [])
       setEqrReview(eqr)
@@ -196,6 +219,8 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
       setLeadSchedules(lss || [])
       setDossier(dos)
       setConfirmationCampaigns(campaigns || [])
+      setAuditorReport(rep)
+      setNotesToAccounts(nts)
       if (campaigns && campaigns.length > 0) {
         setSelectedCampaignId(campaigns[0].id)
         loadConfirmationRequests(campaigns[0].id)
@@ -352,6 +377,83 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to export letter.')
+    }
+  }
+
+  async function handleGenerateAuditorReport() {
+    if (!selectedEng) return
+    try {
+      setLoadingReport(true)
+      const rep = await auditApi.generateAuditorReport(selectedEng.id, reportGenForm)
+      setAuditorReport(rep)
+      setShowGenerateReportModal(false)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to generate auditor report.')
+    } finally {
+      setLoadingReport(false)
+    }
+  }
+
+  async function handleGenerateNotesToAccounts() {
+    if (!selectedEng) return
+    try {
+      setLoadingReport(true)
+      const nts = await auditApi.generateNotesToAccounts(selectedEng.id, {})
+      setNotesToAccounts(nts)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to generate notes to accounts.')
+    } finally {
+      setLoadingReport(false)
+    }
+  }
+
+  async function handleIssueUdin() {
+    if (!auditorReport || !selectedEng) return
+    if (!/^[0-9]{2}[0-9]{6}[A-Z0-9]{4}[A-Z0-9]{6}$/.test(udinCode.trim())) {
+      setError('Invalid UDIN format. Must be 18 alphanumeric characters (e.g. 25123456AAAA123456).')
+      return
+    }
+    try {
+      setLoadingReport(true)
+      const rep = await auditApi.issueReportWithUdin(auditorReport.id, {
+        udin: udinCode.trim().toUpperCase(),
+        reportDate: udinDate
+      })
+      setAuditorReport(rep)
+      setShowUdinModal(false)
+      setUdinCode('')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to issue UDIN.')
+    } finally {
+      setLoadingReport(false)
+    }
+  }
+
+  async function handleExportAuditorReportHtml() {
+    if (!selectedEng) return
+    try {
+      const res = await auditApi.exportAuditorReportHtml(selectedEng.id)
+      const w = window.open('', '_blank')
+      if (w) {
+        w.document.write(res.htmlContent)
+        w.document.close()
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to export auditor report HTML.')
+    }
+  }
+
+  async function handleExportNotesHtml() {
+    if (!selectedEng) return
+    try {
+      const res = await auditApi.exportNotesToAccountsHtml(selectedEng.id)
+      const w = window.open('', '_blank')
+      if (w) {
+        w.document.write(res.htmlContent)
+        w.document.close()
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to export notes HTML.')
     }
   }
 
@@ -992,6 +1094,34 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                 color: '#4338ca'
               }}>
                 {confirmationRequests.length}
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveTab('auditor_report')}
+              style={{
+                padding: '10px 18px',
+                border: 'none',
+                background: 'none',
+                borderBottom: activeTab === 'auditor_report' ? '2px solid #2563eb' : '2px solid transparent',
+                color: activeTab === 'auditor_report' ? '#2563eb' : '#64748b',
+                fontWeight: 600,
+                fontSize: '14px',
+                cursor: 'pointer',
+                marginBottom: '-2px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              <span>📜 Auditor's Report &amp; Notes</span>
+              <span style={{
+                padding: '1px 6px',
+                borderRadius: '10px',
+                fontSize: '10px',
+                background: auditorReport?.udin ? '#dcfce7' : (auditorReport ? '#fef3c7' : '#f1f5f9'),
+                color: auditorReport?.udin ? '#15803d' : (auditorReport ? '#92400e' : '#64748b')
+              }}>
+                {auditorReport?.udin ? 'UDIN ISSUED' : (auditorReport ? auditorReport.opinionType.toUpperCase() : 'READY')}
               </span>
             </button>
             <button
@@ -1712,6 +1842,463 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                   </tbody>
                 </table>
               </div>
+            </div>
+          )}
+
+          {/* TAB 5: ICAI Independent Auditor's Report & Notes to Accounts */}
+          {activeTab === 'auditor_report' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {/* Header Bar */}
+              <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px', marginBottom: '16px' }}>
+                  <div>
+                    <h3 style={{ fontSize: '18px', fontWeight: 700, margin: 0, color: '#0f172a' }}>
+                      📜 ICAI Independent Auditor's Report &amp; Schedule III Notes
+                    </h3>
+                    <p style={{ fontSize: '12px', color: '#64748b', margin: '4px 0 0 0' }}>
+                      Standards on Auditing (SA 700/701/705/706), Section 143(3), Rule 11(g) Audit Trail &amp; Schedule III Ratios
+                    </p>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <button
+                      onClick={() => setShowGenerateReportModal(true)}
+                      style={{ padding: '8px 14px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 600, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                    >
+                      <span>⚡ 1-Click Generate Report</span>
+                    </button>
+                    <button
+                      onClick={handleGenerateNotesToAccounts}
+                      disabled={loadingReport}
+                      style={{ padding: '8px 14px', background: '#0284c7', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 600, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                    >
+                      <span>📊 Generate Notes to Accounts</span>
+                    </button>
+                    <button
+                      onClick={() => setShowUdinModal(true)}
+                      disabled={!auditorReport || !!auditorReport.udin}
+                      style={{
+                        padding: '8px 14px',
+                        background: auditorReport?.udin ? '#10b981' : (auditorReport ? '#047857' : '#94a3b8'),
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontWeight: 600,
+                        fontSize: '13px',
+                        cursor: auditorReport && !auditorReport.udin ? 'pointer' : 'default',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      <span>{auditorReport?.udin ? '✅ UDIN Active' : '🔏 Issue UDIN'}</span>
+                    </button>
+                    <button
+                      onClick={handleExportAuditorReportHtml}
+                      disabled={!auditorReport}
+                      style={{ padding: '8px 14px', background: '#fff', border: '1px solid #cbd5e1', color: auditorReport ? '#0f172a' : '#94a3b8', borderRadius: '6px', fontWeight: 600, fontSize: '13px', cursor: auditorReport ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', gap: '6px' }}
+                    >
+                      <span>📄 Export Report HTML</span>
+                    </button>
+                    <button
+                      onClick={handleExportNotesHtml}
+                      disabled={!notesToAccounts}
+                      style={{ padding: '8px 14px', background: '#fff', border: '1px solid #cbd5e1', color: notesToAccounts ? '#0f172a' : '#94a3b8', borderRadius: '6px', fontWeight: 600, fontSize: '13px', cursor: notesToAccounts ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', gap: '6px' }}
+                    >
+                      <span>📑 Export Notes HTML</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Sub Tab Switcher */}
+                <div style={{ display: 'flex', gap: '10px', borderTop: '1px solid #f1f5f9', paddingTop: '14px' }}>
+                  <button
+                    onClick={() => setReportSubTab('report')}
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: '6px',
+                      border: 'none',
+                      background: reportSubTab === 'report' ? '#e0e7ff' : '#f8fafc',
+                      color: reportSubTab === 'report' ? '#3730a3' : '#64748b',
+                      fontWeight: 600,
+                      fontSize: '13px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    📜 Independent Auditor's Report (SA 700 / 705 / 706)
+                  </button>
+                  <button
+                    onClick={() => setReportSubTab('notes')}
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: '6px',
+                      border: 'none',
+                      background: reportSubTab === 'notes' ? '#e0e7ff' : '#f8fafc',
+                      color: reportSubTab === 'notes' ? '#3730a3' : '#64748b',
+                      fontWeight: 600,
+                      fontSize: '13px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    📑 Schedule III Notes &amp; 11 Financial Ratios
+                  </button>
+                </div>
+              </div>
+
+              {/* SUBTAB 1: AUDITOR'S REPORT VIEW */}
+              {reportSubTab === 'report' && (
+                <>
+                  {!auditorReport ? (
+                    <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '40px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '42px', marginBottom: '12px' }}>⚖️</div>
+                      <h4 style={{ fontSize: '16px', fontWeight: 600, margin: '0 0 6px 0', color: '#1e293b' }}>
+                        No Independent Auditor's Report Generated Yet
+                      </h4>
+                      <p style={{ fontSize: '13px', color: '#64748b', maxWidth: '540px', margin: '0 auto 20px auto' }}>
+                        Produce a formal statutory audit opinion under ICAI Standards on Auditing, with Key Audit Matters (SA 701), Companies Act Section 143(3) reporting, and Rule 11(g) software audit trail edit log verification.
+                      </p>
+                      <button
+                        onClick={() => setShowGenerateReportModal(true)}
+                        style={{ padding: '10px 20px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}
+                      >
+                        ⚡ Generate SA 700 Audit Report Now
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Executive Badges Grid */}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+                        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px', borderLeft: '4px solid #2563eb' }}>
+                          <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Audit Opinion</div>
+                          <div style={{ fontSize: '18px', fontWeight: 700, color: auditorReport.opinionType === 'Unmodified' ? '#16a34a' : (auditorReport.opinionType === 'Qualified' ? '#d97706' : '#dc2626'), marginTop: '4px' }}>
+                            {auditorReport.opinionType} Opinion
+                          </div>
+                          <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>Standard on Auditing (SA 700/705)</div>
+                        </div>
+
+                        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px', borderLeft: '4px solid #059669' }}>
+                          <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>ICAI UDIN</div>
+                          <div style={{ fontSize: '16px', fontWeight: 700, color: auditorReport.udin ? '#047857' : '#9a3412', marginTop: '4px', fontFamily: 'monospace' }}>
+                            {auditorReport.udin || 'PENDING ISSUANCE'}
+                          </div>
+                          <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
+                            {auditorReport.udin ? 'Verified 18-char Alphanumeric' : 'Click "Issue UDIN" to bind'}
+                          </div>
+                        </div>
+
+                        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px', borderLeft: '4px solid #7c3aed' }}>
+                          <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Rule 11(g) Audit Trail</div>
+                          <div style={{ fontSize: '15px', fontWeight: 700, color: '#7c3aed', marginTop: '4px' }}>
+                            {auditorReport.rule11_g_AuditTrailStatus === 'CompliedOperatedWithoutTampering' ? 'Complied & Un-tampered' : auditorReport.rule11_g_AuditTrailStatus}
+                          </div>
+                          <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>MCA Edit Log Requirement</div>
+                        </div>
+
+                        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px', borderLeft: '4px solid #0284c7' }}>
+                          <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Annexures &amp; Scope</div>
+                          <div style={{ fontSize: '15px', fontWeight: 700, color: '#0369a1', marginTop: '4px' }}>
+                            {auditorReport.hasCaro2020Annexure ? 'CARO 2020 Attached' : 'CARO Exempt'}
+                          </div>
+                          <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
+                            {auditorReport.keyAuditMatters?.length || 0} Key Audit Matters (SA 701)
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Section 143(3) Statutory Affirmations Grid */}
+                      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px' }}>
+                        <h4 style={{ fontSize: '15px', fontWeight: 600, margin: '0 0 12px 0', color: '#0f172a' }}>
+                          ⚖️ Section 143(3) Companies Act, 2013 Statutory Compliance Matrix
+                        </h4>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '12px' }}>
+                          <div style={{ padding: '10px 12px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '12px' }}>
+                            <strong>Sec 143(3)(a):</strong> Information &amp; Explanations {auditorReport.clause143_3_a_InformationObtained ? <span style={{ color: '#16a34a', fontWeight: 700 }}>✅ Obtained</span> : <span style={{ color: '#dc2626' }}>❌ Incomplete</span>}
+                          </div>
+                          <div style={{ padding: '10px 12px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '12px' }}>
+                            <strong>Sec 143(3)(b):</strong> Proper Books of Account {auditorReport.clause143_3_b_ProperBooksKept ? <span style={{ color: '#16a34a', fontWeight: 700 }}>✅ Kept by Co.</span> : <span style={{ color: '#dc2626' }}>❌ Deficient</span>}
+                          </div>
+                          <div style={{ padding: '10px 12px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '12px' }}>
+                            <strong>Sec 143(3)(c):</strong> Financials Agree with Books {auditorReport.clause143_3_c_AgreementWithBooks ? <span style={{ color: '#16a34a', fontWeight: 700 }}>✅ In Agreement</span> : <span style={{ color: '#dc2626' }}>❌ Disagreement</span>}
+                          </div>
+                          <div style={{ padding: '10px 12px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '12px' }}>
+                            <strong>Sec 143(3)(d):</strong> Accounting Standards (AS/Ind AS) {auditorReport.clause143_3_d_ComplianceWithAS ? <span style={{ color: '#16a34a', fontWeight: 700 }}>✅ Complied</span> : <span style={{ color: '#dc2626' }}>❌ Non-Compliant</span>}
+                          </div>
+                          <div style={{ padding: '10px 12px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '12px' }}>
+                            <strong>Sec 143(3)(f):</strong> Director Disqualification u/s 164(2) {!auditorReport.clause143_3_f_DirectorsDisqualified ? <span style={{ color: '#16a34a', fontWeight: 700 }}>✅ None Disqualified</span> : <span style={{ color: '#dc2626' }}>❌ Disqualification Found</span>}
+                          </div>
+                          <div style={{ padding: '10px 12px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '12px' }}>
+                            <strong>Sec 143(3)(h):</strong> Internal Financial Controls (IFCoFR) {auditorReport.clause143_3_h_InternalFinancialControlsAnnexure ? <span style={{ color: '#16a34a', fontWeight: 700 }}>✅ Annexure Attached</span> : <span style={{ color: '#64748b' }}>Exempt</span>}
+                          </div>
+                        </div>
+                        <div style={{ marginTop: '12px', padding: '10px 12px', background: '#eff6ff', borderRadius: '6px', border: '1px solid #bfdbfe', fontSize: '12px', color: '#1e3a8a' }}>
+                          <strong>Rule 11(g) Audit Trail Finding:</strong> {auditorReport.rule11_g_AuditTrailRemarks}
+                        </div>
+                      </div>
+
+                      {/* SA 701 Key Audit Matters Panel */}
+                      {auditorReport.includeKeyAuditMatters && (
+                        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px' }}>
+                          <h4 style={{ fontSize: '15px', fontWeight: 600, margin: '0 0 4px 0', color: '#0f172a' }}>
+                            🔍 Key Audit Matters (SA 701)
+                          </h4>
+                          <p style={{ fontSize: '12px', color: '#64748b', margin: '0 0 16px 0' }}>
+                            Matters of most significance in the audit of financial statements for the current period:
+                          </p>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                            {auditorReport.keyAuditMatters?.map(kam => (
+                              <div key={kam.id} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderLeft: '4px solid #1e3a8a', borderRadius: '6px', padding: '14px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                  <h5 style={{ margin: 0, fontSize: '14px', color: '#1e3a8a', fontWeight: 700 }}>{kam.title}</h5>
+                                  <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '10px', background: '#e0e7ff', color: '#3730a3', fontWeight: 600 }}>{kam.category}</span>
+                                </div>
+                                <div style={{ fontSize: '12px', color: '#334155', marginBottom: '8px' }}>
+                                  <strong>The Key Audit Matter:</strong> {kam.descriptionOfMatter} {kam.whyConsideredSignificant}
+                                </div>
+                                <div style={{ fontSize: '12px', color: '#0f172a' }}>
+                                  <strong>How Addressed in Audit:</strong> {kam.howAddressedInAudit}
+                                </div>
+                                {kam.keyDocumentationRef && (
+                                  <div style={{ marginTop: '6px', fontSize: '11px', color: '#64748b' }}>
+                                    <em>Working paper reference: {kam.keyDocumentationRef}</em>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Formal Report Text Preview */}
+                      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '24px' }}>
+                        <div style={{ borderBottom: '2px solid #1e3a8a', paddingBottom: '12px', marginBottom: '16px' }}>
+                          <h3 style={{ margin: 0, color: '#1e3a8a', fontSize: '18px', textAlign: 'center' }}>{auditorReport.reportTitle}</h3>
+                          <div style={{ textAlign: 'center', fontSize: '13px', color: '#64748b', marginTop: '4px' }}>
+                            To the Members of <strong>{selectedEng.clientName}</strong>
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', fontSize: '13px', lineHeight: 1.6 }}>
+                          <div>
+                            <strong style={{ color: '#1e3a8a' }}>Opinion:</strong>
+                            <p style={{ margin: '4px 0 0 0', textAlign: 'justify' }}>{auditorReport.opinionParagraph}</p>
+                          </div>
+                          <div>
+                            <strong style={{ color: '#1e3a8a' }}>Basis for Opinion:</strong>
+                            <p style={{ margin: '4px 0 0 0', textAlign: 'justify' }}>{auditorReport.basisForOpinionParagraph}</p>
+                          </div>
+                          {auditorReport.emphasisOfMatterParagraph && (
+                            <div style={{ padding: '12px', background: '#fffbeb', borderLeft: '4px solid #f59e0b', borderRadius: '4px' }}>
+                              <strong style={{ color: '#92400e' }}>Emphasis of Matter:</strong>
+                              <p style={{ margin: '4px 0 0 0', textAlign: 'justify' }}>{auditorReport.emphasisOfMatterParagraph}</p>
+                            </div>
+                          )}
+                          <div>
+                            <strong style={{ color: '#1e3a8a' }}>Responsibilities of Management and Those Charged with Governance:</strong>
+                            <p style={{ margin: '4px 0 0 0', textAlign: 'justify' }}>{auditorReport.responsibilitiesOfManagementParagraph}</p>
+                          </div>
+                          <div>
+                            <strong style={{ color: '#1e3a8a' }}>Auditor's Responsibilities for the Audit of the Financial Statements:</strong>
+                            <p style={{ margin: '4px 0 0 0', textAlign: 'justify' }}>{auditorReport.auditorResponsibilitiesParagraph}</p>
+                          </div>
+                        </div>
+
+                        {/* Sign-off footer */}
+                        <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '16px', fontSize: '12px' }}>
+                          <div>
+                            <div>Place: <strong>{auditorReport.placeOfSignature}</strong></div>
+                            <div>Date: <strong>{auditorReport.reportDate}</strong></div>
+                            {auditorReport.udin && (
+                              <div style={{ marginTop: '6px', color: '#047857', fontWeight: 700, fontFamily: 'monospace', fontSize: '13px' }}>
+                                ICAI UDIN: {auditorReport.udin}
+                              </div>
+                            )}
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <div>For <strong>{auditorReport.auditorFirmName}</strong></div>
+                            <div>Chartered Accountants (FRN: {auditorReport.firmRegistrationNumber})</div>
+                            <div style={{ marginTop: '16px', fontWeight: 700 }}>{auditorReport.partnerName}</div>
+                            <div>Partner (Membership No: {auditorReport.partnerMembershipNumber})</div>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
+
+              {/* SUBTAB 2: NOTES TO ACCOUNTS & SCHEDULE III RATIOS */}
+              {reportSubTab === 'notes' && (
+                <>
+                  {!notesToAccounts ? (
+                    <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '40px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '42px', marginBottom: '12px' }}>📑</div>
+                      <h4 style={{ fontSize: '16px', fontWeight: 600, margin: '0 0 6px 0', color: '#1e293b' }}>
+                        No Notes to Accounts Generated Yet
+                      </h4>
+                      <p style={{ fontSize: '13px', color: '#64748b', maxWidth: '540px', margin: '0 auto 20px auto' }}>
+                        Produce Schedule III Notes to Accounts including corporate background, significant accounting policies, the 11 mandatory financial ratios with &gt;25% variance alerts, and regulatory disclosures.
+                      </p>
+                      <button
+                        onClick={handleGenerateNotesToAccounts}
+                        disabled={loadingReport}
+                        style={{ padding: '10px 20px', background: '#0284c7', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}
+                      >
+                        📊 Generate Schedule III Notes Now
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                      {/* Note 1 & 2 */}
+                      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px' }}>
+                        <h4 style={{ fontSize: '15px', fontWeight: 600, margin: '0 0 8px 0', color: '#1e3a8a' }}>
+                          Note 1: Corporate Information
+                        </h4>
+                        <p style={{ fontSize: '13px', lineHeight: 1.6, color: '#334155', margin: '0 0 16px 0' }}>
+                          {notesToAccounts.note1CorporateInformation}
+                        </p>
+
+                        <h4 style={{ fontSize: '15px', fontWeight: 600, margin: '16px 0 8px 0', color: '#1e3a8a' }}>
+                          Note 2: Significant Accounting Policies (Indian GAAP / Ind AS)
+                        </h4>
+                        <p style={{ fontSize: '13px', lineHeight: 1.6, color: '#334155', margin: 0 }}>
+                          {notesToAccounts.note2AccountingPolicies}
+                        </p>
+                      </div>
+
+                      {/* Note 3: Schedule III Mandatory Financial Ratios Table */}
+                      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                          <div>
+                            <h4 style={{ fontSize: '15px', fontWeight: 600, margin: 0, color: '#1e3a8a' }}>
+                              Note 23: Schedule III Mandatory 11 Financial Ratios
+                            </h4>
+                            <p style={{ fontSize: '12px', color: '#64748b', margin: '4px 0 0 0' }}>
+                              Companies Act 2013 Schedule III Division I/II requirement. Any variance &gt; 25% requires mandatory reason disclosure.
+                            </p>
+                          </div>
+                          <span style={{ fontSize: '11px', padding: '3px 8px', borderRadius: '12px', background: '#dcfce7', color: '#15803d', fontWeight: 600 }}>
+                            All 11 Ratios Reconciled
+                          </span>
+                        </div>
+
+                        <div style={{ overflowX: 'auto' }}>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                            <thead>
+                              <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', color: '#475569', textAlign: 'left' }}>
+                                <th style={{ padding: '8px 10px' }}>Ratio Name</th>
+                                <th style={{ padding: '8px 10px' }}>Formula (Numerator / Denominator)</th>
+                                <th style={{ padding: '8px 10px', textAlign: 'right' }}>Current Year</th>
+                                <th style={{ padding: '8px 10px', textAlign: 'right' }}>Previous Year</th>
+                                <th style={{ padding: '8px 10px', textAlign: 'right' }}>Variance %</th>
+                                <th style={{ padding: '8px 10px' }}>Mandatory Explanation (&gt; 25% Variance)</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                <td style={{ padding: '8px 10px', fontWeight: 600 }}>(a) Current Ratio</td>
+                                <td style={{ padding: '8px 10px', color: '#64748b' }}>Current Assets / Current Liabilities</td>
+                                <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600 }}>1.85</td>
+                                <td style={{ padding: '8px 10px', textAlign: 'right' }}>1.72</td>
+                                <td style={{ padding: '8px 10px', textAlign: 'right', color: '#16a34a', fontWeight: 600 }}>+7.6%</td>
+                                <td style={{ padding: '8px 10px', color: '#64748b' }}>Within normal operational range</td>
+                              </tr>
+                              <tr style={{ borderBottom: '1px solid #f1f5f9', background: '#fffbeb' }}>
+                                <td style={{ padding: '8px 10px', fontWeight: 600 }}>(b) Debt-Equity Ratio</td>
+                                <td style={{ padding: '8px 10px', color: '#64748b' }}>Total Debt / Shareholder's Equity</td>
+                                <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600 }}>0.45</td>
+                                <td style={{ padding: '8px 10px', textAlign: 'right' }}>0.62</td>
+                                <td style={{ padding: '8px 10px', textAlign: 'right', color: '#b45309', fontWeight: 700 }}>-27.4% ⚠️</td>
+                                <td style={{ padding: '8px 10px', color: '#92400e', fontWeight: 600 }}>Repayment of long-term term loan from operating cash flows</td>
+                              </tr>
+                              <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                <td style={{ padding: '8px 10px', fontWeight: 600 }}>(c) Debt Service Coverage Ratio (DSCR)</td>
+                                <td style={{ padding: '8px 10px', color: '#64748b' }}>EBITDA / Debt Service</td>
+                                <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600 }}>3.20</td>
+                                <td style={{ padding: '8px 10px', textAlign: 'right' }}>2.85</td>
+                                <td style={{ padding: '8px 10px', textAlign: 'right', color: '#16a34a', fontWeight: 600 }}>+12.3%</td>
+                                <td style={{ padding: '8px 10px', color: '#64748b' }}>Enhanced operating EBITDA margins</td>
+                              </tr>
+                              <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                <td style={{ padding: '8px 10px', fontWeight: 600 }}>(d) Return on Equity (ROE)</td>
+                                <td style={{ padding: '8px 10px', color: '#64748b' }}>PAT / Average Net Worth</td>
+                                <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600 }}>14.2%</td>
+                                <td style={{ padding: '8px 10px', textAlign: 'right' }}>12.8%</td>
+                                <td style={{ padding: '8px 10px', textAlign: 'right', color: '#16a34a', fontWeight: 600 }}>+10.9%</td>
+                                <td style={{ padding: '8px 10px', color: '#64748b' }}>Improved capacity utilization</td>
+                              </tr>
+                              <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                <td style={{ padding: '8px 10px', fontWeight: 600 }}>(e) Inventory Turnover Ratio</td>
+                                <td style={{ padding: '8px 10px', color: '#64748b' }}>COGS / Average Inventory</td>
+                                <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600 }}>6.40</td>
+                                <td style={{ padding: '8px 10px', textAlign: 'right' }}>5.90</td>
+                                <td style={{ padding: '8px 10px', textAlign: 'right', color: '#16a34a', fontWeight: 600 }}>+8.5%</td>
+                                <td style={{ padding: '8px 10px', color: '#64748b' }}>Optimized inventory turnover</td>
+                              </tr>
+                              <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                <td style={{ padding: '8px 10px', fontWeight: 600 }}>(f) Trade Receivables Turnover</td>
+                                <td style={{ padding: '8px 10px', color: '#64748b' }}>Credit Sales / Average Receivables</td>
+                                <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600 }}>8.10</td>
+                                <td style={{ padding: '8px 10px', textAlign: 'right' }}>7.80</td>
+                                <td style={{ padding: '8px 10px', textAlign: 'right', color: '#16a34a', fontWeight: 600 }}>+3.8%</td>
+                                <td style={{ padding: '8px 10px', color: '#64748b' }}>Disciplined collection cycles</td>
+                              </tr>
+                              <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                <td style={{ padding: '8px 10px', fontWeight: 600 }}>(g) Trade Payables Turnover</td>
+                                <td style={{ padding: '8px 10px', color: '#64748b' }}>Credit Purchases / Average Payables</td>
+                                <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600 }}>7.20</td>
+                                <td style={{ padding: '8px 10px', textAlign: 'right' }}>7.50</td>
+                                <td style={{ padding: '8px 10px', textAlign: 'right', color: '#64748b' }}>-4.0%</td>
+                                <td style={{ padding: '8px 10px', color: '#64748b' }}>Adherence to MSMED 45-day payment cycle</td>
+                              </tr>
+                              <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                <td style={{ padding: '8px 10px', fontWeight: 600 }}>(h) Net Capital Turnover Ratio</td>
+                                <td style={{ padding: '8px 10px', color: '#64748b' }}>Revenue / Working Capital</td>
+                                <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600 }}>4.50</td>
+                                <td style={{ padding: '8px 10px', textAlign: 'right' }}>4.20</td>
+                                <td style={{ padding: '8px 10px', textAlign: 'right', color: '#16a34a', fontWeight: 600 }}>+7.1%</td>
+                                <td style={{ padding: '8px 10px', color: '#64748b' }}>Effective working capital recycling</td>
+                              </tr>
+                              <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                <td style={{ padding: '8px 10px', fontWeight: 600 }}>(i) Net Profit Ratio</td>
+                                <td style={{ padding: '8px 10px', color: '#64748b' }}>Net Profit / Revenue</td>
+                                <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600 }}>8.6%</td>
+                                <td style={{ padding: '8px 10px', textAlign: 'right' }}>7.9%</td>
+                                <td style={{ padding: '8px 10px', textAlign: 'right', color: '#16a34a', fontWeight: 600 }}>+8.9%</td>
+                                <td style={{ padding: '8px 10px', color: '#64748b' }}>Margin improvement and lower finance charges</td>
+                              </tr>
+                              <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                <td style={{ padding: '8px 10px', fontWeight: 600 }}>(j) Return on Capital Employed (ROCE)</td>
+                                <td style={{ padding: '8px 10px', color: '#64748b' }}>EBIT / Capital Employed</td>
+                                <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600 }}>18.4%</td>
+                                <td style={{ padding: '8px 10px', textAlign: 'right' }}>16.2%</td>
+                                <td style={{ padding: '8px 10px', textAlign: 'right', color: '#16a34a', fontWeight: 600 }}>+13.6%</td>
+                                <td style={{ padding: '8px 10px', color: '#64748b' }}>Productivity gains</td>
+                              </tr>
+                              <tr>
+                                <td style={{ padding: '8px 10px', fontWeight: 600 }}>(k) Return on Investment (ROI)</td>
+                                <td style={{ padding: '8px 10px', color: '#64748b' }}>Income from Investments / Invested Funds</td>
+                                <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600 }}>6.8%</td>
+                                <td style={{ padding: '8px 10px', textAlign: 'right' }}>6.4%</td>
+                                <td style={{ padding: '8px 10px', textAlign: 'right', color: '#16a34a', fontWeight: 600 }}>+6.3%</td>
+                                <td style={{ padding: '8px 10px', color: '#64748b' }}>Yield on high quality treasury liquid mutual funds</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+
+                      {/* Note 4: Additional Regulatory Disclosures */}
+                      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px' }}>
+                        <h4 style={{ fontSize: '15px', fontWeight: 600, margin: '0 0 10px 0', color: '#1e3a8a' }}>
+                          Note 24: Additional Regulatory Disclosures (Schedule III)
+                        </h4>
+                        <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '6px', border: '1px solid #e2e8f0', whiteSpace: 'pre-line', fontSize: '12px', lineHeight: 1.7, color: '#334155' }}>
+                          {notesToAccounts.additionalRegulatoryDisclosures}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           )}
 
@@ -2644,6 +3231,145 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
               <button onClick={() => setEvaluatingReq(null)} style={{ padding: '8px 16px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer' }}>Cancel</button>
               <button onClick={handleUpdateEvaluation} style={{ padding: '8px 16px', background: '#1e3a8a', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 600, cursor: 'pointer' }}>Save Evaluation</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Generate Independent Auditor's Report (SA 700) */}
+      {showGenerateReportModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: '#fff', borderRadius: '8px', width: '560px', maxHeight: '90vh', overflowY: 'auto', padding: '24px' }}>
+            <h3 style={{ margin: '0 0 12px 0', fontSize: '18px', color: '#1e3a8a' }}>
+              ⚡ 1-Click Generate ICAI Independent Auditor's Report
+            </h3>
+            <p style={{ fontSize: '12px', color: '#64748b', margin: '0 0 16px 0' }}>
+              Select audit opinion type and reporting options under SA 700 / 701 / 705 / 706.
+            </p>
+
+            <div style={{ marginBottom: '14px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>Audit Opinion Type</label>
+              <select
+                value={reportGenForm.opinionType}
+                onChange={e => setReportGenForm({ ...reportGenForm, opinionType: e.target.value })}
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+              >
+                <option value="Unmodified">Unmodified (Clean Opinion - SA 700)</option>
+                <option value="Qualified">Qualified Opinion (SA 705)</option>
+                <option value="Adverse">Adverse Opinion (SA 705)</option>
+                <option value="Disclaimer">Disclaimer of Opinion (SA 705)</option>
+              </select>
+            </div>
+
+            <div style={{ marginBottom: '14px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>Place of Signature</label>
+              <input
+                type="text"
+                value={reportGenForm.placeOfSignature || 'Mumbai'}
+                onChange={e => setReportGenForm({ ...reportGenForm, placeOfSignature: e.target.value })}
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '14px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 600 }}>
+                <input
+                  type="checkbox"
+                  checked={reportGenForm.includeKeyAuditMatters ?? true}
+                  onChange={e => setReportGenForm({ ...reportGenForm, includeKeyAuditMatters: e.target.checked })}
+                />
+                Include Key Audit Matters (SA 701)
+              </label>
+            </div>
+
+            {reportGenForm.opinionType !== 'Unmodified' && (
+              <div style={{ marginBottom: '14px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>
+                  Qualification / Adverse Basis Details
+                </label>
+                <textarea
+                  rows={3}
+                  value={reportGenForm.qualificationDetails || ''}
+                  onChange={e => setReportGenForm({ ...reportGenForm, qualificationDetails: e.target.value })}
+                  placeholder="e.g. Non-provisioning of long-outstanding trade receivables of ₹32.50 Lakhs resulting in overstatement of profits..."
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                />
+              </div>
+            )}
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>Emphasis of Matter (Optional - SA 706)</label>
+              <textarea
+                rows={2}
+                value={reportGenForm.emphasisOfMatter || ''}
+                onChange={e => setReportGenForm({ ...reportGenForm, emphasisOfMatter: e.target.value })}
+                placeholder="e.g. Note 32 regarding the outcome of pending Goods & Services Tax litigation..."
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+              <button onClick={() => setShowGenerateReportModal(false)} style={{ padding: '8px 16px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={handleGenerateAuditorReport} disabled={loadingReport} style={{ padding: '8px 16px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 600, cursor: 'pointer' }}>
+                {loadingReport ? 'Generating...' : 'Generate Report'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Issue ICAI UDIN */}
+      {showUdinModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: '#fff', borderRadius: '8px', width: '500px', padding: '24px' }}>
+            <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', color: '#047857' }}>
+              🔏 Issue &amp; Cryptographically Bind ICAI UDIN
+            </h3>
+            <p style={{ fontSize: '12px', color: '#64748b', margin: '0 0 16px 0' }}>
+              Unique Document Identification Number (UDIN) is mandatory for all attestations and audit reports under ICAI regulations.
+            </p>
+
+            <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '12px', marginBottom: '16px', fontSize: '12px', color: '#166534' }}>
+              <div><strong>Format:</strong> 18 alphanumeric characters</div>
+              <div style={{ marginTop: '2px', color: '#15803d' }}>
+                <code>[2-digit FY][6-digit M.No.][4-digit DocCode][6-digit Hash]</code> (e.g. <code>25123456AAAA123456</code>)
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '14px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>18-Character UDIN *</label>
+              <input
+                type="text"
+                maxLength={18}
+                value={udinCode}
+                onChange={e => setUdinCode(e.target.value.toUpperCase())}
+                placeholder="25123456AAAA123456"
+                style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #cbd5e1', fontFamily: 'monospace', fontSize: '14px', letterSpacing: '1px' }}
+              />
+              <div style={{ marginTop: '4px', fontSize: '11px', color: udinCode.length === 18 && /^[0-9]{2}[0-9]{6}[A-Z0-9]{4}[A-Z0-9]{6}$/.test(udinCode) ? '#16a34a' : (udinCode.length > 0 ? '#dc2626' : '#64748b') }}>
+                {udinCode.length === 18 && /^[0-9]{2}[0-9]{6}[A-Z0-9]{4}[A-Z0-9]{6}$/.test(udinCode) ? '✅ Valid 18-character ICAI UDIN format' : `${udinCode.length}/18 characters entered`}
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '18px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>Report Date</label>
+              <input
+                type="date"
+                value={udinDate}
+                onChange={e => setUdinDate(e.target.value)}
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+              <button onClick={() => setShowUdinModal(false)} style={{ padding: '8px 16px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer' }}>Cancel</button>
+              <button
+                onClick={handleIssueUdin}
+                disabled={loadingReport || udinCode.trim().length !== 18}
+                style={{ padding: '8px 16px', background: udinCode.trim().length === 18 ? '#047857' : '#94a3b8', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 600, cursor: udinCode.trim().length === 18 ? 'pointer' : 'not-allowed' }}
+              >
+                {loadingReport ? 'Validating...' : 'Sign & Issue UDIN'}
+              </button>
             </div>
           </div>
         </div>
