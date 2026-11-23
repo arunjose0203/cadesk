@@ -12,3 +12,12 @@ createRoot(document.getElementById('root')!).render(
     {upload ? <PortalUpload token={decodeURIComponent(upload[1])} /> : <App />}
   </StrictMode>,
 )
+
+// Register PWA service worker in supported browsers
+if ('serviceWorker' in navigator && (import.meta.env.PROD || window.location.protocol === 'https:')) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch((err) => {
+      console.warn('CA Desk PWA service worker registration skipped/failed:', err)
+    })
+  })
+}

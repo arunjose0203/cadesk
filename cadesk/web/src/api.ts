@@ -7288,6 +7288,128 @@ export const securityComplianceApi = {
   }
 }
 
+// Sprint 53: Partner Mobile Companion Desk & PWA
+export type PartnerPulseSummary = {
+  todayCollections: number
+  monthCollections: number
+  unbilledWipAmount: number
+  billableHoursThisWeek: number
+  activeStaffCount: number
+  criticalDeadlinesCount: number
+  pendingAuditSignoffsCount: number
+  pendingTimesheetApprovalsCount: number
+  pendingInvoiceApprovalsCount: number
+  unresolvedForensicAlertsCount: number
+}
+
+export type PendingAuditItem = {
+  id: string
+  clientId: string
+  clientName: string
+  financialYear: string
+  auditType: string
+  overallMateriality: number
+  auditOpinion: string
+  completedSchedulesCount: number
+  totalSchedulesCount: number
+  status: string
+  plannedEndDate?: string | null
+}
+
+export type PendingTimesheetItem = {
+  id: string
+  staffName: string
+  clientName: string
+  date: string
+  hours: number
+  hourlyRate: number
+  amount: number
+  description: string
+}
+
+export type PendingInvoiceItem = {
+  id: string
+  invoiceNumber: string
+  clientName: string
+  issueDate: string
+  dueDate: string
+  totalAmount: number
+  status: string
+}
+
+export type ForensicAlertItem = {
+  id: string
+  clientName: string
+  anomalyType: string
+  riskLevel: string
+  amount: number
+  exposureAmount: number
+  counterparty: string
+  narration: string
+  statutorySection: string
+  status: string
+  transactionDate: string
+}
+
+export type DeadlineCountdownItem = {
+  id: string
+  title: string
+  dueDate: string
+  daysRemaining: number
+  category: string
+  status: string
+}
+
+export type PartnerMobileSecurity = {
+  hasQuickPin: boolean
+  biometricEnabled: boolean
+  autoLockMinutes: number
+}
+
+export type PartnerActionCenterData = {
+  pulse: PartnerPulseSummary
+  pendingAudits: PendingAuditItem[]
+  pendingTimesheets: PendingTimesheetItem[]
+  pendingInvoices: PendingInvoiceItem[]
+  forensicAlerts: ForensicAlertItem[]
+  deadlines: DeadlineCountdownItem[]
+  security: PartnerMobileSecurity
+}
+
+export const partnerCompanionApi = {
+  getActionCenter: () => api<PartnerActionCenterData>('/api/partner-companion/pulse'),
+  quickSignAudit: (id: string, req: { partnerMembershipNo?: string; udin?: string; remarks?: string }) =>
+    api<{ success: boolean; message: string }>(`/api/partner-companion/audit/${id}/quick-sign`, {
+      method: 'POST',
+      body: JSON.stringify(req)
+    }),
+  quickApproveTimesheets: (timeEntryIds: string[]) =>
+    api<{ success: boolean; approvedCount: number }>('/api/partner-companion/timesheet/quick-approve', {
+      method: 'POST',
+      body: JSON.stringify({ timeEntryIds })
+    }),
+  quickApproveInvoice: (id: string) =>
+    api<{ success: boolean; message: string }>(`/api/partner-companion/invoice/${id}/quick-approve`, {
+      method: 'POST'
+    }),
+  triageForensicAlert: (id: string, req: { status: string; auditorNotes?: string }) =>
+    api<{ success: boolean; message: string }>(`/api/partner-companion/forensic-alert/${id}/triage`, {
+      method: 'POST',
+      body: JSON.stringify(req)
+    }),
+  setupQuickPin: (pin: string, biometricEnabled: boolean = false) =>
+    api<{ success: boolean; message: string }>('/api/partner-companion/quick-pin/setup', {
+      method: 'POST',
+      body: JSON.stringify({ pin, biometricEnabled })
+    }),
+  verifyQuickPin: (pin: string) =>
+    api<{ success: boolean; message?: string }>('/api/partner-companion/quick-pin/verify', {
+      method: 'POST',
+      body: JSON.stringify({ pin })
+    })
+}
+
+
 
 
 

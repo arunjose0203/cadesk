@@ -175,6 +175,7 @@ public interface IAppDbContext
     DbSet<CaDesk.Domain.Aqmm.AqmmResponse> AqmmResponses { get; }
     DbSet<CaDesk.Domain.SecurityCompliance.SecurityAssessment> SecurityAssessments { get; }
     DbSet<CaDesk.Domain.SecurityCompliance.SecurityControlEvidence> SecurityControlEvidences { get; }
+    DbSet<CaDesk.Domain.PartnerCompanion.PartnerMobilePreference> PartnerMobilePreferences { get; }
     DbSet<CaDesk.Domain.Audit.AuditLog> AuditLogs { get; }
     /// <summary>For transactions and the few raw SQL calls (numbering, jsonb lookups). RLS still applies.</summary>
     DatabaseFacade Database { get; }

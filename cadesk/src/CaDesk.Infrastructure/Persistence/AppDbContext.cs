@@ -191,6 +191,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
     public DbSet<AqmmResponse> AqmmResponses => Set<AqmmResponse>();
     public DbSet<CaDesk.Domain.SecurityCompliance.SecurityAssessment> SecurityAssessments => Set<CaDesk.Domain.SecurityCompliance.SecurityAssessment>();
     public DbSet<CaDesk.Domain.SecurityCompliance.SecurityControlEvidence> SecurityControlEvidences => Set<CaDesk.Domain.SecurityCompliance.SecurityControlEvidence>();
+    public DbSet<CaDesk.Domain.PartnerCompanion.PartnerMobilePreference> PartnerMobilePreferences => Set<CaDesk.Domain.PartnerCompanion.PartnerMobilePreference>();
     public DbSet<ConfigDefinition> ConfigDefinitions => Set<ConfigDefinition>();
     public DbSet<ConfigValue> ConfigValues => Set<ConfigValue>();
     public DbSet<ConfigChangeLog> ConfigChangeLog => Set<ConfigChangeLog>();
@@ -530,6 +531,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
         {
             e.ToTable("security_control_evidences");
             e.HasIndex(x => new { x.FirmId, x.AssessmentId, x.ControlCode }).HasDatabaseName("ix_security_evidences_firm_ass_c");
+        });
+
+        b.Entity<CaDesk.Domain.PartnerCompanion.PartnerMobilePreference>(e =>
+        {
+            e.ToTable("partner_mobile_preferences");
+            e.HasIndex(x => new { x.FirmId, x.UserId }).IsUnique().HasDatabaseName("ix_partner_mobile_prefs_firm_user");
         });
 
         b.Entity<GstReconciliationBatch>(e =>

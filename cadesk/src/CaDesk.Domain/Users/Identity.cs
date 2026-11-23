@@ -205,4 +205,5 @@ public static class Perms
     public const string TrialBalanceRead = "trialbalance.read";
     public const string TrialBalanceManage = "trialbalance.manage";
     public const string TrialBalanceSync = "trialbalance.sync";
+    public const string PartnerCompanion = "partner.companion";
 }

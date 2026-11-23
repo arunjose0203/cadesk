@@ -44,11 +44,12 @@ import SubscriptionsPage from './SubscriptionsPage'
 import AqmmDeskPage from './AqmmDeskPage'
 import CommunicationsGatewayPage from './CommunicationsGatewayPage'
 import SecurityComplianceVaultPage from './SecurityComplianceVaultPage'
+import PartnerMobileDeskPage from './PartnerMobileDeskPage'
 import { LandingPage } from './LandingPage'
 import { OnboardingWizard } from './OnboardingWizard'
 import { ProductTourModal } from './ProductTourModal'
 
-type Page = 'tasks' | 'deadlines' | 'clients' | 'billing' | 'trial-balance' | 'tax' | 'audit-workspace' | 'aqmm' | 'gst-reconcile' | 'tds' | 'mca' | 'engagement' | 'banking' | 'reports' | 'tax-notices' | 'payroll' | 'einvoicing' | 'fixed-assets' | 'advance-tax' | 'gstr9' | 'presumptive' | 'caro' | 'taxaudit' | 'schedule3' | 'branchaudit' | 'auditcommittee' | 'foreignremittance' | 'relatedparty' | 'internalaudit' | 'antiprofiteering' | 'secretarialaudit' | 'transferpricing' | 'costaudit' | 'dsc' | 'portal' | 'users' | 'settings' | 'audit' | 'security' | 'subscriptions' | 'communications' | 'security-compliance'
+type Page = 'tasks' | 'deadlines' | 'clients' | 'billing' | 'trial-balance' | 'tax' | 'audit-workspace' | 'aqmm' | 'gst-reconcile' | 'tds' | 'mca' | 'engagement' | 'banking' | 'reports' | 'tax-notices' | 'payroll' | 'einvoicing' | 'fixed-assets' | 'advance-tax' | 'gstr9' | 'presumptive' | 'caro' | 'taxaudit' | 'schedule3' | 'branchaudit' | 'auditcommittee' | 'foreignremittance' | 'relatedparty' | 'internalaudit' | 'antiprofiteering' | 'secretarialaudit' | 'transferpricing' | 'costaudit' | 'dsc' | 'portal' | 'users' | 'settings' | 'audit' | 'security' | 'subscriptions' | 'communications' | 'security-compliance' | 'partner-desk'
 
 export default function App() {
   const isConfirmLink = window.location.pathname.startsWith('/confirm') || new URLSearchParams(window.location.search).has('confirm')
@@ -58,7 +59,9 @@ export default function App() {
 
   const [user, setUser] = useState<UserProfile | null>(null)
   const [checking, setChecking] = useState(true)
-  const [page, setPage] = useState<Page>('clients')
+  const searchParams = new URLSearchParams(window.location.search)
+  const initialPage = (searchParams.get('page') as Page) || (searchParams.get('pwa') === 'partner' ? 'partner-desk' : 'clients')
+  const [page, setPage] = useState<Page>(initialPage)
   const [notice, setNotice] = useState<string | null>(null)
   const [publicView, setPublicView] = useState<'landing' | 'auth' | 'wizard'>('landing')
   const [showTour, setShowTour] = useState<boolean>(false)
@@ -248,6 +251,13 @@ export default function App() {
             <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
           </svg>
           Clients
+        </button>
+        <button className={page === 'partner-desk' ? 'active' : ''} onClick={() => setPage('partner-desk')} style={{ borderLeft: '3px solid #38bdf8' }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+            <line x1="12" y1="18" x2="12.01" y2="18"></line>
+          </svg>
+          Partner Desk (PWA)
         </button>
         <button className={page === 'billing' ? 'active' : ''} onClick={() => setPage('billing')}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -683,6 +693,7 @@ export default function App() {
       {page === 'subscriptions' && can('settings.manage') && <SubscriptionsPage />}
       {page === 'communications' && can('settings.manage') && <CommunicationsGatewayPage />}
       {page === 'security-compliance' && can('settings.manage') && <SecurityComplianceVaultPage />}
+      {page === 'partner-desk' && <PartnerMobileDeskPage />}
       {page === 'settings' && can('settings.manage') && <SettingsPage />}
       {page === 'audit' && can('audit.read') && <AuditPage />}
       {page === 'security' && <SecurityPage me={user} onChanged={afterSecurityChange} />}
