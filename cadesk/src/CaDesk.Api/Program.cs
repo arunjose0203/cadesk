@@ -136,6 +136,7 @@ builder.Services.AddScoped<CaDesk.Application.Aqmm.AqmmService>();
 builder.Services.AddScoped<CaDesk.Application.Notifications.CommunicationGatewayService>();
 builder.Services.AddScoped<CaDesk.Application.SecurityCompliance.SecurityComplianceService>();
 builder.Services.AddScoped<CaDesk.Application.PartnerCompanion.PartnerCompanionService>();
+builder.Services.AddScoped<CaDesk.Application.ConnectedBanking.ConnectedBankingService>();
 var docOptions = config.GetSection("Documents").Get<CaDesk.Api.Documents.DocumentOptions>() ?? new();
 var storagePath = docOptions.StoragePath;
 if (storagePath.Length == 0)
@@ -338,6 +339,7 @@ app.MapAqmmEndpoints();
 app.MapCommunicationGatewayEndpoints();
 app.MapSecurityComplianceEndpoints();
 app.MapPartnerCompanionEndpoints();
+app.MapConnectedBankingEndpoints();
 
 app.Run();
 

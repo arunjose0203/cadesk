@@ -931,6 +931,45 @@ export default function PartnerMobileDeskPage() {
                   Triage Alerts →
                 </button>
               </div>
+
+              <div style={{
+                backgroundColor: '#1e293b',
+                padding: '1rem',
+                borderRadius: '12px',
+                borderLeft: '4px solid #0284c7'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontWeight: 600 }}>Connected Banking &amp; Payouts</span>
+                  <span style={{
+                    backgroundColor: '#0284c7',
+                    color: '#ffffff',
+                    padding: '2px 8px',
+                    borderRadius: '9999px',
+                    fontSize: '0.75rem',
+                    fontWeight: 700
+                  }}>
+                    Live API
+                  </span>
+                </div>
+                <p style={{ color: '#94a3b8', fontSize: '0.8rem', margin: '0.5rem 0 0.75rem' }}>
+                  Maker-checker vendor disbursements, live ICICI/HDFC feeds &amp; 1-click tax challans.
+                </p>
+                <a
+                  href="/?page=banking"
+                  style={{
+                    backgroundColor: '#0284c7',
+                    color: '#ffffff',
+                    textDecoration: 'none',
+                    padding: '0.4rem 0.8rem',
+                    borderRadius: '6px',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    display: 'inline-block'
+                  }}
+                >
+                  Open Payout Desk →
+                </a>
+              </div>
             </div>
           </div>
         </div>

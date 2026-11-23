@@ -192,6 +192,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
     public DbSet<CaDesk.Domain.SecurityCompliance.SecurityAssessment> SecurityAssessments => Set<CaDesk.Domain.SecurityCompliance.SecurityAssessment>();
     public DbSet<CaDesk.Domain.SecurityCompliance.SecurityControlEvidence> SecurityControlEvidences => Set<CaDesk.Domain.SecurityCompliance.SecurityControlEvidence>();
     public DbSet<CaDesk.Domain.PartnerCompanion.PartnerMobilePreference> PartnerMobilePreferences => Set<CaDesk.Domain.PartnerCompanion.PartnerMobilePreference>();
+    public DbSet<CaDesk.Domain.ConnectedBanking.ConnectedBankCredential> ConnectedBankCredentials => Set<CaDesk.Domain.ConnectedBanking.ConnectedBankCredential>();
+    public DbSet<CaDesk.Domain.ConnectedBanking.PayoutBatch> PayoutBatches => Set<CaDesk.Domain.ConnectedBanking.PayoutBatch>();
+    public DbSet<CaDesk.Domain.ConnectedBanking.PayoutItem> PayoutItems => Set<CaDesk.Domain.ConnectedBanking.PayoutItem>();
     public DbSet<ConfigDefinition> ConfigDefinitions => Set<ConfigDefinition>();
     public DbSet<ConfigValue> ConfigValues => Set<ConfigValue>();
     public DbSet<ConfigChangeLog> ConfigChangeLog => Set<ConfigChangeLog>();
@@ -537,6 +540,25 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
         {
             e.ToTable("partner_mobile_preferences");
             e.HasIndex(x => new { x.FirmId, x.UserId }).IsUnique().HasDatabaseName("ix_partner_mobile_prefs_firm_user");
+        });
+
+        b.Entity<CaDesk.Domain.ConnectedBanking.ConnectedBankCredential>(e =>
+        {
+            e.ToTable("connected_bank_credentials");
+            e.HasIndex(x => new { x.FirmId, x.BankAccountId }).IsUnique().HasDatabaseName("ix_connected_bank_firm_account");
+        });
+
+        b.Entity<CaDesk.Domain.ConnectedBanking.PayoutBatch>(e =>
+        {
+            e.ToTable("payout_batches");
+            e.HasIndex(x => new { x.FirmId, x.BatchNumber }).IsUnique().HasDatabaseName("ix_payout_batches_firm_number");
+            e.HasMany(x => x.Items).WithOne(x => x.Batch).HasForeignKey(x => x.BatchId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<CaDesk.Domain.ConnectedBanking.PayoutItem>(e =>
+        {
+            e.ToTable("payout_items");
+            e.HasIndex(x => new { x.FirmId, x.BatchId }).HasDatabaseName("ix_payout_items_firm_batch");
         });
 
         b.Entity<GstReconciliationBatch>(e =>

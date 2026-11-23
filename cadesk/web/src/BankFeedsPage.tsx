@@ -16,9 +16,10 @@ import { toError,
   type ForensicScanSummaryDto,
   type ClientTbBankReconciliationResultDto
 } from './api'
+import ConnectedBankingDesk from './ConnectedBankingDesk'
 
 export const BankFeedsPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'accounts' | 'transactions' | 'brs' | 'rules' | 'forensic'>('accounts')
+  const [activeTab, setActiveTab] = useState<'accounts' | 'transactions' | 'brs' | 'rules' | 'forensic' | 'connected-banking'>('accounts')
   const [clients, setClients] = useState<Client[]>([])
   const [accounts, setAccounts] = useState<BankAccountDto[]>([])
   const [selectedAccountId, setSelectedAccountId] = useState<string>('')
@@ -516,7 +517,29 @@ export const BankFeedsPage: React.FC = () => {
             </span>
           )}
         </button>
+        <button
+          onClick={() => setActiveTab('connected-banking')}
+          style={{
+            padding: '10px 20px',
+            border: 'none',
+            background: 'none',
+            cursor: 'pointer',
+            fontWeight: activeTab === 'connected-banking' ? 700 : 400,
+            borderBottom: activeTab === 'connected-banking' ? '3px solid #0284c7' : 'none',
+            color: activeTab === 'connected-banking' ? '#0284c7' : 'inherit',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
+        >
+          <span>🌐 Connected Banking &amp; Payout Desk</span>
+        </button>
       </div>
+
+      {/* Tab: Connected Banking & Payout Desk */}
+      {activeTab === 'connected-banking' && (
+        <ConnectedBankingDesk accounts={accounts} onRefreshAccounts={loadAccounts} />
+      )}
 
       {/* Tab 1: Bank Accounts */}
       {activeTab === 'accounts' && (

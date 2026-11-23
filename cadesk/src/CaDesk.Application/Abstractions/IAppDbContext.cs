@@ -176,6 +176,9 @@ public interface IAppDbContext
     DbSet<CaDesk.Domain.SecurityCompliance.SecurityAssessment> SecurityAssessments { get; }
     DbSet<CaDesk.Domain.SecurityCompliance.SecurityControlEvidence> SecurityControlEvidences { get; }
     DbSet<CaDesk.Domain.PartnerCompanion.PartnerMobilePreference> PartnerMobilePreferences { get; }
+    DbSet<CaDesk.Domain.ConnectedBanking.ConnectedBankCredential> ConnectedBankCredentials { get; }
+    DbSet<CaDesk.Domain.ConnectedBanking.PayoutBatch> PayoutBatches { get; }
+    DbSet<CaDesk.Domain.ConnectedBanking.PayoutItem> PayoutItems { get; }
     DbSet<CaDesk.Domain.Audit.AuditLog> AuditLogs { get; }
     /// <summary>For transactions and the few raw SQL calls (numbering, jsonb lookups). RLS still applies.</summary>
     DatabaseFacade Database { get; }

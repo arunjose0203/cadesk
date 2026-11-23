@@ -7409,6 +7409,179 @@ export const partnerCompanionApi = {
     })
 }
 
+// Sprint 54: Connected Corporate Banking & Maker-Checker Payout Desk
+export type ConnectedBankSummary = {
+  id: string
+  bankAccountId: string
+  clientId: string
+  clientName: string
+  bankName: string
+  accountNumber: string
+  ifscCode: string
+  accountType: string
+  provider: string
+  corporateId: string
+  status: string
+  lastSyncAt?: string
+  lastSyncBalance?: number
+  currentBalance: number
+  syncFrequencyMinutes: number
+}
+
+export type ConnectBankRequest = {
+  bankAccountId: string
+  provider: string
+  corporateId: string
+  userId: string
+  apiKey: string
+  apiSecret: string
+  webhookSecret?: string
+}
+
+export type LiveSyncResult = {
+  bankAccountId: string
+  provider: string
+  syncedBalance: number
+  syncedTransactionsCount: number
+  syncTimestamp: string
+  statementId?: string
+  message: string
+}
+
+export type PayoutItem = {
+  id: string
+  batchId: string
+  payoutType: string
+  beneficiaryName: string
+  beneficiaryAccountNumber: string
+  beneficiaryIfsc: string
+  beneficiaryPan?: string
+  amount: number
+  paymentMode: string
+  narration: string
+  invoiceOrChallanRef?: string
+  status: string
+  utrNumber?: string
+  failureReason?: string
+}
+
+export type PayoutBatch = {
+  id: string
+  batchNumber: string
+  bankAccountId: string
+  bankName: string
+  accountNumber: string
+  clientId: string
+  clientName: string
+  title: string
+  totalAmount: number
+  totalCount: number
+  status: string
+  createdByUserId: string
+  makerName: string
+  makerRemarks?: string
+  authorizedByUserId?: string
+  checkerName?: string
+  authorizedAt?: string
+  authMethod?: string
+  authReference?: string
+  rejectionReason?: string
+  createdAt: string
+  items: PayoutItem[]
+}
+
+export type CreatePayoutItemInput = {
+  payoutType: string
+  beneficiaryName: string
+  beneficiaryAccountNumber: string
+  beneficiaryIfsc: string
+  beneficiaryPan?: string
+  amount: number
+  paymentMode: string
+  narration: string
+  invoiceOrChallanRef?: string
+}
+
+export type CreatePayoutBatchRequest = {
+  bankAccountId: string
+  title: string
+  makerRemarks?: string
+  scheduledExecutionDate?: string
+  items: CreatePayoutItemInput[]
+}
+
+export type AuthorizePayoutBatchRequest = {
+  authMethod: string
+  otpOrToken?: string
+  partnerRemarks?: string
+}
+
+export type RejectPayoutBatchRequest = {
+  reason: string
+}
+
+export type GenerateTaxChallanPayoutRequest = {
+  bankAccountId: string
+  challanType: string
+  financialYear: string
+  assessmentYear: string
+  majorHeadCode: string
+  minorHeadCode: string
+  taxAmount: number
+  surchargeAmount: number
+  cessAmount: number
+  interestAmount: number
+  feePenaltyAmount: number
+  panOrTanOrGstin: string
+  scheduleDate?: string
+}
+
+export const connectedBankingApi = {
+  getAccounts: (clientId?: string) =>
+    api<ConnectedBankSummary[]>(`/api/connected-banking/accounts${clientId ? `?clientId=${clientId}` : ''}`),
+  connectAccount: (req: ConnectBankRequest) =>
+    api<ConnectedBankSummary>('/api/connected-banking/accounts/connect', {
+      method: 'POST',
+      body: JSON.stringify(req)
+    }),
+  syncFeed: (id: string) =>
+    api<LiveSyncResult>(`/api/connected-banking/accounts/${id}/sync`, {
+      method: 'POST'
+    }),
+  getPayouts: (clientId?: string, status?: string) => {
+    const params = new URLSearchParams()
+    if (clientId) params.set('clientId', clientId)
+    if (status) params.set('status', status)
+    const qs = params.toString() ? `?${params.toString()}` : ''
+    return api<PayoutBatch[]>(`/api/connected-banking/payouts${qs}`)
+  },
+  createPayoutBatch: (req: CreatePayoutBatchRequest) =>
+    api<PayoutBatch>('/api/connected-banking/payouts', {
+      method: 'POST',
+      body: JSON.stringify(req)
+    }),
+  submitPayoutBatch: (id: string) =>
+    api<{ success: boolean; message: string }>(`/api/connected-banking/payouts/${id}/submit`, {
+      method: 'POST'
+    }),
+  authorizePayoutBatch: (id: string, req: AuthorizePayoutBatchRequest) =>
+    api<PayoutBatch>(`/api/connected-banking/payouts/${id}/authorize`, {
+      method: 'POST',
+      body: JSON.stringify(req)
+    }),
+  rejectPayoutBatch: (id: string, req: RejectPayoutBatchRequest) =>
+    api<{ success: boolean; message: string }>(`/api/connected-banking/payouts/${id}/reject`, {
+      method: 'POST',
+      body: JSON.stringify(req)
+    }),
+  generateTaxChallan: (req: GenerateTaxChallanPayoutRequest) =>
+    api<PayoutBatch>('/api/connected-banking/payouts/tax-challan', {
+      method: 'POST',
+      body: JSON.stringify(req)
+    })
+}
+
+
 
 
 

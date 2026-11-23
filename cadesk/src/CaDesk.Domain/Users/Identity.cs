@@ -206,4 +206,7 @@ public static class Perms
     public const string TrialBalanceManage = "trialbalance.manage";
     public const string TrialBalanceSync = "trialbalance.sync";
     public const string PartnerCompanion = "partner.companion";
+    public const string BankingConnectedManage = "banking.connected.manage";
+    public const string BankingPayoutMaker = "banking.payout.maker";
+    public const string BankingPayoutChecker = "banking.payout.checker";
 }
