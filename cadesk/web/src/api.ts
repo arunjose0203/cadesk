@@ -6212,16 +6212,21 @@ export const costAuditApi = {
 export interface TrialBalanceImportDto {
   id: string
   clientId: string
+  clientName?: string | null
   financialYear: string
   sourceType: string
   fileName: string
-  uploadedAt: string
-  totalLedgersCount: number
-  mappedLedgersCount: number
   totalDebit: number
   totalCredit: number
   isBalanced: boolean
-  isSynced: boolean
+  totalLedgersCount: number
+  mappedLedgersCount: number
+  status: string
+  syncedAt?: string | null
+  syncedDesks?: string | null
+  createdAt: string
+  uploadedAt?: string
+  isSynced?: boolean
   lastSyncedAt?: string | null
   ledgers: TrialBalanceLedgerDto[]
 }
@@ -6272,14 +6277,73 @@ export interface UploadTrialBalanceRequest {
 
 export interface SyncTrialBalanceResultDto {
   importId: string
-  clientId: string
   financialYear: string
-  statutoryAuditUpdated: boolean
-  schedule3Updated: boolean
-  form3CdUpdated: boolean
-  caroUpdated: boolean
-  fixedAssetsCreatedCount: number
-  summary: string
+  auditSynced: boolean
+  auditNotes?: string | null
+  schedule3Synced: boolean
+  schedule3Notes?: string | null
+  form3CdSynced: boolean
+  form3CdNotes?: string | null
+  caroSynced: boolean
+  caroNotes?: string | null
+  fixedAssetsSynced: boolean
+  fixedAssetsNotes?: string | null
+  costAuditSynced?: boolean
+  costAuditNotes?: string | null
+  syncedAt: string
+}
+
+export interface FinancialKpisDto {
+  grossRevenue: number
+  otherIncome: number
+  totalIncome: number
+  totalExpenses: number
+  operatingProfit: number
+  ebitda: number
+  profitBeforeTax: number
+  profitAfterTax: number
+  totalAssets: number
+  totalLiabilities: number
+  totalDebt: number
+  shareholdersEquity: number
+  currentRatio: number
+}
+
+export interface TrialBalancePreviewResultDto {
+  detectedSourceType: string
+  delimiterUsed: string
+  headerRowIndex: number
+  totalLedgersCount: number
+  mappedLedgersCount: number
+  totalDebit: number
+  totalCredit: number
+  discrepancy: number
+  isBalanced: boolean
+  ledgers: Array<{
+    name: string
+    parentGroup: string
+    openingBalance: number
+    debitAmount: number
+    creditAmount: number
+    closingBalance: number
+  }>
+  kpis?: FinancialKpisDto | null
+  diagnostics: string[]
+}
+
+export interface PreviewTrialBalanceRequest {
+  contentPayload: string
+  sourceType?: string | null
+}
+
+export interface TrialBalanceSampleDto {
+  key: string
+  title: string
+  description: string
+  sourceType: string
+  turnoverInr: number
+  ledgersCount: number
+  contentPayload: string
 }
 
 export const trialBalanceApi = {
@@ -6288,6 +6352,15 @@ export const trialBalanceApi = {
       method: 'POST',
       body: JSON.stringify(req),
     }),
+
+  preview: (req: PreviewTrialBalanceRequest) =>
+    api<TrialBalancePreviewResultDto>('/api/trial-balance/preview', {
+      method: 'POST',
+      body: JSON.stringify(req),
+    }),
+
+  getSamples: () =>
+    api<TrialBalanceSampleDto[]>('/api/trial-balance/samples'),
 
   listImports: (clientId?: string, financialYear?: string) => {
     const p = new URLSearchParams()
@@ -6306,9 +6379,10 @@ export const trialBalanceApi = {
       body: JSON.stringify(req),
     }),
 
-  syncAllDesks: (importId: string) =>
+  syncAllDesks: (importId: string, req?: { syncAudit?: boolean; syncSchedule3?: boolean; syncForm3Cd?: boolean; syncCaro?: boolean; syncFixedAssets?: boolean; syncCostAudit?: boolean }) =>
     api<SyncTrialBalanceResultDto>(`/api/trial-balance/imports/${importId}/sync`, {
       method: 'POST',
+      body: JSON.stringify(req || {}),
     }),
 
   getClientRules: (clientId: string) =>

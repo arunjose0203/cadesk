@@ -6,6 +6,8 @@ import {
   type TrialBalanceLedgerDto,
   type ClientLedgerMappingDto,
   type SyncTrialBalanceResultDto,
+  type TrialBalancePreviewResultDto,
+  type TrialBalanceSampleDto,
   type Client
 } from './api'
 
@@ -16,50 +18,67 @@ const SCHEDULE3_GROUPS = [
   'RevenueFromOperations',
   'OtherIncome',
   'CostOfMaterialsConsumed',
+  'PurchasesOfStockInTrade',
+  'ChangesInInventories',
   'EmployeeBenefitsExpense',
   'FinanceCosts',
   'DepreciationAndAmortization',
   'OtherExpenses',
+  'TaxExpense',
   'ShareCapital',
   'ReservesAndSurplus',
   'LongTermBorrowings',
+  'DeferredTaxLiabilities',
+  'OtherLongTermLiabilities',
+  'LongTermProvisions',
   'ShortTermBorrowings',
-  'TradePayables',
+  'TradePayablesMsme',
+  'TradePayablesOthers',
   'OtherCurrentLiabilities',
   'ShortTermProvisions',
   'PropertyPlantEquipment',
-  'IntangibleAssets',
-  'CapitalWorkInProgress',
+  'CapitalWip',
   'NonCurrentInvestments',
+  'DeferredTaxAssets',
+  'LongTermLoansAndAdvances',
+  'OtherNonCurrentAssets',
+  'CurrentInvestments',
   'Inventories',
   'TradeReceivables',
-  'CashAndBankBalances',
+  'CashAndBank',
   'ShortTermLoansAndAdvances',
   'OtherCurrentAssets'
 ]
 
 const FORM3CD_CATEGORIES = [
   { value: '', label: 'None' },
-  { value: 'TurnoverGrossReceipts', label: 'Clause 8a / 12: Turnover & Gross Receipts' },
-  { value: 'CashReceipts', label: 'Clause 8b: Cash Receipts' },
-  { value: 'Sec43BDisallowance', label: 'Clause 26: Section 43B Disallowance' },
-  { value: 'Sec43BhMsmDisallowance', label: 'Clause 22: Section 43B(h) MSME Disallowance' },
-  { value: 'Sec40A3Disallowance', label: 'Clause 21d: Section 40A(3) Cash Payment Disallowance' }
+  { value: 'Turnover', label: 'Clause 8a / 12: Turnover & Gross Receipts' },
+  { value: 'CashReceipt', label: 'Clause 8b: Cash Receipts (5% limit)' },
+  { value: 'CashPayment', label: 'Clause 8b: Cash Payments (5% limit)' },
+  { value: 'Sec43BStatutoryDue', label: 'Clause 26: Section 43B Unpaid Statutory Dues' },
+  { value: 'Sec43BhMsme', label: 'Clause 22: Section 43B(h) MSME Creditors' },
+  { value: 'Sec40A3Disallowance', label: 'Clause 21d: Section 40A(3) Cash Payments' },
+  { value: 'Sec361vaEmployeeContribution', label: 'Clause 20b: Section 36(1)(va) PF/ESI Contributions' },
+  { value: 'TdsDeductibleExpense', label: 'Clause 34: TDS Deductible Payments' }
 ]
 
 const CARO_CATEGORIES = [
   { value: '', label: 'None' },
-  { value: 'BorrowingsFromBanks', label: 'Clause (ii)(b): Working Capital > ₹5 Cr' },
-  { value: 'WorkingCapitalSanctionLimits', label: 'Clause (ix)(a): Borrowing Defaults' }
+  { value: 'Inventory', label: 'Clause (ii)(a): Inventory Physical Verification' },
+  { value: 'WorkingCapitalBorrowing', label: 'Clause (ii)(b): Working Capital > ₹5 Cr' },
+  { value: 'TermLoan', label: 'Clause (ix)(a): Term Loan Repayments' },
+  { value: 'StatutoryDue', label: 'Clause (vii)(a): Undisputed Statutory Dues' },
+  { value: 'RelatedPartyAdvance', label: 'Clause (iii): Loans to Related Parties' }
 ]
 
 const FIXED_ASSET_BLOCKS = [
   { value: '', label: 'None' },
   { value: 'PlantAndMachinery', label: 'Plant & Machinery (15%)' },
-  { value: 'ComputersAndSoftware', label: 'Computers & Software (40%)' },
-  { value: 'Buildings', label: 'Buildings (10%)' },
+  { value: 'Computers', label: 'Computers & Servers (40%)' },
+  { value: 'Buildings', label: 'Buildings & Godowns (10%)' },
   { value: 'FurnitureAndFixtures', label: 'Furniture & Fixtures (10%)' },
-  { value: 'Vehicles', label: 'Motor Vehicles (15% / 30%)' }
+  { value: 'Vehicles', label: 'Motor Vehicles & Trucks (15% / 30%)' },
+  { value: 'Intangibles', label: 'Intangibles & Software (25%)' }
 ]
 
 export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
@@ -83,10 +102,24 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
   const [syncResult, setSyncResult] = useState<SyncTrialBalanceResultDto | null>(null)
   const [clientRules, setClientRules] = useState<ClientLedgerMappingDto[]>([])
 
-  // Upload Form
-  const [uploadSourceType, setUploadSourceType] = useState<string>('TallyXml')
-  const [uploadFileName, setUploadFileName] = useState<string>('trial_balance.xml')
+  // 3-in-1 Ingestion State
+  const [importTab, setImportTab] = useState<'demo' | 'paste' | 'file'>('demo')
+  const [samples, setSamples] = useState<TrialBalanceSampleDto[]>([])
+  const [uploadSourceType, setUploadSourceType] = useState<string>('Auto')
+  const [uploadFileName, setUploadFileName] = useState<string>('trial_balance.tsv')
   const [uploadPayload, setUploadPayload] = useState<string>('')
+  const [previewResult, setPreviewResult] = useState<TrialBalancePreviewResultDto | null>(null)
+  const [previewLoading, setPreviewLoading] = useState<boolean>(false)
+
+  // Multi-desk sync options
+  const syncFlags = {
+    syncAudit: true,
+    syncSchedule3: true,
+    syncForm3Cd: true,
+    syncCaro: true,
+    syncFixedAssets: true,
+    syncCostAudit: true
+  }
 
   // Inline Editing
   const [editingLedgerId, setEditingLedgerId] = useState<string | null>(null)
@@ -100,6 +133,7 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
 
   useEffect(() => {
     loadClients()
+    loadSamples()
   }, [])
 
   useEffect(() => {
@@ -120,6 +154,15 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
     }
   }
 
+  async function loadSamples() {
+    try {
+      const list = await trialBalanceApi.getSamples()
+      setSamples(list || [])
+    } catch {
+      // Samples optional fallback
+    }
+  }
+
   async function loadImports(clientId: string, fy: string) {
     try {
       setLoading(true)
@@ -127,7 +170,6 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
       const list = await trialBalanceApi.listImports(clientId, fy)
       setImports(list || [])
       if (list && list.length > 0) {
-        // Load details of the latest import
         const full = await trialBalanceApi.getImport(list[0].id)
         setActiveImport(full)
       } else {
@@ -152,14 +194,42 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
     }
   }
 
-  async function handleUpload(e: React.FormEvent) {
+  async function handleRunPreview(payloadToTest?: string, typeToTest?: string) {
+    const text = (payloadToTest ?? uploadPayload).trim()
+    if (!text) {
+      setPreviewResult(null)
+      return
+    }
+
+    try {
+      setPreviewLoading(true)
+      const res = await trialBalanceApi.preview({
+        contentPayload: text,
+        sourceType: typeToTest ?? uploadSourceType
+      })
+      setPreviewResult(res)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Preview parsing failed.')
+    } finally {
+      setPreviewLoading(false)
+    }
+  }
+
+  function handleSelectSample(s: TrialBalanceSampleDto) {
+    setUploadSourceType(s.sourceType)
+    setUploadFileName(`${s.key}_tb.${s.sourceType === 'TallyXml' ? 'xml' : 'tsv'}`)
+    setUploadPayload(s.contentPayload)
+    handleRunPreview(s.contentPayload, s.sourceType)
+  }
+
+  async function handleConfirmImport(e: React.FormEvent) {
     e.preventDefault()
     if (!selectedClientId) {
       setError('Please select a client first.')
       return
     }
     if (!uploadPayload.trim()) {
-      setError('Please provide or paste file contents.')
+      setError('Please provide or paste trial balance data.')
       return
     }
 
@@ -176,6 +246,7 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
       setSuccess(`Trial Balance imported successfully! ${imported.totalLedgersCount} ledgers processed (${imported.mappedLedgersCount} mapped).`)
       setShowUploadModal(false)
       setUploadPayload('')
+      setPreviewResult(null)
       await loadImports(selectedClientId, selectedFy)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Trial Balance upload failed.')
@@ -189,11 +260,10 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
     try {
       setLoading(true)
       setError(null)
-      const res = await trialBalanceApi.syncAllDesks(activeImport.id)
+      const res = await trialBalanceApi.syncAllDesks(activeImport.id, syncFlags)
       setSyncResult(res)
       setShowSyncModal(true)
-      setSuccess('Trial Balance figures synchronized down to all 5 desks!')
-      // Refresh active import status
+      setSuccess('Trial Balance figures synchronized down across statutory desks!')
       const refreshed = await trialBalanceApi.getImport(activeImport.id)
       setActiveImport(refreshed)
     } catch (err: unknown) {
@@ -227,7 +297,6 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
         saveAsClientDefaultRule: editForm.saveAsClientDefaultRule
       })
 
-      // Update state in active import
       setActiveImport(prev => {
         if (!prev) return null
         const updatedLedgers = prev.ledgers.map(l => (l.id === ledgerId ? updated : l))
@@ -261,84 +330,22 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
     }
   }
 
-  function handleLoadSampleTallyXml() {
-    setUploadSourceType('TallyXml')
-    setUploadFileName('Tally_TB_Sample.xml')
-    setUploadPayload(`<?xml version="1.0" encoding="utf-8"?>
-<ENVELOPE>
-    <HEADER><TALLYREQUEST>Export Data</TALLYREQUEST></HEADER>
-    <BODY>
-        <DATA>
-            <COLLECTION>
-                <LEDGER NAME="Equity Share Capital">
-                    <PARENT>Capital Account</PARENT>
-                    <OPENINGBALANCE>-2500000.00</OPENINGBALANCE>
-                    <CLOSINGBALANCE>-2500000.00</CLOSINGBALANCE>
-                </LEDGER>
-                <LEDGER NAME="Domestic Sales of Goods">
-                    <PARENT>Sales Accounts</PARENT>
-                    <OPENINGBALANCE>0.00</OPENINGBALANCE>
-                    <CLOSINGBALANCE>-12500000.00</CLOSINGBALANCE>
-                </LEDGER>
-                <LEDGER NAME="Purchases - Raw Materials">
-                    <PARENT>Purchase Accounts</PARENT>
-                    <OPENINGBALANCE>0.00</OPENINGBALANCE>
-                    <CLOSINGBALANCE>7800000.00</CLOSINGBALANCE>
-                </LEDGER>
-                <LEDGER NAME="Salaries and Wages">
-                    <PARENT>Direct Expenses</PARENT>
-                    <OPENINGBALANCE>0.00</OPENINGBALANCE>
-                    <CLOSINGBALANCE>1650000.00</CLOSINGBALANCE>
-                </LEDGER>
-                <LEDGER NAME="Office Rent &amp; Maintenance">
-                    <PARENT>Indirect Expenses</PARENT>
-                    <OPENINGBALANCE>0.00</OPENINGBALANCE>
-                    <CLOSINGBALANCE>450000.00</CLOSINGBALANCE>
-                </LEDGER>
-                <LEDGER NAME="Plant and Machinery">
-                    <PARENT>Fixed Assets</PARENT>
-                    <OPENINGBALANCE>3200000.00</OPENINGBALANCE>
-                    <CLOSINGBALANCE>3200000.00</CLOSINGBALANCE>
-                </LEDGER>
-                <LEDGER NAME="Computers &amp; Laptops">
-                    <PARENT>Fixed Assets</PARENT>
-                    <OPENINGBALANCE>600000.00</OPENINGBALANCE>
-                    <CLOSINGBALANCE>600000.00</CLOSINGBALANCE>
-                </LEDGER>
-                <LEDGER NAME="Trade Debtors">
-                    <PARENT>Sundry Debtors</PARENT>
-                    <OPENINGBALANCE>1100000.00</OPENINGBALANCE>
-                    <CLOSINGBALANCE>1450000.00</CLOSINGBALANCE>
-                </LEDGER>
-                <LEDGER NAME="Trade Creditors">
-                    <PARENT>Sundry Creditors</PARENT>
-                    <OPENINGBALANCE>-950000.00</OPENINGBALANCE>
-                    <CLOSINGBALANCE>-1150000.00</CLOSINGBALANCE>
-                </LEDGER>
-                <LEDGER NAME="HDFC Current Account">
-                    <PARENT>Bank Accounts</PARENT>
-                    <OPENINGBALANCE>500000.00</OPENINGBALANCE>
-                    <CLOSINGBALANCE>900000.00</CLOSINGBALANCE>
-                </LEDGER>
-            </COLLECTION>
-        </DATA>
-    </BODY>
-</ENVELOPE>`)
-  }
-
   function handleFileUploadChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
     setUploadFileName(file.name)
-    if (file.name.endsWith('.csv')) {
-      setUploadSourceType('Csv')
-    } else {
-      setUploadSourceType('TallyXml')
-    }
+    const lower = file.name.toLowerCase()
+    let type = 'Auto'
+    if (lower.endsWith('.xml')) type = 'TallyXml'
+    else if (lower.endsWith('.csv')) type = 'GenericCsv'
+    else if (lower.endsWith('.tsv') || lower.endsWith('.txt')) type = 'ClipboardTsv'
+    setUploadSourceType(type)
+
     const reader = new FileReader()
     reader.onload = evt => {
       const content = evt.target?.result as string
       setUploadPayload(content || '')
+      handleRunPreview(content || '', type)
     }
     reader.readAsText(file)
   }
@@ -367,7 +374,7 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 700, color: '#111827' }}>
-              Trial Balance & Multi-Desk Hub
+              Universal Trial Balance & Financial Data Hub
             </h1>
             <span style={{
               background: '#EEF2FF',
@@ -378,11 +385,11 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
               borderRadius: '9999px',
               border: '1px solid #C7D2FE'
             }}>
-              Cascading Engine
+              Tally • Busy • SAP • Excel TSV
             </span>
           </div>
           <p style={{ margin: '4px 0 0 0', color: '#6B7280', fontSize: '14px' }}>
-            Import Tally TB once per client. One sync automatically fills Statutory Audit, Form 3CD, Schedule III Ratios, CARO 2020, and Fixed Assets.
+            Test-drive client numbers in under 60 seconds. One universal ingestion cascades into Statutory Audit, Schedule III, Form 3CD, CARO 2020, Fixed Assets, and Cost Audit.
           </p>
         </div>
 
@@ -405,28 +412,32 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
             }}
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-            Retained Rules
+            Retained Rules ({clientRules.length > 0 ? clientRules.length : '0'})
           </button>
 
           {(!can || can('trialbalance.manage')) && (
             <>
               <button
-                onClick={() => setShowUploadModal(true)}
+                onClick={() => {
+                  setShowUploadModal(true)
+                  setImportTab('demo')
+                }}
                 style={{
-                  padding: '8px 16px',
+                  padding: '8px 18px',
                   borderRadius: '6px',
-                  border: '1px solid #D1D5DB',
-                  background: '#F9FAFB',
-                  color: '#111827',
+                  border: '1px solid #C7D2FE',
+                  background: '#EEF2FF',
+                  color: '#4338CA',
                   fontWeight: 600,
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px'
+                  gap: '6px',
+                  boxShadow: '0 1px 2px rgba(99, 102, 241, 0.1)'
                 }}
               >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                + Import Tally / CSV
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                60-Sec Test Drive / Import
               </button>
 
               <button
@@ -447,7 +458,7 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
                 }}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
-                Sync to All Desks
+                Sync to All 6 Desks
               </button>
             </>
           )}
@@ -472,7 +483,7 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
       {/* Selectors Bar */}
       <div style={{ background: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: '8px', padding: '16px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
         <div style={{ minWidth: '280px', flex: 1 }}>
-          <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#4B5563', marginBottom: '6px' }}>Client</label>
+          <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#4B5563', marginBottom: '6px' }}>Client Entity</label>
           <select
             value={selectedClientId}
             onChange={e => setSelectedClientId(e.target.value)}
@@ -502,7 +513,7 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
 
         {imports.length > 1 && (
           <div style={{ minWidth: '220px' }}>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#4B5563', marginBottom: '6px' }}>Select Import Version</label>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#4B5563', marginBottom: '6px' }}>Import Version</label>
             <select
               value={activeImport?.id || ''}
               onChange={e => handleSelectImport(e.target.value)}
@@ -510,7 +521,7 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
             >
               {imports.map(imp => (
                 <option key={imp.id} value={imp.id}>
-                  {imp.fileName} ({new Date(imp.uploadedAt).toLocaleDateString()})
+                  {imp.fileName} ({new Date(imp.createdAt).toLocaleDateString()}) [{imp.sourceType}]
                 </option>
               ))}
             </select>
@@ -520,13 +531,13 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
 
       {/* KPI Cards */}
       {activeImport ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '16px', marginBottom: '24px' }}>
           {/* Total Debit */}
           <div style={{ background: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: '8px', padding: '16px' }}>
             <div style={{ fontSize: '12px', fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Total Debits
             </div>
-            <div style={{ fontSize: '22px', fontWeight: 700, color: '#111827', marginTop: '6px' }}>
+            <div style={{ fontSize: '20px', fontWeight: 700, color: '#111827', marginTop: '6px' }}>
               {fmtInr(activeImport.totalDebit)}
             </div>
             <div style={{ fontSize: '12px', color: '#9CA3AF', marginTop: '4px' }}>
@@ -539,7 +550,7 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
             <div style={{ fontSize: '12px', fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Total Credits
             </div>
-            <div style={{ fontSize: '22px', fontWeight: 700, color: '#111827', marginTop: '6px' }}>
+            <div style={{ fontSize: '20px', fontWeight: 700, color: '#111827', marginTop: '6px' }}>
               {fmtInr(activeImport.totalCredit)}
             </div>
             <div style={{ fontSize: '12px', color: '#9CA3AF', marginTop: '4px' }}>
@@ -550,25 +561,25 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
           {/* Balanced Status */}
           <div style={{ background: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: '8px', padding: '16px' }}>
             <div style={{ fontSize: '12px', fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              TB Health Status
+              Integrity & Health
             </div>
-            <div style={{ marginTop: '8px' }}>
+            <div style={{ marginTop: '6px' }}>
               {activeImport.isBalanced ? (
-                <span style={{ background: '#DEF7EC', color: '#03543F', padding: '4px 10px', borderRadius: '6px', fontSize: '13px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ background: '#DEF7EC', color: '#03543F', padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                   ✓ Balanced (₹0 Diff)
                 </span>
               ) : (
-                <span style={{ background: '#FDE8E8', color: '#9B1C1C', padding: '4px 10px', borderRadius: '6px', fontSize: '13px', fontWeight: 600 }}>
-                  ✕ Out of Balance (Diff: {fmtInr(Math.abs(activeImport.totalDebit - activeImport.totalCredit))})
+                <span style={{ background: '#FDE8E8', color: '#9B1C1C', padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600 }}>
+                  ✕ Diff: {fmtInr(Math.abs(activeImport.totalDebit - activeImport.totalCredit))}
                 </span>
               )}
             </div>
             <div style={{ fontSize: '12px', color: '#9CA3AF', marginTop: '6px' }}>
-              {activeImport.sourceType} • {activeImport.fileName}
+              Source: <span style={{ fontWeight: 600, color: '#374151' }}>{activeImport.sourceType}</span>
             </div>
           </div>
 
-          {/* Mapping Progress */}
+          {/* Classification Progress */}
           <div style={{ background: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: '8px', padding: '16px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: '12px', fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -584,53 +595,84 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
             </div>
           </div>
 
-          {/* Sync Status */}
+          {/* Multi-Desk Cascading Sync */}
           <div style={{ background: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: '8px', padding: '16px' }}>
             <div style={{ fontSize: '12px', fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Multi-Desk Sync
+              Cascading Sync
             </div>
-            <div style={{ marginTop: '8px' }}>
-              {activeImport.isSynced ? (
-                <span style={{ background: '#E0E7FF', color: '#3730A3', padding: '4px 10px', borderRadius: '6px', fontSize: '13px', fontWeight: 600 }}>
-                  ✓ Synced across 5 desks
+            <div style={{ marginTop: '6px' }}>
+              {activeImport.syncedAt ? (
+                <span style={{ background: '#E0E7FF', color: '#3730A3', padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600 }}>
+                  ✓ Synced ({activeImport.syncedDesks || 'All Desks'})
                 </span>
               ) : (
-                <span style={{ background: '#FEF3C7', color: '#92400E', padding: '4px 10px', borderRadius: '6px', fontSize: '13px', fontWeight: 600 }}>
-                  Pending Cascading Sync
+                <span style={{ background: '#FEF3C7', color: '#92400E', padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600 }}>
+                  Ready to Sync (6 Desks)
                 </span>
               )}
             </div>
-            <div style={{ fontSize: '12px', color: '#9CA3AF', marginTop: '6px' }}>
-              {activeImport.lastSyncedAt ? `Last: ${new Date(activeImport.lastSyncedAt).toLocaleString()}` : 'Never synced'}
+            <div style={{ fontSize: '11px', color: '#9CA3AF', marginTop: '6px' }}>
+              {activeImport.syncedAt ? `At: ${new Date(activeImport.syncedAt).toLocaleString()}` : 'Awaiting one-click sync'}
             </div>
           </div>
         </div>
       ) : (
-        <div style={{ background: '#FFFFFF', border: '1px dashed #D1D5DB', borderRadius: '12px', padding: '48px', textAlign: 'center', marginBottom: '24px' }}>
-          <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: '#EEF2FF', color: '#4F46E5', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: '24px' }}>
-            📊
+        <div style={{ background: '#FFFFFF', border: '1px dashed #C7D2FE', borderRadius: '12px', padding: '48px', textAlign: 'center', marginBottom: '24px' }}>
+          <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: '#EEF2FF', color: '#4F46E5', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: '28px' }}>
+            ⚡
           </div>
-          <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: 600, color: '#111827' }}>
-            No Trial Balance imported for {selectedFy}
+          <h3 style={{ margin: '0 0 8px 0', fontSize: '20px', fontWeight: 700, color: '#111827' }}>
+            Test Drive Real Financial Numbers in 60 Seconds
           </h3>
-          <p style={{ margin: '0 0 20px 0', color: '#6B7280', fontSize: '14px', maxWidth: '500px', marginLeft: 'auto', marginRight: 'auto' }}>
-            Export the Trial Balance from TallyPrime (XML or CSV) and upload it here. CaDesk will automatically map standard ledgers and propagate data to all downstream audit and tax desks.
+          <p style={{ margin: '0 0 20px 0', color: '#6B7280', fontSize: '14px', maxWidth: '620px', marginLeft: 'auto', marginRight: 'auto', lineHeight: '1.5' }}>
+            No complicated migration needed! Ingest trial balances directly from <strong>Tally Prime (XML/CSV)</strong>, <strong>Busy Accounting (TSV)</strong>, <strong>SAP ERP (GL Statements)</strong>, or directly <strong>paste columns from Excel / Google Sheets</strong>.
           </p>
-          <button
-            onClick={() => setShowUploadModal(true)}
-            style={{
-              padding: '10px 20px',
-              borderRadius: '6px',
-              border: 'none',
-              background: '#4F46E5',
-              color: '#FFFFFF',
-              fontWeight: 600,
-              cursor: 'pointer',
-              fontSize: '14px'
-            }}
-          >
-            + Upload Tally Trial Balance
-          </button>
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+            <button
+              onClick={() => {
+                setShowUploadModal(true)
+                setImportTab('demo')
+              }}
+              style={{
+                padding: '10px 24px',
+                borderRadius: '6px',
+                border: 'none',
+                background: '#4F46E5',
+                color: '#FFFFFF',
+                fontWeight: 600,
+                cursor: 'pointer',
+                fontSize: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                boxShadow: '0 2px 4px rgba(79, 70, 229, 0.25)'
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+              Launch 1-Click Instant Demo
+            </button>
+            <button
+              onClick={() => {
+                setShowUploadModal(true)
+                setImportTab('paste')
+              }}
+              style={{
+                padding: '10px 20px',
+                borderRadius: '6px',
+                border: '1px solid #D1D5DB',
+                background: '#FFFFFF',
+                color: '#374151',
+                fontWeight: 600,
+                cursor: 'pointer',
+                fontSize: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              📋 Paste from Excel (Ctrl+V)
+            </button>
+          </div>
         </div>
       )}
 
@@ -642,10 +684,10 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flex: 1, minWidth: '300px' }}>
               <input
                 type="text"
-                placeholder="Search ledger name, group or Schedule III..."
+                placeholder="Search ledger name, parent group or Schedule III group..."
                 value={searchLedger}
                 onChange={e => setSearchLedger(e.target.value)}
-                style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '14px', width: '320px' }}
+                style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '14px', width: '340px' }}
               />
               <div style={{ display: 'flex', background: '#F3F4F6', borderRadius: '6px', padding: '2px' }}>
                 <button
@@ -735,7 +777,7 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
                       <td style={{ padding: '12px 16px' }}>
                         <div style={{ fontWeight: 600, color: '#111827' }}>{ledger.ledgerName}</div>
                         <div style={{ fontSize: '11px', color: '#6B7280', marginTop: '2px' }}>
-                          Parent: <span style={{ fontWeight: 500 }}>{ledger.tallyGroup || 'Primary'}</span>
+                          Parent: <span style={{ fontWeight: 500 }}>{ledger.tallyGroup || 'Direct / Primary'}</span>
                           {ledger.isMapped ? (
                             <span style={{ marginLeft: '6px', color: '#059669', fontWeight: 600 }}>✓ Mapped</span>
                           ) : (
@@ -803,7 +845,7 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
                               style={{ padding: '4px 6px', borderRadius: '4px', border: '1px solid #D1D5DB', fontSize: '11px' }}
                             >
                               {CARO_CATEGORIES.map(c => (
-                                <option key={c.value} value={c.value}>CARO: {c.label}</option>
+                                <option key={c.value} value={c.value}>{c.label}</option>
                               ))}
                             </select>
                             <select
@@ -812,7 +854,7 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
                               style={{ padding: '4px 6px', borderRadius: '4px', border: '1px solid #D1D5DB', fontSize: '11px' }}
                             >
                               {FIXED_ASSET_BLOCKS.map(b => (
-                                <option key={b.value} value={b.value}>Asset: {b.label}</option>
+                                <option key={b.value} value={b.value}>{b.label}</option>
                               ))}
                             </select>
                             <label style={{ fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px', color: '#065F46' }}>
@@ -876,118 +918,339 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
         </div>
       )}
 
-      {/* Upload Modal */}
+      {/* 3-in-1 Universal Ingestion Modal */}
       {showUploadModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-          <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '12px', width: '650px', maxWidth: '95%', maxHeight: '90vh', overflowY: 'auto' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, backdropFilter: 'blur(2px)' }}>
+          <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '12px', width: '820px', maxWidth: '95%', maxHeight: '92vh', overflowY: 'auto', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}>
+            {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#111827' }}>
-                Import Trial Balance from Tally
-              </h3>
-              <button onClick={() => setShowUploadModal(false)} style={{ background: 'transparent', border: 'none', fontSize: '18px', cursor: 'pointer' }}>✕</button>
-            </div>
-
-            <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#6B7280' }}>
-              Upload an exported Tally XML file or CSV statement. CaDesk parses the opening, debit, credit and closing balance figures and automatically maps common ledgers.
-            </p>
-
-            <form onSubmit={handleUpload}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>Source Format</label>
-                  <select
-                    value={uploadSourceType}
-                    onChange={e => setUploadSourceType(e.target.value)}
-                    style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '13px' }}
-                  >
-                    <option value="TallyXml">Tally XML Export (Collection / Envelope)</option>
-                    <option value="Csv">CSV / Excel Export</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>File Name</label>
-                  <input
-                    type="text"
-                    value={uploadFileName}
-                    onChange={e => setUploadFileName(e.target.value)}
-                    style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '13px' }}
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* File Dropzone */}
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
-                  Select File or Drag & Drop
-                </label>
-                <div style={{ border: '2px dashed #D1D5DB', borderRadius: '8px', padding: '16px', textAlign: 'center', background: '#F9FAFB' }}>
-                  <input
-                    type="file"
-                    accept=".xml,.csv,.txt"
-                    onChange={handleFileUploadChange}
-                    style={{ display: 'none' }}
-                    id="tb-file-input"
-                  />
-                  <label htmlFor="tb-file-input" style={{ cursor: 'pointer', color: '#4F46E5', fontWeight: 600, fontSize: '13px' }}>
-                    Browse XML or CSV file
-                  </label>
-                  <span style={{ fontSize: '12px', color: '#6B7280', display: 'block', marginTop: '4px' }}>
-                    or paste XML text in the field below
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: '#111827' }}>
+                    Universal Financial Data Importer
+                  </h3>
+                  <span style={{ background: '#ECFDF5', color: '#047857', fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '6px' }}>
+                    60-Sec Test Drive
                   </span>
                 </div>
+                <span style={{ fontSize: '13px', color: '#6B7280' }}>
+                  Intelligent column heuristic auto-mapper for Tally Prime, Busy Accounting, SAP GL, and Excel clipboard paste.
+                </span>
               </div>
+              <button onClick={() => setShowUploadModal(false)} style={{ background: 'transparent', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#6B7280' }}>✕</button>
+            </div>
 
-              {/* Text Payload */}
+            {/* Ingestion Mode Tabs */}
+            <div style={{ display: 'flex', borderBottom: '1px solid #E5E7EB', marginBottom: '20px' }}>
+              <button
+                type="button"
+                onClick={() => setImportTab('demo')}
+                style={{
+                  padding: '10px 18px',
+                  border: 'none',
+                  borderBottom: importTab === 'demo' ? '2px solid #4F46E5' : '2px solid transparent',
+                  background: 'transparent',
+                  color: importTab === 'demo' ? '#4F46E5' : '#6B7280',
+                  fontWeight: 600,
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                ⚡ 1-Click Demo Datasets
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setImportTab('paste')}
+                style={{
+                  padding: '10px 18px',
+                  border: 'none',
+                  borderBottom: importTab === 'paste' ? '2px solid #4F46E5' : '2px solid transparent',
+                  background: 'transparent',
+                  color: importTab === 'paste' ? '#4F46E5' : '#6B7280',
+                  fontWeight: 600,
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                📋 Paste from Excel / Sheets
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setImportTab('file')}
+                style={{
+                  padding: '10px 18px',
+                  border: 'none',
+                  borderBottom: importTab === 'file' ? '2px solid #4F46E5' : '2px solid transparent',
+                  background: 'transparent',
+                  color: importTab === 'file' ? '#4F46E5' : '#6B7280',
+                  fontWeight: 600,
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                📁 File Upload (XML / CSV / TSV)
+              </button>
+            </div>
+
+            {/* TAB 1: 1-Click Demo Datasets */}
+            {importTab === 'demo' && (
               <div style={{ marginBottom: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                  <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151' }}>File Content / XML</label>
+                <p style={{ margin: '0 0 12px 0', fontSize: '13px', color: '#4B5563' }}>
+                  Select one of the pre-loaded real-world datasets below to test the full CaDesk platform immediately without preparing client files:
+                </p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '12px', marginBottom: '16px' }}>
+                  {samples.map(s => {
+                    const isSelected = uploadPayload === s.contentPayload
+                    return (
+                      <div
+                        key={s.key}
+                        onClick={() => handleSelectSample(s)}
+                        style={{
+                          border: isSelected ? '2px solid #4F46E5' : '1px solid #E5E7EB',
+                          background: isSelected ? '#EEF2FF' : '#F9FAFB',
+                          borderRadius: '8px',
+                          padding: '14px',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <span style={{ fontSize: '11px', fontWeight: 600, color: '#4F46E5', background: '#FFFFFF', padding: '2px 6px', borderRadius: '4px', border: '1px solid #C7D2FE' }}>
+                            {s.sourceType}
+                          </span>
+                          <span style={{ fontSize: '12px', fontWeight: 700, color: '#059669' }}>
+                            ₹{(s.turnoverInr / 10000000).toFixed(1)} Cr Rev
+                          </span>
+                        </div>
+                        <div style={{ fontWeight: 700, fontSize: '14px', color: '#111827', marginTop: '8px' }}>
+                          {s.title}
+                        </div>
+                        <p style={{ margin: '6px 0 0 0', fontSize: '12px', color: '#6B7280', lineHeight: '1.4' }}>
+                          {s.description}
+                        </p>
+                        <div style={{ marginTop: '10px', fontSize: '11px', fontWeight: 600, color: '#4F46E5' }}>
+                          {isSelected ? '✓ Selected & Previewing' : 'Click to Load →'}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* TAB 2: Direct Clipboard Paste from Excel / Sheets */}
+            {importTab === 'paste' && (
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', padding: '12px 16px', borderRadius: '8px', marginBottom: '12px', fontSize: '13px', color: '#166534' }}>
+                  💡 <strong>How to paste:</strong> In Microsoft Excel or Google Sheets, highlight your Trial Balance columns (Account Name, Group, Debit, Credit, Closing) and copy (Ctrl+C). Paste directly into the box below (Ctrl+V). CaDesk automatically splits tabs and detects headers!
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151' }}>
+                    Paste Excel / Google Sheets Columns (Tab-Delimited)
+                  </label>
                   <button
                     type="button"
-                    onClick={handleLoadSampleTallyXml}
+                    onClick={() => handleRunPreview()}
                     style={{ background: 'transparent', border: 'none', color: '#4F46E5', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
                   >
-                    Load Sample Tally XML
+                    Inspect & Preview Table →
                   </button>
                 </div>
                 <textarea
                   rows={8}
                   value={uploadPayload}
-                  onChange={e => setUploadPayload(e.target.value)}
-                  placeholder="Paste Tally <ENVELOPE> or CSV contents here..."
-                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '12px', fontFamily: 'monospace' }}
-                  required
+                  onChange={e => {
+                    setUploadPayload(e.target.value)
+                    setUploadSourceType('ClipboardTsv')
+                  }}
+                  onBlur={() => handleRunPreview()}
+                  placeholder={"Account Name\tParent Group\tDebit (Rs.)\tCredit (Rs.)\tClosing Bal.\nDomestic Sales\tSales Accounts\t0.00\t15000000.00\t15000000.00 Cr\nRaw Material Consumed\tDirect Expenses\t8000000.00\t0.00\t8000000.00 Dr\nSBI Current A/c\tBank Accounts\t7000000.00\t0.00\t7000000.00 Dr"}
+                  style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '12px', fontFamily: 'monospace', whiteSpace: 'pre', overflowX: 'auto' }}
                 />
               </div>
+            )}
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                <button
-                  type="button"
-                  onClick={() => setShowUploadModal(false)}
-                  style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #D1D5DB', background: '#FFFFFF', cursor: 'pointer' }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  style={{ padding: '8px 20px', borderRadius: '6px', border: 'none', background: '#4F46E5', color: '#FFFFFF', fontWeight: 600, cursor: 'pointer' }}
-                >
-                  {loading ? 'Processing...' : 'Upload & Parse'}
-                </button>
+            {/* TAB 3: File Upload */}
+            {importTab === 'file' && (
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>Source Format</label>
+                    <select
+                      value={uploadSourceType}
+                      onChange={e => setUploadSourceType(e.target.value)}
+                      style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '13px' }}
+                    >
+                      <option value="Auto">Auto-Detect (Heuristic)</option>
+                      <option value="TallyXml">Tally XML Export (Collection / Envelope)</option>
+                      <option value="BusyCsv">Busy Accounting (TSV / CSV)</option>
+                      <option value="SapGl">SAP ERP GL Trial Balance</option>
+                      <option value="GenericCsv">Standard CSV / TSV</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>File Name</label>
+                    <input
+                      type="text"
+                      value={uploadFileName}
+                      onChange={e => setUploadFileName(e.target.value)}
+                      style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '13px' }}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div style={{ border: '2px dashed #D1D5DB', borderRadius: '8px', padding: '24px', textAlign: 'center', background: '#F9FAFB' }}>
+                  <input
+                    type="file"
+                    accept=".xml,.csv,.tsv,.txt"
+                    onChange={handleFileUploadChange}
+                    style={{ display: 'none' }}
+                    id="tb-file-input-universal"
+                  />
+                  <label htmlFor="tb-file-input-universal" style={{ cursor: 'pointer', color: '#4F46E5', fontWeight: 600, fontSize: '14px', display: 'block' }}>
+                    Browse XML, CSV or TSV File
+                  </label>
+                  <span style={{ fontSize: '12px', color: '#6B7280', display: 'block', marginTop: '6px' }}>
+                    Supports files exported from Tally ERP9/Prime, Busy 18/21, SAP S/4HANA or custom ERPs
+                  </span>
+                </div>
               </div>
-            </form>
+            )}
+
+            {/* LIVE PREVIEW SECTION */}
+            {previewLoading && (
+              <div style={{ padding: '16px', textAlign: 'center', color: '#4F46E5', fontSize: '13px' }}>
+                Analyzing column headers and checking balance integrity...
+              </div>
+            )}
+
+            {previewResult && !previewLoading && (
+              <div style={{ background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: '8px', padding: '16px', marginBottom: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontWeight: 700, fontSize: '14px', color: '#111827' }}>
+                      Data Diagnostics
+                    </span>
+                    {previewResult.isBalanced ? (
+                      <span style={{ background: '#DEF7EC', color: '#03543F', padding: '3px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600 }}>
+                        ✓ Balanced (₹0.00 Discrepancy)
+                      </span>
+                    ) : (
+                      <span style={{ background: '#FDE8E8', color: '#9B1C1C', padding: '3px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600 }}>
+                        ⚠ Out of Balance: ₹{previewResult.discrepancy.toLocaleString('en-IN')}
+                      </span>
+                    )}
+                    <span style={{ background: '#EEF2FF', color: '#4338CA', padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 600 }}>
+                      Format: {previewResult.detectedSourceType}
+                    </span>
+                  </div>
+
+                  <div style={{ fontSize: '12px', color: '#4B5563' }}>
+                    <strong>{previewResult.totalLedgersCount}</strong> Ledgers • <strong>{previewResult.mappedLedgersCount}</strong> Auto-Mapped
+                  </div>
+                </div>
+
+                {/* Diagnostics bullets */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '14px', fontSize: '12px', color: '#374151' }}>
+                  {previewResult.diagnostics.map((d, idx) => (
+                    <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span>{d}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Mini Preview Table */}
+                <div style={{ overflowX: 'auto', maxHeight: '180px', overflowY: 'auto', background: '#FFFFFF', borderRadius: '6px', border: '1px solid #E5E7EB' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                    <thead>
+                      <tr style={{ background: '#F3F4F6', borderBottom: '1px solid #E5E7EB', color: '#4B5563' }}>
+                        <th style={{ padding: '6px 10px', textAlign: 'left' }}>Ledger Account</th>
+                        <th style={{ padding: '6px 10px', textAlign: 'left' }}>Parent Group</th>
+                        <th style={{ padding: '6px 10px', textAlign: 'right' }}>Debit (₹)</th>
+                        <th style={{ padding: '6px 10px', textAlign: 'right' }}>Credit (₹)</th>
+                        <th style={{ padding: '6px 10px', textAlign: 'right' }}>Closing (₹)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {previewResult.ledgers.slice(0, 6).map((l, idx) => (
+                        <tr key={idx} style={{ borderBottom: '1px solid #F3F4F6' }}>
+                          <td style={{ padding: '6px 10px', fontWeight: 500 }}>{l.name}</td>
+                          <td style={{ padding: '6px 10px', color: '#6B7280' }}>{l.parentGroup || '—'}</td>
+                          <td style={{ padding: '6px 10px', textAlign: 'right', fontFamily: 'monospace' }}>
+                            {l.debitAmount > 0 ? fmtInr(l.debitAmount) : '-'}
+                          </td>
+                          <td style={{ padding: '6px 10px', textAlign: 'right', fontFamily: 'monospace' }}>
+                            {l.creditAmount > 0 ? fmtInr(l.creditAmount) : '-'}
+                          </td>
+                          <td style={{ padding: '6px 10px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 600 }}>
+                            {fmtInr(l.closingBalance)}
+                          </td>
+                        </tr>
+                      ))}
+                      {previewResult.ledgers.length > 6 && (
+                        <tr>
+                          <td colSpan={5} style={{ padding: '6px 10px', textAlign: 'center', color: '#6B7280', fontSize: '11px', background: '#F9FAFB' }}>
+                            ... and {previewResult.ledgers.length - 6} more ledgers parsed successfully
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={() => setShowUploadModal(false)}
+                style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #D1D5DB', background: '#FFFFFF', cursor: 'pointer', fontSize: '13px' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmImport}
+                disabled={loading || !uploadPayload.trim()}
+                style={{
+                  padding: '8px 24px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  background: uploadPayload.trim() ? '#4F46E5' : '#9CA3AF',
+                  color: '#FFFFFF',
+                  fontWeight: 600,
+                  cursor: uploadPayload.trim() ? 'pointer' : 'not-allowed',
+                  fontSize: '13px',
+                  boxShadow: '0 1px 3px rgba(79, 70, 229, 0.3)'
+                }}
+              >
+                {loading ? 'Ingesting...' : 'Confirm & Ingest Trial Balance'}
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Sync Success Modal */}
+      {/* Sync Success & Results Modal */}
       {showSyncModal && syncResult && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-          <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '12px', width: '560px', maxWidth: '95%' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, backdropFilter: 'blur(2px)' }}>
+          <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '12px', width: '640px', maxWidth: '95%', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-              <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#DEF7EC', color: '#03543F', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>
+              <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: '#DEF7EC', color: '#03543F', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>
                 ✓
               </div>
               <div>
@@ -995,49 +1258,88 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
                   Multi-Desk Synchronization Complete!
                 </h3>
                 <span style={{ fontSize: '13px', color: '#6B7280' }}>
-                  Financial Year: {syncResult.financialYear}
+                  Financial Year: {syncResult.financialYear} • Synced at {new Date(syncResult.syncedAt).toLocaleTimeString()}
                 </span>
               </div>
             </div>
 
-            <p style={{ fontSize: '13px', color: '#374151', lineHeight: '1.5', background: '#F9FAFB', padding: '12px', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
-              {syncResult.summary}
-            </p>
-
-            <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: '#F3F4F6', borderRadius: '6px' }}>
-                <span style={{ fontSize: '13px', fontWeight: 500 }}>Statutory Audit Desk (SA Materiality)</span>
-                <span style={{ color: syncResult.statutoryAuditUpdated ? '#059669' : '#6B7280', fontWeight: 600, fontSize: '12px' }}>
-                  {syncResult.statutoryAuditUpdated ? '✓ Benchmark Updated' : 'No Active Engagement'}
-                </span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '16px' }}>
+              {/* Desk 1: Statutory Audit */}
+              <div style={{ padding: '10px 14px', background: '#F9FAFB', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontWeight: 600, fontSize: '13px', color: '#111827' }}>1. Statutory Audit Desk (SA 320 Materiality)</span>
+                  <span style={{ color: syncResult.auditSynced ? '#059669' : '#D97706', fontWeight: 600, fontSize: '12px' }}>
+                    {syncResult.auditSynced ? '✓ Benchmark Updated' : 'Materiality Suggestion'}
+                  </span>
+                </div>
+                {syncResult.auditNotes && (
+                  <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#4B5563' }}>{syncResult.auditNotes}</p>
+                )}
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: '#F3F4F6', borderRadius: '6px' }}>
-                <span style={{ fontSize: '13px', fontWeight: 500 }}>Schedule III Desk (11 Ratios)</span>
-                <span style={{ color: syncResult.schedule3Updated ? '#059669' : '#6B7280', fontWeight: 600, fontSize: '12px' }}>
-                  {syncResult.schedule3Updated ? '✓ 11 Ratios Calculated' : 'Updated'}
-                </span>
+              {/* Desk 2: Schedule III */}
+              <div style={{ padding: '10px 14px', background: '#F9FAFB', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontWeight: 600, fontSize: '13px', color: '#111827' }}>2. Schedule III Financial Statements Desk</span>
+                  <span style={{ color: syncResult.schedule3Synced ? '#059669' : '#6B7280', fontWeight: 600, fontSize: '12px' }}>
+                    {syncResult.schedule3Synced ? '✓ 11 Statutory Ratios Updated' : 'Skipped'}
+                  </span>
+                </div>
+                {syncResult.schedule3Notes && (
+                  <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#4B5563' }}>{syncResult.schedule3Notes}</p>
+                )}
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: '#F3F4F6', borderRadius: '6px' }}>
-                <span style={{ fontSize: '13px', fontWeight: 500 }}>Form 3CD Tax Audit Desk</span>
-                <span style={{ color: syncResult.form3CdUpdated ? '#059669' : '#6B7280', fontWeight: 600, fontSize: '12px' }}>
-                  {syncResult.form3CdUpdated ? '✓ Turnover & 43B Disallowances Populated' : 'Updated'}
-                </span>
+              {/* Desk 3: Form 3CD */}
+              <div style={{ padding: '10px 14px', background: '#F9FAFB', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontWeight: 600, fontSize: '13px', color: '#111827' }}>3. Form 3CD Tax Audit Desk</span>
+                  <span style={{ color: syncResult.form3CdSynced ? '#059669' : '#6B7280', fontWeight: 600, fontSize: '12px' }}>
+                    {syncResult.form3CdSynced ? '✓ Turnover, 43B & MSME Populated' : 'Skipped'}
+                  </span>
+                </div>
+                {syncResult.form3CdNotes && (
+                  <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#4B5563' }}>{syncResult.form3CdNotes}</p>
+                )}
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: '#F3F4F6', borderRadius: '6px' }}>
-                <span style={{ fontSize: '13px', fontWeight: 500 }}>CARO 2020 Desk</span>
-                <span style={{ color: syncResult.caroUpdated ? '#059669' : '#6B7280', fontWeight: 600, fontSize: '12px' }}>
-                  {syncResult.caroUpdated ? '✓ Borrowings Evaluated' : 'Updated'}
-                </span>
+              {/* Desk 4: CARO 2020 */}
+              <div style={{ padding: '10px 14px', background: '#F9FAFB', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontWeight: 600, fontSize: '13px', color: '#111827' }}>4. CARO 2020 Desk</span>
+                  <span style={{ color: syncResult.caroSynced ? '#059669' : '#6B7280', fontWeight: 600, fontSize: '12px' }}>
+                    {syncResult.caroSynced ? '✓ Capital & Borrowing Limits Filled' : 'Skipped'}
+                  </span>
+                </div>
+                {syncResult.caroNotes && (
+                  <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#4B5563' }}>{syncResult.caroNotes}</p>
+                )}
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: '#F3F4F6', borderRadius: '6px' }}>
-                <span style={{ fontSize: '13px', fontWeight: 500 }}>Fixed Assets Desk</span>
-                <span style={{ color: '#059669', fontWeight: 600, fontSize: '12px' }}>
-                  ✓ {syncResult.fixedAssetsCreatedCount} Asset Blocks Populated
-                </span>
+              {/* Desk 5: Fixed Assets */}
+              <div style={{ padding: '10px 14px', background: '#F9FAFB', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontWeight: 600, fontSize: '13px', color: '#111827' }}>5. Fixed Assets Register Desk</span>
+                  <span style={{ color: syncResult.fixedAssetsSynced ? '#059669' : '#6B7280', fontWeight: 600, fontSize: '12px' }}>
+                    {syncResult.fixedAssetsSynced ? '✓ Reconciled with Gross Register' : 'Skipped'}
+                  </span>
+                </div>
+                {syncResult.fixedAssetsNotes && (
+                  <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#4B5563' }}>{syncResult.fixedAssetsNotes}</p>
+                )}
+              </div>
+
+              {/* Desk 6: Cost Audit */}
+              <div style={{ padding: '10px 14px', background: '#F9FAFB', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontWeight: 600, fontSize: '13px', color: '#111827' }}>6. Cost Audit Desk (Form CRA-1 to CRA-4)</span>
+                  <span style={{ color: syncResult.costAuditSynced ? '#059669' : '#6B7280', fontWeight: 600, fontSize: '12px' }}>
+                    {syncResult.costAuditSynced ? '✓ Product Turnover & Costs Synchronized' : 'Optional / Ready'}
+                  </span>
+                </div>
+                {syncResult.costAuditNotes && (
+                  <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#4B5563' }}>{syncResult.costAuditNotes}</p>
+                )}
               </div>
             </div>
 
@@ -1046,7 +1348,7 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
                 onClick={() => setShowSyncModal(false)}
                 style={{ padding: '8px 20px', borderRadius: '6px', border: 'none', background: '#4F46E5', color: '#FFFFFF', fontWeight: 600, cursor: 'pointer' }}
               >
-                Close
+                Close Summary
               </button>
             </div>
           </div>
@@ -1055,32 +1357,32 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
 
       {/* Retained Rules Modal */}
       {showRulesModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-          <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '12px', width: '700px', maxWidth: '95%', maxHeight: '85vh', overflowY: 'auto' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, backdropFilter: 'blur(2px)' }}>
+          <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '12px', width: '720px', maxWidth: '95%', maxHeight: '85vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#111827' }}>
                   Client Retained Mapping Rules
                 </h3>
                 <span style={{ fontSize: '12px', color: '#6B7280' }}>
-                  These rules are automatically applied every year when a new Trial Balance is uploaded for this client.
+                  Rules mapped once for this client are remembered forever across all financial years.
                 </span>
               </div>
               <button onClick={() => setShowRulesModal(false)} style={{ background: 'transparent', border: 'none', fontSize: '18px', cursor: 'pointer' }}>✕</button>
             </div>
 
             {clientRules.length === 0 ? (
-              <div style={{ padding: '32px', textAlign: 'center', color: '#6B7280' }}>
+              <div style={{ padding: '32px', textAlign: 'center', color: '#6B7280', background: '#F9FAFB', borderRadius: '8px' }}>
                 No custom default rules retained yet. When you edit a ledger mapping and check "Remember rule for future FYs", it will appear here.
               </div>
             ) : (
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
                 <thead>
                   <tr style={{ background: '#F9FAFB', borderBottom: '1px solid #E5E7EB', textAlign: 'left' }}>
-                    <th style={{ padding: '10px 12px' }}>Ledger Name</th>
-                    <th style={{ padding: '10px 12px' }}>Schedule III</th>
-                    <th style={{ padding: '10px 12px' }}>Form 3CD</th>
-                    <th style={{ padding: '10px 12px' }}>CARO / Asset</th>
+                    <th style={{ padding: '10px 12px' }}>Ledger Pattern</th>
+                    <th style={{ padding: '10px 12px' }}>Schedule III Group</th>
+                    <th style={{ padding: '10px 12px' }}>Form 3CD Category</th>
+                    <th style={{ padding: '10px 12px' }}>CARO / Asset Block</th>
                   </tr>
                 </thead>
                 <tbody>

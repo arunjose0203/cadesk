@@ -6,9 +6,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using CaDesk.Application.Abstractions;
 using CaDesk.Application.Caro;
+using CaDesk.Application.CostAudit;
 using CaDesk.Application.Schedule3;
 using CaDesk.Application.TaxAudit;
 using CaDesk.Domain.Audit;
+using CaDesk.Domain.CostAudit;
 using CaDesk.Domain.TaxAudit;
 using CaDesk.Domain.TrialBalance;
 using Microsoft.EntityFrameworkCore;
@@ -39,7 +41,8 @@ public class TrialBalanceSyncEngine
         ITenantContext tenant,
         Schedule3Service schedule3Service,
         Form3CdService form3CdService,
-        CaroService caroService)
+        CaroService caroService,
+        CostAuditService? costAuditService = null)
     {
         _db = db;
         _tenant = tenant;
@@ -146,6 +149,7 @@ public class TrialBalanceSyncEngine
         var f3cd = req.SyncForm3Cd ? await RunDeskAsync(() => SyncForm3CdAsync(clientId, client, fy, f, ledgers, ct)) : null;
         var caro = req.SyncCaro ? await RunDeskAsync(() => SyncCaroAsync(clientId, fy, f, userId, ct)) : null;
         var fa = req.SyncFixedAssets ? await RunDeskAsync(() => ReconcileFixedAssetsAsync(clientId, f, ledgers, ct)) : null;
+        var costAudit = req.SyncCostAudit ? await RunDeskAsync(() => SyncCostAuditAsync(clientId, fy, f, ledgers, ct)) : null;
 
         var synced = new List<string>();
         if (audit?.Synced == true) synced.Add("Audit");
@@ -153,6 +157,7 @@ public class TrialBalanceSyncEngine
         if (f3cd?.Synced == true) synced.Add("Form3Cd");
         if (caro?.Synced == true) synced.Add("Caro");
         if (fa?.Synced == true) synced.Add("FixedAssets");
+        if (costAudit?.Synced == true) synced.Add("CostAudit");
 
         if (synced.Count > 0)
         {
@@ -170,7 +175,8 @@ public class TrialBalanceSyncEngine
             f3cd?.Synced ?? false, f3cd?.Notes,
             caro?.Synced ?? false, caro?.Notes,
             fa?.Synced ?? false, fa?.Notes,
-            DateTime.UtcNow);
+            DateTime.UtcNow,
+            costAudit?.Synced ?? false, costAudit?.Notes);
     }
 
     private sealed record DeskOutcome(bool Synced, string Notes);
@@ -353,6 +359,39 @@ public class TrialBalanceSyncEngine
         return new DeskOutcome(true,
             $"Reconciliation only, nothing changed: trial balance fixed assets ₹{tbBalance:N0} vs asset register gross cost ₹{registerGross:N0} " +
             $"(difference ₹{tbBalance - registerGross:N0}; a trial balance usually shows net of depreciation, the register gross).");
+    }
+
+    // ---- 6. Cost Audit (Form CRA-1 to CRA-4) ----
+
+    private async Task<DeskOutcome> SyncCostAuditAsync(Guid clientId, string fy, TrialBalanceFigures f, List<TrialBalanceLedger> ledgers, CancellationToken ct)
+    {
+        var engagement = await _db.CostAuditEngagements
+            .Include(x => x.ProductStatements)
+            .FirstOrDefaultAsync(e => e.ClientId == clientId && e.FinancialYear == fy, ct);
+
+        if (engagement is null)
+            return new DeskOutcome(false, "No Cost Audit engagement for this client and year (optional desk).");
+
+        if (f.HasProfitAndLoss)
+        {
+            engagement.OverallTurnoverInr = f.RevenueFromOperations;
+            engagement.AuditedFinancialProfitInr = f.ProfitAfterTax;
+
+            if (engagement.ProductStatements.Count == 1)
+            {
+                var stmt = engagement.ProductStatements[0];
+                stmt.DirectMaterialsCost = f.CostOfGoodsSold;
+                stmt.DirectLaborCost = ledgers.Where(l => l.Schedule3Group == TrialBalanceConstants.S3EmployeeBenefitsExpense).Sum(l => l.ClosingBalance);
+                stmt.NetSalesRealization = f.RevenueFromOperations;
+                CostAuditEngine.CalculateProductCostStatement(stmt);
+            }
+
+            CostAuditEngine.RecalculateEngagementSummary(engagement);
+            await _db.SaveChangesAsync(ct);
+        }
+
+        return new DeskOutcome(true,
+            $"Updated Cost Audit engagement '{engagement.EngagementReference}' turnover ₹{f.RevenueFromOperations:N0} and audited financial profit ₹{f.ProfitAfterTax:N0}.");
     }
 
     // ---- helpers ----

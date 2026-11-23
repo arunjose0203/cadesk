@@ -1,10 +1,12 @@
+using System;
+using System.Linq;
 using CaDesk.Application.TrialBalance;
 using CaDesk.Domain.TrialBalance;
 using Xunit;
 
 namespace CaDesk.UnitTests;
 
-/// <summary>Parser sign convention, mapping rules and the figures the trial balance sync derives.</summary>
+/// <summary>Parser sign convention, mapping rules, multi-format ingestion, and derived figures.</summary>
 public class TrialBalanceRulesUnitTests
 {
     private static TrialBalanceLedger Ledger(string name, string tallyGroup, decimal closing, decimal opening = 0) =>
@@ -116,5 +118,183 @@ public class TrialBalanceRulesUnitTests
         Assert.Equal(300_000m, f.AverageInventory);           // (2 + 4) / 2 lakh
         Assert.Equal(500_000m, f.ProfitBeforeTax);
         Assert.Equal(400_000m, f.ProfitAfterTax);
+    }
+
+    // =========================================================================
+    // SPRINT 42: UNIVERSAL IMPORTER (BUSY, SAP, EXCEL CLIPBOARD, FUZZY HEADERS)
+    // =========================================================================
+
+    [Fact]
+    public void Busy_accounting_tab_delimited_file_with_dr_cr_suffixes_parses_accurately()
+    {
+        const string busyTsv =
+            "Account Name\tParent Group\tOp. Bal.\tDebit (Rs.)\tCredit (Rs.)\tClosing Bal.\n" +
+            "Capital A/c\tCapital A/c\t500000.00 Cr\t0.00\t0.00\t500000.00 Cr\n" +
+            "Axis Bank Current A/c\tBank Accounts\t150000.00 Dr\t0.00\t0.00\t150000.00 Dr\n" +
+            "Sundry Debtors - ABC Mart\tSundry Debtors\t350000.00 Dr\t0.00\t0.00\t350000.00 Dr\n";
+
+        var parsed = UniversalTrialBalanceParser.Parse(busyTsv, "BusyCsv");
+
+        Assert.Equal(3, parsed.Ledgers.Count);
+        Assert.Equal(500000m, parsed.TotalDebit);
+        Assert.Equal(500000m, parsed.TotalCredit);
+        Assert.True(parsed.IsBalanced);
+
+        var capital = parsed.Ledgers.Single(l => l.Name.Contains("Capital"));
+        Assert.Equal(-500000m, capital.ClosingBalance); // Credit is negative in standard internal representation
+
+        var bank = parsed.Ledgers.Single(l => l.Name.Contains("Axis Bank"));
+        Assert.Equal(150000m, bank.ClosingBalance);
+    }
+
+    [Fact]
+    public void Sap_gl_trial_balance_with_account_codes_and_local_currency_parses_accurately()
+    {
+        const string sapTsv =
+            "G/L Account\tGL Description\tDebit Amount\tCredit Amount\tBalance in Local Currency\n" +
+            "100000\tShare Capital - Equity\t0.00\t10000000.00\t-10000000.00\n" +
+            "200000\tLong-Term Borrowings\t0.00\t5000000.00\t-5000000.00\n" +
+            "300000\tTangible Fixed Assets - Hardware\t8000000.00\t0.00\t8000000.00\n" +
+            "400000\tCustomer Accounts Receivable\t7000000.00\t0.00\t7000000.00\n";
+
+        var parsed = UniversalTrialBalanceParser.Parse(sapTsv, "SapGl");
+
+        Assert.Equal(4, parsed.Ledgers.Count);
+        Assert.Equal(15000000m, parsed.TotalDebit);
+        Assert.Equal(15000000m, parsed.TotalCredit);
+        Assert.True(parsed.IsBalanced);
+
+        var fa = parsed.Ledgers.Single(l => l.Name.Contains("Tangible"));
+        Assert.Equal(8000000m, fa.DebitAmount);
+        Assert.Equal(8000000m, fa.ClosingBalance);
+    }
+
+    [Fact]
+    public void Excel_clipboard_tsv_paste_parses_and_balances()
+    {
+        // Direct clipboard TSV copied from Excel without explicit format declaration
+        const string excelPaste =
+            "Particulars\tGroup\tClosing Balance\n" +
+            "Sales Revenue\tSales Accounts\t-1200000.00\n" +
+            "Office Rent\tIndirect Expenses\t200000.00\n" +
+            "Trade Debtors\tSundry Debtors\t600000.00\n" +
+            "HDFC Current Account\tBank Accounts\t400000.00\n";
+
+        var parsed = UniversalTrialBalanceParser.Parse(excelPaste, "Auto");
+
+        Assert.Equal(4, parsed.Ledgers.Count);
+        Assert.Equal(1200000m, parsed.TotalDebit);
+        Assert.Equal(1200000m, parsed.TotalCredit);
+        Assert.True(parsed.IsBalanced);
+    }
+
+    [Fact]
+    public void Fuzzy_column_headers_in_arbitrary_casing_and_order_are_correctly_identified()
+    {
+        // Irregular columns: Cr first, then Dr, strange capitalization, punctuation
+        const string weirdCsv =
+            "Head of Account,  Classification / Parent , Cr. (INR) , Dr. (INR) \n" +
+            "Equity Share Capital, Capital Account, 2500000, 0\n" +
+            "Commercial Trucks, Fixed Assets, 0, 1500000\n" +
+            "HDFC Bank Overdraft, Bank OD A/c, 500000, 0\n" +
+            "Petty Cash Balance, Cash-in-Hand, 0, 1500000\n";
+
+        var parsed = UniversalTrialBalanceParser.Parse(weirdCsv, "GenericCsv");
+
+        Assert.Equal(4, parsed.Ledgers.Count);
+        Assert.Equal(3000000m, parsed.TotalDebit);
+        Assert.Equal(3000000m, parsed.TotalCredit);
+        Assert.True(parsed.IsBalanced);
+    }
+
+    [Theory]
+    [InlineData("1,23,456.78 Dr", 123456.78)]
+    [InlineData("1,23,456.78 Cr", -123456.78)]
+    [InlineData("₹ 50,000.00", 50000.00)]
+    [InlineData("Rs. 25,500.50", 25500.50)]
+    [InlineData("(75,000.00)", -75000.00)]
+    [InlineData("10000-", -10000.00)]
+    [InlineData("0.00", 0.0)]
+    [InlineData("-", 0.0)]
+    [InlineData("", 0.0)]
+    public void ParseAmount_handles_indian_commas_parentheses_trailing_minuses_and_currency_symbols(string raw, decimal expected)
+    {
+        decimal actual = UniversalTrialBalanceParser.ParseAmount(raw);
+        Assert.Equal(expected, actual);
+    }
+
+    [Fact]
+    public void Preloaded_sample_datasets_are_mathematically_balanced_and_auto_classify()
+    {
+        var samples = UniversalTrialBalanceParser.GetPreloadedSamples();
+        Assert.Equal(3, samples.Count);
+
+        foreach (var sample in samples)
+        {
+            Assert.False(string.IsNullOrWhiteSpace(sample.ContentPayload));
+            Assert.True(sample.TurnoverInr > 0);
+
+            var preview = UniversalTrialBalanceParser.Preview(sample.ContentPayload, sample.SourceType);
+
+            Assert.True(preview.IsBalanced, $"Sample '{sample.Key}' must balance mathematically.");
+            Assert.True(preview.Discrepancy < 1.00m, $"Sample '{sample.Key}' difference must be under ₹1 rounding.");
+            Assert.True(preview.TotalLedgersCount >= 20, $"Sample '{sample.Key}' must have full realistic chart of accounts.");
+
+            // Over 80% of accounts in realistic sample must auto-map to Indian Chart of Accounts
+            decimal mapRate = (decimal)preview.MappedLedgersCount / preview.TotalLedgersCount;
+            Assert.True(mapRate >= 0.80m, $"Sample '{sample.Key}' auto-mapping rate was only {mapRate:P0}.");
+
+            Assert.NotNull(preview.Kpis);
+            Assert.True(preview.Kpis.TotalIncome > 0);
+            Assert.True(preview.Kpis.TotalAssets > 0);
+        }
+    }
+
+    [Fact]
+    public void Preview_computes_accurate_financial_kpis_and_diagnostics()
+    {
+        var samples = UniversalTrialBalanceParser.GetPreloadedSamples();
+        var tallyMfg = samples.First(s => s.Key == "tally-mfg");
+
+        var preview = UniversalTrialBalanceParser.Preview(tallyMfg.ContentPayload, tallyMfg.SourceType);
+
+        Assert.Equal(tallyMfg.LedgersCount, preview.TotalLedgersCount);
+        Assert.True(preview.IsBalanced);
+        Assert.NotNull(preview.Kpis);
+
+        // Revenue from Operations should match turnover (~₹46.45 Cr)
+        Assert.Equal(tallyMfg.TurnoverInr, preview.Kpis.GrossRevenue);
+        Assert.True(preview.Kpis.OperatingProfit > 0);
+        Assert.True(preview.Kpis.TotalAssets > 0);
+        Assert.True(preview.Diagnostics.Count >= 3);
+        Assert.Contains(preview.Diagnostics, d => d.Contains("balanced", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void Busy_and_sap_group_names_map_accurately_to_schedule_iii()
+    {
+        // Busy group aliases
+        var b1 = Mapped("Commercial Godown", "Fixed Assets", 21000000m);
+        Assert.Equal(TrialBalanceConstants.S3PropertyPlantEquipment, b1.Schedule3Group);
+
+        var b2 = Mapped("Shree Trading Supplies (MSME)", "Sundry Creditors", -6500000m);
+        Assert.Equal(TrialBalanceConstants.S3TradePayablesMsme, b2.Schedule3Group);
+        Assert.Equal(TrialBalanceConstants.F3CdSec43BhMsme, b2.Form3CdCategory);
+
+        var b3 = Mapped("Wholesale Sales A/c", "Sales A/c", -152000000m);
+        Assert.Equal(TrialBalanceConstants.S3RevenueFromOperations, b3.Schedule3Group);
+        Assert.Equal(TrialBalanceConstants.F3CdTurnover, b3.Form3CdCategory);
+
+        // SAP group aliases
+        var s1 = Mapped("IT Server Hardware & Cloud Appliances", "Tangible Assets", 145000000m);
+        Assert.Equal(TrialBalanceConstants.S3PropertyPlantEquipment, s1.Schedule3Group);
+        Assert.Equal(TrialBalanceConstants.FaComputers, s1.FixedAssetBlock);
+
+        var s2 = Mapped("Software Engineering & Architect Salaries", "Personnel Expenses", 342000000m);
+        Assert.Equal(TrialBalanceConstants.S3EmployeeBenefitsExpense, s2.Schedule3Group);
+
+        var s3 = Mapped("Statutory Due - GST Output Liability", "Duties & Taxes", -11000000m);
+        Assert.Equal(TrialBalanceConstants.S3OtherCurrentLiabilities, s3.Schedule3Group);
+        Assert.Equal(TrialBalanceConstants.F3CdSec43BStatutoryDue, s3.Form3CdCategory);
     }
 }

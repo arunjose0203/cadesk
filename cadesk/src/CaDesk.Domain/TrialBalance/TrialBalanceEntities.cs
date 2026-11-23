@@ -10,7 +10,12 @@ public static class TrialBalanceConstants
     // Source types
     public const string SourceTallyXml = "TallyXml";
     public const string SourceTallyCsv = "TallyCsv";
+    public const string SourceBusyCsv = "BusyCsv";
+    public const string SourceSapGl = "SapGl";
     public const string SourceExcel = "Excel";
+    public const string SourceClipboardTsv = "ClipboardTsv";
+    public const string SourceGenericCsv = "GenericCsv";
+    public const string SourceAuto = "Auto";
 
     // Statuses
     public const string StatusDraft = "Draft";
@@ -98,6 +103,12 @@ public static class TrialBalanceConstants
     public const string CaroTermLoan = "TermLoan";
     public const string CaroRelatedPartyAdvance = "RelatedPartyAdvance";
     public const string CaroStatutoryDue = "StatutoryDue";
+
+    // Cost Audit (CRA-1 / CRA-3) Categories
+    public const string CostAuditMaterial = "MaterialCost";
+    public const string CostAuditLabor = "LaborCost";
+    public const string CostAuditUtilities = "UtilitiesCost";
+    public const string CostAuditOverheads = "OverheadsCost";
 
     // Fixed Asset Blocks (Income Tax Act & Schedule II)
     public const string FaPlantAndMachinery = "PlantAndMachinery";

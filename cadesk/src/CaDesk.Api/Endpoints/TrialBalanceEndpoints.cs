@@ -13,6 +13,23 @@ public static class TrialBalanceEndpoints
             .RequireAuthorization(Policies.FirmMember)
             .WithTags("Trial Balance & Multi-Desk Synchronizer");
 
+        // Live intelligent preview of financial data (without saving to database)
+        g.MapPost("/preview", (
+            [FromBody] PreviewTrialBalanceRequest req,
+            TrialBalanceService service) =>
+        {
+            var preview = service.PreviewTrialBalance(req);
+            return Results.Ok(preview);
+        }).RequirePermission(Perms.TrialBalanceRead);
+
+        // Pre-loaded realistic industry datasets for 60-second CA test drives (Tally, Busy, SAP)
+        g.MapGet("/samples", (
+            TrialBalanceService service) =>
+        {
+            var samples = service.GetSampleDatasets();
+            return Results.Ok(samples);
+        }).RequirePermission(Perms.TrialBalanceRead);
+
         // Upload and parse Tally XML / CSV
         g.MapPost("/upload", async (
             [FromBody] UploadTrialBalanceRequest req,

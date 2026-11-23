@@ -36,8 +36,9 @@ public class TrialBalanceService
         if (string.IsNullOrWhiteSpace(req.FinancialYear))
             throw new RequestValidationException(nameof(req.FinancialYear), "Financial year is required (e.g. 2024-25).");
 
-        // 1. Parse Tally content (XML or CSV)
-        var parsed = TallyTrialBalanceParser.Parse(req.ContentPayload, req.SourceType);
+        // 1. Parse content using Universal Trial Balance Parser (Tally XML, Busy CSV, SAP GL, Excel TSV, etc.)
+        var detectedType = UniversalTrialBalanceParser.ResolveSourceType(req.ContentPayload.Trim(), req.SourceType);
+        var parsed = UniversalTrialBalanceParser.Parse(req.ContentPayload, detectedType);
 
         // 2. Load existing client-level mapping rules (mapped once per client!)
         var clientRules = await _db.ClientLedgerMappings
@@ -51,7 +52,7 @@ public class TrialBalanceService
             FirmId = firmId,
             ClientId = req.ClientId,
             FinancialYear = req.FinancialYear.Trim(),
-            SourceType = req.SourceType,
+            SourceType = detectedType,
             FileName = req.FileName,
             TotalDebit = parsed.TotalDebit,
             TotalCredit = parsed.TotalCredit,
@@ -229,6 +230,16 @@ public class TrialBalanceService
             r.FixedAssetBlock,
             r.Notes
         )).ToList();
+    }
+
+    public TrialBalancePreviewResultDto PreviewTrialBalance(PreviewTrialBalanceRequest req)
+    {
+        return UniversalTrialBalanceParser.Preview(req.ContentPayload, req.SourceType);
+    }
+
+    public List<TrialBalanceSampleDto> GetSampleDatasets()
+    {
+        return UniversalTrialBalanceParser.GetPreloadedSamples();
     }
 
     private static TrialBalanceImportDto ToImportDto(TrialBalanceImport i, string? clientName)
