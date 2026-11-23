@@ -19,6 +19,7 @@ using CaDesk.Domain.Notifications;
 using CaDesk.Domain.Reports;
 using CaDesk.Domain.TaxNotices;
 using CaDesk.Domain.UaeTax;
+using CaDesk.Domain.PracticeHealth;
 using CaDesk.Domain.Payroll;
 using CaDesk.Domain.EInvoicing;
 using CaDesk.Domain.FixedAssets;
@@ -133,6 +134,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
     public DbSet<TaxDefenseDraft> TaxDefenseDrafts => Set<TaxDefenseDraft>();
     public DbSet<UaeTaxProfile> UaeTaxProfiles => Set<UaeTaxProfile>();
     public DbSet<UaeCorporateTaxReturn> UaeCorporateTaxReturns => Set<UaeCorporateTaxReturn>();
+    public DbSet<PracticeValuation> PracticeValuations => Set<PracticeValuation>();
+    public DbSet<PartnerEquity> PartnerEquities => Set<PartnerEquity>();
+    public DbSet<PartnerRetirementPlan> PartnerRetirementPlans => Set<PartnerRetirementPlan>();
+    public DbSet<ClientSuccessionTransition> ClientSuccessionTransitions => Set<ClientSuccessionTransition>();
+    public DbSet<PracticeBenchmark> PracticeBenchmarks => Set<PracticeBenchmark>();
     public DbSet<PayrollEmployee> PayrollEmployees => Set<PayrollEmployee>();
     public DbSet<PayrollRun> PayrollRuns => Set<PayrollRun>();
     public DbSet<PayrollPayslip> PayrollPayslips => Set<PayrollPayslip>();
@@ -740,6 +746,39 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
             e.Property(x => x.SmallBusinessReliefElection).HasConversion<string>();
             e.HasOne(x => x.TaxProfile).WithMany().HasForeignKey(x => x.TaxProfileId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<PracticeValuation>(e =>
+        {
+            e.ToTable("practice_valuations");
+            e.Property(x => x.Method).HasConversion<string>();
+            e.Property(x => x.Status).HasConversion<string>();
+        });
+
+        b.Entity<PartnerEquity>(e =>
+        {
+            e.ToTable("partner_equities");
+            e.Property(x => x.VestingStatus).HasConversion<string>();
+            e.Property(x => x.Role).HasConversion<string>();
+        });
+
+        b.Entity<PartnerRetirementPlan>(e =>
+        {
+            e.ToTable("partner_retirement_plans");
+            e.Property(x => x.Status).HasConversion<string>();
+        });
+
+        b.Entity<ClientSuccessionTransition>(e =>
+        {
+            e.ToTable("client_succession_transitions");
+            e.Property(x => x.Stage).HasConversion<string>();
+            e.Property(x => x.Risk).HasConversion<string>();
+        });
+
+        b.Entity<PracticeBenchmark>(e =>
+        {
+            e.ToTable("practice_benchmarks");
+            e.Property(x => x.FirmTier).HasConversion<string>();
         });
 
         b.Entity<PayrollEmployee>(e =>

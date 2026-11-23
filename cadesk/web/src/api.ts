@@ -7984,6 +7984,323 @@ export const uaeTaxApi = {
     api<EmaraTaxSubmissionExportDto>(`/api/uae-tax/returns/${id}/export-emaratax`)
 }
 
+// ---------------------------------------------------------------- CA Practice Health, Succession & Valuation Desk
+export type ValuationMethod = 'BlendedWeight' | 'DiscountedCashFlow' | 'RevenueMultiple' | 'EbitdaMultiple'
+export type ValuationStatus = 'Draft' | 'Finalized' | 'ApprovedByPartners'
+export type PartnerVestingStatus = 'FullyVested' | 'VestingInProgress' | 'Retired'
+export type PartnerTransitionRole = 'SeniorPartner' | 'ManagingPartner' | 'JuniorPartner' | 'SuccessorInTraining' | 'RetiredHonorary'
+export type RetirementPlanStatus = 'Draft' | 'ApprovedByPartnership' | 'ActivePayout' | 'FullySettled'
+export type TransitionStage = 'Identified' | 'IntroductoryMeetingDone' | 'ShadowingAudit' | 'JointSignOff' | 'FullyHandedOver'
+export type ClientRetentionRisk = 'Low' | 'Medium' | 'High'
+export type FirmTierBenchmark = 'Tier1MetroBig10' | 'Tier2MidSizedMultiPartner' | 'Tier3BoutiqueSmall'
+
+export type FirmTelemetryDto = {
+  annualGrossBillings: number
+  annualCollections: number
+  activeClientsCount: number
+  activePartnersCount: number
+  activeStaffCount: number
+  totalOutstandingReceivables: number
+  estimatedDsoDays: number
+  estimatedRealizationRate: number
+  staffLeverageRatio: number
+}
+
+export type ProjectedCashFlowItem = {
+  year: number
+  projectedRevenue: number
+  projectedEbitda: number
+  freeCashFlow: number
+  presentValue: number
+}
+
+export type PracticeValuationResultDto = {
+  dcfEnterpriseValue: number
+  multipleEnterpriseValue: number
+  blendedFirmFairMarketValue: number
+  firmGoodwillValue: number
+  valuePerEquityPoint: number
+  effectiveRevenueMultiple: number
+  effectiveEbitdaMultiple: number
+  projectedCashFlows: ProjectedCashFlowItem[]
+}
+
+export type CalculateValuationRequest = {
+  annualGrossRevenue: number
+  recurringComplianceRevenue: number
+  advisoryAndOneOffRevenue: number
+  ebitda: number
+  partnerNormalizedCompensation: number
+  netWorkingCapital: number
+  netTangibleAssets: number
+  projectedRevenueGrowthRate: number
+  discountRateWacc: number
+  terminalGrowthRate: number
+  forecastYears: number
+  revenueMultipleBase: number
+  ebitdaMultipleBase: number
+  auditFranchiseStickinessPremiumPct: number
+  partnerConcentrationDiscountPct: number
+  recurringRevenuePremiumPct: number
+  method: ValuationMethod
+}
+
+export type SaveValuationRequest = {
+  valuationName: string
+  valuationDate: string
+  method: ValuationMethod
+  annualGrossRevenue: number
+  recurringComplianceRevenue: number
+  advisoryAndOneOffRevenue: number
+  ebitda: number
+  partnerNormalizedCompensation: number
+  netWorkingCapital: number
+  netTangibleAssets: number
+  projectedRevenueGrowthRate: number
+  discountRateWacc: number
+  terminalGrowthRate: number
+  forecastYears: number
+  revenueMultipleBase: number
+  ebitdaMultipleBase: number
+  auditFranchiseStickinessPremiumPct: number
+  partnerConcentrationDiscountPct: number
+  recurringRevenuePremiumPct: number
+  notes?: string
+}
+
+export type PracticeValuationDto = {
+  id: string
+  valuationName: string
+  valuationDate: string
+  method: ValuationMethod
+  status: ValuationStatus
+  annualGrossRevenue: number
+  recurringComplianceRevenue: number
+  advisoryAndOneOffRevenue: number
+  ebitda: number
+  partnerNormalizedCompensation: number
+  netWorkingCapital: number
+  netTangibleAssets: number
+  projectedRevenueGrowthRate: number
+  discountRateWacc: number
+  terminalGrowthRate: number
+  forecastYears: number
+  revenueMultipleBase: number
+  ebitdaMultipleBase: number
+  auditFranchiseStickinessPremiumPct: number
+  partnerConcentrationDiscountPct: number
+  recurringRevenuePremiumPct: number
+  dcfEnterpriseValue: number
+  multipleEnterpriseValue: number
+  blendedFirmFairMarketValue: number
+  firmGoodwillValue: number
+  valuePerEquityPoint: number
+  projectedCashFlows: ProjectedCashFlowItem[]
+  preparedByName?: string | null
+  approvedByName?: string | null
+  approvedAt?: string | null
+  notes?: string | null
+  createdAt: string
+}
+
+export type PartnerEquityDto = {
+  id: string
+  userId: string
+  partnerName: string
+  partnerEmail: string
+  partnerMembershipNo: string
+  equityPercentage: number
+  capitalAccountBalance: number
+  joiningDate: string
+  targetRetirementDate?: string | null
+  vestingStatus: PartnerVestingStatus
+  vestedPercentage: number
+  annualDrawShare: number
+  role: PartnerTransitionRole
+  isActive: boolean
+  createdAt: string
+}
+
+export type SavePartnerEquityRequest = {
+  id?: string
+  userId: string
+  partnerName: string
+  partnerEmail: string
+  partnerMembershipNo: string
+  equityPercentage: number
+  capitalAccountBalance: number
+  joiningDate: string
+  targetRetirementDate?: string | null
+  vestingStatus: PartnerVestingStatus
+  vestedPercentage: number
+  annualDrawShare: number
+  role: PartnerTransitionRole
+}
+
+export type AmortizationInstallment = {
+  year: number
+  beginningBalance: number
+  principalPaid: number
+  interestPaid: number
+  totalInstallment: number
+  endingBalance: number
+}
+
+export type CreateRetirementPlanRequest = {
+  partnerEquityId: string
+  retirementDate: string
+  agreedFirmValuationAtRetirement: number
+  capitalAccountRefundAmount: number
+  payoutPeriodYears: number
+  annualInterestRatePct: number
+  partnershipNotes?: string
+}
+
+export type PartnerRetirementPlanDto = {
+  id: string
+  partnerEquityId: string
+  partnerName: string
+  retirementDate: string
+  agreedFirmValuationAtRetirement: number
+  partnerEquityPct: number
+  grossEquityValue: number
+  capitalAccountRefundAmount: number
+  goodwillBuyoutAmount: number
+  payoutPeriodYears: number
+  annualInterestRatePct: number
+  annualInstallmentAmount: number
+  status: RetirementPlanStatus
+  amortizationSchedule: AmortizationInstallment[]
+  partnershipNotes?: string | null
+  createdAt: string
+}
+
+export type SaveClientTransitionRequest = {
+  id?: string
+  retiringPartnerId: string
+  successorPartnerId: string
+  clientId: string
+  annualClientFees: number
+  stage: TransitionStage
+  risk: ClientRetentionRisk
+  targetHandoverDate: string
+  handoverNotes?: string
+}
+
+export type ClientSuccessionTransitionDto = {
+  id: string
+  retiringPartnerId: string
+  retiringPartnerName: string
+  successorPartnerId: string
+  successorPartnerName: string
+  clientId: string
+  clientName: string
+  annualClientFees: number
+  stage: TransitionStage
+  risk: ClientRetentionRisk
+  targetHandoverDate: string
+  handoverNotes?: string | null
+  createdAt: string
+}
+
+export type GenerateBenchmarkRequest = {
+  benchmarkYear: number
+  firmTier: FirmTierBenchmark
+  overrideActualRevenuePerPartner?: number
+  overrideActualRealizationRate?: number
+  overrideActualDsoDays?: number
+  overrideActualStaffLeverage?: number
+  overrideActualEbitdaMargin?: number
+}
+
+export type PracticeBenchmarkDto = {
+  id: string
+  benchmarkYear: number
+  firmTier: FirmTierBenchmark
+  actualRevenuePerPartner: number
+  actualRevenuePerEmployee: number
+  actualRealizationRate: number
+  actualDsoDays: number
+  actualStaffLeverageRatio: number
+  actualWipLockupDays: number
+  actualEbitdaMarginPct: number
+  benchmarkRevenuePerPartner: number
+  benchmarkRevenuePerEmployee: number
+  benchmarkRealizationRate: number
+  benchmarkDsoDays: number
+  benchmarkStaffLeverageRatio: number
+  benchmarkWipLockupDays: number
+  benchmarkEbitdaMarginPct: number
+  overallHealthScore: number
+  healthGrade: string
+  insightsChecklist: string[]
+  createdAt: string
+}
+
+export const practiceHealthApi = {
+  getTelemetry: () =>
+    api<FirmTelemetryDto>('/api/practice-health/telemetry'),
+  calculateValuation: (req: CalculateValuationRequest) =>
+    api<PracticeValuationResultDto>('/api/practice-health/valuation/calculate', {
+      method: 'POST',
+      body: JSON.stringify(req)
+    }),
+  saveValuation: (req: SaveValuationRequest) =>
+    api<PracticeValuationDto>('/api/practice-health/valuation', {
+      method: 'POST',
+      body: JSON.stringify(req)
+    }),
+  getValuations: () =>
+    api<PracticeValuationDto[]>('/api/practice-health/valuation'),
+  getValuation: (id: string) =>
+    api<PracticeValuationDto>(`/api/practice-health/valuation/${id}`),
+  approveValuation: (id: string) =>
+    api<PracticeValuationDto>(`/api/practice-health/valuation/${id}/approve`, {
+      method: 'POST'
+    }),
+  getEquities: () =>
+    api<PartnerEquityDto[]>('/api/practice-health/equity'),
+  saveEquity: (req: SavePartnerEquityRequest) =>
+    api<PartnerEquityDto>('/api/practice-health/equity', {
+      method: 'POST',
+      body: JSON.stringify(req)
+    }),
+  deleteEquity: (id: string) =>
+    api<void>(`/api/practice-health/equity/${id}`, {
+      method: 'DELETE'
+    }),
+  getRetirementPlans: () =>
+    api<PartnerRetirementPlanDto[]>('/api/practice-health/retirement-plans'),
+  createRetirementPlan: (req: CreateRetirementPlanRequest) =>
+    api<PartnerRetirementPlanDto>('/api/practice-health/retirement-plans', {
+      method: 'POST',
+      body: JSON.stringify(req)
+    }),
+  updateRetirementStatus: (id: string, status: RetirementPlanStatus) =>
+    api<PartnerRetirementPlanDto>(`/api/practice-health/retirement-plans/${id}/status?status=${status}`, {
+      method: 'PATCH'
+    }),
+  getTransitions: () =>
+    api<ClientSuccessionTransitionDto[]>('/api/practice-health/transitions'),
+  saveTransition: (req: SaveClientTransitionRequest) =>
+    api<ClientSuccessionTransitionDto>('/api/practice-health/transitions', {
+      method: 'POST',
+      body: JSON.stringify(req)
+    }),
+  deleteTransition: (id: string) =>
+    api<void>(`/api/practice-health/transitions/${id}`, {
+      method: 'DELETE'
+    }),
+  generateBenchmark: (req: GenerateBenchmarkRequest) =>
+    api<PracticeBenchmarkDto>('/api/practice-health/benchmarks/generate', {
+      method: 'POST',
+      body: JSON.stringify(req)
+    }),
+  getBenchmarks: () =>
+    api<PracticeBenchmarkDto[]>('/api/practice-health/benchmarks')
+}
+
+
 
 
 

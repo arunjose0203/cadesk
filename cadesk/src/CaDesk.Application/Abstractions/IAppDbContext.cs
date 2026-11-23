@@ -7,6 +7,7 @@ using CaDesk.Domain.BankFeeds;
 using CaDesk.Domain.Reports;
 using CaDesk.Domain.TaxNotices;
 using CaDesk.Domain.UaeTax;
+using CaDesk.Domain.PracticeHealth;
 using CaDesk.Domain.Payroll;
 using CaDesk.Domain.EInvoicing;
 using CaDesk.Domain.FixedAssets;
@@ -117,6 +118,11 @@ public interface IAppDbContext
     DbSet<TaxDefenseDraft> TaxDefenseDrafts { get; }
     DbSet<UaeTaxProfile> UaeTaxProfiles { get; }
     DbSet<UaeCorporateTaxReturn> UaeCorporateTaxReturns { get; }
+    DbSet<PracticeValuation> PracticeValuations { get; }
+    DbSet<PartnerEquity> PartnerEquities { get; }
+    DbSet<PartnerRetirementPlan> PartnerRetirementPlans { get; }
+    DbSet<ClientSuccessionTransition> ClientSuccessionTransitions { get; }
+    DbSet<PracticeBenchmark> PracticeBenchmarks { get; }
     DbSet<PayrollEmployee> PayrollEmployees { get; }
     DbSet<PayrollRun> PayrollRuns { get; }
     DbSet<PayrollPayslip> PayrollPayslips { get; }

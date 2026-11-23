@@ -213,4 +213,7 @@ public static class Perms
     public const string UaeCorporateTaxRead = "uaecorporatetax.read";
     public const string UaeCorporateTaxManage = "uaecorporatetax.manage";
     public const string UaeCorporateTaxFile = "uaecorporatetax.file";
+    public const string PracticeHealthRead = "practicehealth.read";
+    public const string PracticeHealthManage = "practicehealth.manage";
+    public const string PracticeHealthValuation = "practicehealth.valuation";
 }
