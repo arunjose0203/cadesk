@@ -134,7 +134,20 @@ public static class Gstr9Endpoints
             IGstr9Service service,
             CancellationToken ct) =>
         {
-            var ret = await service.ImportGstJsonToReturnAsync(req.ClientId, req.FinancialYear, req.Gstr1Json, req.Gstr2BJson, ct);
+            var clientId = req.ClientId ?? Guid.Empty;
+            var fy = req.FinancialYear ?? string.Empty;
+
+            if (req.Gstr9Id.HasValue && req.Gstr9Id.Value != Guid.Empty && (clientId == Guid.Empty || string.IsNullOrEmpty(fy)))
+            {
+                var existing = await service.GetReturnByIdAsync(req.Gstr9Id.Value, ct);
+                if (existing != null)
+                {
+                    clientId = existing.ClientId;
+                    fy = existing.FinancialYear;
+                }
+            }
+
+            var ret = await service.ImportGstJsonToReturnAsync(clientId, fy, req.Gstr1Json, req.Gstr2BJson, ct);
             return Results.Ok(ret);
         }).RequirePermission(Perms.Gstr9Manage);
     }

@@ -214,7 +214,8 @@ public record Gstr9SummaryDto(
 );
 
 public sealed record ImportGstJsonToReturnRequest(
-    Guid ClientId,
-    string FinancialYear,
+    Guid? ClientId = null,
+    string? FinancialYear = null,
+    Guid? Gstr9Id = null,
     string? Gstr1Json = null,
     string? Gstr2BJson = null);

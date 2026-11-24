@@ -51,12 +51,18 @@ insert into permissions (code, area, description) values
     ('ibccirp.certify', 'ibc-cirp', 'Compile Information Memorandum & Liquidation Reports')
 on conflict (code) do nothing;
 
--- Grant to all Partner roles across existing firms
+-- Grant new permissions to all Partner roles across existing firms
 insert into role_permissions (role_id, permission_code, firm_id)
 select r.id, p.code, r.firm_id
 from roles r
 cross join permissions p
 where r.name = 'Partner' and r.is_system
+  and p.code in (
+    'ledgersync.read', 'ledgersync.manage', 'ledgersync.post',
+    'taxlitigation.read', 'taxlitigation.manage', 'taxlitigation.certify',
+    'esgcsr.read', 'esgcsr.manage', 'esgcsr.certify',
+    'ibccirp.read', 'ibccirp.manage', 'ibccirp.certify'
+  )
 on conflict do nothing;
 
 -- Grant banking.payout.create to Manager roles

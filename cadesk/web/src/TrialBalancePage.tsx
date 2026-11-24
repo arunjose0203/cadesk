@@ -8,7 +8,8 @@ import {
   type SyncTrialBalanceResultDto,
   type TrialBalancePreviewResultDto,
   type TrialBalanceSampleDto,
-  type Client
+  type Client,
+  type ClientPage
 } from './api'
 
 const fmtInr = (n: number) =>
@@ -144,10 +145,11 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
 
   async function loadClients() {
     try {
-      const res = await api<Client[]>('/api/clients')
-      setClients(res || [])
-      if (res && res.length > 0 && !selectedClientId) {
-        setSelectedClientId(res[0].id)
+      const res = await api<ClientPage | Client[]>('/api/clients?take=200')
+      const items = Array.isArray(res) ? res : (res?.items || [])
+      setClients(items)
+      if (items && items.length > 0 && !selectedClientId) {
+        setSelectedClientId(items[0].id)
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load client list.')
@@ -297,18 +299,13 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
         saveAsClientDefaultRule: editForm.saveAsClientDefaultRule
       })
 
-      setActiveImport(prev => {
-        if (!prev) return null
-        const updatedLedgers = prev.ledgers.map(l => (l.id === ledgerId ? updated : l))
-        const mappedCount = updatedLedgers.filter(l => l.isMapped).length
-        return {
-          ...prev,
-          mappedLedgersCount: mappedCount,
-          ledgers: updatedLedgers
-        }
-      })
+      setActiveImport(updated)
       setEditingLedgerId(null)
-      setSuccess(`Mapping updated for ledger: ${updated.ledgerName}`)
+      const thisLedger = updated.ledgers?.find(l => l.id === ledgerId)
+      setSuccess(`Mapping updated for ledger: ${thisLedger?.ledgerName || 'Ledger'}`)
+      if (editForm.saveAsClientDefaultRule && selectedClientId) {
+        trialBalanceApi.getClientRules(selectedClientId).then(r => setClientRules(r || [])).catch(() => {})
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to update ledger mapping.')
     } finally {

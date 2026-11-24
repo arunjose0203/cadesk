@@ -6,6 +6,7 @@ import {
   type Client,
   type PurchaseRegisterInvoice,
   type Gstr2BInvoice,
+  type ClientPage,
   gstApi,
   api
 } from './api'
@@ -50,13 +51,14 @@ export function GstReconciliationPage() {
       const [sumRes, batchRes, clRes] = await Promise.all([
         gstApi.summary(),
         gstApi.listBatches(),
-        api<Client[]>('/api/clients')
+        api<ClientPage | Client[]>('/api/clients?take=200')
       ])
+      const clientList = Array.isArray(clRes) ? clRes : (clRes?.items || [])
       setSummary(sumRes)
       setBatches(batchRes || [])
-      setClients(clRes || [])
-      if (clRes?.length > 0 && !formClientId) {
-        setFormClientId(clRes[0].id)
+      setClients(clientList)
+      if (clientList.length > 0 && !formClientId) {
+        setFormClientId(clientList[0].id)
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load GST data.')

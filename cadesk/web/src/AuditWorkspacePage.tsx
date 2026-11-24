@@ -16,6 +16,7 @@ import {
   type NotesToAccountsDto,
   type GenerateAuditorReportRequest,
   type Client,
+  type ClientPage,
   type UserProfile,
   auditApi,
   api
@@ -183,13 +184,14 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
       const [sumRes, engRes, clRes] = await Promise.all([
         auditApi.summary(),
         auditApi.listEngagements(),
-        api<Client[]>('/api/clients')
+        api<ClientPage | Client[]>('/api/clients?take=200')
       ])
+      const clientList = Array.isArray(clRes) ? clRes : (clRes?.items || [])
       setSummary(sumRes)
       setEngagements(engRes || [])
-      setClients(clRes || [])
-      if (clRes?.length > 0 && !engForm.clientId) {
-        setEngForm(prev => ({ ...prev, clientId: clRes[0].id }))
+      setClients(clientList)
+      if (clientList.length > 0 && !engForm.clientId) {
+        setEngForm(prev => ({ ...prev, clientId: clientList[0].id }))
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load audit data.')

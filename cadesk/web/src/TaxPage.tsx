@@ -4,6 +4,7 @@ import {
   type RegimeComparisonDto,
   type TaxComputationDto,
   type Client,
+  type ClientPage,
   taxApi,
   api
 } from './api'
@@ -81,10 +82,11 @@ export function TaxPage() {
 
   async function loadClients() {
     try {
-      const res = await api<Client[]>('/api/clients')
-      setClients(res || [])
-      if (res?.length > 0 && !form.clientId) {
-        setForm(prev => ({ ...prev, clientId: res[0].id }))
+      const res = await api<ClientPage | Client[]>('/api/clients?take=200')
+      const clientList = Array.isArray(res) ? res : (res?.items || [])
+      setClients(clientList)
+      if (clientList.length > 0 && !form.clientId) {
+        setForm(prev => ({ ...prev, clientId: clientList[0].id }))
       }
     } catch {
       // non fatal

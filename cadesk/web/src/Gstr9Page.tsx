@@ -298,7 +298,10 @@ export const Gstr9Page: React.FC = () => {
     }
     try {
       setImportingJson(true)
+      const targetReturn = returns.find(r => r.id === targetGstr9Id)
       const res = await gstr9Api.importGstJson({
+        clientId: targetReturn?.clientId || (selectedClientId !== 'all' ? selectedClientId : undefined),
+        financialYear: targetReturn?.financialYear || selectedFy,
         gstr9Id: targetGstr9Id,
         gstr1Json: gstr1Payload.trim() || undefined,
         gstr2bJson: gstr2bPayload.trim() || undefined

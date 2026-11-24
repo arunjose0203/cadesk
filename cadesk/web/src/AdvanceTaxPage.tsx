@@ -3,6 +3,7 @@ import { toError,
   advanceTaxApi,
   api,
   type AdvanceTaxPlanDto,
+  type AdvanceTaxRegime,
   type AdvanceTaxInstallmentDto,
   type TaxInterestComputationDto,
   type AdvanceTaxSummaryDto,
@@ -196,11 +197,15 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
     setError(null)
     setSuccess(null)
     try {
+      const payload: SaveAdvanceTaxPlanRequest = {
+        ...planForm,
+        regime: (planForm.regime === 'OldRegime' || (planForm.regime as unknown) === 2 ? 2 : 1) as AdvanceTaxRegime
+      }
       if (editingPlanId) {
-        await advanceTaxApi.updatePlan(editingPlanId, planForm)
+        await advanceTaxApi.updatePlan(editingPlanId, payload)
         setSuccess('Advance tax plan updated successfully!')
       } else {
-        const created = await advanceTaxApi.createPlan(planForm)
+        const created = await advanceTaxApi.createPlan(payload)
         setSuccess(`Advance tax plan created! Assessed tax: ${formatCurrency(created.assessedTax)}`)
       }
       setShowPlanModal(false)

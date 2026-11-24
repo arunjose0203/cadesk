@@ -3519,7 +3519,7 @@ export const fixedAssetApi = {
 // ---------------------------------------------------------------------------
 // Sprint 26: Advance Tax Planner & Section 234A/B/C Interest Engine
 // ---------------------------------------------------------------------------
-export type AdvanceTaxRegime = 'NewRegime' | 'OldRegime'
+export type AdvanceTaxRegime = 'NewRegime' | 'OldRegime' | number
 export type AdvanceTaxPlanStatus = 'Draft' | 'Active' | 'Completed'
 
 export type AdvanceTaxPlanDto = {
@@ -3905,7 +3905,7 @@ export const gstr9Api = {
     const qs = p.toString()
     return api<Gstr9SummaryDto>(`/api/gstr9/summary${qs ? `?${qs}` : ''}`)
   },
-  importGstJson: (req: { gstr9Id: string; gstr1Json?: string; gstr2bJson?: string }) =>
+  importGstJson: (req: { clientId?: string; financialYear?: string; gstr9Id?: string; gstr1Json?: string; gstr2bJson?: string }) =>
     api<Gstr9ReturnDto>('/api/gstr9/import-gst-json', { method: 'POST', body: JSON.stringify(req) }),
 }
 
@@ -7338,7 +7338,7 @@ export const trialBalanceApi = {
     api<TrialBalanceImportDto>(`/api/trial-balance/imports/${id}`),
 
   updateLedgerMapping: (importId: string, ledgerId: string, req: UpdateLedgerMappingRequest) =>
-    api<TrialBalanceLedgerDto>(`/api/trial-balance/imports/${importId}/ledgers/${ledgerId}`, {
+    api<TrialBalanceImportDto>(`/api/trial-balance/imports/${importId}/ledgers/${ledgerId}`, {
       method: 'PUT',
       body: JSON.stringify(req),
     }),
