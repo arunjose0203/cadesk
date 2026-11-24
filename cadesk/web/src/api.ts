@@ -9067,6 +9067,318 @@ export const esgCsrApi = {
     })
 }
 
+// -----------------------------------------------------------------------------
+// SPRINT 61: IBC 2016 INSOLVENCY & CIRP STATUTORY DESK
+// -----------------------------------------------------------------------------
+
+export type CirpStage =
+  | 'AdmissionAndMoratorium'
+  | 'PublicAnnouncementAndClaims'
+  | 'CocConstituted'
+  | 'InformationMemorandumIssued'
+  | 'FormGInvited'
+  | 'ResolutionPlanReview'
+  | 'ResolutionPlanApproved'
+  | 'LiquidationInitiated'
+  | 'Section12AWithdrawn'
+
+export type CreditorCategory =
+  | 'SecuredFinancialCreditor'
+  | 'UnsecuredFinancialCreditor'
+  | 'OperationalCreditorEmployees'
+  | 'OperationalCreditorGovernment'
+  | 'OperationalCreditorVendors'
+
+export type PufeType =
+  | 'PreferentialSec43'
+  | 'UndervaluedSec45'
+  | 'ExtortionateCreditSec50'
+  | 'FraudulentTradingSec66'
+
+export type AssetValuationClass =
+  | 'LandAndBuilding'
+  | 'PlantAndMachinery'
+  | 'SecuritiesAndFinancialAssets'
+
+export type VotingResolutionStatus = 'Pending' | 'Approved' | 'Rejected'
+
+export interface CirpCaseDto {
+  id: string
+  clientId: string
+  clientName: string
+  clientPan: string
+  corporateDebtorName: string
+  cin: string
+  ncltBench: string
+  courtOrderNumber: string
+  admissionDate: string
+  irpName: string
+  irpIpRegNumber: string
+  rpName: string
+  rpIpRegNumber: string
+  moratoriumSection14Declared: boolean
+  claimsLastDate: string
+  initial180DaysDeadline: string
+  extended270DaysDeadline: string
+  final330DaysLimit: string
+  daysElapsed: number
+  daysRemainingTo180: number
+  daysRemainingTo330: number
+  is180DaysExpired: boolean
+  is330DaysCapBreached: boolean
+  timelineStatusAlert: string
+  stage: CirpStage
+  totalAdmittedFinancialDebt: number
+  totalAdmittedOperationalDebt: number
+  statusNote: string
+  membersCount: number
+  resolutionsCount: number
+  pufeCount: number
+  valuationsCount: number
+  createdAt: string
+}
+
+export interface CirpCaseDetailDto {
+  id: string
+  clientId: string
+  clientName: string
+  clientPan: string
+  corporateDebtorName: string
+  cin: string
+  ncltBench: string
+  courtOrderNumber: string
+  admissionDate: string
+  irpName: string
+  irpIpRegNumber: string
+  rpName: string
+  rpIpRegNumber: string
+  moratoriumSection14Declared: boolean
+  claimsLastDate: string
+  initial180DaysDeadline: string
+  extended270DaysDeadline: string
+  final330DaysLimit: string
+  daysElapsed: number
+  daysRemainingTo180: number
+  daysRemainingTo330: number
+  is180DaysExpired: boolean
+  is330DaysCapBreached: boolean
+  timelineStatusAlert: string
+  stage: CirpStage
+  totalAdmittedFinancialDebt: number
+  totalAdmittedOperationalDebt: number
+  statusNote: string
+  cocMembers: CocMemberDto[]
+  resolutions: CocResolutionItemDto[]
+  pufeTransactions: PufeTransactionItemDto[]
+  valuations: AssetValuationItemDto[]
+  createdAt: string
+}
+
+export interface CocMemberDto {
+  id: string
+  cirpCaseId: string
+  creditorName: string
+  category: CreditorCategory
+  claimSubmittedAmount: number
+  admittedClaimAmount: number
+  votingSharePct: number
+  securityInterestDescription: string
+  isRelatedParty: boolean
+  createdAt: string
+}
+
+export interface CocResolutionItemDto {
+  id: string
+  cirpCaseId: string
+  meetingNumber: number
+  resolutionNumber: string
+  resolutionTitle: string
+  statutorySection: string
+  requiredThresholdPct: number
+  votingShareInFavourPct: number
+  votingShareAgainstPct: number
+  votingShareAbstainedPct: number
+  status: VotingResolutionStatus
+  createdAt: string
+}
+
+export interface PufeTransactionItemDto {
+  id: string
+  cirpCaseId: string
+  pufeType: PufeType
+  transactionDate: string
+  counterpartyName: string
+  isRelatedParty: boolean
+  transactionAmount: number
+  estimatedAvoidanceRecoverableAmount: number
+  lookbackPeriodYears: number
+  isWithinLookbackPeriod: boolean
+  forensicAuditorObservations: string
+  ncltApplicationFiled: boolean
+  createdAt: string
+}
+
+export interface AssetValuationItemDto {
+  id: string
+  cirpCaseId: string
+  assetClass: AssetValuationClass
+  assetDescription: string
+  valuer1Name: string
+  valuer1FairValue: number
+  valuer1LiquidationValue: number
+  valuer2Name: string
+  valuer2FairValue: number
+  valuer2LiquidationValue: number
+  averageFairValue: number
+  averageLiquidationValue: number
+  thirdValuerRequired: boolean
+  createdAt: string
+}
+
+export interface SaveCirpCaseRequest {
+  id?: string
+  clientId: string
+  corporateDebtorName: string
+  cin: string
+  ncltBench: string
+  courtOrderNumber: string
+  admissionDate: string
+  irpName: string
+  irpIpRegNumber: string
+  rpName: string
+  rpIpRegNumber: string
+  moratoriumSection14Declared: boolean
+  stage: CirpStage
+  statusNote: string
+}
+
+export interface SaveCocMemberRequest {
+  id?: string
+  cirpCaseId: string
+  creditorName: string
+  category: CreditorCategory
+  claimSubmittedAmount: number
+  admittedClaimAmount: number
+  securityInterestDescription: string
+  isRelatedParty: boolean
+}
+
+export interface SaveCocResolutionRequest {
+  id?: string
+  cirpCaseId: string
+  meetingNumber: number
+  resolutionNumber: string
+  resolutionTitle: string
+  statutorySection: string
+  requiredThresholdPct: number
+  votingShareInFavourPct: number
+  votingShareAgainstPct: number
+  votingShareAbstainedPct: number
+}
+
+export interface SavePufeTransactionRequest {
+  id?: string
+  cirpCaseId: string
+  pufeType: PufeType
+  transactionDate: string
+  counterpartyName: string
+  isRelatedParty: boolean
+  transactionAmount: number
+  estimatedAvoidanceRecoverableAmount: number
+  forensicAuditorObservations: string
+  ncltApplicationFiled: boolean
+}
+
+export interface SaveAssetValuationRequest {
+  id?: string
+  cirpCaseId: string
+  assetClass: AssetValuationClass
+  assetDescription: string
+  valuer1Name: string
+  valuer1FairValue: number
+  valuer1LiquidationValue: number
+  valuer2Name: string
+  valuer2FairValue: number
+  valuer2LiquidationValue: number
+}
+
+export interface CalculateCirpTimelineRequest {
+  admissionDate: string
+  asOfDate: string
+}
+
+export interface CirpTimelineCalculationDto {
+  admissionDate: string
+  claimsLastDate: string
+  initial180Days: string
+  extended270Days: string
+  final330Days: string
+  daysElapsed: number
+  daysRemainingTo180: number
+  daysRemainingTo330: number
+  is180DaysExpired: boolean
+  is330DaysCapBreached: boolean
+  timelineStatusAlert: string
+}
+
+export const ibcCirpApi = {
+  getCases: (clientId?: string) =>
+    api<CirpCaseDto[]>(`/api/ibc-cirp/cases${clientId ? `?clientId=${clientId}` : ''}`),
+  getCase: (id: string) =>
+    api<CirpCaseDetailDto>(`/api/ibc-cirp/cases/${id}`),
+  saveCase: (req: SaveCirpCaseRequest) =>
+    api<CirpCaseDetailDto>('/api/ibc-cirp/cases', {
+      method: 'POST',
+      body: JSON.stringify(req)
+    }),
+  deleteCase: (id: string) =>
+    api<void>(`/api/ibc-cirp/cases/${id}`, {
+      method: 'DELETE'
+    }),
+  saveCocMember: (req: SaveCocMemberRequest) =>
+    api<CocMemberDto>('/api/ibc-cirp/coc-members', {
+      method: 'POST',
+      body: JSON.stringify(req)
+    }),
+  deleteCocMember: (id: string) =>
+    api<void>(`/api/ibc-cirp/coc-members/${id}`, {
+      method: 'DELETE'
+    }),
+  saveResolution: (req: SaveCocResolutionRequest) =>
+    api<CocResolutionItemDto>('/api/ibc-cirp/resolutions', {
+      method: 'POST',
+      body: JSON.stringify(req)
+    }),
+  deleteResolution: (id: string) =>
+    api<void>(`/api/ibc-cirp/resolutions/${id}`, {
+      method: 'DELETE'
+    }),
+  savePufe: (req: SavePufeTransactionRequest) =>
+    api<PufeTransactionItemDto>('/api/ibc-cirp/pufe', {
+      method: 'POST',
+      body: JSON.stringify(req)
+    }),
+  deletePufe: (id: string) =>
+    api<void>(`/api/ibc-cirp/pufe/${id}`, {
+      method: 'DELETE'
+    }),
+  saveValuation: (req: SaveAssetValuationRequest) =>
+    api<AssetValuationItemDto>('/api/ibc-cirp/valuations', {
+      method: 'POST',
+      body: JSON.stringify(req)
+    }),
+  deleteValuation: (id: string) =>
+    api<void>(`/api/ibc-cirp/valuations/${id}`, {
+      method: 'DELETE'
+    }),
+  getImDossierHtmlUrl: (id: string) => `/api/ibc-cirp/cases/${id}/im-dossier`,
+  calculateTimeline: (req: CalculateCirpTimelineRequest) =>
+    api<CirpTimelineCalculationDto>('/api/ibc-cirp/calculate-timeline', {
+      method: 'POST',
+      body: JSON.stringify(req)
+    })
+}
+
 
 
 

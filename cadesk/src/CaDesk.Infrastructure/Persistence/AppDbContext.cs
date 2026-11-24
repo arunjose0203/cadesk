@@ -23,6 +23,7 @@ using CaDesk.Domain.PracticeHealth;
 using CaDesk.Domain.LedgerSync;
 using CaDesk.Domain.TaxLitigation;
 using CaDesk.Domain.EsgCsr;
+using CaDesk.Domain.Ibc;
 using CaDesk.Domain.Payroll;
 using CaDesk.Domain.EInvoicing;
 using CaDesk.Domain.FixedAssets;
@@ -153,6 +154,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
     public DbSet<CsrAssessment> CsrAssessments => Set<CsrAssessment>();
     public DbSet<CsrProjectItem> CsrProjectItems => Set<CsrProjectItem>();
     public DbSet<BrsrCoreReport> BrsrCoreReports => Set<BrsrCoreReport>();
+    public DbSet<CirpCase> CirpCases => Set<CirpCase>();
+    public DbSet<CocMember> CocMembers => Set<CocMember>();
+    public DbSet<CocResolutionItem> CocResolutions => Set<CocResolutionItem>();
+    public DbSet<PufeTransactionItem> PufeTransactions => Set<PufeTransactionItem>();
+    public DbSet<AssetValuationItem> AssetValuations => Set<AssetValuationItem>();
     public DbSet<PayrollEmployee> PayrollEmployees => Set<PayrollEmployee>();
     public DbSet<PayrollRun> PayrollRuns => Set<PayrollRun>();
     public DbSet<PayrollPayslip> PayrollPayslips => Set<PayrollPayslip>();
@@ -875,6 +881,41 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
         {
             e.ToTable("brsr_core_reports");
             e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<CirpCase>(e =>
+        {
+            e.ToTable("cirp_cases");
+            e.Property(x => x.Stage).HasConversion<string>();
+            e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
+            e.HasMany(x => x.CocMembers).WithOne(x => x.CirpCase).HasForeignKey(x => x.CirpCaseId).OnDelete(DeleteBehavior.Cascade);
+            e.HasMany(x => x.Resolutions).WithOne(x => x.CirpCase).HasForeignKey(x => x.CirpCaseId).OnDelete(DeleteBehavior.Cascade);
+            e.HasMany(x => x.PufeTransactions).WithOne(x => x.CirpCase).HasForeignKey(x => x.CirpCaseId).OnDelete(DeleteBehavior.Cascade);
+            e.HasMany(x => x.Valuations).WithOne(x => x.CirpCase).HasForeignKey(x => x.CirpCaseId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<CocMember>(e =>
+        {
+            e.ToTable("coc_members");
+            e.Property(x => x.Category).HasConversion<string>();
+        });
+
+        b.Entity<CocResolutionItem>(e =>
+        {
+            e.ToTable("coc_resolutions");
+            e.Property(x => x.Status).HasConversion<string>();
+        });
+
+        b.Entity<PufeTransactionItem>(e =>
+        {
+            e.ToTable("pufe_transactions");
+            e.Property(x => x.PufeType).HasConversion<string>();
+        });
+
+        b.Entity<AssetValuationItem>(e =>
+        {
+            e.ToTable("asset_valuations");
+            e.Property(x => x.AssetClass).HasConversion<string>();
         });
 
         b.Entity<PayrollEmployee>(e =>

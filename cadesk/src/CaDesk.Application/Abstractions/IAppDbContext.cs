@@ -11,6 +11,7 @@ using CaDesk.Domain.PracticeHealth;
 using CaDesk.Domain.LedgerSync;
 using CaDesk.Domain.TaxLitigation;
 using CaDesk.Domain.EsgCsr;
+using CaDesk.Domain.Ibc;
 using CaDesk.Domain.Payroll;
 using CaDesk.Domain.EInvoicing;
 using CaDesk.Domain.FixedAssets;
@@ -137,6 +138,11 @@ public interface IAppDbContext
     DbSet<CsrAssessment> CsrAssessments { get; }
     DbSet<CsrProjectItem> CsrProjectItems { get; }
     DbSet<BrsrCoreReport> BrsrCoreReports { get; }
+    DbSet<CirpCase> CirpCases { get; }
+    DbSet<CocMember> CocMembers { get; }
+    DbSet<CocResolutionItem> CocResolutions { get; }
+    DbSet<PufeTransactionItem> PufeTransactions { get; }
+    DbSet<AssetValuationItem> AssetValuations { get; }
     DbSet<PayrollEmployee> PayrollEmployees { get; }
     DbSet<PayrollRun> PayrollRuns { get; }
     DbSet<PayrollPayslip> PayrollPayslips { get; }

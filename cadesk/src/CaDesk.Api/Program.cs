@@ -143,6 +143,7 @@ builder.Services.AddScoped<CaDesk.Application.PracticeHealth.IPracticeHealthServ
 builder.Services.AddScoped<CaDesk.Application.LedgerSync.ILedgerSyncService, CaDesk.Application.LedgerSync.LedgerSyncService>();
 builder.Services.AddScoped<CaDesk.Application.TaxLitigation.ITaxLitigationService, CaDesk.Application.TaxLitigation.TaxLitigationService>();
 builder.Services.AddScoped<CaDesk.Application.EsgCsr.IEsgCsrService, CaDesk.Application.EsgCsr.EsgCsrService>();
+builder.Services.AddScoped<CaDesk.Application.Ibc.IIbcCirpService, CaDesk.Application.Ibc.IbcCirpService>();
 var docOptions = config.GetSection("Documents").Get<CaDesk.Api.Documents.DocumentOptions>() ?? new();
 var storagePath = docOptions.StoragePath;
 if (storagePath.Length == 0)
@@ -352,6 +353,7 @@ app.MapPracticeHealthEndpoints();
 app.MapLedgerSyncEndpoints();
 app.MapTaxLitigationEndpoints();
 app.MapEsgCsrEndpoints();
+app.MapIbcCirpEndpoints();
 
 app.Run();
 

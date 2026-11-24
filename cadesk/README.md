@@ -1459,6 +1459,59 @@ API:
 - `PUT /api/audit/notes-to-accounts/{id}` (`audit.manage`)
 - `GET /api/audit/engagements/{id}/notes-to-accounts/export-html` (`audit.read`)
 
+## IBC 2016 Insolvency & CIRP Statutory Desk (Sprint 61)
+
+- **Option A (The Insolvency & Resolution Moat)**: Full-featured statutory workbench for Resolution Professionals (IRP/RP) and CA insolvency practices administering Corporate Insolvency Resolution Processes (CIRP) under the Insolvency and Bankruptcy Code, 2016 and IBBI (CIRP) Regulations, 2016.
+- **Section 12 Statutory CIRP Timelines & 330-Day Outer Cap Engine**:
+  - Automatically computes the mandatory timeline milestones from Insolvency Commencement Date (ICD):
+    - 14-day public announcement & claims submission deadline (Reg 6).
+    - 180-day initial CIRP completion limit (Sec 12(1)).
+    - 270-day extension limit with 66% CoC approval (Sec 12(2)).
+    - 330-day absolute statutory cap including all litigations (Sec 12(3) 2nd proviso).
+  - Telemetry monitors days elapsed, remaining runway, and triggers visual breach warnings.
+- **Committee of Creditors (CoC) & Statutory Voting Threshold Engine**:
+  - Class-wise creditor claim verification: Financial Creditors (Secured/Unsecured) and Operational Creditors (Govt/Statutory, Workmen/Employees, Trade Vendors).
+  - **Section 21(2) First Proviso Disqualification**: Automatically identifies related party financial creditors, assigns 0% voting share, and excludes them from CoC voting quotas.
+  - Proportional voting share allocation across eligible non-related financial debt.
+  - Automated e-voting outcome validator across statutory thresholds:
+    - **51% Simple Majority**: Routine administrative decisions (Sec 21(8)).
+    - **66% Qualified Majority**: Approval of Resolution Plan (Sec 30(4)), Liquidation (Sec 33(2)), CIRP extension (Sec 12(2)), Appointment/Replacement of RP (Sec 22(2), Sec 27(2)), Critical Interim Finance (Sec 28).
+    - **90% Supermajority**: Section 12A withdrawal of CIRP application (Regulation 30A).
+- **PUFE Forensic Avoidance Transaction Studio (Sections 43, 45, 50, 66)**:
+  - Forensic tracking and recoverable clawback estimation for vulnerable transactions under IBBI Regulation 35A:
+    - **Section 43 (Preferential Transactions)**: 1-year lookback for unrelated creditors, extended to 2 years for related parties preceding ICD.
+    - **Section 45 (Undervalued Transactions)**: Consideration significantly less than market value with 1-year / 2-year lookback.
+    - **Section 50 (Extortionate Credit)**: Unconscionable terms/interest within 2 years preceding commencement.
+    - **Section 66 (Fraudulent / Wrongful Trading)**: Business carried on with intent to defraud creditors; directors personally liable without financial or time limitation.
+  - Automated statutory lookback determination and NCLT application tracking (75d opinion, 115d determination, 135d filing deadline).
+- **Regulation 35 Registered Valuations (Fair Value vs. Liquidation Value)**:
+  - Multi-class valuation capture: Land & Building, Plant & Machinery, Securities & Financial Assets.
+  - Real-time computation of average Fair Value and Liquidation Value between two registered valuers.
+  - **Regulation 35(1)(b) Divergence Detector**: Automatically detects when valuations differ by >25% of the higher valuation, triggering the statutory requirement to appoint a third registered valuer.
+- **1-Click Regulation 36 Information Memorandum (IM) Dossier**:
+  - Compiles a complete, print-ready statutory Information Memorandum conforming to Regulation 36(2) of IBBI (CIRP) Regulations, 2016:
+    - Assets & liabilities as on ICD.
+    - Preceding two financial years audited financials.
+    - List of admitted creditors with voting shares.
+    - Details of guarantees, litigations, and PUFE forensic findings.
+    - Regulation 36(4) confidentiality undertaking & RP digital attestation block.
+
+API:
+- `GET /api/ibc-cirp/cases` (`ibccirp.read`)
+- `GET /api/ibc-cirp/cases/{id}` (`ibccirp.read`)
+- `POST /api/ibc-cirp/cases` (`ibccirp.manage`)
+- `DELETE /api/ibc-cirp/cases/{id}` (`ibccirp.manage`)
+- `POST /api/ibc-cirp/coc-members` (`ibccirp.manage`)
+- `DELETE /api/ibc-cirp/coc-members/{id}` (`ibccirp.manage`)
+- `POST /api/ibc-cirp/resolutions` (`ibccirp.manage`)
+- `DELETE /api/ibc-cirp/resolutions/{id}` (`ibccirp.manage`)
+- `POST /api/ibc-cirp/pufe` (`ibccirp.manage`)
+- `DELETE /api/ibc-cirp/pufe/{id}` (`ibccirp.manage`)
+- `POST /api/ibc-cirp/valuations` (`ibccirp.manage`)
+- `DELETE /api/ibc-cirp/valuations/{id}` (`ibccirp.manage`)
+- `GET /api/ibc-cirp/cases/{id}/im-dossier` (`ibccirp.read`)
+- `POST /api/ibc-cirp/calculate-timeline` (`ibccirp.read`)
+
 ## Notes
 
 - Package versions are in `Directory.Packages.props`. If restore can't find a version,

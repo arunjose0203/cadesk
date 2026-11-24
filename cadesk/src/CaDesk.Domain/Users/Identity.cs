@@ -225,4 +225,7 @@ public static class Perms
     public const string EsgCsrRead = "esgcsr.read";
     public const string EsgCsrManage = "esgcsr.manage";
     public const string EsgCsrCertify = "esgcsr.certify";
+    public const string IbcCirpRead = "ibccirp.read";
+    public const string IbcCirpManage = "ibccirp.manage";
+    public const string IbcCirpCertify = "ibccirp.certify";
 }
