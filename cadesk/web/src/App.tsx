@@ -49,11 +49,12 @@ import UaeCorporateTaxDesk from './UaeCorporateTaxDesk'
 import PracticeHealthDeskPage from './PracticeHealthDeskPage'
 import { LedgerSyncDeskPage } from './LedgerSyncDeskPage'
 import { TaxLitigationDeskPage } from './TaxLitigationDeskPage'
+import { EsgCsrDeskPage } from './EsgCsrDeskPage'
 import { LandingPage } from './LandingPage'
 import { OnboardingWizard } from './OnboardingWizard'
 import { ProductTourModal } from './ProductTourModal'
 
-type Page = 'tasks' | 'deadlines' | 'clients' | 'billing' | 'trial-balance' | 'tax' | 'audit-workspace' | 'aqmm' | 'gst-reconcile' | 'tds' | 'mca' | 'engagement' | 'banking' | 'ledger-sync' | 'reports' | 'practice-health' | 'tax-notices' | 'tax-litigation' | 'payroll' | 'einvoicing' | 'fixed-assets' | 'advance-tax' | 'gstr9' | 'presumptive' | 'caro' | 'taxaudit' | 'schedule3' | 'branchaudit' | 'auditcommittee' | 'foreignremittance' | 'relatedparty' | 'internalaudit' | 'antiprofiteering' | 'secretarialaudit' | 'transferpricing' | 'uae-tax' | 'costaudit' | 'dsc' | 'portal' | 'users' | 'settings' | 'audit' | 'security' | 'subscriptions' | 'communications' | 'security-compliance' | 'partner-desk'
+type Page = 'tasks' | 'deadlines' | 'clients' | 'billing' | 'trial-balance' | 'tax' | 'audit-workspace' | 'aqmm' | 'gst-reconcile' | 'tds' | 'mca' | 'engagement' | 'banking' | 'ledger-sync' | 'reports' | 'practice-health' | 'tax-notices' | 'tax-litigation' | 'payroll' | 'einvoicing' | 'fixed-assets' | 'advance-tax' | 'gstr9' | 'presumptive' | 'caro' | 'taxaudit' | 'schedule3' | 'branchaudit' | 'auditcommittee' | 'foreignremittance' | 'relatedparty' | 'internalaudit' | 'antiprofiteering' | 'secretarialaudit' | 'transferpricing' | 'uae-tax' | 'costaudit' | 'dsc' | 'portal' | 'users' | 'settings' | 'audit' | 'security' | 'subscriptions' | 'communications' | 'security-compliance' | 'partner-desk' | 'esg-csr'
 
 export default function App() {
   const isConfirmLink = window.location.pathname.startsWith('/confirm') || new URLSearchParams(window.location.search).has('confirm')
@@ -413,6 +414,12 @@ export default function App() {
             ITAT &amp; HC Appeals
           </button>
         )}
+        {(can('esgcsr.read') || can('caro.read') || can('audit.read')) && (
+          <button className={page === 'esg-csr' ? 'active' : ''} onClick={() => setPage('esg-csr')}>
+            <span style={{ fontSize: '14px', lineHeight: 1 }}>🌱</span>
+            ESG &amp; CSR Audit
+          </button>
+        )}
         {can('payroll.read') && (
           <button className={page === 'payroll' ? 'active' : ''} onClick={() => setPage('payroll')}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -700,6 +707,7 @@ export default function App() {
       {page === 'practice-health' && can('practicehealth.read') && <PracticeHealthDeskPage can={can} />}
       {page === 'tax-notices' && can('notices.read') && <TaxNoticesPage can={can} />}
       {page === 'tax-litigation' && (can('taxlitigation.read') || can('notices.read')) && <TaxLitigationDeskPage can={can} />}
+      {page === 'esg-csr' && (can('esgcsr.read') || can('caro.read') || can('audit.read')) && <EsgCsrDeskPage can={can} />}
       {page === 'payroll' && can('payroll.read') && <PayrollPage can={can} />}
       {page === 'einvoicing' && can('einvoice.read') && <EInvoicingPage can={can} />}
       {page === 'fixed-assets' && can('assets.read') && <FixedAssetsPage can={can} />}

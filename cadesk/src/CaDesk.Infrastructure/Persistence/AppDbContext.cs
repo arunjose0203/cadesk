@@ -22,6 +22,7 @@ using CaDesk.Domain.UaeTax;
 using CaDesk.Domain.PracticeHealth;
 using CaDesk.Domain.LedgerSync;
 using CaDesk.Domain.TaxLitigation;
+using CaDesk.Domain.EsgCsr;
 using CaDesk.Domain.Payroll;
 using CaDesk.Domain.EInvoicing;
 using CaDesk.Domain.FixedAssets;
@@ -149,6 +150,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
     public DbSet<AppealGroundItem> AppealGrounds => Set<AppealGroundItem>();
     public DbSet<PaperBookDocument> PaperBookDocuments => Set<PaperBookDocument>();
     public DbSet<AppealJudicialCitation> AppealJudicialCitations => Set<AppealJudicialCitation>();
+    public DbSet<CsrAssessment> CsrAssessments => Set<CsrAssessment>();
+    public DbSet<CsrProjectItem> CsrProjectItems => Set<CsrProjectItem>();
+    public DbSet<BrsrCoreReport> BrsrCoreReports => Set<BrsrCoreReport>();
     public DbSet<PayrollEmployee> PayrollEmployees => Set<PayrollEmployee>();
     public DbSet<PayrollRun> PayrollRuns => Set<PayrollRun>();
     public DbSet<PayrollPayslip> PayrollPayslips => Set<PayrollPayslip>();
@@ -850,6 +854,27 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
         b.Entity<AppealJudicialCitation>(e =>
         {
             e.ToTable("appeal_judicial_citations");
+        });
+
+        b.Entity<CsrAssessment>(e =>
+        {
+            e.ToTable("csr_assessments");
+            e.Property(x => x.Status).HasConversion<string>();
+            e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
+            e.HasMany(x => x.Projects).WithOne(x => x.CsrAssessment).HasForeignKey(x => x.CsrAssessmentId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<CsrProjectItem>(e =>
+        {
+            e.ToTable("csr_project_items");
+            e.Property(x => x.ScheduleViiCategory).HasConversion<string>();
+            e.Property(x => x.Nature).HasConversion<string>();
+        });
+
+        b.Entity<BrsrCoreReport>(e =>
+        {
+            e.ToTable("brsr_core_reports");
+            e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
         });
 
         b.Entity<PayrollEmployee>(e =>

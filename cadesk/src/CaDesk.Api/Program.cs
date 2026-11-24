@@ -142,6 +142,7 @@ builder.Services.AddScoped<CaDesk.Application.UaeTax.IUaeCorporateTaxService, Ca
 builder.Services.AddScoped<CaDesk.Application.PracticeHealth.IPracticeHealthService, CaDesk.Application.PracticeHealth.PracticeHealthService>();
 builder.Services.AddScoped<CaDesk.Application.LedgerSync.ILedgerSyncService, CaDesk.Application.LedgerSync.LedgerSyncService>();
 builder.Services.AddScoped<CaDesk.Application.TaxLitigation.ITaxLitigationService, CaDesk.Application.TaxLitigation.TaxLitigationService>();
+builder.Services.AddScoped<CaDesk.Application.EsgCsr.IEsgCsrService, CaDesk.Application.EsgCsr.EsgCsrService>();
 var docOptions = config.GetSection("Documents").Get<CaDesk.Api.Documents.DocumentOptions>() ?? new();
 var storagePath = docOptions.StoragePath;
 if (storagePath.Length == 0)
@@ -350,6 +351,7 @@ app.MapUaeCorporateTaxEndpoints();
 app.MapPracticeHealthEndpoints();
 app.MapLedgerSyncEndpoints();
 app.MapTaxLitigationEndpoints();
+app.MapEsgCsrEndpoints();
 
 app.Run();
 

@@ -10,6 +10,7 @@ using CaDesk.Domain.UaeTax;
 using CaDesk.Domain.PracticeHealth;
 using CaDesk.Domain.LedgerSync;
 using CaDesk.Domain.TaxLitigation;
+using CaDesk.Domain.EsgCsr;
 using CaDesk.Domain.Payroll;
 using CaDesk.Domain.EInvoicing;
 using CaDesk.Domain.FixedAssets;
@@ -133,6 +134,9 @@ public interface IAppDbContext
     DbSet<AppealGroundItem> AppealGrounds { get; }
     DbSet<PaperBookDocument> PaperBookDocuments { get; }
     DbSet<AppealJudicialCitation> AppealJudicialCitations { get; }
+    DbSet<CsrAssessment> CsrAssessments { get; }
+    DbSet<CsrProjectItem> CsrProjectItems { get; }
+    DbSet<BrsrCoreReport> BrsrCoreReports { get; }
     DbSet<PayrollEmployee> PayrollEmployees { get; }
     DbSet<PayrollRun> PayrollRuns { get; }
     DbSet<PayrollPayslip> PayrollPayslips { get; }

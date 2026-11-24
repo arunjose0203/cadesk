@@ -8747,6 +8747,326 @@ export const taxLitigationApi = {
     })
 }
 
+// -----------------------------------------------------------------------------
+// SPRINT 60: SEBI BRSR CORE & COMPANIES ACT SEC 135 CSR AUDIT ENGINE
+// -----------------------------------------------------------------------------
+
+export type ScheduleViiCategory =
+  | 'EradicatingHungerPovertyAndMalnutrition'
+  | 'PromotingEducationAndSkillDevelopment'
+  | 'GenderEqualityAndWomenEmpowerment'
+  | 'EnvironmentalSustainabilityAndAnimalWelfare'
+  | 'ProtectionOfNationalHeritageArtAndCulture'
+  | 'MeasuresForArmedForcesVeteransAndWarWidows'
+  | 'RuralAndNationallyRecognisedSports'
+  | 'PrimeMinisterNationalReliefFundOrPmCares'
+  | 'TechnologyIncubatorsAndResearchInstitutions'
+  | 'RuralDevelopmentProjects'
+  | 'SlumAreaDevelopment'
+  | 'DisasterManagementAndRelief'
+
+export type CsrProjectNature = 'OngoingProject' | 'OtherThanOngoingProject'
+
+export type CsrComplianceStatus =
+  | 'Draft'
+  | 'InReview'
+  | 'FullyCompliant'
+  | 'UnspentTransferredToEscrow'
+  | 'ExcessSpentCarriedForward'
+  | 'NonCompliantDefault'
+  | 'Certified'
+
+export interface CsrAssessmentDto {
+  id: string
+  clientId: string
+  clientName: string
+  clientPan: string
+  financialYear: string
+  netWorth: number
+  turnover: number
+  netProfitPreviousYear: number
+  isCsrApplicable: boolean
+  applicabilityCriterion: string
+  averageNetProfit: number
+  mandatoryCsrObligation2Pct: number
+  netCsrObligationForCurrentFy: number
+  totalActualCsrSpent: number
+  unspentOngoingProjects: number
+  unspentOtherProjects: number
+  excessSpentCarriedForward: number
+  caroQualificationRequired: boolean
+  caroClauseXxARemark: string
+  caroClauseXxBRemark: string
+  status: CsrComplianceStatus
+  certifiedByName?: string
+  certifiedMembershipNo?: string
+  certifiedAt?: string
+  udin?: string
+  projectsCount: number
+  createdAt: string
+}
+
+export interface CsrAssessmentDetailDto {
+  id: string
+  clientId: string
+  clientName: string
+  clientPan: string
+  financialYear: string
+  netWorth: number
+  turnover: number
+  netProfitPreviousYear: number
+  isCsrApplicable: boolean
+  applicabilityCriterion: string
+  netProfitFyMinus1: number
+  netProfitFyMinus2: number
+  netProfitFyMinus3: number
+  averageNetProfit: number
+  mandatoryCsrObligation2Pct: number
+  setOffAvailableFromPriorYears: number
+  netCsrObligationForCurrentFy: number
+  totalActualCsrSpent: number
+  totalSpentOngoingProjects: number
+  totalSpentOtherProjects: number
+  administrativeOverheadsSpent: number
+  impactAssessmentSpent: number
+  unspentOngoingProjects: number
+  unspentOtherProjects: number
+  unspentOngoingTransferDate?: string
+  scheduleViiFundTransferDate?: string
+  excessSpentCarriedForward: number
+  caroClauseXxARemark: string
+  caroClauseXxBRemark: string
+  caroQualificationRequired: boolean
+  status: CsrComplianceStatus
+  certifiedByName?: string
+  certifiedMembershipNo?: string
+  certifiedAt?: string
+  udin?: string
+  projects: CsrProjectItemDto[]
+  createdAt: string
+}
+
+export interface CsrProjectItemDto {
+  id: string
+  csrAssessmentId: string
+  projectTitle: string
+  scheduleViiCategory: ScheduleViiCategory
+  nature: CsrProjectNature
+  stateOrDistrict: string
+  isAspirationalDistrict: boolean
+  totalProjectOutlay: number
+  allocatedBudget: number
+  actualSpent: number
+  unspentAmount: number
+  implementationMode: string
+  implementingAgencyName?: string
+  implementingAgencyCsr1Number?: string
+  projectStatus: string
+  createdAt: string
+}
+
+export interface BrsrCoreReportDto {
+  id: string
+  clientId: string
+  clientName: string
+  financialYear: string
+  turnoverInCrores: number
+  dieselConsumedLitres: number
+  naturalGasConsumedSm3: number
+  gridElectricityPurchasedMwh: number
+  scope1DirectEmissionsMtCo2e: number
+  scope2IndirectEmissionsMtCo2e: number
+  totalScope1And2MtCo2e: number
+  ghgIntensityPerCroreTurnover: number
+  totalWaterWithdrawalKl: number
+  totalWaterConsumptionKl: number
+  waterIntensityPerCroreTurnover: number
+  operatesZeroLiquidDischarge: boolean
+  totalEnergyConsumptionGj: number
+  energyIntensityPerCroreTurnover: number
+  renewableEnergySharePct: number
+  lostTimeInjuryFrequencyRateLtifr: number
+  fatalitiesCount: number
+  poshComplaintsReceived: number
+  poshComplaintsResolved: number
+  medianRemunerationLakhs: number
+  totalPermanentEmployees: number
+  femaleEmployeesCount: number
+  femaleEmployeesPct: number
+  totalBoardDirectors: number
+  femaleBoardDirectors: number
+  femaleBoardPct: number
+  totalKmpCount: number
+  femaleKmpCount: number
+  femaleKmpPct: number
+  overallBrsrCoreScore: number
+  assuranceType: string
+  assuranceAuditorName?: string
+  assuranceAuditorMembershipNo?: string
+  assuranceUdin?: string
+  assuranceCertifiedAt?: string
+  createdAt: string
+}
+
+export interface SaveCsrAssessmentRequest {
+  id?: string
+  clientId: string
+  financialYear: string
+  netWorth: number
+  turnover: number
+  netProfitPreviousYear: number
+  netProfitFyMinus1: number
+  netProfitFyMinus2: number
+  netProfitFyMinus3: number
+  setOffAvailableFromPriorYears: number
+  administrativeOverheadsSpent: number
+  impactAssessmentSpent: number
+  unspentOngoingTransferDate?: string
+  scheduleViiFundTransferDate?: string
+}
+
+export interface SaveCsrProjectRequest {
+  id?: string
+  csrAssessmentId: string
+  projectTitle: string
+  scheduleViiCategory: ScheduleViiCategory
+  nature: CsrProjectNature
+  stateOrDistrict: string
+  isAspirationalDistrict: boolean
+  totalProjectOutlay: number
+  allocatedBudget: number
+  actualSpent: number
+  implementationMode: string
+  implementingAgencyName?: string
+  implementingAgencyCsr1Number?: string
+  projectStatus: string
+}
+
+export interface SaveBrsrReportRequest {
+  id?: string
+  clientId: string
+  financialYear: string
+  turnoverInCrores: number
+  dieselConsumedLitres: number
+  naturalGasConsumedSm3: number
+  gridElectricityPurchasedMwh: number
+  totalWaterWithdrawalKl: number
+  totalWaterConsumptionKl: number
+  operatesZeroLiquidDischarge: boolean
+  totalEnergyConsumptionGj: number
+  renewableEnergySharePct: number
+  lostTimeInjuryFrequencyRateLtifr: number
+  fatalitiesCount: number
+  poshComplaintsReceived: number
+  poshComplaintsResolved: number
+  medianRemunerationLakhs: number
+  totalPermanentEmployees: number
+  femaleEmployeesCount: number
+  totalBoardDirectors: number
+  femaleBoardDirectors: number
+  totalKmpCount: number
+  femaleKmpCount: number
+  assuranceType: string
+}
+
+export interface CertifyCsrRequest {
+  auditorName: string
+  membershipNo: string
+  udin: string
+}
+
+export interface CertifyBrsrRequest {
+  auditorName: string
+  membershipNo: string
+  udin: string
+  assuranceType: string
+}
+
+export interface CalculateCsrObligationRequest {
+  netWorth: number
+  turnover: number
+  netProfitPreviousYear: number
+  netProfitFyMinus1: number
+  netProfitFyMinus2: number
+  netProfitFyMinus3: number
+  setOffAvailableFromPriorYears: number
+  totalSpentOngoing: number
+  totalSpentOther: number
+  ongoingTransferDate?: string
+  scheduleViiTransferDate?: string
+}
+
+export interface CsrObligationCalculationDto {
+  isApplicable: boolean
+  applicabilityReason: string
+  averageNetProfit: number
+  mandatoryCsrObligation2Pct: number
+  netCsrObligationCurrentFy: number
+  totalSpent: number
+  unspentOngoing: number
+  unspentOther: number
+  excessCarriedForward: number
+  caroQualificationRequired: boolean
+  caroClauseXxARemark: string
+  caroClauseXxBRemark: string
+}
+
+export const esgCsrApi = {
+  getAssessments: (clientId?: string) =>
+    api<CsrAssessmentDto[]>(`/api/esg-csr/assessments${clientId ? `?clientId=${clientId}` : ''}`),
+  getAssessment: (id: string) =>
+    api<CsrAssessmentDetailDto>(`/api/esg-csr/assessments/${id}`),
+  saveAssessment: (req: SaveCsrAssessmentRequest) =>
+    api<CsrAssessmentDetailDto>('/api/esg-csr/assessments', {
+      method: 'POST',
+      body: JSON.stringify(req)
+    }),
+  deleteAssessment: (id: string) =>
+    api<void>(`/api/esg-csr/assessments/${id}`, {
+      method: 'DELETE'
+    }),
+  saveProject: (req: SaveCsrProjectRequest) =>
+    api<CsrProjectItemDto>('/api/esg-csr/projects', {
+      method: 'POST',
+      body: JSON.stringify(req)
+    }),
+  deleteProject: (id: string) =>
+    api<void>(`/api/esg-csr/projects/${id}`, {
+      method: 'DELETE'
+    }),
+  getBrsrReports: (clientId?: string) =>
+    api<BrsrCoreReportDto[]>(`/api/esg-csr/brsr${clientId ? `?clientId=${clientId}` : ''}`),
+  getBrsrReport: (id: string) =>
+    api<BrsrCoreReportDto>(`/api/esg-csr/brsr/${id}`),
+  getBrsrReportByClientAndYear: (clientId: string, financialYear: string) =>
+    api<BrsrCoreReportDto>(`/api/esg-csr/brsr/client/${clientId}/${financialYear}`),
+  saveBrsrReport: (req: SaveBrsrReportRequest) =>
+    api<BrsrCoreReportDto>('/api/esg-csr/brsr', {
+      method: 'POST',
+      body: JSON.stringify(req)
+    }),
+  deleteBrsrReport: (id: string) =>
+    api<void>(`/api/esg-csr/brsr/${id}`, {
+      method: 'DELETE'
+    }),
+  certifyCsr: (id: string, req: CertifyCsrRequest) =>
+    api<CsrAssessmentDetailDto>(`/api/esg-csr/assessments/${id}/certify`, {
+      method: 'POST',
+      body: JSON.stringify(req)
+    }),
+  certifyBrsr: (id: string, req: CertifyBrsrRequest) =>
+    api<BrsrCoreReportDto>(`/api/esg-csr/brsr/${id}/certify`, {
+      method: 'POST',
+      body: JSON.stringify(req)
+    }),
+  getDossierHtmlUrl: (id: string) => `/api/esg-csr/brsr/${id}/dossier`,
+  calculateObligation: (req: CalculateCsrObligationRequest) =>
+    api<CsrObligationCalculationDto>('/api/esg-csr/calculate-obligation', {
+      method: 'POST',
+      body: JSON.stringify(req)
+    })
+}
+
 
 
 

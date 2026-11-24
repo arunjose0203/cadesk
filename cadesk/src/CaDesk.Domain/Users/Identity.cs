@@ -222,4 +222,7 @@ public static class Perms
     public const string TaxLitigationRead = "taxlitigation.read";
     public const string TaxLitigationManage = "taxlitigation.manage";
     public const string TaxLitigationCertify = "taxlitigation.certify";
+    public const string EsgCsrRead = "esgcsr.read";
+    public const string EsgCsrManage = "esgcsr.manage";
+    public const string EsgCsrCertify = "esgcsr.certify";
 }
