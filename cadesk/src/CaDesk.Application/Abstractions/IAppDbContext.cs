@@ -9,6 +9,7 @@ using CaDesk.Domain.TaxNotices;
 using CaDesk.Domain.UaeTax;
 using CaDesk.Domain.PracticeHealth;
 using CaDesk.Domain.LedgerSync;
+using CaDesk.Domain.TaxLitigation;
 using CaDesk.Domain.Payroll;
 using CaDesk.Domain.EInvoicing;
 using CaDesk.Domain.FixedAssets;
@@ -128,6 +129,10 @@ public interface IAppDbContext
     DbSet<ErpLedgerVoucher> ErpLedgerVouchers { get; }
     DbSet<ErpOutgoingVoucher> ErpOutgoingVouchers { get; }
     DbSet<BankLedgerReconciliationMatch> BankLedgerReconciliationMatches { get; }
+    DbSet<TaxAppeal> TaxAppeals { get; }
+    DbSet<AppealGroundItem> AppealGrounds { get; }
+    DbSet<PaperBookDocument> PaperBookDocuments { get; }
+    DbSet<AppealJudicialCitation> AppealJudicialCitations { get; }
     DbSet<PayrollEmployee> PayrollEmployees { get; }
     DbSet<PayrollRun> PayrollRuns { get; }
     DbSet<PayrollPayslip> PayrollPayslips { get; }

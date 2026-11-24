@@ -21,6 +21,7 @@ using CaDesk.Domain.TaxNotices;
 using CaDesk.Domain.UaeTax;
 using CaDesk.Domain.PracticeHealth;
 using CaDesk.Domain.LedgerSync;
+using CaDesk.Domain.TaxLitigation;
 using CaDesk.Domain.Payroll;
 using CaDesk.Domain.EInvoicing;
 using CaDesk.Domain.FixedAssets;
@@ -144,6 +145,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
     public DbSet<ErpLedgerVoucher> ErpLedgerVouchers => Set<ErpLedgerVoucher>();
     public DbSet<ErpOutgoingVoucher> ErpOutgoingVouchers => Set<ErpOutgoingVoucher>();
     public DbSet<BankLedgerReconciliationMatch> BankLedgerReconciliationMatches => Set<BankLedgerReconciliationMatch>();
+    public DbSet<TaxAppeal> TaxAppeals => Set<TaxAppeal>();
+    public DbSet<AppealGroundItem> AppealGrounds => Set<AppealGroundItem>();
+    public DbSet<PaperBookDocument> PaperBookDocuments => Set<PaperBookDocument>();
+    public DbSet<AppealJudicialCitation> AppealJudicialCitations => Set<AppealJudicialCitation>();
     public DbSet<PayrollEmployee> PayrollEmployees => Set<PayrollEmployee>();
     public DbSet<PayrollRun> PayrollRuns => Set<PayrollRun>();
     public DbSet<PayrollPayslip> PayrollPayslips => Set<PayrollPayslip>();
@@ -817,6 +822,34 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
             e.ToTable("bank_ledger_reconciliation_matches");
             e.Property(x => x.MatchRule).HasConversion<string>();
             e.Property(x => x.Status).HasConversion<string>();
+        });
+
+        b.Entity<TaxAppeal>(e =>
+        {
+            e.ToTable("tax_appeals");
+            e.Property(x => x.Forum).HasConversion<string>();
+            e.Property(x => x.Status).HasConversion<string>();
+            e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
+            e.HasMany(x => x.Grounds).WithOne(x => x.TaxAppeal).HasForeignKey(x => x.TaxAppealId).OnDelete(DeleteBehavior.Cascade);
+            e.HasMany(x => x.PaperBookDocuments).WithOne(x => x.TaxAppeal).HasForeignKey(x => x.TaxAppealId).OnDelete(DeleteBehavior.Cascade);
+            e.HasMany(x => x.Citations).WithOne(x => x.TaxAppeal).HasForeignKey(x => x.TaxAppealId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<AppealGroundItem>(e =>
+        {
+            e.ToTable("appeal_grounds");
+            e.Property(x => x.GroundType).HasConversion<string>();
+        });
+
+        b.Entity<PaperBookDocument>(e =>
+        {
+            e.ToTable("paper_book_documents");
+            e.Property(x => x.EvidenceType).HasConversion<string>();
+        });
+
+        b.Entity<AppealJudicialCitation>(e =>
+        {
+            e.ToTable("appeal_judicial_citations");
         });
 
         b.Entity<PayrollEmployee>(e =>

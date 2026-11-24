@@ -8510,6 +8510,244 @@ export const ledgerSyncApi = {
     api<ReconciliationSummaryDto>(`/api/ledger-sync/reconciliation/summary?clientId=${clientId}&bankAccountId=${bankAccountId}`)
 }
 
+// ==========================================
+// Tax Appeals & Rule 18 Paper Book Desk
+// ==========================================
+
+export type AppealForum = 'CitAppeals' | 'Itat' | 'HighCourt' | 'SupremeCourt'
+export type TaxAppealStatus = 'Drafting' | 'PartnerReviewed' | 'Certified' | 'Filed' | 'HearingScheduled' | 'HeardReserved' | 'DisposedAllowed' | 'DisposedPartlyAllowed' | 'DisposedDismissed'
+export type GroundType = 'General' | 'JurisdictionOrLimitation' | 'NaturalJustice' | 'MeritsAddition' | 'Alternative' | 'WithoutPrejudice'
+export type PaperBookEvidenceType = 'PartLowerAuthoritiesRecord' | 'Rule29AdditionalEvidence'
+
+export type TaxAppealDto = {
+  id: string
+  clientId: string
+  clientName: string
+  clientPan: string
+  taxNoticeId?: string | null
+  noticeReferenceNumber?: string | null
+  forum: AppealForum
+  appealNumber?: string | null
+  assessmentYear: string
+  financialYear: string
+  assessingOfficerWardOrCircle: string
+  impugnedOrderSection: string
+  impugnedOrderNumber: string
+  impugnedOrderDate: string
+  dateOfServiceOfOrder: string
+  statutoryFilingDeadline: string
+  daysRemaining: number
+  delayCondonationRequired: boolean
+  daysOfDelay: number
+  filingFeeAmount: number
+  assessedTotalIncome: number
+  returnedTotalIncome: number
+  totalDisputedAdditions: number
+  disputedTaxDemand: number
+  filingDate?: string | null
+  dinOrAckNumber?: string | null
+  status: TaxAppealStatus
+  partnerMembershipNumber?: string | null
+  partnerCertifiedByName?: string | null
+  partnerCertifiedAt?: string | null
+  groundsCount: number
+  documentsCount: number
+  citationsCount: number
+  createdAt: string
+}
+
+export type TaxAppealDetailDto = TaxAppealDto & {
+  condonationReason?: string | null
+  statementOfFacts: string
+  reliefSought: string
+  grounds: AppealGroundItemDto[]
+  paperBookDocuments: PaperBookDocumentDto[]
+  citations: AppealJudicialCitationDto[]
+}
+
+export type AppealGroundItemDto = {
+  id: string
+  taxAppealId: string
+  groundNumber: number
+  groundType: GroundType
+  title: string
+  groundText: string
+  statutorySection: string
+  disputedAdditionAmount: number
+  isWithoutPrejudice: boolean
+  isAlternativeGround: boolean
+  orderIndex: number
+}
+
+export type PaperBookDocumentDto = {
+  id: string
+  taxAppealId: string
+  itemNumber: number
+  documentDate: string
+  descriptionOfDocument: string
+  relevance: string
+  evidenceType: PaperBookEvidenceType
+  lowerAuthorityFilingDate?: string | null
+  pageNumberFrom: number
+  pageNumberTo: number
+  totalPages: number
+  isCertified: boolean
+  orderIndex: number
+}
+
+export type AppealJudicialCitationDto = {
+  id: string
+  taxAppealId: string
+  precedentId?: string | null
+  caseTitle: string
+  citation: string
+  courtOrTribunal: string
+  judgmentYear: number
+  statutorySection: string
+  keyRatioProposition: string
+  paragraphReference: string
+  relevanceToGround: string
+}
+
+export type CreateOrUpdateTaxAppealRequest = {
+  id?: string
+  clientId: string
+  taxNoticeId?: string | null
+  noticeReferenceNumber?: string | null
+  forum: AppealForum
+  appealNumber?: string | null
+  assessmentYear: string
+  financialYear: string
+  assessingOfficerWardOrCircle: string
+  impugnedOrderSection: string
+  impugnedOrderNumber: string
+  impugnedOrderDate: string
+  dateOfServiceOfOrder: string
+  assessedTotalIncome: number
+  returnedTotalIncome: number
+  totalDisputedAdditions: number
+  disputedTaxDemand: number
+  condonationReason?: string | null
+  statementOfFacts: string
+  reliefSought: string
+}
+
+export type SaveAppealGroundRequest = {
+  id?: string
+  taxAppealId: string
+  groundNumber: number
+  groundType: GroundType
+  title: string
+  groundText: string
+  statutorySection: string
+  disputedAdditionAmount: number
+  isWithoutPrejudice: boolean
+  isAlternativeGround: boolean
+  orderIndex: number
+}
+
+export type SavePaperBookDocRequest = {
+  id?: string
+  taxAppealId: string
+  itemNumber: number
+  documentDate: string
+  descriptionOfDocument: string
+  relevance: string
+  evidenceType: PaperBookEvidenceType
+  lowerAuthorityFilingDate?: string | null
+  pageCount: number
+  isCertified: boolean
+  orderIndex: number
+}
+
+export type AddJudicialCitationRequest = {
+  taxAppealId: string
+  precedentId?: string | null
+  caseTitle: string
+  citation: string
+  courtOrTribunal: string
+  judgmentYear: number
+  statutorySection: string
+  keyRatioProposition: string
+  paragraphReference: string
+  relevanceToGround: string
+}
+
+export type CertifyAppealRequest = {
+  partnerMembershipNumber: string
+  partnerName: string
+  filingDate?: string | null
+  dinOrAckNumber?: string | null
+}
+
+export type CalculateFilingFeeRequest = {
+  forum: AppealForum
+  assessedTotalIncome: number
+  isOtherMatter: boolean
+}
+
+export type FilingFeeResultDto = {
+  forum: AppealForum
+  assessedTotalIncome: number
+  statutoryFilingFee: number
+  legalBasis: string
+}
+
+export const taxLitigationApi = {
+  getAppeals: (clientId?: string) =>
+    api<TaxAppealDto[]>(`/api/tax-litigation/appeals${clientId ? `?clientId=${clientId}` : ''}`),
+  getAppeal: (id: string) =>
+    api<TaxAppealDetailDto>(`/api/tax-litigation/appeals/${id}`),
+  saveAppeal: (req: CreateOrUpdateTaxAppealRequest) =>
+    api<TaxAppealDetailDto>('/api/tax-litigation/appeals', {
+      method: 'POST',
+      body: JSON.stringify(req)
+    }),
+  deleteAppeal: (id: string) =>
+    api<void>(`/api/tax-litigation/appeals/${id}`, {
+      method: 'DELETE'
+    }),
+  saveGround: (req: SaveAppealGroundRequest) =>
+    api<AppealGroundItemDto>('/api/tax-litigation/grounds', {
+      method: 'POST',
+      body: JSON.stringify(req)
+    }),
+  deleteGround: (id: string) =>
+    api<void>(`/api/tax-litigation/grounds/${id}`, {
+      method: 'DELETE'
+    }),
+  savePaperBookDoc: (req: SavePaperBookDocRequest) =>
+    api<PaperBookDocumentDto[]>('/api/tax-litigation/paper-book', {
+      method: 'POST',
+      body: JSON.stringify(req)
+    }),
+  deletePaperBookDoc: (id: string) =>
+    api<PaperBookDocumentDto[]>(`/api/tax-litigation/paper-book/${id}`, {
+      method: 'DELETE'
+    }),
+  addCitation: (req: AddJudicialCitationRequest) =>
+    api<AppealJudicialCitationDto>('/api/tax-litigation/citations', {
+      method: 'POST',
+      body: JSON.stringify(req)
+    }),
+  deleteCitation: (id: string) =>
+    api<void>(`/api/tax-litigation/citations/${id}`, {
+      method: 'DELETE'
+    }),
+  certifyAppeal: (id: string, req: CertifyAppealRequest) =>
+    api<TaxAppealDetailDto>(`/api/tax-litigation/appeals/${id}/certify`, {
+      method: 'POST',
+      body: JSON.stringify(req)
+    }),
+  getDossierHtmlUrl: (id: string) => `/api/tax-litigation/appeals/${id}/dossier`,
+  calculateFilingFee: (req: CalculateFilingFeeRequest) =>
+    api<FilingFeeResultDto>('/api/tax-litigation/filing-fee/calculate', {
+      method: 'POST',
+      body: JSON.stringify(req)
+    })
+}
+
+
 
 
 

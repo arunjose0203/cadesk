@@ -219,4 +219,7 @@ public static class Perms
     public const string LedgerSyncRead = "ledgersync.read";
     public const string LedgerSyncManage = "ledgersync.manage";
     public const string LedgerSyncPost = "ledgersync.post";
+    public const string TaxLitigationRead = "taxlitigation.read";
+    public const string TaxLitigationManage = "taxlitigation.manage";
+    public const string TaxLitigationCertify = "taxlitigation.certify";
 }
