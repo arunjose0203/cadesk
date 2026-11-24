@@ -8,6 +8,7 @@ using CaDesk.Domain.Reports;
 using CaDesk.Domain.TaxNotices;
 using CaDesk.Domain.UaeTax;
 using CaDesk.Domain.PracticeHealth;
+using CaDesk.Domain.LedgerSync;
 using CaDesk.Domain.Payroll;
 using CaDesk.Domain.EInvoicing;
 using CaDesk.Domain.FixedAssets;
@@ -123,6 +124,10 @@ public interface IAppDbContext
     DbSet<PartnerRetirementPlan> PartnerRetirementPlans { get; }
     DbSet<ClientSuccessionTransition> ClientSuccessionTransitions { get; }
     DbSet<PracticeBenchmark> PracticeBenchmarks { get; }
+    DbSet<ErpSyncAgentConfig> ErpSyncAgentConfigs { get; }
+    DbSet<ErpLedgerVoucher> ErpLedgerVouchers { get; }
+    DbSet<ErpOutgoingVoucher> ErpOutgoingVouchers { get; }
+    DbSet<BankLedgerReconciliationMatch> BankLedgerReconciliationMatches { get; }
     DbSet<PayrollEmployee> PayrollEmployees { get; }
     DbSet<PayrollRun> PayrollRuns { get; }
     DbSet<PayrollPayslip> PayrollPayslips { get; }

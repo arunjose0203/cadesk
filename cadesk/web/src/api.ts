@@ -8300,6 +8300,217 @@ export const practiceHealthApi = {
     api<PracticeBenchmarkDto[]>('/api/practice-health/benchmarks')
 }
 
+// ==========================================
+// Bank & Ledger Auto-Reconciliation Engine (Tally / Busy Sync)
+// ==========================================
+
+export type ErpType = 'TallyPrime' | 'BusyAccounting'
+export type AgentSyncStatus = 'Offline' | 'Connected' | 'Syncing' | 'Error'
+export type ErpVoucherType = 'Payment' | 'Receipt' | 'Journal' | 'Contra' | 'Sales' | 'Purchase'
+export type VoucherReconciliationStatus = 'Unreconciled' | 'AutoMatched' | 'ManuallyReconciled' | 'Disputed' | 'Excluded'
+export type OutgoingVoucherStatus = 'PendingApproval' | 'QueuedForAgent' | 'PostedToErp' | 'Failed' | 'Rejected'
+export type AuditReasonCategory = 'DepreciationSec32' | 'TaxProvisionAy2526' | 'Sa700AuditAdjustment' | 'PrepaidAmortization' | 'BadDebtsWriteoff' | 'ForeignExchangeFxAdjustment' | 'OtherAuditEntry'
+export type ReconciliationMatchRule = 'ExactAmountAndDate' | 'ChequeOrUtrMatch' | 'TdsNetDeductionMatch' | 'ToleranceRoundingMatch' | 'MultiInvoiceBundleMatch'
+export type ReconciliationMatchStatus = 'Suggested' | 'Approved' | 'Rejected'
+
+export type ErpSyncAgentConfigDto = {
+  id: string
+  clientId: string
+  clientName: string
+  clientCode: string
+  agentName: string
+  agentToken: string
+  erpType: ErpType
+  hostUrl: string
+  companyName: string
+  syncStatus: AgentSyncStatus
+  lastHeartbeatAt?: string | null
+  lastSyncAt?: string | null
+  syncFrequencyMinutes: number
+  syncDaybook: boolean
+  syncMasters: boolean
+  syncBankFeeds: boolean
+  totalVouchersSynced: number
+  totalMastersSynced: number
+  isActive: boolean
+  createdAt: string
+}
+
+export type CreateOrUpdateAgentConfigRequest = {
+  id?: string
+  clientId: string
+  agentName: string
+  erpType: ErpType
+  hostUrl: string
+  companyName: string
+  syncFrequencyMinutes: number
+  syncDaybook: boolean
+  syncMasters: boolean
+  syncBankFeeds: boolean
+}
+
+export type ErpLedgerVoucherDto = {
+  id: string
+  clientId: string
+  clientName: string
+  agentConfigId: string
+  erpType: ErpType
+  voucherNumber: string
+  voucherGuid: string
+  voucherType: ErpVoucherType
+  voucherDate: string
+  effectiveDate: string
+  amount: number
+  debitLedger: string
+  creditLedger: string
+  narration: string
+  chequeNumber?: string | null
+  instrumentDate?: string | null
+  bankPartyName?: string | null
+  bankClearanceDate?: string | null
+  reconciliationStatus: VoucherReconciliationStatus
+  createdAt: string
+}
+
+export type CreateOutgoingVoucherRequest = {
+  clientId: string
+  agentConfigId: string
+  voucherType: ErpVoucherType
+  voucherDate: string
+  referenceNumber: string
+  debitLedger: string
+  creditLedger: string
+  amount: number
+  narration: string
+  auditReason: AuditReasonCategory
+}
+
+export type ErpOutgoingVoucherDto = {
+  id: string
+  clientId: string
+  clientName: string
+  agentConfigId: string
+  voucherType: ErpVoucherType
+  voucherDate: string
+  referenceNumber: string
+  debitLedger: string
+  creditLedger: string
+  amount: number
+  narration: string
+  auditReason: AuditReasonCategory
+  postingStatus: OutgoingVoucherStatus
+  generatedXmlPayload?: string | null
+  erpVoucherNumber?: string | null
+  errorMessage?: string | null
+  authorizedByName?: string | null
+  authorizedAt?: string | null
+  createdAt: string
+}
+
+export type RunAutoReconciliationRequest = {
+  clientId: string
+  bankAccountId: string
+  fromDate?: string | null
+  toDate?: string | null
+}
+
+export type BankLedgerReconciliationMatchDto = {
+  id: string
+  clientId: string
+  clientName: string
+  bankAccountId: string
+  bankTransactionId: string
+  transactionDate: string
+  narration: string
+  transactionType: string
+  erpLedgerVoucherId?: string | null
+  erpVoucherNumber?: string | null
+  voucherDate?: string | null
+  debitLedger?: string | null
+  creditLedger?: string | null
+  matchRule: ReconciliationMatchRule
+  confidenceScore: number
+  bankAmount: number
+  ledgerAmount: number
+  varianceAmount: number
+  varianceExplanation?: string | null
+  matchedVoucherNumbers: string
+  status: ReconciliationMatchStatus
+  reconciledByName?: string | null
+  reconciledAt?: string | null
+  createdAt: string
+}
+
+export type ReconcileMatchActionRequest = {
+  status: ReconciliationMatchStatus
+  notes?: string
+}
+
+export type ReconciliationSummaryDto = {
+  totalBankTransactions: number
+  reconciledCount: number
+  pendingCount: number
+  totalReconciledAmount: number
+  totalUnreconciledAmount: number
+  reconciledPercentage: number
+  highConfidenceSuggestionsCount: number
+}
+
+export const ledgerSyncApi = {
+  getAgentConfigs: (clientId?: string) =>
+    api<ErpSyncAgentConfigDto[]>(`/api/ledger-sync/agents${clientId ? `?clientId=${clientId}` : ''}`),
+  getAgentConfig: (id: string) =>
+    api<ErpSyncAgentConfigDto>(`/api/ledger-sync/agents/${id}`),
+  saveAgentConfig: (req: CreateOrUpdateAgentConfigRequest) =>
+    api<ErpSyncAgentConfigDto>('/api/ledger-sync/agents', {
+      method: 'POST',
+      body: JSON.stringify(req)
+    }),
+  deleteAgentConfig: (id: string) =>
+    api<void>(`/api/ledger-sync/agents/${id}`, {
+      method: 'DELETE'
+    }),
+  getVouchers: (clientId?: string, fromDate?: string, toDate?: string) => {
+    const params = new URLSearchParams()
+    if (clientId) params.append('clientId', clientId)
+    if (fromDate) params.append('fromDate', fromDate)
+    if (toDate) params.append('toDate', toDate)
+    const qs = params.toString()
+    return api<ErpLedgerVoucherDto[]>(`/api/ledger-sync/vouchers${qs ? `?${qs}` : ''}`)
+  },
+  createOutgoingVoucher: (req: CreateOutgoingVoucherRequest) =>
+    api<ErpOutgoingVoucherDto>('/api/ledger-sync/outgoing-vouchers', {
+      method: 'POST',
+      body: JSON.stringify(req)
+    }),
+  authorizeOutgoingVoucher: (id: string) =>
+    api<ErpOutgoingVoucherDto>(`/api/ledger-sync/outgoing-vouchers/${id}/authorize`, {
+      method: 'POST'
+    }),
+  getOutgoingVouchers: (clientId?: string) =>
+    api<ErpOutgoingVoucherDto[]>(`/api/ledger-sync/outgoing-vouchers${clientId ? `?clientId=${clientId}` : ''}`),
+  runAutoReconciliation: (req: RunAutoReconciliationRequest) =>
+    api<BankLedgerReconciliationMatchDto[]>('/api/ledger-sync/reconciliation/auto-match', {
+      method: 'POST',
+      body: JSON.stringify(req)
+    }),
+  getReconciliationMatches: (clientId?: string, bankAccountId?: string) => {
+    const params = new URLSearchParams()
+    if (clientId) params.append('clientId', clientId)
+    if (bankAccountId) params.append('bankAccountId', bankAccountId)
+    const qs = params.toString()
+    return api<BankLedgerReconciliationMatchDto[]>(`/api/ledger-sync/reconciliation/matches${qs ? `?${qs}` : ''}`)
+  },
+  processReconciliationAction: (id: string, req: ReconcileMatchActionRequest) =>
+    api<BankLedgerReconciliationMatchDto>(`/api/ledger-sync/reconciliation/matches/${id}/action`, {
+      method: 'POST',
+      body: JSON.stringify(req)
+    }),
+  getReconciliationSummary: (clientId: string, bankAccountId: string) =>
+    api<ReconciliationSummaryDto>(`/api/ledger-sync/reconciliation/summary?clientId=${clientId}&bankAccountId=${bankAccountId}`)
+}
+
+
 
 
 

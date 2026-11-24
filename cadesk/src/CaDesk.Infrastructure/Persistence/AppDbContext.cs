@@ -20,6 +20,7 @@ using CaDesk.Domain.Reports;
 using CaDesk.Domain.TaxNotices;
 using CaDesk.Domain.UaeTax;
 using CaDesk.Domain.PracticeHealth;
+using CaDesk.Domain.LedgerSync;
 using CaDesk.Domain.Payroll;
 using CaDesk.Domain.EInvoicing;
 using CaDesk.Domain.FixedAssets;
@@ -139,6 +140,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
     public DbSet<PartnerRetirementPlan> PartnerRetirementPlans => Set<PartnerRetirementPlan>();
     public DbSet<ClientSuccessionTransition> ClientSuccessionTransitions => Set<ClientSuccessionTransition>();
     public DbSet<PracticeBenchmark> PracticeBenchmarks => Set<PracticeBenchmark>();
+    public DbSet<ErpSyncAgentConfig> ErpSyncAgentConfigs => Set<ErpSyncAgentConfig>();
+    public DbSet<ErpLedgerVoucher> ErpLedgerVouchers => Set<ErpLedgerVoucher>();
+    public DbSet<ErpOutgoingVoucher> ErpOutgoingVouchers => Set<ErpOutgoingVoucher>();
+    public DbSet<BankLedgerReconciliationMatch> BankLedgerReconciliationMatches => Set<BankLedgerReconciliationMatch>();
     public DbSet<PayrollEmployee> PayrollEmployees => Set<PayrollEmployee>();
     public DbSet<PayrollRun> PayrollRuns => Set<PayrollRun>();
     public DbSet<PayrollPayslip> PayrollPayslips => Set<PayrollPayslip>();
@@ -779,6 +784,39 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
         {
             e.ToTable("practice_benchmarks");
             e.Property(x => x.FirmTier).HasConversion<string>();
+        });
+
+        b.Entity<ErpSyncAgentConfig>(e =>
+        {
+            e.ToTable("erp_sync_agent_configs");
+            e.Property(x => x.ErpType).HasConversion<string>();
+            e.Property(x => x.SyncStatus).HasConversion<string>();
+            e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<ErpLedgerVoucher>(e =>
+        {
+            e.ToTable("erp_ledger_vouchers");
+            e.Property(x => x.ErpType).HasConversion<string>();
+            e.Property(x => x.VoucherType).HasConversion<string>();
+            e.Property(x => x.ReconciliationStatus).HasConversion<string>();
+            e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<ErpOutgoingVoucher>(e =>
+        {
+            e.ToTable("erp_outgoing_vouchers");
+            e.Property(x => x.VoucherType).HasConversion<string>();
+            e.Property(x => x.AuditReason).HasConversion<string>();
+            e.Property(x => x.PostingStatus).HasConversion<string>();
+            e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<BankLedgerReconciliationMatch>(e =>
+        {
+            e.ToTable("bank_ledger_reconciliation_matches");
+            e.Property(x => x.MatchRule).HasConversion<string>();
+            e.Property(x => x.Status).HasConversion<string>();
         });
 
         b.Entity<PayrollEmployee>(e =>

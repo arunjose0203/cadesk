@@ -216,4 +216,7 @@ public static class Perms
     public const string PracticeHealthRead = "practicehealth.read";
     public const string PracticeHealthManage = "practicehealth.manage";
     public const string PracticeHealthValuation = "practicehealth.valuation";
+    public const string LedgerSyncRead = "ledgersync.read";
+    public const string LedgerSyncManage = "ledgersync.manage";
+    public const string LedgerSyncPost = "ledgersync.post";
 }
