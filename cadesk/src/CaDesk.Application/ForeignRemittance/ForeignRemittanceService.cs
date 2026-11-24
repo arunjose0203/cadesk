@@ -548,4 +548,435 @@ public class ForeignRemittanceService
             UpdatedAt: a.UpdatedAt
         );
     }
+
+    // =========================================================================
+    // SPRINT 62: RBI FEMA FIRMS (FC-GPR / FC-TRS) METHODS
+    // =========================================================================
+
+    public async Task<FemaFirmsSummaryDto> GetFirmsSummaryAsync(CancellationToken ct = default)
+    {
+        var firmId = _tenantContext.FirmId;
+        var list = await _db.FemaFirmsFilings.Where(x => x.FirmId == firmId).ToListAsync(ct);
+
+        return new FemaFirmsSummaryDto(
+            TotalFilings: list.Count,
+            FcGprCount: list.Count(x => x.FilingType == FirmsFilingType.FcGpr),
+            FcTrsCount: list.Count(x => x.FilingType == FirmsFilingType.FcTrs),
+            TotalConsiderationInr: list.Sum(x => x.TotalConsiderationInr),
+            LateSubmissionsCount: list.Count(x => x.IsLateSubmission)
+        );
+    }
+
+    public async Task<List<FemaFirmsFilingDto>> GetFirmsFilingsAsync(Guid? clientId, FirmsFilingType? type, CancellationToken ct = default)
+    {
+        var firmId = _tenantContext.FirmId;
+        var query = _db.FemaFirmsFilings.Include(x => x.Client).Where(x => x.FirmId == firmId);
+
+        if (clientId.HasValue) query = query.Where(x => x.ClientId == clientId.Value);
+        if (type.HasValue) query = query.Where(x => x.FilingType == type.Value);
+
+        var list = await query.OrderByDescending(x => x.DateOfAllotmentOrTransfer).ToListAsync(ct);
+        return list.Select(MapFirmsFilingToDto).ToList();
+    }
+
+    public async Task<FemaFirmsFilingDto> GetFirmsFilingByIdAsync(Guid id, CancellationToken ct = default)
+    {
+        var firmId = _tenantContext.FirmId;
+        var item = await _db.FemaFirmsFilings.Include(x => x.Client).FirstOrDefaultAsync(x => x.Id == id && x.FirmId == firmId, ct)
+            ?? throw new KeyNotFoundException("FEMA FIRMS filing not found.");
+
+        return MapFirmsFilingToDto(item);
+    }
+
+    public async Task<FemaFirmsFilingDto> SaveFirmsFilingAsync(SaveFemaFirmsFilingRequest req, CancellationToken ct = default)
+    {
+        var firmId = _tenantContext.FirmId;
+        FemaFirmsFiling filing;
+
+        if (req.Id.HasValue && req.Id.Value != Guid.Empty)
+        {
+            filing = await _db.FemaFirmsFilings.FirstOrDefaultAsync(x => x.Id == req.Id.Value && x.FirmId == firmId, ct)
+                ?? throw new KeyNotFoundException("FEMA FIRMS filing not found.");
+        }
+        else
+        {
+            filing = new FemaFirmsFiling
+            {
+                FirmId = firmId,
+                ClientId = req.ClientId
+            };
+            _db.FemaFirmsFilings.Add(filing);
+        }
+
+        filing.ClientId = req.ClientId;
+        filing.FilingType = req.FilingType;
+        filing.ReferenceNumber = req.ReferenceNumber;
+        filing.IndianEntityCin = req.IndianEntityCin;
+        filing.IndianEntityName = req.IndianEntityName;
+        filing.Pan = req.Pan;
+        filing.NonResidentPartyName = req.NonResidentPartyName;
+        filing.NonResidentCountry = req.NonResidentCountry;
+        filing.NonResidentCountryCode = req.NonResidentCountryCode ?? "";
+        filing.InstrumentType = req.InstrumentType;
+        filing.NumberOfInstruments = req.NumberOfInstruments;
+        filing.FaceValuePerInstrument = req.FaceValuePerInstrument;
+        filing.IssueOrTransferPricePerInstrument = req.IssueOrTransferPricePerInstrument;
+        filing.FairValuePerInstrument = req.FairValuePerInstrument;
+        filing.TotalConsiderationInr = req.TotalConsiderationInr;
+        filing.TotalConsiderationFc = req.TotalConsiderationFc;
+        filing.Currency = req.Currency;
+        filing.ExchangeRate = req.ExchangeRate;
+        filing.ValuationMethod = req.ValuationMethod;
+        filing.ValuerName = req.ValuerName;
+        filing.ValuationReportDate = req.ValuationReportDate;
+        filing.DateOfAllotmentOrTransfer = req.DateOfAllotmentOrTransfer;
+        filing.FdiRoute = req.FdiRoute;
+        filing.EntryRouteApprovalRef = req.EntryRouteApprovalRef;
+        filing.SectoralCapPct = req.SectoralCapPct;
+        filing.PostAllotmentForeignShareholdingPct = req.PostAllotmentForeignShareholdingPct;
+        filing.TransferDirection = req.TransferDirection;
+        filing.TransferMode = req.TransferMode;
+        filing.BuyerAdBankName = req.BuyerAdBankName;
+        filing.SellerAdBankName = req.SellerAdBankName;
+        filing.UpdatedAt = DateTime.UtcNow;
+
+        // Run compliance calculation & certificate generation
+        FemaFirmsEngine.CalculateFirmsCompliance(filing, DateTime.UtcNow);
+        filing.GeneratedComplianceCertificate = FemaFirmsEngine.GenerateComplianceCertificateHtml(filing);
+
+        await _db.SaveChangesAsync(ct);
+        return MapFirmsFilingToDto(filing);
+    }
+
+    public async Task<FemaFirmsFilingDto> CertifyFirmsFilingAsync(Guid id, CertifyFemaFirmsRequest req, CancellationToken ct = default)
+    {
+        var firmId = _tenantContext.FirmId;
+        var filing = await _db.FemaFirmsFilings.Include(x => x.Client).FirstOrDefaultAsync(x => x.Id == id && x.FirmId == firmId, ct)
+            ?? throw new KeyNotFoundException("FEMA FIRMS filing not found.");
+
+        filing.CertifiedByCaName = req.CaName;
+        filing.CaMembershipNumber = req.CaMembershipNumber;
+        filing.CaFirmName = req.CaFirmName;
+        filing.Udin = req.Udin;
+        filing.CertifiedAt = DateTime.UtcNow;
+        filing.Status = FirmsFilingStatus.Certified;
+
+        FemaFirmsEngine.CalculateFirmsCompliance(filing, DateTime.UtcNow);
+        filing.GeneratedComplianceCertificate = FemaFirmsEngine.GenerateComplianceCertificateHtml(filing);
+
+        await _db.SaveChangesAsync(ct);
+        return MapFirmsFilingToDto(filing);
+    }
+
+    public async Task DeleteFirmsFilingAsync(Guid id, CancellationToken ct = default)
+    {
+        var firmId = _tenantContext.FirmId;
+        var filing = await _db.FemaFirmsFilings.FirstOrDefaultAsync(x => x.Id == id && x.FirmId == firmId, ct)
+            ?? throw new KeyNotFoundException("FEMA FIRMS filing not found.");
+
+        _db.FemaFirmsFilings.Remove(filing);
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task<string> GetFirmsComplianceCertificateHtmlAsync(Guid id, CancellationToken ct = default)
+    {
+        var filing = await GetFirmsFilingByIdAsync(id, ct);
+        var entity = await _db.FemaFirmsFilings.FirstAsync(x => x.Id == id, ct);
+        return FemaFirmsEngine.GenerateComplianceCertificateHtml(entity);
+    }
+
+    // =========================================================================
+    // SPRINT 62: RBI ANNUAL FLA RETURN METHODS
+    // =========================================================================
+
+    public async Task<RbiFlaSummaryDto> GetFlaSummaryAsync(string? financialYear, CancellationToken ct = default)
+    {
+        var firmId = _tenantContext.FirmId;
+        var query = _db.RbiAnnualFlaReturns.Where(x => x.FirmId == firmId);
+        if (!string.IsNullOrWhiteSpace(financialYear)) query = query.Where(x => x.FinancialYear == financialYear);
+
+        var list = await query.ToListAsync(ct);
+
+        return new RbiFlaSummaryDto(
+            TotalReturns: list.Count,
+            TotalFdiNetAssetValueInr: list.Sum(x => x.FdiAtNetAssetValueInr),
+            TotalOdiFinancialCommitmentInr: list.Sum(x => x.TotalOdiFinancialCommitmentInr),
+            MandatoryReturnsCount: list.Count(x => x.IsMandatoryFiling),
+            OverdueCount: list.Count(x => x.IsDeadlineBreached)
+        );
+    }
+
+    public async Task<List<RbiAnnualFlaReturnDto>> GetFlaReturnsAsync(Guid? clientId, string? financialYear, CancellationToken ct = default)
+    {
+        var firmId = _tenantContext.FirmId;
+        var query = _db.RbiAnnualFlaReturns.Include(x => x.Client).Where(x => x.FirmId == firmId);
+
+        if (clientId.HasValue) query = query.Where(x => x.ClientId == clientId.Value);
+        if (!string.IsNullOrWhiteSpace(financialYear)) query = query.Where(x => x.FinancialYear == financialYear);
+
+        var list = await query.OrderByDescending(x => x.AccountClosingDate).ToListAsync(ct);
+        return list.Select(MapFlaReturnToDto).ToList();
+    }
+
+    public async Task<RbiAnnualFlaReturnDto> GetFlaReturnByIdAsync(Guid id, CancellationToken ct = default)
+    {
+        var firmId = _tenantContext.FirmId;
+        var item = await _db.RbiAnnualFlaReturns.Include(x => x.Client).FirstOrDefaultAsync(x => x.Id == id && x.FirmId == firmId, ct)
+            ?? throw new KeyNotFoundException("RBI Annual FLA return not found.");
+
+        return MapFlaReturnToDto(item);
+    }
+
+    public async Task<RbiAnnualFlaReturnDto> SaveFlaReturnAsync(SaveRbiAnnualFlaReturnRequest req, CancellationToken ct = default)
+    {
+        var firmId = _tenantContext.FirmId;
+        RbiAnnualFlaReturn returnItem;
+
+        if (req.Id.HasValue && req.Id.Value != Guid.Empty)
+        {
+            returnItem = await _db.RbiAnnualFlaReturns.FirstOrDefaultAsync(x => x.Id == req.Id.Value && x.FirmId == firmId, ct)
+                ?? throw new KeyNotFoundException("RBI Annual FLA return not found.");
+        }
+        else
+        {
+            returnItem = new RbiAnnualFlaReturn
+            {
+                FirmId = firmId,
+                ClientId = req.ClientId
+            };
+            _db.RbiAnnualFlaReturns.Add(returnItem);
+        }
+
+        returnItem.ClientId = req.ClientId;
+        returnItem.FinancialYear = req.FinancialYear;
+        returnItem.CompanyCin = req.CompanyCin;
+        returnItem.CompanyName = req.CompanyName;
+        returnItem.Pan = req.Pan;
+        returnItem.AccountClosingDate = req.AccountClosingDate;
+        returnItem.StatutoryFilingDeadline = req.StatutoryFilingDeadline;
+        returnItem.AuditStatus = req.AuditStatus;
+        returnItem.PaidUpCapitalInr = req.PaidUpCapitalInr;
+        returnItem.ReservesAndSurplusInr = req.ReservesAndSurplusInr;
+        returnItem.TotalSalesTurnoverInr = req.TotalSalesTurnoverInr;
+        returnItem.NetProfitLossAfterTaxInr = req.NetProfitLossAfterTaxInr;
+        returnItem.TotalAssetsInr = req.TotalAssetsInr;
+        returnItem.TotalLiabilitiesInr = req.TotalLiabilitiesInr;
+        returnItem.ForeignEquityHoldingPct = req.ForeignEquityHoldingPct;
+        returnItem.FdiAtFaceValueInr = req.FdiAtFaceValueInr;
+        returnItem.FdiAtMarketOrDcfValueInr = req.FdiAtMarketOrDcfValueInr;
+        returnItem.FreshFdiInflowsDuringYearInr = req.FreshFdiInflowsDuringYearInr;
+        returnItem.DisinvestmentOutflowsDuringYearInr = req.DisinvestmentOutflowsDuringYearInr;
+        returnItem.RetainedEarningsAttributableToFdiInr = req.RetainedEarningsAttributableToFdiInr;
+        returnItem.HasOdi = req.HasOdi;
+        returnItem.OverseasEntityName = req.OverseasEntityName;
+        returnItem.OverseasCountry = req.OverseasCountry;
+        returnItem.OdiEquityHoldingPct = req.OdiEquityHoldingPct;
+        returnItem.OdiEquityInvestmentInr = req.OdiEquityInvestmentInr;
+        returnItem.OdiLoanOutstandingInr = req.OdiLoanOutstandingInr;
+        returnItem.OdiGuaranteeIssuedInr = req.OdiGuaranteeIssuedInr;
+        returnItem.ExternalCommercialBorrowingsEcbInr = req.ExternalCommercialBorrowingsEcbInr;
+        returnItem.ForeignTradeCreditSuppliersInr = req.ForeignTradeCreditSuppliersInr;
+        returnItem.ForeignTradeCreditBuyersInr = req.ForeignTradeCreditBuyersInr;
+        returnItem.ForeignBankBalancesInr = req.ForeignBankBalancesInr;
+        returnItem.OtherForeignAssetsInr = req.OtherForeignAssetsInr;
+        returnItem.UpdatedAt = DateTime.UtcNow;
+
+        // Run calculation
+        RbiFlaEngine.CalculateFlaReturn(returnItem, DateTime.UtcNow);
+
+        await _db.SaveChangesAsync(ct);
+        return MapFlaReturnToDto(returnItem);
+    }
+
+    public async Task<RbiAnnualFlaReturnDto> CertifyFlaReturnAsync(Guid id, CertifyRbiFlaRequest req, CancellationToken ct = default)
+    {
+        var firmId = _tenantContext.FirmId;
+        var item = await _db.RbiAnnualFlaReturns.Include(x => x.Client).FirstOrDefaultAsync(x => x.Id == id && x.FirmId == firmId, ct)
+            ?? throw new KeyNotFoundException("RBI Annual FLA return not found.");
+
+        item.CertifiedByCa = req.CertifiedByCa;
+        item.Udin = req.Udin;
+        item.VerificationNotes = req.VerificationNotes;
+        item.CertifiedAt = DateTime.UtcNow;
+        item.Status = FlaReturnStatus.Certified;
+
+        RbiFlaEngine.CalculateFlaReturn(item, DateTime.UtcNow);
+
+        await _db.SaveChangesAsync(ct);
+        return MapFlaReturnToDto(item);
+    }
+
+    public async Task<RbiAnnualFlaReturnDto> FileFlaReturnAsync(Guid id, FileRbiFlaRequest req, CancellationToken ct = default)
+    {
+        var firmId = _tenantContext.FirmId;
+        var item = await _db.RbiAnnualFlaReturns.Include(x => x.Client).FirstOrDefaultAsync(x => x.Id == id && x.FirmId == firmId, ct)
+            ?? throw new KeyNotFoundException("RBI Annual FLA return not found.");
+
+        item.RbiFlairAckNumber = req.RbiFlairAckNumber;
+        item.SubmittedAt = DateTime.UtcNow;
+        item.Status = FlaReturnStatus.SubmittedToRbiFlair;
+
+        await _db.SaveChangesAsync(ct);
+        return MapFlaReturnToDto(item);
+    }
+
+    public async Task DeleteFlaReturnAsync(Guid id, CancellationToken ct = default)
+    {
+        var firmId = _tenantContext.FirmId;
+        var item = await _db.RbiAnnualFlaReturns.FirstOrDefaultAsync(x => x.Id == id && x.FirmId == firmId, ct)
+            ?? throw new KeyNotFoundException("RBI Annual FLA return not found.");
+
+        _db.RbiAnnualFlaReturns.Remove(item);
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task<string> GetFlaReturnHtmlAsync(Guid id, CancellationToken ct = default)
+    {
+        var item = await _db.RbiAnnualFlaReturns.FirstAsync(x => x.Id == id, ct);
+        return RbiFlaEngine.GenerateFlaReturnHtml(item);
+    }
+
+    // =========================================================================
+    // SPRINT 62: DTAA MFN CLAUSE & PE RISK EVALUATION
+    // =========================================================================
+
+    public DtaaMfnEvaluationDto EvaluateDtaaMfn(DtaaMfnEvaluationRequest req)
+    {
+        var res = DtaaMfnPeEngine.EvaluateMfnClause(req.Country, req.BaseTreatyRate);
+        return new DtaaMfnEvaluationDto(
+            HasMfnClause: res.HasMfnClause,
+            MfnRate: res.MfnRate,
+            IsCbdtNotificationMandatory: res.IsCbdtNotificationMandatory,
+            GuidanceNote: res.GuidanceNote
+        );
+    }
+
+    public PeExposureEvaluationDto EvaluatePeRisk(PeExposureEvaluationRequest req)
+    {
+        var res = DtaaMfnPeEngine.EvaluatePeRisk(
+            req.HasPhysicalOffice,
+            req.PersonnelDaysInIndia,
+            req.HasAuthorityToConcludeContracts,
+            req.MaintainsInventoryStock,
+            req.TreatyCountry
+        );
+
+        return new PeExposureEvaluationDto(
+            IsPeExposed: res.IsPeExposed,
+            PeType: res.PeType,
+            AssessmentSummary: res.AssessmentSummary
+        );
+    }
+
+    private static FemaFirmsFilingDto MapFirmsFilingToDto(FemaFirmsFiling f)
+    {
+        return new FemaFirmsFilingDto(
+            Id: f.Id,
+            ClientId: f.ClientId,
+            ClientName: f.Client?.Name,
+            ClientPan: f.Client?.TaxIds.GetValueOrDefault("PAN"),
+            FilingType: f.FilingType,
+            ReferenceNumber: f.ReferenceNumber,
+            IndianEntityCin: f.IndianEntityCin,
+            IndianEntityName: f.IndianEntityName,
+            Pan: f.Pan,
+            NonResidentPartyName: f.NonResidentPartyName,
+            NonResidentCountry: f.NonResidentCountry,
+            NonResidentCountryCode: f.NonResidentCountryCode,
+            InstrumentType: f.InstrumentType,
+            NumberOfInstruments: f.NumberOfInstruments,
+            FaceValuePerInstrument: f.FaceValuePerInstrument,
+            IssueOrTransferPricePerInstrument: f.IssueOrTransferPricePerInstrument,
+            FairValuePerInstrument: f.FairValuePerInstrument,
+            TotalConsiderationInr: f.TotalConsiderationInr,
+            TotalConsiderationFc: f.TotalConsiderationFc,
+            Currency: f.Currency,
+            ExchangeRate: f.ExchangeRate,
+            ValuationMethod: f.ValuationMethod,
+            ValuerName: f.ValuerName,
+            ValuationReportDate: f.ValuationReportDate,
+            DateOfAllotmentOrTransfer: f.DateOfAllotmentOrTransfer,
+            StatutoryFilingDeadline: f.StatutoryFilingDeadline,
+            DaysElapsed: f.DaysElapsed,
+            DaysRemaining: f.DaysRemaining,
+            IsLateSubmission: f.IsLateSubmission,
+            LateSubmissionFeeEstimated: f.LateSubmissionFeeEstimated,
+            FdiRoute: f.FdiRoute,
+            EntryRouteApprovalRef: f.EntryRouteApprovalRef,
+            SectoralCapPct: f.SectoralCapPct,
+            PostAllotmentForeignShareholdingPct: f.PostAllotmentForeignShareholdingPct,
+            TransferDirection: f.TransferDirection,
+            TransferMode: f.TransferMode,
+            BuyerAdBankName: f.BuyerAdBankName,
+            SellerAdBankName: f.SellerAdBankName,
+            PricingGuidelinesMet: f.PricingGuidelinesMet,
+            PricingComplianceRemarks: f.PricingComplianceRemarks,
+            GeneratedComplianceCertificate: f.GeneratedComplianceCertificate,
+            Status: f.Status,
+            Udin: f.Udin,
+            CertifiedAt: f.CertifiedAt,
+            CertifiedByCaName: f.CertifiedByCaName,
+            CaMembershipNumber: f.CaMembershipNumber,
+            CaFirmName: f.CaFirmName,
+            RbiAcknowledgmentReference: f.RbiAcknowledgmentReference,
+            CreatedAt: f.CreatedAt
+        );
+    }
+
+    private static RbiAnnualFlaReturnDto MapFlaReturnToDto(RbiAnnualFlaReturn fla)
+    {
+        return new RbiAnnualFlaReturnDto(
+            Id: fla.Id,
+            ClientId: fla.ClientId,
+            ClientName: fla.Client?.Name,
+            ClientPan: fla.Client?.TaxIds.GetValueOrDefault("PAN"),
+            FinancialYear: fla.FinancialYear,
+            CompanyCin: fla.CompanyCin,
+            CompanyName: fla.CompanyName,
+            Pan: fla.Pan,
+            AccountClosingDate: fla.AccountClosingDate,
+            StatutoryFilingDeadline: fla.StatutoryFilingDeadline,
+            AuditStatus: fla.AuditStatus,
+            PaidUpCapitalInr: fla.PaidUpCapitalInr,
+            ReservesAndSurplusInr: fla.ReservesAndSurplusInr,
+            NetWorthInr: fla.NetWorthInr,
+            TotalSalesTurnoverInr: fla.TotalSalesTurnoverInr,
+            NetProfitLossAfterTaxInr: fla.NetProfitLossAfterTaxInr,
+            TotalAssetsInr: fla.TotalAssetsInr,
+            TotalLiabilitiesInr: fla.TotalLiabilitiesInr,
+            ForeignEquityHoldingPct: fla.ForeignEquityHoldingPct,
+            FdiAtFaceValueInr: fla.FdiAtFaceValueInr,
+            FdiAtNetAssetValueInr: fla.FdiAtNetAssetValueInr,
+            FdiAtMarketOrDcfValueInr: fla.FdiAtMarketOrDcfValueInr,
+            FreshFdiInflowsDuringYearInr: fla.FreshFdiInflowsDuringYearInr,
+            DisinvestmentOutflowsDuringYearInr: fla.DisinvestmentOutflowsDuringYearInr,
+            RetainedEarningsAttributableToFdiInr: fla.RetainedEarningsAttributableToFdiInr,
+            HasOdi: fla.HasOdi,
+            OverseasEntityName: fla.OverseasEntityName,
+            OverseasCountry: fla.OverseasCountry,
+            OdiEquityHoldingPct: fla.OdiEquityHoldingPct,
+            OdiEquityInvestmentInr: fla.OdiEquityInvestmentInr,
+            OdiLoanOutstandingInr: fla.OdiLoanOutstandingInr,
+            OdiGuaranteeIssuedInr: fla.OdiGuaranteeIssuedInr,
+            TotalOdiFinancialCommitmentInr: fla.TotalOdiFinancialCommitmentInr,
+            ExternalCommercialBorrowingsEcbInr: fla.ExternalCommercialBorrowingsEcbInr,
+            ForeignTradeCreditSuppliersInr: fla.ForeignTradeCreditSuppliersInr,
+            ForeignTradeCreditBuyersInr: fla.ForeignTradeCreditBuyersInr,
+            ForeignBankBalancesInr: fla.ForeignBankBalancesInr,
+            OtherForeignAssetsInr: fla.OtherForeignAssetsInr,
+            NetForeignLiabilitiesPositionInr: fla.NetForeignLiabilitiesPositionInr,
+            IsMandatoryFiling: fla.IsMandatoryFiling,
+            DaysRemainingToDeadline: fla.DaysRemainingToDeadline,
+            IsDeadlineBreached: fla.IsDeadlineBreached,
+            FilingStatusAlert: fla.FilingStatusAlert,
+            Status: fla.Status,
+            RbiFlairAckNumber: fla.RbiFlairAckNumber,
+            SubmittedAt: fla.SubmittedAt,
+            Udin: fla.Udin,
+            CertifiedAt: fla.CertifiedAt,
+            CertifiedByCa: fla.CertifiedByCa,
+            VerificationNotes: fla.VerificationNotes,
+            CreatedAt: fla.CreatedAt
+        );
+    }
 }

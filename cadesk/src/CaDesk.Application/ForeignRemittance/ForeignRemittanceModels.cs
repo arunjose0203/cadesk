@@ -226,3 +226,242 @@ public record CertifyRemittanceRequest(
 public record FileRemittanceRequest(
     string AcknowledgementNumber
 );
+
+// -----------------------------------------------------------------------------
+// SPRINT 62: RBI FEMA FIRMS PORTAL & ANNUAL FLA RETURN MODELS
+// -----------------------------------------------------------------------------
+
+public record FemaFirmsFilingDto(
+    Guid Id,
+    Guid ClientId,
+    string? ClientName,
+    string? ClientPan,
+    CaDesk.Domain.ForeignRemittance.FirmsFilingType FilingType,
+    string ReferenceNumber,
+    string IndianEntityCin,
+    string IndianEntityName,
+    string Pan,
+    string NonResidentPartyName,
+    string NonResidentCountry,
+    string NonResidentCountryCode,
+    CaDesk.Domain.ForeignRemittance.CapitalInstrumentType InstrumentType,
+    long NumberOfInstruments,
+    decimal FaceValuePerInstrument,
+    decimal IssueOrTransferPricePerInstrument,
+    decimal FairValuePerInstrument,
+    decimal TotalConsiderationInr,
+    decimal TotalConsiderationFc,
+    string Currency,
+    decimal ExchangeRate,
+    string ValuationMethod,
+    string ValuerName,
+    DateTime? ValuationReportDate,
+    DateTime DateOfAllotmentOrTransfer,
+    DateTime StatutoryFilingDeadline,
+    int DaysElapsed,
+    int DaysRemaining,
+    bool IsLateSubmission,
+    decimal LateSubmissionFeeEstimated,
+    CaDesk.Domain.ForeignRemittance.FdiEntryRoute FdiRoute,
+    string? EntryRouteApprovalRef,
+    decimal SectoralCapPct,
+    decimal PostAllotmentForeignShareholdingPct,
+    CaDesk.Domain.ForeignRemittance.TransferDirectionType TransferDirection,
+    CaDesk.Domain.ForeignRemittance.TransferModeType TransferMode,
+    string? BuyerAdBankName,
+    string? SellerAdBankName,
+    bool PricingGuidelinesMet,
+    string PricingComplianceRemarks,
+    string? GeneratedComplianceCertificate,
+    CaDesk.Domain.ForeignRemittance.FirmsFilingStatus Status,
+    string? Udin,
+    DateTime? CertifiedAt,
+    string? CertifiedByCaName,
+    string? CaMembershipNumber,
+    string? CaFirmName,
+    string? RbiAcknowledgmentReference,
+    DateTime CreatedAt
+);
+
+public record SaveFemaFirmsFilingRequest(
+    Guid? Id,
+    Guid ClientId,
+    CaDesk.Domain.ForeignRemittance.FirmsFilingType FilingType,
+    string ReferenceNumber,
+    string IndianEntityCin,
+    string IndianEntityName,
+    string Pan,
+    string NonResidentPartyName,
+    string NonResidentCountry,
+    string? NonResidentCountryCode,
+    CaDesk.Domain.ForeignRemittance.CapitalInstrumentType InstrumentType,
+    long NumberOfInstruments,
+    decimal FaceValuePerInstrument,
+    decimal IssueOrTransferPricePerInstrument,
+    decimal FairValuePerInstrument,
+    decimal TotalConsiderationInr,
+    decimal TotalConsiderationFc,
+    string Currency,
+    decimal ExchangeRate,
+    string ValuationMethod,
+    string ValuerName,
+    DateTime? ValuationReportDate,
+    DateTime DateOfAllotmentOrTransfer,
+    CaDesk.Domain.ForeignRemittance.FdiEntryRoute FdiRoute,
+    string? EntryRouteApprovalRef,
+    decimal SectoralCapPct,
+    decimal PostAllotmentForeignShareholdingPct,
+    CaDesk.Domain.ForeignRemittance.TransferDirectionType TransferDirection,
+    CaDesk.Domain.ForeignRemittance.TransferModeType TransferMode,
+    string? BuyerAdBankName,
+    string? SellerAdBankName
+);
+
+public record CertifyFemaFirmsRequest(
+    string CaName,
+    string CaMembershipNumber,
+    string CaFirmName,
+    string Udin
+);
+
+public record RbiAnnualFlaReturnDto(
+    Guid Id,
+    Guid ClientId,
+    string? ClientName,
+    string? ClientPan,
+    string FinancialYear,
+    string CompanyCin,
+    string CompanyName,
+    string Pan,
+    DateTime AccountClosingDate,
+    DateTime StatutoryFilingDeadline,
+    CaDesk.Domain.ForeignRemittance.FlaAuditStatus AuditStatus,
+    decimal PaidUpCapitalInr,
+    decimal ReservesAndSurplusInr,
+    decimal NetWorthInr,
+    decimal TotalSalesTurnoverInr,
+    decimal NetProfitLossAfterTaxInr,
+    decimal TotalAssetsInr,
+    decimal TotalLiabilitiesInr,
+    decimal ForeignEquityHoldingPct,
+    decimal FdiAtFaceValueInr,
+    decimal FdiAtNetAssetValueInr,
+    decimal FdiAtMarketOrDcfValueInr,
+    decimal FreshFdiInflowsDuringYearInr,
+    decimal DisinvestmentOutflowsDuringYearInr,
+    decimal RetainedEarningsAttributableToFdiInr,
+    bool HasOdi,
+    string? OverseasEntityName,
+    string? OverseasCountry,
+    decimal OdiEquityHoldingPct,
+    decimal OdiEquityInvestmentInr,
+    decimal OdiLoanOutstandingInr,
+    decimal OdiGuaranteeIssuedInr,
+    decimal TotalOdiFinancialCommitmentInr,
+    decimal ExternalCommercialBorrowingsEcbInr,
+    decimal ForeignTradeCreditSuppliersInr,
+    decimal ForeignTradeCreditBuyersInr,
+    decimal ForeignBankBalancesInr,
+    decimal OtherForeignAssetsInr,
+    decimal NetForeignLiabilitiesPositionInr,
+    bool IsMandatoryFiling,
+    int DaysRemainingToDeadline,
+    bool IsDeadlineBreached,
+    string FilingStatusAlert,
+    CaDesk.Domain.ForeignRemittance.FlaReturnStatus Status,
+    string? RbiFlairAckNumber,
+    DateTime? SubmittedAt,
+    string? Udin,
+    DateTime? CertifiedAt,
+    string? CertifiedByCa,
+    string? VerificationNotes,
+    DateTime CreatedAt
+);
+
+public record SaveRbiAnnualFlaReturnRequest(
+    Guid? Id,
+    Guid ClientId,
+    string FinancialYear,
+    string CompanyCin,
+    string CompanyName,
+    string Pan,
+    DateTime AccountClosingDate,
+    DateTime StatutoryFilingDeadline,
+    CaDesk.Domain.ForeignRemittance.FlaAuditStatus AuditStatus,
+    decimal PaidUpCapitalInr,
+    decimal ReservesAndSurplusInr,
+    decimal TotalSalesTurnoverInr,
+    decimal NetProfitLossAfterTaxInr,
+    decimal TotalAssetsInr,
+    decimal TotalLiabilitiesInr,
+    decimal ForeignEquityHoldingPct,
+    decimal FdiAtFaceValueInr,
+    decimal FdiAtMarketOrDcfValueInr,
+    decimal FreshFdiInflowsDuringYearInr,
+    decimal DisinvestmentOutflowsDuringYearInr,
+    decimal RetainedEarningsAttributableToFdiInr,
+    bool HasOdi,
+    string? OverseasEntityName,
+    string? OverseasCountry,
+    decimal OdiEquityHoldingPct,
+    decimal OdiEquityInvestmentInr,
+    decimal OdiLoanOutstandingInr,
+    decimal OdiGuaranteeIssuedInr,
+    decimal ExternalCommercialBorrowingsEcbInr,
+    decimal ForeignTradeCreditSuppliersInr,
+    decimal ForeignTradeCreditBuyersInr,
+    decimal ForeignBankBalancesInr,
+    decimal OtherForeignAssetsInr
+);
+
+public record CertifyRbiFlaRequest(
+    string CertifiedByCa,
+    string Udin,
+    string? VerificationNotes
+);
+
+public record FileRbiFlaRequest(
+    string RbiFlairAckNumber
+);
+
+public record DtaaMfnEvaluationRequest(
+    string Country,
+    decimal BaseTreatyRate
+);
+
+public record DtaaMfnEvaluationDto(
+    bool HasMfnClause,
+    decimal MfnRate,
+    bool IsCbdtNotificationMandatory,
+    string GuidanceNote
+);
+
+public record PeExposureEvaluationRequest(
+    bool HasPhysicalOffice,
+    int PersonnelDaysInIndia,
+    bool HasAuthorityToConcludeContracts,
+    bool MaintainsInventoryStock,
+    string TreatyCountry
+);
+
+public record PeExposureEvaluationDto(
+    bool IsPeExposed,
+    string PeType,
+    string AssessmentSummary
+);
+
+public record FemaFirmsSummaryDto(
+    int TotalFilings,
+    int FcGprCount,
+    int FcTrsCount,
+    decimal TotalConsiderationInr,
+    int LateSubmissionsCount
+);
+
+public record RbiFlaSummaryDto(
+    int TotalReturns,
+    decimal TotalFdiNetAssetValueInr,
+    decimal TotalOdiFinancialCommitmentInr,
+    int MandatoryReturnsCount,
+    int OverdueCount
+);

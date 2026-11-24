@@ -191,6 +191,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
     public DbSet<UncorrectedMisstatement> UncorrectedMisstatements => Set<UncorrectedMisstatement>();
     public DbSet<ForeignRemittanceAssessment> ForeignRemittanceAssessments => Set<ForeignRemittanceAssessment>();
     public DbSet<ForeignRemittanceChecklistItem> ForeignRemittanceChecklists => Set<ForeignRemittanceChecklistItem>();
+    public DbSet<FemaFirmsFiling> FemaFirmsFilings => Set<FemaFirmsFiling>();
+    public DbSet<RbiAnnualFlaReturn> RbiAnnualFlaReturns => Set<RbiAnnualFlaReturn>();
     public DbSet<RelatedPartyEntity> RelatedPartyEntities => Set<RelatedPartyEntity>();
     public DbSet<RelatedPartyTransaction> RelatedPartyTransactions => Set<RelatedPartyTransaction>();
     public DbSet<RelatedPartyOmnibusApproval> RelatedPartyOmnibusApprovals => Set<RelatedPartyOmnibusApproval>();
@@ -1204,6 +1206,29 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
             e.ToTable("foreign_remittance_checklists");
             e.HasOne(x => x.Assessment).WithMany(x => x.Checklist).HasForeignKey(x => x.AssessmentId).OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(x => new { x.FirmId, x.AssessmentId }).HasDatabaseName("ix_foreign_remittance_checklists_assessment");
+        });
+
+        b.Entity<FemaFirmsFiling>(e =>
+        {
+            e.ToTable("fema_firms_filings");
+            e.Property(x => x.FilingType).HasConversion<string>();
+            e.Property(x => x.InstrumentType).HasConversion<string>();
+            e.Property(x => x.FdiRoute).HasConversion<string>();
+            e.Property(x => x.TransferDirection).HasConversion<string>();
+            e.Property(x => x.TransferMode).HasConversion<string>();
+            e.Property(x => x.Status).HasConversion<string>();
+            e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.FirmId, x.ClientId }).HasDatabaseName("ix_fema_firms_filings_firm_client");
+        });
+
+        b.Entity<RbiAnnualFlaReturn>(e =>
+        {
+            e.ToTable("rbi_annual_fla_returns");
+            e.Property(x => x.AuditStatus).HasConversion<string>();
+            e.Property(x => x.Status).HasConversion<string>();
+            e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.FirmId, x.ClientId }).HasDatabaseName("ix_rbi_annual_fla_returns_firm_client");
+            e.HasIndex(x => x.FinancialYear).HasDatabaseName("ix_rbi_annual_fla_returns_fy");
         });
 
         b.Entity<RelatedPartyEntity>(e =>

@@ -5183,7 +5183,305 @@ export const foreignRemittanceApi = {
   certify: (id: string, req: CertifyRemittanceRequest) =>
     api<ForeignRemittanceAssessmentDto>(`/api/foreign-remittance/assessments/${id}/certify`, { method: 'POST', body: JSON.stringify(req) }),
   file: (id: string, req: FileRemittanceRequest) =>
-    api<ForeignRemittanceAssessmentDto>(`/api/foreign-remittance/assessments/${id}/file`, { method: 'POST', body: JSON.stringify(req) })
+    api<ForeignRemittanceAssessmentDto>(`/api/foreign-remittance/assessments/${id}/file`, { method: 'POST', body: JSON.stringify(req) }),
+
+  // SPRINT 62: FEMA FIRMS PORTAL API
+  getFirmsSummary: () =>
+    api<FemaFirmsSummaryDto>('/api/foreign-remittance/firms/summary'),
+  getFirmsFilings: (clientId?: string, type?: FirmsFilingType) => {
+    const params = new URLSearchParams()
+    if (clientId) params.set('clientId', clientId)
+    if (type) params.set('type', type)
+    const qs = params.toString()
+    return api<FemaFirmsFilingDto[]>(`/api/foreign-remittance/firms/filings${qs ? `?${qs}` : ''}`)
+  },
+  getFirmsFiling: (id: string) =>
+    api<FemaFirmsFilingDto>(`/api/foreign-remittance/firms/filings/${id}`),
+  saveFirmsFiling: (req: SaveFemaFirmsFilingRequest) =>
+    api<FemaFirmsFilingDto>('/api/foreign-remittance/firms/filings', { method: 'POST', body: JSON.stringify(req) }),
+  certifyFirmsFiling: (id: string, req: CertifyFemaFirmsRequest) =>
+    api<FemaFirmsFilingDto>(`/api/foreign-remittance/firms/filings/${id}/certify`, { method: 'POST', body: JSON.stringify(req) }),
+  deleteFirmsFiling: (id: string) =>
+    api<void>(`/api/foreign-remittance/firms/filings/${id}`, { method: 'DELETE' }),
+  getFirmsCertificateHtmlUrl: (id: string) =>
+    `/api/foreign-remittance/firms/filings/${id}/certificate-html`,
+
+  // SPRINT 62: RBI ANNUAL FLA RETURN API
+  getFlaSummary: (fy?: string) =>
+    api<RbiFlaSummaryDto>(`/api/foreign-remittance/fla/summary${fy ? `?fy=${encodeURIComponent(fy)}` : ''}`),
+  getFlaReturns: (clientId?: string, fy?: string) => {
+    const params = new URLSearchParams()
+    if (clientId) params.set('clientId', clientId)
+    if (fy) params.set('fy', fy)
+    const qs = params.toString()
+    return api<RbiAnnualFlaReturnDto[]>(`/api/foreign-remittance/fla/returns${qs ? `?${qs}` : ''}`)
+  },
+  getFlaReturn: (id: string) =>
+    api<RbiAnnualFlaReturnDto>(`/api/foreign-remittance/fla/returns/${id}`),
+  saveFlaReturn: (req: SaveRbiAnnualFlaReturnRequest) =>
+    api<RbiAnnualFlaReturnDto>('/api/foreign-remittance/fla/returns', { method: 'POST', body: JSON.stringify(req) }),
+  certifyFlaReturn: (id: string, req: CertifyRbiFlaRequest) =>
+    api<RbiAnnualFlaReturnDto>(`/api/foreign-remittance/fla/returns/${id}/certify`, { method: 'POST', body: JSON.stringify(req) }),
+  fileFlaReturn: (id: string, req: FileRbiFlaRequest) =>
+    api<RbiAnnualFlaReturnDto>(`/api/foreign-remittance/fla/returns/${id}/file`, { method: 'POST', body: JSON.stringify(req) }),
+  deleteFlaReturn: (id: string) =>
+    api<void>(`/api/foreign-remittance/fla/returns/${id}`, { method: 'DELETE' }),
+  getFlaReportHtmlUrl: (id: string) =>
+    `/api/foreign-remittance/fla/returns/${id}/report-html`,
+
+  // SPRINT 62: DTAA MFN & PE EVALUATION API
+  evaluateMfn: (req: DtaaMfnEvaluationRequest) =>
+    api<DtaaMfnEvaluationDto>('/api/foreign-remittance/evaluate-mfn', { method: 'POST', body: JSON.stringify(req) }),
+  evaluatePe: (req: PeExposureEvaluationRequest) =>
+    api<PeExposureEvaluationDto>('/api/foreign-remittance/evaluate-pe', { method: 'POST', body: JSON.stringify(req) })
+}
+
+// -----------------------------------------------------------------------------
+// SPRINT 62: FEMA FIRMS & RBI ANNUAL FLA TYPES
+// -----------------------------------------------------------------------------
+
+export type FirmsFilingType = 'FcGpr' | 'FcTrs'
+export type CapitalInstrumentType = 'EquityShares' | 'CCDs' | 'CCPS' | 'ShareWarrants'
+export type FdiEntryRoute = 'AutomaticRoute' | 'GovernmentApprovalRoute'
+export type TransferDirectionType = 'ResidentToNonResident' | 'NonResidentToResident' | 'NonResidentToNonResident'
+export type TransferModeType = 'Sale' | 'Gift' | 'Swap' | 'Merger'
+export type FirmsFilingStatus = 'Draft' | 'Validated' | 'Certified' | 'SubmittedToAdBank' | 'ApprovedByRbi'
+export type FlaAuditStatus = 'Audited' | 'UnauditedProvisional'
+export type FlaReturnStatus = 'Draft' | 'Validated' | 'Certified' | 'SubmittedToRbiFlair'
+
+export interface FemaFirmsFilingDto {
+  id: string
+  clientId: string
+  clientName?: string
+  clientPan?: string
+  filingType: FirmsFilingType
+  referenceNumber: string
+  indianEntityCin: string
+  indianEntityName: string
+  pan: string
+  nonResidentPartyName: string
+  nonResidentCountry: string
+  nonResidentCountryCode: string
+  instrumentType: CapitalInstrumentType
+  numberOfInstruments: number
+  faceValuePerInstrument: number
+  issueOrTransferPricePerInstrument: number
+  fairValuePerInstrument: number
+  totalConsiderationInr: number
+  totalConsiderationFc: number
+  currency: string
+  exchangeRate: number
+  valuationMethod: string
+  valuerName: string
+  valuationReportDate?: string
+  dateOfAllotmentOrTransfer: string
+  statutoryFilingDeadline: string
+  daysElapsed: number
+  daysRemaining: number
+  isLateSubmission: boolean
+  lateSubmissionFeeEstimated: number
+  fdiRoute: FdiEntryRoute
+  entryRouteApprovalRef?: string
+  sectoralCapPct: number
+  postAllotmentForeignShareholdingPct: number
+  transferDirection: TransferDirectionType
+  transferMode: TransferModeType
+  buyerAdBankName?: string
+  sellerAdBankName?: string
+  pricingGuidelinesMet: boolean
+  pricingComplianceRemarks: string
+  generatedComplianceCertificate?: string
+  status: FirmsFilingStatus
+  udin?: string
+  certifiedAt?: string
+  certifiedByCaName?: string
+  caMembershipNumber?: string
+  caFirmName?: string
+  rbiAcknowledgmentReference?: string
+  createdAt: string
+}
+
+export interface SaveFemaFirmsFilingRequest {
+  id?: string
+  clientId: string
+  filingType: FirmsFilingType
+  referenceNumber: string
+  indianEntityCin: string
+  indianEntityName: string
+  pan: string
+  nonResidentPartyName: string
+  nonResidentCountry: string
+  nonResidentCountryCode?: string
+  instrumentType: CapitalInstrumentType
+  numberOfInstruments: number
+  faceValuePerInstrument: number
+  issueOrTransferPricePerInstrument: number
+  fairValuePerInstrument: number
+  totalConsiderationInr: number
+  totalConsiderationFc: number
+  currency: string
+  exchangeRate: number
+  valuationMethod: string
+  valuerName: string
+  valuationReportDate?: string
+  dateOfAllotmentOrTransfer: string
+  fdiRoute: FdiEntryRoute
+  entryRouteApprovalRef?: string
+  sectoralCapPct: number
+  postAllotmentForeignShareholdingPct: number
+  transferDirection: TransferDirectionType
+  transferMode: TransferModeType
+  buyerAdBankName?: string
+  sellerAdBankName?: string
+}
+
+export interface CertifyFemaFirmsRequest {
+  caName: string
+  caMembershipNumber: string
+  caFirmName: string
+  udin: string
+}
+
+export interface FemaFirmsSummaryDto {
+  totalFilings: number
+  fcGprCount: number
+  fcTrsCount: number
+  totalConsiderationInr: number
+  lateSubmissionsCount: number
+}
+
+export interface RbiAnnualFlaReturnDto {
+  id: string
+  clientId: string
+  clientName?: string
+  clientPan?: string
+  financialYear: string
+  companyCin: string
+  companyName: string
+  pan: string
+  accountClosingDate: string
+  statutoryFilingDeadline: string
+  auditStatus: FlaAuditStatus
+  paidUpCapitalInr: number
+  reservesAndSurplusInr: number
+  netWorthInr: number
+  totalSalesTurnoverInr: number
+  netProfitLossAfterTaxInr: number
+  totalAssetsInr: number
+  totalLiabilitiesInr: number
+  foreignEquityHoldingPct: number
+  fdiAtFaceValueInr: number
+  fdiAtNetAssetValueInr: number
+  fdiAtMarketOrDcfValueInr: number
+  freshFdiInflowsDuringYearInr: number
+  disinvestmentOutflowsDuringYearInr: number
+  retainedEarningsAttributableToFdiInr: number
+  hasOdi: boolean
+  overseasEntityName?: string
+  overseasCountry?: string
+  odiEquityHoldingPct: number
+  odiEquityInvestmentInr: number
+  odiLoanOutstandingInr: number
+  odiGuaranteeIssuedInr: number
+  totalOdiFinancialCommitmentInr: number
+  externalCommercialBorrowingsEcbInr: number
+  foreignTradeCreditSuppliersInr: number
+  foreignTradeCreditBuyersInr: number
+  foreignBankBalancesInr: number
+  otherForeignAssetsInr: number
+  netForeignLiabilitiesPositionInr: number
+  isMandatoryFiling: boolean
+  daysRemainingToDeadline: number
+  isDeadlineBreached: boolean
+  filingStatusAlert: string
+  status: FlaReturnStatus
+  rbiFlairAckNumber?: string
+  submittedAt?: string
+  udin?: string
+  certifiedAt?: string
+  certifiedByCa?: string
+  verificationNotes?: string
+  createdAt: string
+}
+
+export interface SaveRbiAnnualFlaReturnRequest {
+  id?: string
+  clientId: string
+  financialYear: string
+  companyCin: string
+  companyName: string
+  pan: string
+  accountClosingDate: string
+  statutoryFilingDeadline: string
+  auditStatus: FlaAuditStatus
+  paidUpCapitalInr: number
+  reservesAndSurplusInr: number
+  totalSalesTurnoverInr: number
+  netProfitLossAfterTaxInr: number
+  totalAssetsInr: number
+  totalLiabilitiesInr: number
+  foreignEquityHoldingPct: number
+  fdiAtFaceValueInr: number
+  fdiAtMarketOrDcfValueInr: number
+  freshFdiInflowsDuringYearInr: number
+  disinvestmentOutflowsDuringYearInr: number
+  retainedEarningsAttributableToFdiInr: number
+  hasOdi: boolean
+  overseasEntityName?: string
+  overseasCountry?: string
+  odiEquityHoldingPct: number
+  odiEquityInvestmentInr: number
+  odiLoanOutstandingInr: number
+  odiGuaranteeIssuedInr: number
+  externalCommercialBorrowingsEcbInr: number
+  foreignTradeCreditSuppliersInr: number
+  foreignTradeCreditBuyersInr: number
+  foreignBankBalancesInr: number
+  otherForeignAssetsInr: number
+}
+
+export interface CertifyRbiFlaRequest {
+  certifiedByCa: string
+  udin: string
+  verificationNotes?: string
+}
+
+export interface FileRbiFlaRequest {
+  rbiFlairAckNumber: string
+}
+
+export interface RbiFlaSummaryDto {
+  totalReturns: number
+  totalFdiNetAssetValueInr: number
+  totalOdiFinancialCommitmentInr: number
+  mandatoryReturnsCount: number
+  overdueCount: number
+}
+
+export interface DtaaMfnEvaluationRequest {
+  country: string
+  baseTreatyRate: number
+}
+
+export interface DtaaMfnEvaluationDto {
+  hasMfnClause: boolean
+  mfnRate: number
+  isCbdtNotificationMandatory: boolean
+  guidanceNote: string
+}
+
+export interface PeExposureEvaluationRequest {
+  hasPhysicalOffice: boolean
+  personnelDaysInIndia: number
+  hasAuthorityToConcludeContracts: boolean
+  maintainsInventoryStock: boolean
+  treatyCountry: string
+}
+
+export interface PeExposureEvaluationDto {
+  isPeExposed: boolean
+  peType: string
+  assessmentSummary: string
 }
 
 // ----------------------------------------------------------------------

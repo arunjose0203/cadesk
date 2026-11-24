@@ -175,6 +175,8 @@ public interface IAppDbContext
     DbSet<CaDesk.Domain.AuditCommittee.UncorrectedMisstatement> UncorrectedMisstatements { get; }
     DbSet<CaDesk.Domain.ForeignRemittance.ForeignRemittanceAssessment> ForeignRemittanceAssessments { get; }
     DbSet<CaDesk.Domain.ForeignRemittance.ForeignRemittanceChecklistItem> ForeignRemittanceChecklists { get; }
+    DbSet<CaDesk.Domain.ForeignRemittance.FemaFirmsFiling> FemaFirmsFilings { get; }
+    DbSet<CaDesk.Domain.ForeignRemittance.RbiAnnualFlaReturn> RbiAnnualFlaReturns { get; }
     DbSet<CaDesk.Domain.RelatedParty.RelatedPartyEntity> RelatedPartyEntities { get; }
     DbSet<CaDesk.Domain.RelatedParty.RelatedPartyTransaction> RelatedPartyTransactions { get; }
     DbSet<CaDesk.Domain.RelatedParty.RelatedPartyOmnibusApproval> RelatedPartyOmnibusApprovals { get; }

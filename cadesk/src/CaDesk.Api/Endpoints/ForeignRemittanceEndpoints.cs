@@ -115,6 +115,146 @@ public static class ForeignRemittanceEndpoints
             return Results.Ok(result);
         }).RequirePermission(Perms.ForeignRemittanceManage);
 
+        // =====================================================================
+        // SPRINT 62: RBI FEMA FIRMS (FC-GPR / FC-TRS) ENDPOINTS
+        // =====================================================================
+
+        g.MapGet("/firms/summary", async (ForeignRemittanceService svc, CancellationToken ct) =>
+        {
+            var summary = await svc.GetFirmsSummaryAsync(ct);
+            return Results.Ok(summary);
+        }).RequirePermission(Perms.ForeignRemittanceRead);
+
+        g.MapGet("/firms/filings", async (
+            Guid? clientId,
+            CaDesk.Domain.ForeignRemittance.FirmsFilingType? type,
+            ForeignRemittanceService svc,
+            CancellationToken ct) =>
+        {
+            var list = await svc.GetFirmsFilingsAsync(clientId, type, ct);
+            return Results.Ok(list);
+        }).RequirePermission(Perms.ForeignRemittanceRead);
+
+        g.MapGet("/firms/filings/{id:guid}", async (Guid id, ForeignRemittanceService svc, CancellationToken ct) =>
+        {
+            var filing = await svc.GetFirmsFilingByIdAsync(id, ct);
+            return Results.Ok(filing);
+        }).RequirePermission(Perms.ForeignRemittanceRead);
+
+        g.MapPost("/firms/filings", async (
+            SaveFemaFirmsFilingRequest req,
+            ForeignRemittanceService svc,
+            CancellationToken ct) =>
+        {
+            var saved = await svc.SaveFirmsFilingAsync(req, ct);
+            return Results.Ok(saved);
+        }).RequirePermission(Perms.ForeignRemittanceManage);
+
+        g.MapPost("/firms/filings/{id:guid}/certify", async (
+            Guid id,
+            CertifyFemaFirmsRequest req,
+            ForeignRemittanceService svc,
+            CancellationToken ct) =>
+        {
+            var certified = await svc.CertifyFirmsFilingAsync(id, req, ct);
+            return Results.Ok(certified);
+        }).RequirePermission(Perms.ForeignRemittanceCertify);
+
+        g.MapDelete("/firms/filings/{id:guid}", async (Guid id, ForeignRemittanceService svc, CancellationToken ct) =>
+        {
+            await svc.DeleteFirmsFilingAsync(id, ct);
+            return Results.NoContent();
+        }).RequirePermission(Perms.ForeignRemittanceManage);
+
+        g.MapGet("/firms/filings/{id:guid}/certificate-html", async (Guid id, ForeignRemittanceService svc, CancellationToken ct) =>
+        {
+            var html = await svc.GetFirmsComplianceCertificateHtmlAsync(id, ct);
+            return Results.Content(html, "text/html");
+        }).RequirePermission(Perms.ForeignRemittanceRead);
+
+        // =====================================================================
+        // SPRINT 62: RBI ANNUAL FLA RETURN ENDPOINTS
+        // =====================================================================
+
+        g.MapGet("/fla/summary", async (string? fy, ForeignRemittanceService svc, CancellationToken ct) =>
+        {
+            var summary = await svc.GetFlaSummaryAsync(fy, ct);
+            return Results.Ok(summary);
+        }).RequirePermission(Perms.ForeignRemittanceRead);
+
+        g.MapGet("/fla/returns", async (
+            Guid? clientId,
+            string? fy,
+            ForeignRemittanceService svc,
+            CancellationToken ct) =>
+        {
+            var list = await svc.GetFlaReturnsAsync(clientId, fy, ct);
+            return Results.Ok(list);
+        }).RequirePermission(Perms.ForeignRemittanceRead);
+
+        g.MapGet("/fla/returns/{id:guid}", async (Guid id, ForeignRemittanceService svc, CancellationToken ct) =>
+        {
+            var item = await svc.GetFlaReturnByIdAsync(id, ct);
+            return Results.Ok(item);
+        }).RequirePermission(Perms.ForeignRemittanceRead);
+
+        g.MapPost("/fla/returns", async (
+            SaveRbiAnnualFlaReturnRequest req,
+            ForeignRemittanceService svc,
+            CancellationToken ct) =>
+        {
+            var saved = await svc.SaveFlaReturnAsync(req, ct);
+            return Results.Ok(saved);
+        }).RequirePermission(Perms.ForeignRemittanceManage);
+
+        g.MapPost("/fla/returns/{id:guid}/certify", async (
+            Guid id,
+            CertifyRbiFlaRequest req,
+            ForeignRemittanceService svc,
+            CancellationToken ct) =>
+        {
+            var certified = await svc.CertifyFlaReturnAsync(id, req, ct);
+            return Results.Ok(certified);
+        }).RequirePermission(Perms.ForeignRemittanceCertify);
+
+        g.MapPost("/fla/returns/{id:guid}/file", async (
+            Guid id,
+            FileRbiFlaRequest req,
+            ForeignRemittanceService svc,
+            CancellationToken ct) =>
+        {
+            var filed = await svc.FileFlaReturnAsync(id, req, ct);
+            return Results.Ok(filed);
+        }).RequirePermission(Perms.ForeignRemittanceManage);
+
+        g.MapDelete("/fla/returns/{id:guid}", async (Guid id, ForeignRemittanceService svc, CancellationToken ct) =>
+        {
+            await svc.DeleteFlaReturnAsync(id, ct);
+            return Results.NoContent();
+        }).RequirePermission(Perms.ForeignRemittanceManage);
+
+        g.MapGet("/fla/returns/{id:guid}/report-html", async (Guid id, ForeignRemittanceService svc, CancellationToken ct) =>
+        {
+            var html = await svc.GetFlaReturnHtmlAsync(id, ct);
+            return Results.Content(html, "text/html");
+        }).RequirePermission(Perms.ForeignRemittanceRead);
+
+        // =====================================================================
+        // SPRINT 62: DTAA MFN CLAUSE & PE RISK EVALUATION ENDPOINTS
+        // =====================================================================
+
+        g.MapPost("/evaluate-mfn", (DtaaMfnEvaluationRequest req, ForeignRemittanceService svc) =>
+        {
+            var res = svc.EvaluateDtaaMfn(req);
+            return Results.Ok(res);
+        }).RequirePermission(Perms.ForeignRemittanceRead);
+
+        g.MapPost("/evaluate-pe", (PeExposureEvaluationRequest req, ForeignRemittanceService svc) =>
+        {
+            var res = svc.EvaluatePeRisk(req);
+            return Results.Ok(res);
+        }).RequirePermission(Perms.ForeignRemittanceRead);
+
         return app;
     }
 }

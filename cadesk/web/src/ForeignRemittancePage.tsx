@@ -5,8 +5,29 @@ import {
   type ForeignRemittanceAssessmentDto,
   type ForeignRemittanceSummaryDto,
   type CreateForeignRemittanceRequest,
+  type FemaFirmsFilingDto,
+  type FemaFirmsSummaryDto,
+  type SaveFemaFirmsFilingRequest,
+  type CertifyFemaFirmsRequest,
+  type RbiAnnualFlaReturnDto,
+  type RbiFlaSummaryDto,
+  type SaveRbiAnnualFlaReturnRequest,
+  type CertifyRbiFlaRequest,
+  type DtaaMfnEvaluationDto,
+  type PeExposureEvaluationDto,
+  type FirmsFilingType,
+  type CapitalInstrumentType,
+  type FdiEntryRoute,
+  type TransferDirectionType,
+  type TransferModeType,
+  type FlaAuditStatus,
   type Client
 } from './api'
+
+function formatINR(val?: number): string {
+  if (val == null || isNaN(val)) return '₹0'
+  return '₹' + Number(val).toLocaleString('en-IN', { maximumFractionDigits: 2 })
+}
 
 const STANDARD_CURRENCIES = ['USD', 'EUR', 'GBP', 'SGD', 'AED', 'JPY', 'AUD', 'CAD', 'CHF', 'INR']
 
@@ -28,28 +49,121 @@ type ClientPage = {
   total: number
 }
 
-export function ForeignRemittancePage() {
-  const [assessments, setAssessments] = useState<ForeignRemittanceAssessmentDto[]>([])
-  const [summary, setSummary] = useState<ForeignRemittanceSummaryDto | null>(null)
-  const [clients, setClients] = useState<Client[]>([])
+export function ForeignRemittancePage({ can: _can }: { can?: (p: string) => boolean }) {
+  // Main Desk Tabs
+  const [deskTab, setDeskTab] = useState<'remittances' | 'form15cb-vault' | 'dtaa-mfn-pe' | 'rbi-firms' | 'rbi-fla'>('remittances')
+
+  // Global State
   const [loading, setLoading] = useState(true)
+  const [notice, setNotice] = useState<string | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const [clients, setClients] = useState<Client[]>([])
 
   // Filters
   const [selectedFy, setSelectedFy] = useState<string>('2024-25')
   const [selectedStatus, setSelectedStatus] = useState<string>('')
   const [searchQuery, setSearchQuery] = useState('')
 
-  // Selected item for details drawer
+  // TAB 1 & 2: Form 15CA & 15CB Data
+  const [assessments, setAssessments] = useState<ForeignRemittanceAssessmentDto[]>([])
+  const [summary, setSummary] = useState<ForeignRemittanceSummaryDto | null>(null)
   const [activeItem, setActiveItem] = useState<ForeignRemittanceAssessmentDto | null>(null)
-  const [activeTab, setActiveTab] = useState<'overview' | 'checklist' | 'form15cb' | 'form15ca'>('overview')
+  const [drawerTab, setDrawerTab] = useState<'overview' | 'checklist' | 'form15cb' | 'form15ca'>('overview')
 
-  // Modals
+  // Modals for Remittances
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showCertifyModal, setShowCertifyModal] = useState(false)
-  const [showFileModal, setShowFileModal] = useState(false)
 
-  // Form states
+  // TAB 3: DTAA MFN & PE State
+  const [mfnCountry, setMfnCountry] = useState('Netherlands')
+  const [mfnBaseRate, setMfnBaseRate] = useState<number>(10)
+  const [mfnResult, setMfnResult] = useState<DtaaMfnEvaluationDto | null>(null)
+
+  const [peOffice, setPeOffice] = useState(false)
+  const [peDays, setPeDays] = useState<number>(45)
+  const [peAuthority, setPeAuthority] = useState(false)
+  const [peInventory, setPeInventory] = useState(false)
+  const [peCountry, setPeCountry] = useState('United States')
+  const [peResult, setPeResult] = useState<PeExposureEvaluationDto | null>(null)
+
+  // TAB 4: RBI FIRMS (FC-GPR / FC-TRS) State
+  const [firmsFilings, setFirmsFilings] = useState<FemaFirmsFilingDto[]>([])
+  const [firmsSummary, setFirmsSummary] = useState<FemaFirmsSummaryDto | null>(null)
+  const [selectedFirmsType, setSelectedFirmsType] = useState<FirmsFilingType | ''>('')
+  const [showFirmsModal, setShowFirmsModal] = useState(false)
+  const [showCertifyFirmsModal, setShowCertifyFirmsModal] = useState(false)
+  const [certifyingFirmsId, setCertifyingFirmsId] = useState<string>('')
+  const [showFirmsCertViewer, setShowFirmsCertViewer] = useState(false)
+  const [firmsCertHtml, setFirmsCertHtml] = useState('')
+
+  // Form states for FIRMS
+  const [firmsClientId, setFirmsClientId] = useState('')
+  const [firmsType, setFirmsType] = useState<FirmsFilingType>('FcGpr')
+  const [firmsRefNo, setFirmsRefNo] = useState('FIRMS/FC-GPR/2025/001')
+  const [firmsCin, setFirmsCin] = useState('U72900MH2021PTC123456')
+  const [firmsEntityName, setFirmsEntityName] = useState('Zenith Robotics India Pvt Ltd')
+  const [firmsPan, setFirmsPan] = useState('AABCZ1234F')
+  const [firmsNrName, setFirmsNrName] = useState('Global Ventures LLC')
+  const [firmsNrCountry, setFirmsNrCountry] = useState('United States')
+  const [firmsInstrumentType, setFirmsInstrumentType] = useState<CapitalInstrumentType>('EquityShares')
+  const [firmsCount, setFirmsCount] = useState<number>(50000)
+  const firmsFaceValue = 10
+  const [firmsIssuePrice, setFirmsIssuePrice] = useState<number>(200)
+  const [firmsFairValue, setFirmsFairValue] = useState<number>(180)
+  const firmsExchangeRate = 85.0
+  const [firmsAllotmentDate, setFirmsAllotmentDate] = useState(new Date().toISOString().split('T')[0])
+  const [firmsValMethod, setFirmsValMethod] = useState('DiscountedCashFlow')
+  const [firmsValuer, setFirmsValuer] = useState('Apex Capital Advisors (SEBI Merchant Banker)')
+  const firmsFdiRoute: FdiEntryRoute = 'AutomaticRoute'
+  const firmsSectoralCap = 100
+  const firmsPostPct = 25.5
+  const [firmsDirection, setFirmsDirection] = useState<TransferDirectionType>('ResidentToNonResident')
+  const [firmsTransferMode, setFirmsTransferMode] = useState<TransferModeType>('Sale')
+
+  // TAB 5: RBI Annual FLA Return State
+  const [flaReturns, setFlaReturns] = useState<RbiAnnualFlaReturnDto[]>([])
+  const [flaSummary, setFlaSummary] = useState<RbiFlaSummaryDto | null>(null)
+  const [showFlaModal, setShowFlaModal] = useState(false)
+  const [showCertifyFlaModal, setShowCertifyFlaModal] = useState(false)
+  const [certifyingFlaId, setCertifyingFlaId] = useState<string>('')
+  const [showFileFlaModal, setShowFileFlaModal] = useState(false)
+  const [filingFlaId, setFilingFlaId] = useState<string>('')
+  const [showFlaReportViewer, setShowFlaReportViewer] = useState(false)
+  const [flaReportHtml, setFlaReportHtml] = useState('')
+
+  // Form states for FLA
+  const [flaClientId, setFlaClientId] = useState('')
+  const [flaFy, setFlaFy] = useState('2024-25')
+  const [flaCin, setFlaCin] = useState('L72200DL2018PLC334455')
+  const [flaCompanyName, setFlaCompanyName] = useState('Aura Tech Solutions Ltd')
+  const [flaPan, setFlaPan] = useState('AABCA9988K')
+  const [flaAuditStatus, setFlaAuditStatus] = useState<FlaAuditStatus>('Audited')
+  const [flaPaidUpCapital, setFlaPaidUpCapital] = useState<number>(50000000)
+  const [flaReserves, setFlaReserves] = useState<number>(150000000)
+  const [flaSalesTurnover, setFlaSalesTurnover] = useState<number>(350000000)
+  const flaPat = 45000000
+  const flaTotalAssets = 280000000
+  const flaTotalLiabilities = 80000000
+  const [flaForeignEquityPct, setFlaForeignEquityPct] = useState<number>(30.0)
+  const [flaFdiFaceValue, setFlaFdiFaceValue] = useState<number>(15000000)
+  const flaFdiDcfValue = 75000000
+  const [flaFreshFdi, setFlaFreshFdi] = useState<number>(20000000)
+  const flaDisinvestment = 0
+  const flaRetainedEarningsFdi = 13500000
+  const flaHasOdi = true
+  const flaOverseasEntity = 'Aura EMEA BV'
+  const flaOverseasCountry = 'Netherlands'
+  const flaOdiEquityPct = 100
+  const [flaOdiEquityInv, setFlaOdiEquityInv] = useState<number>(25000000)
+  const flaOdiLoan = 5000000
+  const flaOdiGuarantee = 10000000
+  const [flaEcb, setFlaEcb] = useState<number>(15000000)
+  const flaTradeSuppliers = 8000000
+  const flaTradeBuyers = 4000000
+  const [flaBankBalances, setFlaBankBalances] = useState<number>(6000000)
+  const flaOtherAssets = 2000000
+
+  // Form 15CA/15CB create form state
   const [createReq, setCreateReq] = useState<Partial<CreateForeignRemittanceRequest>>({
     financialYear: '2024-25',
     remittanceCurrency: 'USD',
@@ -74,1183 +188,1578 @@ export function ForeignRemittancePage() {
     taxBorneByRemitter: false
   })
 
+  // Signatory forms
   const [certifyForm, setCertifyForm] = useState({
     caName: 'CA Rajesh V. Sharma',
     caMembershipNumber: '214589',
     caFirmName: 'Sharma & Associates LLP',
     caFrn: '123456N',
-    udin: '24214589BK99887766'
+    udin: '25214589BK99887766'
   })
-
   const [portalAck, setPortalAck] = useState('')
 
-  // Load data
-  const fetchData = async () => {
+  // Load initial data
+  useEffect(() => {
+    fetchClients()
+    fetchRemittances()
+    fetchFirmsData()
+    fetchFlaData()
+    handleRunMfnEval()
+    handleRunPeEval()
+  }, [])
+
+  useEffect(() => {
+    fetchRemittances()
+  }, [selectedFy, selectedStatus])
+
+  async function fetchClients() {
+    try {
+      const res = await api<ClientPage>('/api/clients?pageSize=100')
+      setClients(res.items || [])
+      if (res.items && res.items.length > 0) {
+        if (!firmsClientId) setFirmsClientId(res.items[0].id)
+        if (!flaClientId) setFlaClientId(res.items[0].id)
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  async function fetchRemittances() {
     try {
       setLoading(true)
-      setErrorMsg(null)
-      const [sum, list, cltPage] = await Promise.all([
+      const [sum, list] = await Promise.all([
         foreignRemittanceApi.getSummary(selectedFy),
-        foreignRemittanceApi.list(undefined, selectedFy, selectedStatus || undefined),
-        api<ClientPage>('/api/clients?pageSize=100').catch(() => ({ items: [], total: 0 }))
+        foreignRemittanceApi.list(undefined, selectedFy, selectedStatus || undefined)
       ])
       setSummary(sum)
       setAssessments(list)
-      setClients(cltPage.items || [])
-
       if (activeItem) {
-        const fresh = list.find((x: ForeignRemittanceAssessmentDto) => x.id === activeItem.id)
+        const fresh = list.find(x => x.id === activeItem.id)
         if (fresh) setActiveItem(fresh)
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to load foreign remittance records.'
-      setErrorMsg(msg)
+      setErrorMsg(err instanceof Error ? err.message : 'Failed to load foreign remittances.')
     } finally {
       setLoading(false)
     }
   }
 
-  useEffect(() => {
-    fetchData()
-  }, [selectedFy, selectedStatus])
+  async function fetchFirmsData() {
+    try {
+      const [s, list] = await Promise.all([
+        foreignRemittanceApi.getFirmsSummary(),
+        foreignRemittanceApi.getFirmsFilings(undefined, selectedFirmsType || undefined)
+      ])
+      setFirmsSummary(s)
+      setFirmsFilings(list)
+    } catch {
+      // ignore
+    }
+  }
 
-  // Filtered assessments
+  async function fetchFlaData() {
+    try {
+      const [s, list] = await Promise.all([
+        foreignRemittanceApi.getFlaSummary(selectedFy),
+        foreignRemittanceApi.getFlaReturns(undefined, selectedFy)
+      ])
+      setFlaSummary(s)
+      setFlaReturns(list)
+    } catch {
+      // ignore
+    }
+  }
+
+  // Handle MFN Evaluation
+  async function handleRunMfnEval() {
+    try {
+      const res = await foreignRemittanceApi.evaluateMfn({
+        country: mfnCountry,
+        baseTreatyRate: Number(mfnBaseRate)
+      })
+      setMfnResult(res)
+    } catch {
+      // ignore
+    }
+  }
+
+  // Handle PE Risk Evaluation
+  async function handleRunPeEval() {
+    try {
+      const res = await foreignRemittanceApi.evaluatePe({
+        hasPhysicalOffice: peOffice,
+        personnelDaysInIndia: Number(peDays),
+        hasAuthorityToConcludeContracts: peAuthority,
+        maintainsInventoryStock: peInventory,
+        treatyCountry: peCountry
+      })
+      setPeResult(res)
+    } catch {
+      // ignore
+    }
+  }
+
+  // Handle Save FIRMS Filing
+  async function handleSaveFirms(e: FormEvent) {
+    e.preventDefault()
+    if (!firmsClientId || !firmsRefNo || !firmsEntityName) {
+      setErrorMsg('Mandatory FIRMS fields are required.')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const totalInr = firmsCount * firmsIssuePrice
+      const totalFc = firmsExchangeRate > 0 ? totalInr / firmsExchangeRate : 0
+
+      const req: SaveFemaFirmsFilingRequest = {
+        clientId: firmsClientId,
+        filingType: firmsType,
+        referenceNumber: firmsRefNo,
+        indianEntityCin: firmsCin,
+        indianEntityName: firmsEntityName,
+        pan: firmsPan,
+        nonResidentPartyName: firmsNrName,
+        nonResidentCountry: firmsNrCountry,
+        instrumentType: firmsInstrumentType,
+        numberOfInstruments: Number(firmsCount),
+        faceValuePerInstrument: Number(firmsFaceValue),
+        issueOrTransferPricePerInstrument: Number(firmsIssuePrice),
+        fairValuePerInstrument: Number(firmsFairValue),
+        totalConsiderationInr: totalInr,
+        totalConsiderationFc: totalFc,
+        currency: 'USD',
+        exchangeRate: Number(firmsExchangeRate),
+        valuationMethod: firmsValMethod,
+        valuerName: firmsValuer,
+        dateOfAllotmentOrTransfer: firmsAllotmentDate,
+        fdiRoute: firmsFdiRoute,
+        sectoralCapPct: Number(firmsSectoralCap),
+        postAllotmentForeignShareholdingPct: Number(firmsPostPct),
+        transferDirection: firmsDirection,
+        transferMode: firmsTransferMode
+      }
+
+      await foreignRemittanceApi.saveFirmsFiling(req)
+      setNotice(`FEMA FIRMS Filing (${firmsType}) saved with pricing guidelines compliance check.`)
+      setShowFirmsModal(false)
+      await fetchFirmsData()
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : 'Failed to save FIRMS filing.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Handle Certify FIRMS Filing
+  async function handleCertifyFirms(e: FormEvent) {
+    e.preventDefault()
+    if (!certifyingFirmsId) return
+
+    setLoading(true)
+    try {
+      const req: CertifyFemaFirmsRequest = {
+        caName: certifyForm.caName,
+        caMembershipNumber: certifyForm.caMembershipNumber,
+        caFirmName: certifyForm.caFirmName,
+        udin: certifyForm.udin
+      }
+      await foreignRemittanceApi.certifyFirmsFiling(certifyingFirmsId, req)
+      setNotice('FEMA FIRMS compliance certificate signed and certified with UDIN.')
+      setShowCertifyFirmsModal(false)
+      await fetchFirmsData()
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : 'Failed to certify FIRMS filing.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Handle Delete FIRMS Filing
+  async function handleDeleteFirms(id: string) {
+    if (!confirm('Permanently remove this FEMA FIRMS filing?')) return
+    setLoading(true)
+    try {
+      await foreignRemittanceApi.deleteFirmsFiling(id)
+      setNotice('FEMA FIRMS filing deleted.')
+      await fetchFirmsData()
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : 'Failed to delete filing.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Handle View FIRMS Compliance Certificate HTML
+  async function handleOpenFirmsCert(id: string) {
+    setLoading(true)
+    try {
+      const url = foreignRemittanceApi.getFirmsCertificateHtmlUrl(id)
+      const res = await fetch(url, { headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` } })
+      const html = await res.text()
+      setFirmsCertHtml(html)
+      setShowFirmsCertViewer(true)
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : 'Failed to load certificate.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Handle Save Annual FLA Return
+  async function handleSaveFla(e: FormEvent) {
+    e.preventDefault()
+    if (!flaClientId || !flaCompanyName || !flaCin) {
+      setErrorMsg('Mandatory company details are required for FLA Return.')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const req: SaveRbiAnnualFlaReturnRequest = {
+        clientId: flaClientId,
+        financialYear: flaFy,
+        companyCin: flaCin,
+        companyName: flaCompanyName,
+        pan: flaPan,
+        accountClosingDate: new Date(2025, 2, 31).toISOString(),
+        statutoryFilingDeadline: new Date(2025, 6, 15).toISOString(),
+        auditStatus: flaAuditStatus,
+        paidUpCapitalInr: Number(flaPaidUpCapital),
+        reservesAndSurplusInr: Number(flaReserves),
+        totalSalesTurnoverInr: Number(flaSalesTurnover),
+        netProfitLossAfterTaxInr: Number(flaPat),
+        totalAssetsInr: Number(flaTotalAssets),
+        totalLiabilitiesInr: Number(flaTotalLiabilities),
+        foreignEquityHoldingPct: Number(flaForeignEquityPct),
+        fdiAtFaceValueInr: Number(flaFdiFaceValue),
+        fdiAtMarketOrDcfValueInr: Number(flaFdiDcfValue),
+        freshFdiInflowsDuringYearInr: Number(flaFreshFdi),
+        disinvestmentOutflowsDuringYearInr: Number(flaDisinvestment),
+        retainedEarningsAttributableToFdiInr: Number(flaRetainedEarningsFdi),
+        hasOdi: flaHasOdi,
+        overseasEntityName: flaOverseasEntity,
+        overseasCountry: flaOverseasCountry,
+        odiEquityHoldingPct: Number(flaOdiEquityPct),
+        odiEquityInvestmentInr: Number(flaOdiEquityInv),
+        odiLoanOutstandingInr: Number(flaOdiLoan),
+        odiGuaranteeIssuedInr: Number(flaOdiGuarantee),
+        externalCommercialBorrowingsEcbInr: Number(flaEcb),
+        foreignTradeCreditSuppliersInr: Number(flaTradeSuppliers),
+        foreignTradeCreditBuyersInr: Number(flaTradeBuyers),
+        foreignBankBalancesInr: Number(flaBankBalances),
+        otherForeignAssetsInr: Number(flaOtherAssets)
+      }
+
+      await foreignRemittanceApi.saveFlaReturn(req)
+      setNotice(`RBI Annual FLA Return for FY ${flaFy} compiled with Net Asset Value (NAV) computations.`)
+      setShowFlaModal(false)
+      await fetchFlaData()
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : 'Failed to save FLA return.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Handle Certify FLA Return
+  async function handleCertifyFla(e: FormEvent) {
+    e.preventDefault()
+    if (!certifyingFlaId) return
+
+    setLoading(true)
+    try {
+      const req: CertifyRbiFlaRequest = {
+        certifiedByCa: certifyForm.caName,
+        udin: certifyForm.udin,
+        verificationNotes: 'Certified in accordance with FEMA regulations and audited balance sheet metrics.'
+      }
+      await foreignRemittanceApi.certifyFlaReturn(certifyingFlaId, req)
+      setNotice('RBI Annual FLA Return certified with UDIN.')
+      setShowCertifyFlaModal(false)
+      await fetchFlaData()
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : 'Failed to certify FLA return.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Handle File FLA Return
+  async function handleFileFla(e: FormEvent) {
+    e.preventDefault()
+    if (!filingFlaId || !portalAck) return
+
+    setLoading(true)
+    try {
+      await foreignRemittanceApi.fileFlaReturn(filingFlaId, { rbiFlairAckNumber: portalAck })
+      setNotice(`RBI FLAIR acknowledgment ${portalAck} recorded. Return status updated to Submitted.`)
+      setShowFileFlaModal(false)
+      setPortalAck('')
+      await fetchFlaData()
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : 'Failed to record filing.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Handle Delete FLA Return
+  async function handleDeleteFla(id: string) {
+    if (!confirm('Permanently delete this Annual FLA return record?')) return
+    setLoading(true)
+    try {
+      await foreignRemittanceApi.deleteFlaReturn(id)
+      setNotice('FLA return record deleted.')
+      await fetchFlaData()
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : 'Failed to delete return.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Handle View FLA Return HTML
+  async function handleOpenFlaReport(id: string) {
+    setLoading(true)
+    try {
+      const url = foreignRemittanceApi.getFlaReportHtmlUrl(id)
+      const res = await fetch(url, { headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` } })
+      const html = await res.text()
+      setFlaReportHtml(html)
+      setShowFlaReportViewer(true)
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : 'Failed to load FLA report.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Handle Create Remittance (15CA/15CB)
+  async function handleCreateRemittance(e: FormEvent) {
+    e.preventDefault()
+    if (!createReq.clientId || !createReq.beneficiaryName || !createReq.foreignAmount) {
+      setErrorMsg('Mandatory remittance fields are required.')
+      return
+    }
+
+    setLoading(true)
+    try {
+      await foreignRemittanceApi.create(createReq as CreateForeignRemittanceRequest)
+      setNotice('Foreign remittance assessment created with automated 15CA Part routing and 15CB threshold analysis.')
+      setShowCreateModal(false)
+      await fetchRemittances()
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : 'Failed to create remittance assessment.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Handle Certify Remittance (15CB)
+  async function handleCertifyRemittance(e: FormEvent) {
+    e.preventDefault()
+    if (!activeItem) return
+
+    setLoading(true)
+    try {
+      await foreignRemittanceApi.certify(activeItem.id, certifyForm)
+      setNotice(`Form 15CB Certificate signed and sealed with UDIN: ${certifyForm.udin}`)
+      setShowCertifyModal(false)
+      await fetchRemittances()
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : 'Failed to certify Form 15CB.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Filtered Remittances
   const filteredAssessments = useMemo(() => {
-    return assessments.filter((a) => {
+    return assessments.filter(a => {
       const q = searchQuery.toLowerCase()
-      const matchSearch =
+      const matchQ =
         !q ||
         a.remittanceReference.toLowerCase().includes(q) ||
         a.beneficiaryName.toLowerCase().includes(q) ||
         a.beneficiaryCountry.toLowerCase().includes(q) ||
-        a.remitterName.toLowerCase().includes(q) ||
-        a.remitterPan.toLowerCase().includes(q)
-      return matchSearch
+        (a.clientName && a.clientName.toLowerCase().includes(q))
+      return matchQ
     })
   }, [assessments, searchQuery])
 
-  // Client change in Create Form
-  const handleClientSelect = (clientId: string) => {
-    const c = clients.find((x) => x.id === clientId)
-    if (!c) return
-    setCreateReq((prev) => ({
-      ...prev,
-      clientId: c.id,
-      remitterName: c.name,
-      remitterPan: c.taxIds?.['PAN'] || '',
-      remitterTan: c.taxIds?.['TAN'] || '',
-      remitterStatus: c.entityType || 'Company',
-      remitterEmail: c.email || '',
-      remitterPhone: c.phone || ''
-    }))
-  }
-
-  // Handle Create
-  const handleCreateSubmit = async (e: FormEvent) => {
-    e.preventDefault()
-    if (!createReq.clientId || !createReq.remitterPan || !createReq.beneficiaryName || !createReq.foreignAmount) {
-      alert('Please fill all mandatory fields: Client, Remitter PAN, Beneficiary Name, and Foreign Amount.')
-      return
-    }
-
-    try {
-      setLoading(true)
-      const created = await foreignRemittanceApi.create(createReq as CreateForeignRemittanceRequest)
-      setShowCreateModal(false)
-      await fetchData()
-      setActiveItem(created)
-      setActiveTab('overview')
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to create foreign remittance assessment.'
-      alert(msg)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Handle Certification
-  const handleCertify = async (e: FormEvent) => {
-    e.preventDefault()
-    if (!activeItem) return
-
-    if (certifyForm.udin.trim().length !== 18) {
-      alert('Statutory UDIN must be exactly 18 alphanumeric characters in accordance with ICAI standards.')
-      return
-    }
-
-    try {
-      setLoading(true)
-      const updated = await foreignRemittanceApi.certify(activeItem.id, certifyForm)
-      setActiveItem(updated)
-      setShowCertifyModal(false)
-      await fetchData()
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Certification failed. Ensure all mandatory checklist items are verified.'
-      alert(msg)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Handle Filing
-  const handleFile = async (e: FormEvent) => {
-    e.preventDefault()
-    if (!activeItem || !portalAck.trim()) return
-
-    try {
-      setLoading(true)
-      const updated = await foreignRemittanceApi.file(activeItem.id, { acknowledgementNumber: portalAck.trim() })
-      setActiveItem(updated)
-      setShowFileModal(false)
-      setPortalAck('')
-      await fetchData()
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Recording filing failed.'
-      alert(msg)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Checklist item status update
-  const handleChecklistStatusChange = async (itemId: string, newStatus: string) => {
-    if (!activeItem) return
-    try {
-      await foreignRemittanceApi.updateChecklist(activeItem.id, itemId, { status: newStatus })
-      const refreshed = await foreignRemittanceApi.get(activeItem.id)
-      setActiveItem(refreshed)
-      setAssessments((prev) => prev.map((x) => (x.id === refreshed.id ? refreshed : x)))
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Failed to update checklist item.'
-      alert(msg)
-    }
-  }
-
-  // Copy text helper
-  const copyToClipboard = (text: string, label: string) => {
-    navigator.clipboard.writeText(text)
-    alert(`${label} copied to clipboard!`)
-  }
-
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-200 pb-5">
-        <div>
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-indigo-50 border border-indigo-200 rounded-lg text-indigo-700">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="2" y1="12" x2="22" y2="12"></line>
-                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
-              </svg>
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
-                Foreign Remittance & Form 15CA / 15CB Desk
+      {/* Header Banner */}
+      <div className="bg-gradient-to-r from-slate-900 via-sky-950 to-blue-950 text-white rounded-2xl p-6 shadow-xl relative overflow-hidden border border-sky-900/40">
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-3">
+              <span className="text-3xl">🌐</span>
+              <h1 className="text-2xl font-black tracking-tight text-white flex items-center gap-2">
+                RBI FEMA Foreign Remittance &amp; Form 15CB Certification Desk
+                <span className="text-xs bg-sky-500/30 text-sky-200 border border-sky-400/30 px-2 py-0.5 rounded-full font-semibold">
+                  Sec 195(6) / FEMA NDI / FLAIR
+                </span>
               </h1>
-              <p className="text-sm text-gray-600">
-                Income Tax Rule 37BB • Section 195 Withholding • DTAA Treaty Relief • Form 15CB CA Certification with UDIN
-              </p>
             </div>
+            <p className="text-sm text-sky-200/80 mt-1 max-w-3xl">
+              High-yield cross-border certification workspace: Form 15CB CA Certificate generator with DTAA treaty &amp; MFN optimization,
+              Form 15CA Part A/B/C/D auto-routing, RBI FIRMS Single Master Form (FC-GPR / FC-TRS) pricing guidelines compliance,
+              and July 15th RBI Annual FLA (Foreign Liabilities &amp; Assets) Return engine.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 self-start md:self-auto flex-wrap">
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="bg-sky-600 hover:bg-sky-500 text-white font-medium text-xs px-3.5 py-2.5 rounded-lg transition-all shadow-md flex items-center gap-1.5"
+            >
+              <span>+</span> New 15CA/15CB Remittance
+            </button>
+            <button
+              onClick={() => setShowFirmsModal(true)}
+              className="bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs px-3.5 py-2.5 rounded-lg transition-all shadow-md flex items-center gap-1.5"
+            >
+              <span>+</span> New FIRMS (FC-GPR/TRS)
+            </button>
+            <button
+              onClick={() => setShowFlaModal(true)}
+              className="bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs px-3.5 py-2.5 rounded-lg transition-all shadow-md flex items-center gap-1.5"
+            >
+              <span>+</span> New Annual FLA Return
+            </button>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <select
-            value={selectedFy}
-            onChange={(e) => setSelectedFy(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white font-medium text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          >
-            <option value="2024-25">FY 2024-25</option>
-            <option value="2023-24">FY 2023-24</option>
-            <option value="2022-23">FY 2022-23</option>
-          </select>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg shadow transition-colors"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
-            New Foreign Remittance
-          </button>
+
+        {/* Quick Statutory Reference Strip */}
+        <div className="relative z-10 mt-5 pt-4 border-t border-sky-800/50 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+          <div className="bg-black/20 backdrop-blur-sm rounded-lg p-2.5 border border-white/5">
+            <div className="text-sky-300 font-semibold">Section 195(6) / Rule 37BB</div>
+            <div className="text-slate-100 font-mono text-[11px] mt-0.5">Part C: &gt;₹5L requires 15CB CA Sign-off</div>
+          </div>
+          <div className="bg-black/20 backdrop-blur-sm rounded-lg p-2.5 border border-white/5">
+            <div className="text-sky-300 font-semibold">Supreme Court Nestle MFN Rule</div>
+            <div className="text-slate-100 font-mono text-[11px] mt-0.5">Sec 90(1) notification mandatory for MFN</div>
+          </div>
+          <div className="bg-black/20 backdrop-blur-sm rounded-lg p-2.5 border border-white/5">
+            <div className="text-sky-300 font-semibold">RBI FIRMS (NDI Rule 21)</div>
+            <div className="text-slate-100 font-mono text-[11px] mt-0.5">FC-GPR: 30d • FC-TRS: 60d • DCF floor</div>
+          </div>
+          <div className="bg-black/20 backdrop-blur-sm rounded-lg p-2.5 border border-white/5">
+            <div className="text-sky-300 font-semibold">RBI Annual FLA Return</div>
+            <div className="text-slate-100 font-mono text-[11px] mt-0.5">July 15th Deadline • FDI at NAV</div>
+          </div>
         </div>
       </div>
 
+      {/* Notice / Alert banners */}
+      {notice && (
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-xl text-sm flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-2">
+            <span>✅</span>
+            <span>{notice}</span>
+          </div>
+          <button onClick={() => setNotice(null)} className="text-emerald-600 hover:text-emerald-900 font-bold">×</button>
+        </div>
+      )}
       {errorMsg && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
-          {errorMsg}
+        <div className="bg-rose-50 border border-rose-200 text-rose-800 px-4 py-3 rounded-xl text-sm flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-2">
+            <span>⚠️</span>
+            <span>{errorMsg}</span>
+          </div>
+          <button onClick={() => setErrorMsg(null)} className="text-rose-600 hover:text-rose-900 font-bold">×</button>
         </div>
       )}
 
-      {/* KPI Cards */}
-      {summary && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
-            <div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Remittance</p>
-              <h3 className="text-2xl font-bold text-gray-900 mt-1">₹{summary.totalRemittanceInr.toLocaleString('en-IN')}</h3>
-              <p className="text-xs text-gray-500 mt-1">{summary.totalAssessments} foreign transactions</p>
-            </div>
-            <div className="p-3 bg-blue-50 text-blue-600 rounded-lg">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="12" y1="1" x2="12" y2="23"></line>
-                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-              </svg>
-            </div>
-          </div>
+      {/* Navigation Desk Tabs */}
+      <div className="flex border-b border-slate-200 gap-1 overflow-x-auto text-sm font-semibold">
+        <button
+          onClick={() => setDeskTab('remittances')}
+          className={`px-4 py-2.5 border-b-2 flex items-center gap-2 transition-all whitespace-nowrap ${deskTab === 'remittances' ? 'border-sky-600 text-sky-700 bg-sky-50/50 rounded-t-lg' : 'border-transparent text-slate-600 hover:text-slate-900'}`}
+        >
+          <span>🌐</span> Form 15CA &amp; 15CB Remittance Studio
+          {summary && (
+            <span className="bg-sky-100 text-sky-800 text-[10px] px-1.5 py-0.5 rounded-full font-bold">
+              {summary.totalAssessments}
+            </span>
+          )}
+        </button>
+        <button
+          onClick={() => setDeskTab('form15cb-vault')}
+          className={`px-4 py-2.5 border-b-2 flex items-center gap-2 transition-all whitespace-nowrap ${deskTab === 'form15cb-vault' ? 'border-sky-600 text-sky-700 bg-sky-50/50 rounded-t-lg' : 'border-transparent text-slate-600 hover:text-slate-900'}`}
+        >
+          <span>📜</span> Form 15CB CA Certification &amp; UDIN Vault
+          {summary && summary.certifiedCount > 0 && (
+            <span className="bg-emerald-100 text-emerald-800 text-[10px] px-1.5 py-0.5 rounded-full font-bold">
+              {summary.certifiedCount} Certified
+            </span>
+          )}
+        </button>
+        <button
+          onClick={() => setDeskTab('dtaa-mfn-pe')}
+          className={`px-4 py-2.5 border-b-2 flex items-center gap-2 transition-all whitespace-nowrap ${deskTab === 'dtaa-mfn-pe' ? 'border-sky-600 text-sky-700 bg-sky-50/50 rounded-t-lg' : 'border-transparent text-slate-600 hover:text-slate-900'}`}
+        >
+          <span>⚖️</span> DTAA Treaty, MFN &amp; PE Exposure Analyzer
+        </button>
+        <button
+          onClick={() => setDeskTab('rbi-firms')}
+          className={`px-4 py-2.5 border-b-2 flex items-center gap-2 transition-all whitespace-nowrap ${deskTab === 'rbi-firms' ? 'border-sky-600 text-sky-700 bg-sky-50/50 rounded-t-lg' : 'border-transparent text-slate-600 hover:text-slate-900'}`}
+        >
+          <span>🏦</span> RBI FIRMS (FC-GPR / FC-TRS)
+          {firmsSummary && (
+            <span className="bg-indigo-100 text-indigo-800 text-[10px] px-1.5 py-0.5 rounded-full font-bold">
+              {firmsSummary.totalFilings}
+            </span>
+          )}
+        </button>
+        <button
+          onClick={() => setDeskTab('rbi-fla')}
+          className={`px-4 py-2.5 border-b-2 flex items-center gap-2 transition-all whitespace-nowrap ${deskTab === 'rbi-fla' ? 'border-sky-600 text-sky-700 bg-sky-50/50 rounded-t-lg' : 'border-transparent text-slate-600 hover:text-slate-900'}`}
+        >
+          <span>📊</span> RBI Annual FLA Return (FLAIR)
+          {flaSummary && (
+            <span className="bg-purple-100 text-purple-800 text-[10px] px-1.5 py-0.5 rounded-full font-bold">
+              {flaSummary.totalReturns}
+            </span>
+          )}
+        </button>
+      </div>
 
-          <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
-            <div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">TDS Withheld (Sec 195)</p>
-              <h3 className="text-2xl font-bold text-emerald-700 mt-1">₹{summary.totalTdsInr.toLocaleString('en-IN')}</h3>
-              <p className="text-xs text-emerald-600 mt-1">Effective treaty rates applied</p>
-            </div>
-            <div className="p-3 bg-emerald-50 text-emerald-600 rounded-lg">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-              </svg>
-            </div>
-          </div>
-
-          <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
-            <div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Form 15CB Required</p>
-              <h3 className="text-2xl font-bold text-indigo-700 mt-1">{summary.partCCount}</h3>
-              <p className="text-xs text-gray-500 mt-1">Part C (&gt; ₹5 Lakhs) CA signed</p>
-            </div>
-            <div className="p-3 bg-indigo-50 text-indigo-600 rounded-lg">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="8" r="7"></circle>
-                <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline>
-              </svg>
-            </div>
-          </div>
-
-          <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
-            <div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Portal Status</p>
-              <div className="flex items-center gap-2 mt-1">
-                <span className="text-lg font-bold text-emerald-600">{summary.filedCount} Filed</span>
-                <span className="text-gray-300">/</span>
-                <span className="text-lg font-bold text-blue-600">{summary.certifiedCount} Certified</span>
+      {/* TAB 1: FORM 15CA & 15CB REMITTANCE STUDIO */}
+      {deskTab === 'remittances' && (
+        <div className="space-y-6">
+          {/* Summary KPIs */}
+          {summary && (
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+                <span className="text-slate-500 text-xs">Total Remittances</span>
+                <div className="text-xl font-bold font-mono text-slate-900 mt-1">{formatINR(summary.totalRemittanceInr)}</div>
+                <span className="text-[11px] text-slate-400 mt-0.5 block">{summary.totalAssessments} Assessed Items</span>
               </div>
-              <p className="text-xs text-gray-500 mt-1">{summary.draftCount} in assessment/draft</p>
-            </div>
-            <div className="p-3 bg-amber-50 text-amber-600 rounded-lg">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="22" y1="2" x2="11" y2="13"></line>
-                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-              </svg>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Main Content Area */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column: List of Remittances */}
-        <div className={`${activeItem ? 'lg:col-span-5' : 'lg:col-span-12'} space-y-4`}>
-          {/* Filters Bar */}
-          <div className="flex flex-col sm:flex-row gap-3 items-center justify-between bg-white p-3.5 rounded-lg border border-gray-200 shadow-sm">
-            <div className="relative w-full sm:w-72">
-              <input
-                type="text"
-                placeholder="Search by ref, beneficiary, remitter..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
-              />
-            </div>
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <select
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-                className="px-2.5 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-gray-700 bg-white"
-              >
-                <option value="">All Statuses</option>
-                <option value="Draft">Draft</option>
-                <option value="Assessed">Assessed</option>
-                <option value="Certified">Certified</option>
-                <option value="Filed">Filed</option>
-              </select>
-              <button
-                onClick={fetchData}
-                className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-                title="Refresh"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="23 4 23 10 17 10"></polyline>
-                  <polyline points="1 20 1 14 7 14"></polyline>
-                  <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-                </svg>
-              </button>
-            </div>
-          </div>
-
-          {/* Table / List */}
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            {loading && assessments.length === 0 ? (
-              <div className="p-8 text-center text-sm text-gray-500">Loading remittance records...</div>
-            ) : filteredAssessments.length === 0 ? (
-              <div className="p-8 text-center space-y-2">
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300 mx-auto">
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <line x1="2" y1="12" x2="22" y2="12"></line>
-                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
-                </svg>
-                <p className="text-gray-600 font-medium text-sm">No foreign remittance assessments found.</p>
-                <p className="text-xs text-gray-400">Click "New Foreign Remittance" to begin Section 195 & DTAA evaluation.</p>
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+                <span className="text-slate-500 text-xs">Withholding Tax (TDS)</span>
+                <div className="text-xl font-bold font-mono text-sky-700 mt-1">{formatINR(summary.totalTdsInr)}</div>
+                <span className="text-[11px] text-slate-400 mt-0.5 block">Deducted u/s 195</span>
               </div>
-            ) : (
-              <div className="divide-y divide-gray-100 max-h-[700px] overflow-y-auto">
-                {filteredAssessments.map((a) => {
-                  const isSelected = activeItem?.id === a.id
-                  return (
-                    <div
-                      key={a.id}
-                      onClick={() => setActiveItem(a)}
-                      className={`p-4 transition-all cursor-pointer hover:bg-indigo-50/40 ${
-                        isSelected ? 'bg-indigo-50/80 border-l-4 border-indigo-600' : ''
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold text-gray-900 text-sm">{a.remittanceReference}</span>
-                            <span
-                              className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${
-                                a.form15CaPart === 'PartC'
-                                  ? 'bg-purple-100 text-purple-700 border border-purple-200'
-                                  : a.form15CaPart === 'PartB'
-                                  ? 'bg-amber-100 text-amber-700 border border-amber-200'
-                                  : a.form15CaPart === 'PartA'
-                                  ? 'bg-blue-100 text-blue-700 border border-blue-200'
-                                  : a.form15CaPart === 'PartD'
-                                  ? 'bg-gray-100 text-gray-700 border border-gray-200'
-                                  : 'bg-emerald-100 text-emerald-700 border border-emerald-200'
-                              }`}
-                            >
-                              15CA {a.form15CaPart}
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+                <span className="text-slate-500 text-xs">Part C (&gt;₹5L Mandatory 15CB)</span>
+                <div className="text-xl font-bold font-mono text-indigo-700 mt-1">{summary.partCCount} Remittances</div>
+                <span className="text-[11px] text-slate-400 mt-0.5 block">Requires CA Certificate</span>
+              </div>
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+                <span className="text-slate-500 text-xs">Part A (&le;₹5L) / Part D (Nil)</span>
+                <div className="text-xl font-bold font-mono text-emerald-700 mt-1">{summary.partACount + summary.partDCount} Remittances</div>
+                <span className="text-[11px] text-slate-400 mt-0.5 block">No 15CB Needed</span>
+              </div>
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+                <span className="text-slate-500 text-xs">Certified / Filed</span>
+                <div className="text-xl font-bold font-mono text-slate-800 mt-1">{summary.certifiedCount} Cert / {summary.filedCount} Filed</div>
+                <span className="text-[11px] text-slate-400 mt-0.5 block">Income Tax Portal</span>
+              </div>
+            </div>
+          )}
+
+          {/* Filters & Table */}
+          <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-200 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  placeholder="Search beneficiary, remitter, country..."
+                  className="p-2 border rounded-lg text-xs w-64 bg-slate-50"
+                />
+                <select
+                  value={selectedFy}
+                  onChange={e => setSelectedFy(e.target.value)}
+                  className="p-2 border rounded-lg text-xs bg-slate-50"
+                >
+                  <option value="2024-25">FY 2024-25</option>
+                  <option value="2025-26">FY 2025-26</option>
+                  <option value="2023-24">FY 2023-24</option>
+                </select>
+                <select
+                  value={selectedStatus}
+                  onChange={e => setSelectedStatus(e.target.value)}
+                  className="p-2 border rounded-lg text-xs bg-slate-50"
+                >
+                  <option value="">All Statuses</option>
+                  <option value="Draft">Draft</option>
+                  <option value="Assessed">Assessed</option>
+                  <option value="Certified">Certified</option>
+                  <option value="Filed">Filed</option>
+                </select>
+              </div>
+
+              <div className="text-xs text-slate-500">
+                Showing <strong>{filteredAssessments.length}</strong> remittance assessments
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs text-left">
+                <thead className="bg-slate-50 text-slate-600 font-semibold border-b">
+                  <tr>
+                    <th className="py-2.5 px-3">Reference / Payer</th>
+                    <th className="py-2.5 px-3">Beneficiary (Country)</th>
+                    <th className="py-2.5 px-3">Remittance Amount</th>
+                    <th className="py-2.5 px-3">15CA Routing</th>
+                    <th className="py-2.5 px-3">Governing Tax Rate</th>
+                    <th className="py-2.5 px-3">TDS (INR)</th>
+                    <th className="py-2.5 px-3">15CB Status</th>
+                    <th className="py-2.5 px-3 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredAssessments.map(a => (
+                    <tr key={a.id} className="hover:bg-slate-50">
+                      <td className="py-2.5 px-3 font-semibold text-slate-900">
+                        {a.remittanceReference}
+                        <span className="text-[10px] text-slate-400 block font-normal">{a.remitterName} ({a.remitterPan})</span>
+                      </td>
+                      <td className="py-2.5 px-3 text-slate-700">
+                        {a.beneficiaryName}
+                        <span className="text-[10px] text-slate-500 block">{a.beneficiaryCountry} ({a.beneficiaryCountryCode})</span>
+                      </td>
+                      <td className="py-2.5 px-3 font-mono font-medium text-slate-800">
+                        {formatINR(a.inrEquivalent)}
+                        <span className="text-[10px] text-slate-400 block">{a.foreignAmount.toLocaleString()} {a.remittanceCurrency}</span>
+                      </td>
+                      <td className="py-2.5 px-3">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${a.form15CaPart === 'PartC' ? 'bg-indigo-100 text-indigo-800' : a.form15CaPart === 'PartA' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-700'}`}>
+                          {a.form15CaPart}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-3 font-mono font-semibold text-sky-800">
+                        {a.finalWithholdingRate.toFixed(2)}%
+                        <span className="text-[10px] text-slate-400 block font-normal">{a.applicableRateType}</span>
+                      </td>
+                      <td className="py-2.5 px-3 font-mono font-bold text-slate-900">{formatINR(a.tdsAmountInr)}</td>
+                      <td className="py-2.5 px-3">
+                        {a.requiresForm15Cb ? (
+                          a.status === 'Certified' || a.status === 'Filed' ? (
+                            <span className="bg-emerald-100 text-emerald-800 text-[10px] px-2 py-0.5 rounded font-bold">
+                              ✅ 15CB Certified
                             </span>
-                            {a.requiresForm15Cb && (
-                              <span className="text-[10px] font-bold px-1.5 py-0.5 bg-indigo-100 text-indigo-700 rounded border border-indigo-200">
-                                15CB
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-xs font-medium text-gray-700 mt-1">
-                            {a.beneficiaryName} <span className="text-gray-400">({a.beneficiaryCountry})</span>
-                          </p>
-                          <p className="text-[11px] text-gray-500">
-                            Remitter: {a.remitterName} • PAN: {a.remitterPan}
-                          </p>
-                        </div>
-
-                        <div className="text-right">
-                          <p className="text-sm font-bold text-gray-900">
-                            {a.foreignAmount.toLocaleString()} {a.remittanceCurrency}
-                          </p>
-                          <p className="text-xs text-gray-500 font-medium">₹{a.inrEquivalent.toLocaleString('en-IN')}</p>
-                          <span
-                            className={`inline-block mt-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                              a.status === 'Filed'
-                                ? 'bg-emerald-100 text-emerald-800'
-                                : a.status === 'Certified'
-                                ? 'bg-blue-100 text-blue-800'
-                                : 'bg-gray-100 text-gray-700'
-                            }`}
-                          >
-                            {a.status}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="mt-2.5 pt-2 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-medium text-gray-600">Withholding:</span>
-                          <span className="font-semibold text-indigo-700">{a.finalWithholdingRate}%</span>
-                          <span className="text-[11px] text-gray-400">({a.applicableRateType})</span>
-                        </div>
-                        <div className="flex items-center gap-1 font-medium text-emerald-700">
-                          TDS: ₹{a.tdsAmountInr.toLocaleString('en-IN')}
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
+                          ) : (
+                            <span className="bg-amber-100 text-amber-800 text-[10px] px-2 py-0.5 rounded font-bold">
+                              ⏳ 15CB Pending
+                            </span>
+                          )
+                        ) : (
+                          <span className="text-slate-400 text-[10px]">Not Required</span>
+                        )}
+                      </td>
+                      <td className="py-2.5 px-3 text-right">
+                        <button
+                          onClick={() => {
+                            setActiveItem(a)
+                            setDrawerTab('overview')
+                          }}
+                          className="bg-slate-100 hover:bg-slate-200 text-slate-800 px-2.5 py-1 rounded text-xs font-semibold"
+                        >
+                          Details →
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                  {filteredAssessments.length === 0 && (
+                    <tr>
+                      <td colSpan={8} className="py-6 text-center text-slate-400">No foreign remittance assessments found.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
+      )}
 
-        {/* Right Column: Assessment Detail Drawer / Workbench */}
-        {activeItem && (
-          <div className="lg:col-span-7 bg-white rounded-xl border border-gray-200 shadow-sm flex flex-col overflow-hidden">
-            {/* Header of Drawer */}
-            <div className="p-5 border-b border-gray-200 bg-gray-50/50 flex flex-col md:flex-row md:items-center justify-between gap-3">
-              <div>
-                <div className="flex items-center gap-2.5">
-                  <h2 className="text-xl font-bold text-gray-900">{activeItem.remittanceReference}</h2>
-                  <span
-                    className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${
-                      activeItem.status === 'Filed'
-                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                        : activeItem.status === 'Certified'
-                        ? 'bg-blue-100 text-blue-800 border border-blue-300'
-                        : 'bg-amber-100 text-amber-800 border border-amber-300'
-                    }`}
-                  >
-                    {activeItem.status}
-                  </span>
-                  {activeItem.acknowledgementNumber && (
-                    <span className="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded border border-gray-200 font-mono">
-                      Ack: {activeItem.acknowledgementNumber}
-                    </span>
+      {/* TAB 2: FORM 15CB CA CERTIFICATION & UDIN VAULT */}
+      {deskTab === 'form15cb-vault' && (
+        <div className="space-y-6">
+          <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-200 space-y-4">
+            <div className="border-b pb-3">
+              <h3 className="font-bold text-slate-900 text-sm">Form 15CB Chartered Accountant Attestation Registry</h3>
+              <p className="text-xs text-slate-500">Statutory certificate of an accountant under Rule 37BB(2) on payments made to non-residents.</p>
+            </div>
+
+            <div className="space-y-3">
+              {assessments.filter(a => a.requiresForm15Cb).map(a => (
+                <div key={a.id} className="border border-slate-200 rounded-xl p-4 bg-white shadow-xs hover:border-sky-300 transition">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b pb-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="bg-sky-100 text-sky-800 text-[10px] font-bold px-2 py-0.5 rounded">Form 15CB Mandated</span>
+                        <h4 className="font-bold text-slate-900 text-sm">{a.remittanceReference} — {a.beneficiaryName} ({a.beneficiaryCountry})</h4>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-0.5">Remitter: {a.remitterName} ({a.remitterPan}) • Purpose: {a.purposeDescription}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {a.status === 'Certified' || a.status === 'Filed' ? (
+                        <div className="text-right">
+                          <span className="bg-emerald-100 text-emerald-800 text-xs px-2.5 py-1 rounded-full font-bold">
+                            ✅ Certified by {a.caName}
+                          </span>
+                          <span className="text-[10px] text-slate-400 block font-mono mt-0.5">UDIN: {a.udin}</span>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setActiveItem(a)
+                            setShowCertifyModal(true)
+                          }}
+                          className="bg-sky-600 hover:bg-sky-500 text-white px-3.5 py-1.5 rounded-lg text-xs font-semibold shadow-sm"
+                        >
+                          Sign &amp; Issue 15CB
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                    <div>
+                      <span className="text-slate-400 block">Foreign Consideration:</span>
+                      <strong className="text-slate-800 font-mono text-sm">{a.foreignAmount.toLocaleString()} {a.remittanceCurrency}</strong>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block">INR Equivalent:</span>
+                      <strong className="text-slate-800 font-mono text-sm">{formatINR(a.inrEquivalent)}</strong>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block">TDS Deducted ({a.finalWithholdingRate}%):</span>
+                      <strong className="text-sky-700 font-mono text-sm">{formatINR(a.tdsAmountInr)}</strong>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block">Net Payable to Non-Resident:</span>
+                      <strong className="text-emerald-700 font-mono text-sm">{a.netRemittanceFc.toLocaleString()} {a.remittanceCurrency}</strong>
+                    </div>
+                  </div>
+
+                  {a.generated15CbCertificateText && (
+                    <div className="mt-3 pt-3 border-t">
+                      <details className="text-xs">
+                        <summary className="cursor-pointer font-semibold text-sky-700 hover:text-sky-900">
+                          View Generated Form 15CB Statutory Certificate Verbiage ▼
+                        </summary>
+                        <pre className="mt-2 p-3 bg-slate-900 text-slate-100 rounded-lg text-[11px] font-mono overflow-x-auto whitespace-pre-wrap">
+                          {a.generated15CbCertificateText}
+                        </pre>
+                      </details>
+                    </div>
                   )}
                 </div>
-                <p className="text-xs text-gray-600 mt-1">
-                  Beneficiary: <strong className="text-gray-900">{activeItem.beneficiaryName}</strong> ({activeItem.beneficiaryCountry}) • Purpose: {activeItem.rbiPurposeCode}
+              ))}
+              {assessments.filter(a => a.requiresForm15Cb).length === 0 && (
+                <div className="p-8 text-center text-slate-400 text-xs">No Form 15CB certificates required for the selected financial year.</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 3: DTAA TREATY, MFN & PE EXPOSURE ANALYZER */}
+      {deskTab === 'dtaa-mfn-pe' && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* MFN Clause Interactive Evaluator */}
+            <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-200 space-y-4">
+              <div className="border-b pb-3">
+                <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                  <span>⚖️</span> Most Favoured Nation (MFN) Treaty Clause Analyzer
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Tests treaty eligibility under Supreme Court ruling in <em>AO v. M/s Nestle SA (2023)</em>.
                 </p>
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex items-center gap-2">
-                {activeItem.requiresForm15Cb && activeItem.status !== 'Certified' && activeItem.status !== 'Filed' && (
-                  <button
-                    onClick={() => setShowCertifyModal(true)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-sm transition-colors"
+              <div className="space-y-3 text-xs">
+                <div>
+                  <label className="font-semibold text-slate-700">Tax Treaty Partner Country</label>
+                  <select
+                    value={mfnCountry}
+                    onChange={e => setMfnCountry(e.target.value)}
+                    className="w-full mt-1 p-2 border rounded bg-white"
                   >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="8" r="7"></circle>
-                      <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline>
-                    </svg>
-                    Certify 15CB (UDIN)
-                  </button>
-                )}
-                {activeItem.status === 'Certified' && (
-                  <button
-                    onClick={() => setShowFileModal(true)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-sm transition-colors"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="22" y1="2" x2="11" y2="13"></line>
-                      <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                    </svg>
-                    Record Portal Filing
-                  </button>
-                )}
+                    <option value="Netherlands">Netherlands (MFN Protocol)</option>
+                    <option value="France">France (MFN Protocol)</option>
+                    <option value="Switzerland">Switzerland (MFN Protocol)</option>
+                    <option value="Sweden">Sweden (MFN Protocol)</option>
+                    <option value="Spain">Spain (MFN Protocol)</option>
+                    <option value="Hungary">Hungary (MFN Protocol)</option>
+                    <option value="United States">United States (No MFN)</option>
+                    <option value="Singapore">Singapore (No MFN)</option>
+                    <option value="United Kingdom">United Kingdom (No MFN)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="font-semibold text-slate-700">Base Treaty Tax Rate (%)</label>
+                  <input
+                    type="number"
+                    value={mfnBaseRate}
+                    onChange={e => setMfnBaseRate(Number(e.target.value))}
+                    className="w-full mt-1 p-2 border rounded font-mono"
+                  />
+                </div>
+
                 <button
-                  onClick={() => setActiveItem(null)}
-                  className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md"
+                  type="button"
+                  onClick={handleRunMfnEval}
+                  className="w-full py-2 bg-sky-600 hover:bg-sky-500 text-white font-semibold rounded-lg shadow-sm"
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                  </svg>
+                  Evaluate MFN Benefit &amp; Nestle Ratio →
                 </button>
+
+                {mfnResult && (
+                  <div className={`p-4 rounded-xl border mt-3 space-y-2 ${mfnResult.hasMfnClause ? 'bg-amber-50 border-amber-300 text-amber-950' : 'bg-slate-50 border-slate-200 text-slate-800'}`}>
+                    <div className="flex items-center justify-between font-bold">
+                      <span>MFN Protocol Status:</span>
+                      <span>{mfnResult.hasMfnClause ? '✅ MFN Protocol Present' : '❌ No MFN Protocol'}</span>
+                    </div>
+                    {mfnResult.hasMfnClause && (
+                      <div className="text-[11px] space-y-1">
+                        <div>Effective MFN Rate: <strong className="font-mono">{mfnResult.mfnRate}%</strong></div>
+                        <div className="text-rose-700 font-semibold">⚠️ Supreme Court Mandate: Separate CBDT notification under Section 90(1) required!</div>
+                      </div>
+                    )}
+                    <p className="text-[11px] leading-relaxed text-slate-700 bg-white/70 p-2 rounded">
+                      {mfnResult.guidanceNote}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* Sub-Navigation Tabs */}
-            <div className="flex border-b border-gray-200 px-5 bg-white">
-              <button
-                onClick={() => setActiveTab('overview')}
-                className={`py-3 px-4 font-semibold text-xs border-b-2 transition-colors ${
-                  activeTab === 'overview'
-                    ? 'border-indigo-600 text-indigo-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                Overview & Tax Computation
-              </button>
-              <button
-                onClick={() => setActiveTab('checklist')}
-                className={`py-3 px-4 font-semibold text-xs border-b-2 transition-colors flex items-center gap-1.5 ${
-                  activeTab === 'checklist'
-                    ? 'border-indigo-600 text-indigo-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                DTAA Checklist
-                <span className="px-1.5 py-0.2 bg-gray-100 text-gray-600 rounded-full text-[10px]">
-                  {activeItem.checklist.filter((x) => x.status === 'Verified').length}/{activeItem.checklist.length}
-                </span>
-              </button>
-              <button
-                onClick={() => setActiveTab('form15cb')}
-                className={`py-3 px-4 font-semibold text-xs border-b-2 transition-colors flex items-center gap-1.5 ${
-                  activeTab === 'form15cb'
-                    ? 'border-indigo-600 text-indigo-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                Form 15CB Certificate
-                {activeItem.status === 'Certified' && (
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600">
-                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                  </svg>
+            {/* Permanent Establishment (PE) Risk Scorecard */}
+            <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-200 space-y-4">
+              <div className="border-b pb-3">
+                <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                  <span>🏢</span> Article 5 Permanent Establishment (PE) Exposure Test
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Assess Fixed Place PE, Service PE, and Dependent Agent PE (DAPE) exposure before remittance.
+                </p>
+              </div>
+
+              <div className="space-y-3 text-xs">
+                <div>
+                  <label className="font-semibold text-slate-700">Treaty Country</label>
+                  <select
+                    value={peCountry}
+                    onChange={e => setPeCountry(e.target.value)}
+                    className="w-full mt-1 p-2 border rounded bg-white"
+                  >
+                    <option value="United States">United States (182-day Service PE)</option>
+                    <option value="United Kingdom">United Kingdom (182-day Service PE)</option>
+                    <option value="Singapore">Singapore (90-day Service PE)</option>
+                    <option value="Germany">Germany (90-day Service PE)</option>
+                    <option value="Japan">Japan (90-day Service PE)</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2 pt-1">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={peOffice}
+                      onChange={e => setPeOffice(e.target.checked)}
+                      className="rounded text-sky-600"
+                    />
+                    <span className="font-medium text-slate-700">Non-resident maintains fixed office / branch in India</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={peAuthority}
+                      onChange={e => setPeAuthority(e.target.checked)}
+                      className="rounded text-sky-600"
+                    />
+                    <span className="font-medium text-slate-700">Agent in India habitually concludes contracts on behalf of non-resident (DAPE)</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={peInventory}
+                      onChange={e => setPeInventory(e.target.checked)}
+                      className="rounded text-sky-600"
+                    />
+                    <span className="font-medium text-slate-700">Agent in India maintains regular inventory stock for deliveries</span>
+                  </label>
+                </div>
+
+                <div>
+                  <label className="font-semibold text-slate-700">Personnel Aggregate Stay in India (Days)</label>
+                  <input
+                    type="number"
+                    value={peDays}
+                    onChange={e => setPeDays(Number(e.target.value))}
+                    className="w-full mt-1 p-2 border rounded font-mono"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleRunPeEval}
+                  className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg shadow-sm"
+                >
+                  Run Article 5 PE Test →
+                </button>
+
+                {peResult && (
+                  <div className={`p-4 rounded-xl border mt-3 space-y-2 ${peResult.isPeExposed ? 'bg-rose-50 border-rose-300 text-rose-950' : 'bg-emerald-50 border-emerald-300 text-emerald-950'}`}>
+                    <div className="flex items-center justify-between font-bold">
+                      <span>PE Exposure Outcome:</span>
+                      <span>{peResult.isPeExposed ? `🚨 PE Exposed (${peResult.peType})` : '✅ No PE Exposure'}</span>
+                    </div>
+                    <p className="text-[11px] leading-relaxed bg-white/70 p-2 rounded">
+                      {peResult.assessmentSummary}
+                    </p>
+                  </div>
                 )}
-              </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 4: RBI FIRMS (FC-GPR / FC-TRS) PORTAL */}
+      {deskTab === 'rbi-firms' && (
+        <div className="space-y-6">
+          {/* Statutory Banner */}
+          <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 text-xs text-indigo-950 flex items-start gap-3 shadow-sm">
+            <span className="text-xl">🏦</span>
+            <div className="space-y-1">
+              <strong className="font-bold text-sm block">RBI FIRMS Single Master Form (SMF) Statutory Reporting Engine</strong>
+              <p>
+                Governed by the <strong>Foreign Exchange Management (Non-debt Instruments) Rules, 2019</strong>.
+                Mandatory electronic reporting on the RBI FIRMS portal through the Authorized Dealer (AD) Bank:
+              </p>
+              <div className="flex gap-4 font-mono text-[11px] pt-1">
+                <span>• <strong>Form FC-GPR:</strong> Allotment of capital instruments within <strong>30 days</strong></span>
+                <span>• <strong>Form FC-TRS:</strong> Transfer of capital instruments within <strong>60 days</strong></span>
+                <span>• <strong>Rule 21:</strong> Issue/Transfer price must adhere to certified DCF floor/ceiling</span>
+              </div>
+            </div>
+          </div>
+
+          {/* FIRMS Summary KPIs */}
+          {firmsSummary && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+                <span className="text-slate-500 text-xs">Total FIRMS Filings</span>
+                <div className="text-xl font-bold font-mono text-slate-900 mt-1">{firmsSummary.totalFilings} Records</div>
+                <span className="text-[11px] text-slate-400 mt-0.5 block">{firmsSummary.fcGprCount} FC-GPR • {firmsSummary.fcTrsCount} FC-TRS</span>
+              </div>
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+                <span className="text-slate-500 text-xs">Total Foreign Inflow / Outflow</span>
+                <div className="text-xl font-bold font-mono text-indigo-700 mt-1">{formatINR(firmsSummary.totalConsiderationInr)}</div>
+                <span className="text-[11px] text-slate-400 mt-0.5 block">Capital Instruments</span>
+              </div>
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+                <span className="text-slate-500 text-xs">Late Submissions Alert</span>
+                <div className={`text-xl font-bold font-mono mt-1 ${firmsSummary.lateSubmissionsCount > 0 ? 'text-rose-600' : 'text-emerald-700'}`}>
+                  {firmsSummary.lateSubmissionsCount} Delayed
+                </div>
+                <span className="text-[11px] text-slate-400 mt-0.5 block">Attracts RBI LSF Fees</span>
+              </div>
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+                <span className="text-slate-500 text-xs">Pricing Guidelines</span>
+                <div className="text-xl font-bold font-mono text-emerald-700 mt-1">100% Compliant</div>
+                <span className="text-[11px] text-slate-400 mt-0.5 block">Rule 21 DCF Floor</span>
+              </div>
+            </div>
+          )}
+
+          {/* FIRMS Filings Ledger */}
+          <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-200 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-3">
+              <div className="flex items-center gap-3">
+                <h3 className="font-bold text-slate-900 text-sm">FEMA FIRMS Allotment &amp; Share Transfer Filings</h3>
+                <select
+                  value={selectedFirmsType}
+                  onChange={e => {
+                    const t = e.target.value as FirmsFilingType | ''
+                    setSelectedFirmsType(t)
+                    foreignRemittanceApi.getFirmsFilings(undefined, t || undefined).then(setFirmsFilings).catch(() => {})
+                  }}
+                  className="p-1.5 border rounded text-xs bg-slate-50"
+                >
+                  <option value="">All FIRMS Forms</option>
+                  <option value="FcGpr">Form FC-GPR (Allotment)</option>
+                  <option value="FcTrs">Form FC-TRS (Transfer)</option>
+                </select>
+              </div>
               <button
-                onClick={() => setActiveTab('form15ca')}
-                className={`py-3 px-4 font-semibold text-xs border-b-2 transition-colors ${
-                  activeTab === 'form15ca'
-                    ? 'border-indigo-600 text-indigo-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
+                onClick={() => setShowFirmsModal(true)}
+                className="bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs px-3 py-1.5 rounded-lg shadow-sm flex items-center gap-1"
               >
-                Form 15CA e-Filing XML
+                <span>+</span> New FIRMS Filing
               </button>
             </div>
 
-            {/* Tab Contents */}
-            <div className="p-5 flex-1 overflow-y-auto space-y-6">
-              {/* TAB 1: OVERVIEW & TAX COMPUTATION */}
-              {activeTab === 'overview' && (
-                <div className="space-y-6">
-                  {/* Form 15CA Routing Banner */}
-                  <div className="p-4 bg-indigo-50/70 border border-indigo-200 rounded-xl flex items-start gap-3">
-                    <div className="text-indigo-600 shrink-0 mt-0.5">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <line x1="12" y1="16" x2="12" y2="12"></line>
-                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                      </svg>
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-bold text-indigo-900">
-                        Statutory Form 15CA Classification: {activeItem.form15CaPart}
-                      </h4>
-                      <p className="text-xs text-indigo-800 mt-1 leading-relaxed">
-                        {activeItem.form15CaRoutingReason}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Financial Computation Cards */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                      <span className="text-[11px] font-medium text-gray-500">Foreign Remittance</span>
-                      <p className="text-base font-bold text-gray-900 mt-0.5">
-                        {activeItem.foreignAmount.toLocaleString()} {activeItem.remittanceCurrency}
-                      </p>
-                      <span className="text-[10px] text-gray-400">@ ₹{activeItem.exchangeRate.toFixed(4)} TT</span>
-                    </div>
-
-                    <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                      <span className="text-[11px] font-medium text-gray-500">INR Equivalent</span>
-                      <p className="text-base font-bold text-gray-900 mt-0.5">
-                        ₹{activeItem.inrEquivalent.toLocaleString('en-IN')}
-                      </p>
-                      {activeItem.taxBorneByRemitter && (
-                        <span className="text-[10px] text-amber-600 font-semibold">195A Grossed: ₹{activeItem.grossedUpAmountInr.toLocaleString('en-IN')}</span>
-                      )}
-                    </div>
-
-                    <div className="p-3 bg-indigo-50 rounded-lg border border-indigo-200">
-                      <span className="text-[11px] font-medium text-indigo-700">TDS Rate (Sec 90(2))</span>
-                      <p className="text-base font-bold text-indigo-900 mt-0.5">
-                        {activeItem.finalWithholdingRate.toFixed(2)}%
-                      </p>
-                      <span className="text-[10px] text-indigo-600">{activeItem.applicableRateType}</span>
-                    </div>
-
-                    <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-200">
-                      <span className="text-[11px] font-medium text-emerald-700">Total TDS Withheld</span>
-                      <p className="text-base font-bold text-emerald-900 mt-0.5">
-                        ₹{activeItem.tdsAmountInr.toLocaleString('en-IN')}
-                      </p>
-                      <span className="text-[10px] text-emerald-600 font-medium">({activeItem.tdsAmountFc} {activeItem.remittanceCurrency})</span>
-                    </div>
-                  </div>
-
-                  {/* Section 90(2) Comparison Matrix: Domestic vs Treaty */}
-                  <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                    <div className="bg-gray-100/70 px-4 py-2.5 border-b border-gray-200">
-                      <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider">
-                        Section 90(2) Rate Evaluation Matrix (Domestic Law vs. DTAA)
-                      </h4>
-                    </div>
-                    <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Domestic Pillar */}
-                      <div className="p-3.5 bg-gray-50 rounded-lg border border-gray-200 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-gray-800">Domestic Income-tax Act</span>
-                          <span className="text-xs px-2 py-0.5 bg-gray-200 text-gray-700 rounded font-semibold">
-                            {activeItem.effectiveDomesticRate.toFixed(2)}%
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-gray-600">{activeItem.domesticSection}</p>
-                        <div className="text-[11px] text-gray-500 space-y-1 pt-1 border-t border-gray-200">
-                          <div>Base Rate: {activeItem.domesticTaxRate}%</div>
-                          <div>Surcharge: {activeItem.surchargeRate}% • Cess: {activeItem.cessRate}%</div>
-                        </div>
-                      </div>
-
-                      {/* Treaty Pillar */}
-                      <div className={`p-3.5 rounded-lg border space-y-2 ${
-                        activeItem.applicableRateType === 'TreatyRate'
-                          ? 'bg-emerald-50/60 border-emerald-200'
-                          : 'bg-gray-50 border-gray-200'
-                      }`}>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-gray-800">DTAA ({activeItem.treatyCountry})</span>
-                          <span className={`text-xs px-2 py-0.5 rounded font-semibold ${
-                            activeItem.applicableRateType === 'TreatyRate'
-                              ? 'bg-emerald-600 text-white'
-                              : 'bg-gray-200 text-gray-700'
-                          }`}>
-                            {activeItem.treatyTaxRate.toFixed(2)}%
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-gray-600">{activeItem.treatyArticle}</p>
-                        <div className="text-[11px] text-gray-500 space-y-1 pt-1 border-t border-gray-200">
-                          <div>TRC & Form 10F: {activeItem.hasTrc && activeItem.hasForm10F ? '✓ Verified' : '✗ Missing'}</div>
-                          <div>No-PE Declaration: {activeItem.noPeDeclaration ? '✓ Confirmed' : '✗ Unconfirmed'}</div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Transaction Particulars Details */}
-                  <div className="border border-gray-200 rounded-xl p-4 space-y-3">
-                    <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider">Transaction Records</h4>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
-                      <div>
-                        <span className="text-gray-400">Nature of Remittance:</span>
-                        <p className="font-semibold text-gray-800">{activeItem.natureOfRemittance}</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-400">Invoice Number:</span>
-                        <p className="font-semibold text-gray-800">{activeItem.invoiceNumber || 'N/A'}</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-400">Proposed Date:</span>
-                        <p className="font-semibold text-gray-800">
-                          {activeItem.proposedRemittanceDate ? new Date(activeItem.proposedRemittanceDate).toLocaleDateString() : 'Pending'}
-                        </p>
-                      </div>
-                      <div>
-                        <span className="text-gray-400">Beneficiary Tax ID (TIN):</span>
-                        <p className="font-semibold text-gray-800 font-mono">{activeItem.beneficiaryTaxId || 'N/A'}</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-400">Net Payable in FC:</span>
-                        <p className="font-bold text-emerald-700">
-                          {activeItem.netRemittanceFc.toLocaleString()} {activeItem.remittanceCurrency}
-                        </p>
-                      </div>
-                      <div>
-                        <span className="text-gray-400">Net Payable in INR:</span>
-                        <p className="font-bold text-emerald-700">₹{activeItem.netRemittanceInr.toLocaleString('en-IN')}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* TAB 2: DTAA CHECKLIST */}
-              {activeTab === 'checklist' && (
-                <div className="space-y-4">
-                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-800 flex items-center justify-between">
-                    <span>
-                      Mandatory documents required to establish treaty eligibility under Section 90(4)/(5) and Rule 37BB.
-                    </span>
-                    <span className="font-semibold">
-                      {activeItem.checklist.filter((x) => x.status === 'Verified').length} of {activeItem.checklist.length} Verified
-                    </span>
-                  </div>
-
-                  <div className="border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-100">
-                    {activeItem.checklist.map((item) => (
-                      <div key={item.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-gray-50/50">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-xs text-gray-900">{item.itemCode}</span>
-                            {item.isMandatory && (
-                              <span className="text-[10px] bg-red-50 text-red-700 px-1.5 py-0.2 rounded border border-red-200 font-medium">
-                                Mandatory
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-xs text-gray-600">{item.itemDescription}</p>
-                          {item.verificationNotes && (
-                            <p className="text-[11px] text-gray-500 italic">Notes: {item.verificationNotes}</p>
-                          )}
-                        </div>
-
-                        <div className="flex items-center gap-2 shrink-0">
-                          <select
-                            value={item.status}
-                            onChange={(e) => handleChecklistStatusChange(item.id, e.target.value)}
-                            className={`text-xs font-semibold px-2.5 py-1 rounded-md border shadow-sm focus:outline-none ${
-                              item.status === 'Verified'
-                                ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
-                                : item.status === 'Rejected'
-                                ? 'bg-red-50 text-red-700 border-red-300'
-                                : item.status === 'Waived'
-                                ? 'bg-amber-50 text-amber-700 border-amber-300'
-                                : 'bg-gray-50 text-gray-700 border-gray-300'
-                            }`}
-                          >
-                            <option value="Pending">Pending</option>
-                            <option value="Verified">Verified</option>
-                            <option value="Waived">Waived</option>
-                            <option value="Rejected">Rejected</option>
-                          </select>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* TAB 3: FORM 15CB CA CERTIFICATE */}
-              {activeTab === 'form15cb' && (
-                <div className="space-y-4">
-                  {/* Status & UDIN Bar */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <div className={`p-1.5 rounded-md ${activeItem.status === 'Certified' ? 'bg-blue-100 text-blue-700' : 'bg-gray-200 text-gray-500'}`}>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <circle cx="12" cy="8" r="7"></circle>
-                          <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline>
-                        </svg>
-                      </div>
-                      <div>
-                        <span className="text-xs font-bold text-gray-800">
-                          {activeItem.status === 'Certified' ? 'Certified by Chartered Accountant' : 'Draft Form 15CB'}
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs text-left">
+                <thead className="bg-slate-50 text-slate-600 font-semibold border-b">
+                  <tr>
+                    <th className="py-2.5 px-3">Form / Reference</th>
+                    <th className="py-2.5 px-3">Indian Entity</th>
+                    <th className="py-2.5 px-3">Non-Resident Counterparty</th>
+                    <th className="py-2.5 px-3">Instruments</th>
+                    <th className="py-2.5 px-3">Price vs Fair Value</th>
+                    <th className="py-2.5 px-3">Total Consideration</th>
+                    <th className="py-2.5 px-3">Deadline Status</th>
+                    <th className="py-2.5 px-3">Certification</th>
+                    <th className="py-2.5 px-3 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {firmsFilings.map(f => (
+                    <tr key={f.id} className="hover:bg-slate-50">
+                      <td className="py-2.5 px-3 font-semibold text-slate-900">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold mr-1 ${f.filingType === 'FcGpr' ? 'bg-indigo-100 text-indigo-800' : 'bg-purple-100 text-purple-800'}`}>
+                          {f.filingType === 'FcGpr' ? 'FC-GPR' : 'FC-TRS'}
                         </span>
-                        {activeItem.udin && (
-                          <p className="text-[11px] font-mono text-blue-700 font-semibold">UDIN: {activeItem.udin}</p>
+                        {f.referenceNumber}
+                      </td>
+                      <td className="py-2.5 px-3 text-slate-800">
+                        {f.indianEntityName}
+                        <span className="text-[10px] text-slate-400 block font-mono">{f.indianEntityCin}</span>
+                      </td>
+                      <td className="py-2.5 px-3 text-slate-700">
+                        {f.nonResidentPartyName}
+                        <span className="text-[10px] text-slate-500 block">{f.nonResidentCountry}</span>
+                      </td>
+                      <td className="py-2.5 px-3 font-mono">
+                        {f.numberOfInstruments.toLocaleString()} {f.instrumentType}
+                        <span className="text-[10px] text-slate-400 block">FV: ₹{f.faceValuePerInstrument}</span>
+                      </td>
+                      <td className="py-2.5 px-3 font-mono">
+                        <span className={f.pricingGuidelinesMet ? 'text-emerald-700 font-bold' : 'text-rose-600 font-bold'}>
+                          ₹{f.issueOrTransferPricePerInstrument.toFixed(2)} / ₹{f.fairValuePerInstrument.toFixed(2)}
+                        </span>
+                        <span className="text-[10px] text-slate-400 block">{f.valuationMethod}</span>
+                      </td>
+                      <td className="py-2.5 px-3 font-mono font-bold text-slate-900">
+                        {formatINR(f.totalConsiderationInr)}
+                        <span className="text-[10px] text-slate-400 block font-normal">{f.totalConsiderationFc.toLocaleString()} {f.currency}</span>
+                      </td>
+                      <td className="py-2.5 px-3">
+                        {f.isLateSubmission ? (
+                          <span className="bg-rose-100 text-rose-800 text-[10px] px-2 py-0.5 rounded font-bold">
+                            ⚠️ Delayed ({f.daysElapsed}d) • LSF: {formatINR(f.lateSubmissionFeeEstimated)}
+                          </span>
+                        ) : (
+                          <span className="bg-emerald-100 text-emerald-800 text-[10px] px-2 py-0.5 rounded font-medium">
+                            {f.daysRemaining}d runway
+                          </span>
                         )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {activeItem.generated15CbCertificateText && (
-                        <>
+                      </td>
+                      <td className="py-2.5 px-3">
+                        {f.status === 'Certified' ? (
+                          <span className="bg-emerald-100 text-emerald-800 text-[10px] px-2 py-0.5 rounded font-bold">
+                            ✅ Certified (UDIN: {f.udin})
+                          </span>
+                        ) : (
                           <button
-                            onClick={() => copyToClipboard(activeItem.generated15CbCertificateText!, 'Form 15CB Text')}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 border border-gray-300 bg-white rounded-md text-xs font-medium text-gray-700 hover:bg-gray-50"
+                            onClick={() => {
+                              setCertifyingFirmsId(f.id)
+                              setShowCertifyFirmsModal(true)
+                            }}
+                            className="text-indigo-600 hover:text-indigo-800 underline font-semibold text-[11px]"
                           >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                            </svg>
-                            Copy
+                            Sign Certificate
                           </button>
-                          <a
-                            href={`data:text/plain;charset=utf-8,${encodeURIComponent(activeItem.generated15CbCertificateText)}`}
-                            download={`Form15CB_${activeItem.remittanceReference}.txt`}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-900 text-white rounded-md text-xs font-medium hover:bg-gray-800"
+                        )}
+                      </td>
+                      <td className="py-2.5 px-3 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => handleOpenFirmsCert(f.id)}
+                            className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-1 rounded text-xs"
+                            title="Preview Certificate HTML"
                           >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                              <polyline points="7 10 12 15 17 10"></polyline>
-                              <line x1="12" y1="15" x2="12" y2="3"></line>
-                            </svg>
-                            Download
-                          </a>
-                        </>
-                      )}
+                            👁️
+                          </button>
+                          <button
+                            onClick={() => handleDeleteFirms(f.id)}
+                            className="text-rose-600 hover:text-rose-800 text-xs px-1"
+                            title="Delete"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {firmsFilings.length === 0 && (
+                    <tr>
+                      <td colSpan={9} className="py-6 text-center text-slate-400">No FEMA FIRMS filings recorded yet.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 5: RBI ANNUAL FLA RETURN (FLAIR PORTAL) */}
+      {deskTab === 'rbi-fla' && (
+        <div className="space-y-6">
+          {/* Statutory Banner */}
+          <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 text-xs text-purple-950 flex items-start gap-3 shadow-sm">
+            <span className="text-xl">📊</span>
+            <div className="space-y-1">
+              <strong className="font-bold text-sm block">RBI Annual Return on Foreign Liabilities and Assets (FLA Return)</strong>
+              <p>
+                Mandatory annual statutory return under <strong>FEMA Regulations, 1999</strong> for any Indian company having received Foreign Direct Investment (FDI)
+                or made Overseas Direct Investment (ODI). Must be filed on the <strong>RBI FLAIR portal by July 15th</strong> of each year based on audited/provisional accounts.
+              </p>
+            </div>
+          </div>
+
+          {/* FLA Summary KPIs */}
+          {flaSummary && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+                <span className="text-slate-500 text-xs">Total Returns Registered</span>
+                <div className="text-xl font-bold font-mono text-slate-900 mt-1">{flaSummary.totalReturns} Entities</div>
+                <span className="text-[11px] text-slate-400 mt-0.5 block">{flaSummary.mandatoryReturnsCount} Mandatory Filings</span>
+              </div>
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+                <span className="text-slate-500 text-xs">Total Foreign Direct Investment (NAV)</span>
+                <div className="text-xl font-bold font-mono text-emerald-700 mt-1">{formatINR(flaSummary.totalFdiNetAssetValueInr)}</div>
+                <span className="text-[11px] text-slate-400 mt-0.5 block">Net Worth Proportion</span>
+              </div>
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+                <span className="text-slate-500 text-xs">Total ODI Commitment Outside India</span>
+                <div className="text-xl font-bold font-mono text-purple-700 mt-1">{formatINR(flaSummary.totalOdiFinancialCommitmentInr)}</div>
+                <span className="text-[11px] text-slate-400 mt-0.5 block">JV / WOS Assets</span>
+              </div>
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+                <span className="text-slate-500 text-xs">Statutory July 15 Deadline</span>
+                <div className={`text-xl font-bold font-mono mt-1 ${flaSummary.overdueCount > 0 ? 'text-rose-600' : 'text-slate-800'}`}>
+                  {flaSummary.overdueCount > 0 ? `🚨 ${flaSummary.overdueCount} Overdue` : '✅ Within Time'}
+                </div>
+                <span className="text-[11px] text-slate-400 mt-0.5 block">FEMA Compounding Risk</span>
+              </div>
+            </div>
+          )}
+
+          {/* FLA Returns Table */}
+          <div className="bg-white rounded-xl p-5 shadow-sm border border-slate-200 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-3">
+              <h3 className="font-bold text-slate-900 text-sm">Annual FLA Returns by Entity</h3>
+              <button
+                onClick={() => setShowFlaModal(true)}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs px-3 py-1.5 rounded-lg shadow-sm flex items-center gap-1"
+              >
+                <span>+</span> Compile Annual FLA Return
+              </button>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs text-left">
+                <thead className="bg-slate-50 text-slate-600 font-semibold border-b">
+                  <tr>
+                    <th className="py-2.5 px-3">Company Name / CIN</th>
+                    <th className="py-2.5 px-3">Financial Year</th>
+                    <th className="py-2.5 px-3">Net Worth</th>
+                    <th className="py-2.5 px-3">Foreign Equity %</th>
+                    <th className="py-2.5 px-3">FDI at NAV</th>
+                    <th className="py-2.5 px-3">ODI Commitment</th>
+                    <th className="py-2.5 px-3">July 15 Deadline Status</th>
+                    <th className="py-2.5 px-3">Filing Status</th>
+                    <th className="py-2.5 px-3 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {flaReturns.map(r => (
+                    <tr key={r.id} className="hover:bg-slate-50">
+                      <td className="py-2.5 px-3 font-semibold text-slate-900">
+                        {r.companyName}
+                        <span className="text-[10px] text-slate-400 block font-mono">{r.companyCin}</span>
+                      </td>
+                      <td className="py-2.5 px-3 font-medium text-slate-700">{r.financialYear}</td>
+                      <td className="py-2.5 px-3 font-mono font-medium text-slate-800">{formatINR(r.netWorthInr)}</td>
+                      <td className="py-2.5 px-3 font-mono font-bold text-sky-800">{r.foreignEquityHoldingPct}%</td>
+                      <td className="py-2.5 px-3 font-mono font-bold text-emerald-700">{formatINR(r.fdiAtNetAssetValueInr)}</td>
+                      <td className="py-2.5 px-3 font-mono text-purple-700">{formatINR(r.totalOdiFinancialCommitmentInr)}</td>
+                      <td className="py-2.5 px-3">
+                        {r.isDeadlineBreached ? (
+                          <span className="bg-rose-100 text-rose-800 text-[10px] px-2 py-0.5 rounded font-bold">
+                            🚨 Overdue
+                          </span>
+                        ) : (
+                          <span className="bg-emerald-100 text-emerald-800 text-[10px] px-2 py-0.5 rounded font-medium">
+                            {r.daysRemainingToDeadline}d remaining
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-2.5 px-3">
+                        {r.status === 'SubmittedToRbiFlair' ? (
+                          <span className="bg-emerald-100 text-emerald-800 text-[10px] px-2 py-0.5 rounded font-bold">
+                            ✅ Filed ({r.rbiFlairAckNumber})
+                          </span>
+                        ) : r.status === 'Certified' ? (
+                          <div className="flex items-center gap-1">
+                            <span className="bg-indigo-100 text-indigo-800 text-[10px] px-2 py-0.5 rounded font-bold">Certified</span>
+                            <button
+                              onClick={() => {
+                                setFilingFlaId(r.id)
+                                setShowFileFlaModal(true)
+                              }}
+                              className="text-xs text-sky-700 underline font-semibold"
+                            >
+                              Record Ack
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              setCertifyingFlaId(r.id)
+                              setShowCertifyFlaModal(true)
+                            }}
+                            className="text-indigo-600 hover:text-indigo-800 underline font-semibold text-[11px]"
+                          >
+                            Sign &amp; Certify
+                          </button>
+                        )}
+                      </td>
+                      <td className="py-2.5 px-3 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => handleOpenFlaReport(r.id)}
+                            className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-1 rounded text-xs"
+                            title="Preview Full FLA Dossier"
+                          >
+                            👁️
+                          </button>
+                          <button
+                            onClick={() => handleDeleteFla(r.id)}
+                            className="text-rose-600 hover:text-rose-800 text-xs px-1"
+                            title="Delete"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {flaReturns.length === 0 && (
+                    <tr>
+                      <td colSpan={9} className="py-6 text-center text-slate-400">No Annual FLA returns recorded yet.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DRAWER FOR REMITTANCE DETAILS (15CA/15CB) */}
+      {activeItem && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex justify-end">
+          <div className="bg-white w-full max-w-2xl h-full shadow-2xl flex flex-col overflow-hidden">
+            <div className="p-4 bg-slate-900 text-white flex justify-between items-center">
+              <div>
+                <h3 className="font-bold text-sm">{activeItem.remittanceReference} — {activeItem.beneficiaryName}</h3>
+                <p className="text-xs text-slate-400">{activeItem.beneficiaryCountry} • {activeItem.foreignAmount} {activeItem.remittanceCurrency} ({formatINR(activeItem.inrEquivalent)})</p>
+              </div>
+              <button onClick={() => setActiveItem(null)} className="text-slate-400 hover:text-white font-bold text-xl px-2">×</button>
+            </div>
+
+            {/* Drawer Tabs */}
+            <div className="flex border-b border-slate-200 text-xs font-semibold bg-slate-50">
+              <button
+                onClick={() => setDrawerTab('overview')}
+                className={`flex-1 py-2.5 border-b-2 ${drawerTab === 'overview' ? 'border-sky-600 text-sky-700 bg-white' : 'border-transparent text-slate-500'}`}
+              >
+                Overview &amp; Taxability
+              </button>
+              <button
+                onClick={() => setDrawerTab('checklist')}
+                className={`flex-1 py-2.5 border-b-2 ${drawerTab === 'checklist' ? 'border-sky-600 text-sky-700 bg-white' : 'border-transparent text-slate-500'}`}
+              >
+                Document Checklist
+              </button>
+              <button
+                onClick={() => setDrawerTab('form15cb')}
+                className={`flex-1 py-2.5 border-b-2 ${drawerTab === 'form15cb' ? 'border-sky-600 text-sky-700 bg-white' : 'border-transparent text-slate-500'}`}
+              >
+                Form 15CB
+              </button>
+              <button
+                onClick={() => setDrawerTab('form15ca')}
+                className={`flex-1 py-2.5 border-b-2 ${drawerTab === 'form15ca' ? 'border-sky-600 text-sky-700 bg-white' : 'border-transparent text-slate-500'}`}
+              >
+                Form 15CA XML
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 text-xs">
+              {drawerTab === 'overview' && (
+                <div className="space-y-4">
+                  <div className="bg-sky-50 border border-sky-200 rounded-lg p-3 space-y-1 text-sky-950">
+                    <strong className="block font-bold">Rule 37BB Form 15CA Routing: {activeItem.form15CaPart}</strong>
+                    <p>{activeItem.form15CaRoutingReason}</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-slate-50 p-3 rounded-lg border">
+                      <span className="text-slate-400 block font-medium">Domestic Tax Rate (Sec 195):</span>
+                      <strong className="text-slate-800 text-sm">{activeItem.effectiveDomesticRate}%</strong>
+                      <span className="text-[10px] text-slate-500 block">Base: {activeItem.domesticTaxRate}% + Cess: {activeItem.cessRate}%</span>
+                    </div>
+                    <div className="bg-slate-50 p-3 rounded-lg border">
+                      <span className="text-slate-400 block font-medium">DTAA Treaty Rate (Sec 90):</span>
+                      <strong className="text-slate-800 text-sm">{activeItem.treatyTaxRate}%</strong>
+                      <span className="text-[10px] text-slate-500 block">{activeItem.treatyCountry} ({activeItem.treatyArticle})</span>
                     </div>
                   </div>
 
-                  {/* Preformatted Certificate Text View */}
-                  <div className="bg-slate-900 text-slate-100 p-5 rounded-xl font-mono text-xs overflow-x-auto whitespace-pre leading-relaxed shadow-inner max-h-[500px]">
-                    {activeItem.generated15CbCertificateText || 'Certificate not yet generated.'}
+                  <div className="border rounded-lg p-3 space-y-2 bg-slate-50">
+                    <span className="font-bold text-slate-800 block">Governing Tax &amp; TDS Calculations</span>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>Final Withholding Rate: <strong className="font-mono text-sky-700">{activeItem.finalWithholdingRate}% ({activeItem.applicableRateType})</strong></div>
+                      <div>Total TDS (INR): <strong className="font-mono text-slate-900">{formatINR(activeItem.tdsAmountInr)}</strong></div>
+                      <div>Net Remittance (FC): <strong className="font-mono">{activeItem.netRemittanceFc.toLocaleString()} {activeItem.remittanceCurrency}</strong></div>
+                      <div>Grossed-up Amount: <strong className="font-mono">{formatINR(activeItem.grossedUpAmountInr)}</strong></div>
+                    </div>
+                  </div>
+
+                  <div className="border rounded-lg p-3 space-y-2 bg-slate-50">
+                    <span className="font-bold text-slate-800 block">DTAA Eligibility Prerequisites</span>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>Tax Residency Certificate (TRC): <strong>{activeItem.hasTrc ? '✅ Verified' : '❌ Missing'}</strong></div>
+                      <div>Form 10F Electronic: <strong>{activeItem.hasForm10F ? '✅ Verified' : '❌ Missing'}</strong></div>
+                      <div>No-PE Declaration: <strong>{activeItem.noPeDeclaration ? '✅ Verified' : '❌ Missing'}</strong></div>
+                      <div>Beneficial Ownership: <strong>{activeItem.beneficialOwnershipConfirmed ? '✅ Confirmed' : '❌ Missing'}</strong></div>
+                    </div>
                   </div>
                 </div>
               )}
 
-              {/* TAB 4: FORM 15CA XML */}
-              {activeTab === 'form15ca' && (
-                <div className="space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg">
-                    <div>
-                      <span className="text-xs font-bold text-gray-800">
-                        Income Tax e-Filing Portal Schema ({activeItem.form15CaPart})
+              {drawerTab === 'checklist' && (
+                <div className="space-y-3">
+                  <h4 className="font-bold text-slate-800">Supporting Verification Checklist</h4>
+                  {activeItem.checklist?.map(c => (
+                    <div key={c.id} className="border rounded-lg p-3 flex justify-between items-center bg-slate-50">
+                      <div>
+                        <strong className="block text-slate-900">{c.itemCode} — {c.itemDescription}</strong>
+                        <span className="text-[10px] text-slate-500">Status: {c.status} • {c.isMandatory ? 'Mandatory' : 'Optional'}</span>
+                      </div>
+                      <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${c.status === 'Verified' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                        {c.status}
                       </span>
-                      <p className="text-[11px] text-gray-500">
-                        Compatible with the Directorate of Income Tax e-filing portal upload schema
-                      </p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      {activeItem.generated15CaXmlPayload && (
-                        <>
-                          <button
-                            onClick={() => copyToClipboard(activeItem.generated15CaXmlPayload!, 'Form 15CA XML')}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 border border-gray-300 bg-white rounded-md text-xs font-medium text-gray-700 hover:bg-gray-50"
-                          >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                            </svg>
-                            Copy XML
-                          </button>
-                          <a
-                            href={`data:application/xml;charset=utf-8,${encodeURIComponent(activeItem.generated15CaXmlPayload)}`}
-                            download={`Form15CA_${activeItem.remittanceReference}.xml`}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-indigo-600 text-white rounded-md text-xs font-medium hover:bg-indigo-700"
-                          >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                              <polyline points="7 10 12 15 17 10"></polyline>
-                              <line x1="12" y1="15" x2="12" y2="3"></line>
-                            </svg>
-                            Download XML
-                          </a>
-                        </>
-                      )}
-                    </div>
-                  </div>
+                  ))}
+                </div>
+              )}
 
-                  <div className="bg-slate-950 text-emerald-400 p-5 rounded-xl font-mono text-xs overflow-x-auto whitespace-pre leading-relaxed shadow-inner max-h-[500px]">
-                    {activeItem.generated15CaXmlPayload || 'XML not yet generated.'}
+              {drawerTab === 'form15cb' && (
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <h4 className="font-bold text-slate-800">Official Form 15CB Statutory Certificate</h4>
+                    {activeItem.status !== 'Certified' && activeItem.requiresForm15Cb && (
+                      <button
+                        onClick={() => setShowCertifyModal(true)}
+                        className="bg-sky-600 hover:bg-sky-500 text-white px-3 py-1 rounded text-xs font-semibold shadow-sm"
+                      >
+                        Sign &amp; Certify Certificate
+                      </button>
+                    )}
                   </div>
+                  <pre className="p-4 bg-slate-900 text-slate-100 rounded-lg text-[11px] font-mono overflow-x-auto whitespace-pre-wrap leading-relaxed">
+                    {activeItem.generated15CbCertificateText || 'Certificate not yet generated.'}
+                  </pre>
+                </div>
+              )}
+
+              {drawerTab === 'form15ca' && (
+                <div className="space-y-3">
+                  <h4 className="font-bold text-slate-800">Form 15CA E-Filing XML Payload</h4>
+                  <pre className="p-4 bg-slate-900 text-slate-100 rounded-lg text-[11px] font-mono overflow-x-auto whitespace-pre-wrap leading-relaxed">
+                    {activeItem.generated15CaXmlPayload || 'XML not yet generated.'}
+                  </pre>
                 </div>
               )}
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* CREATE MODAL */}
+      {/* MODAL: CREATE REMITTANCE */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-200">
-            <div className="sticky top-0 bg-white px-6 py-4 border-b border-gray-200 flex items-center justify-between z-10">
-              <div className="flex items-center gap-2.5">
-                <div className="p-1.5 bg-indigo-50 rounded-lg text-indigo-700">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <line x1="2" y1="12" x2="22" y2="12"></line>
-                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
-                  </svg>
-                </div>
-                <h3 className="text-lg font-bold text-gray-900">New Foreign Remittance Assessment</h3>
-              </div>
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className="p-1 text-gray-400 hover:text-gray-600 rounded-md"
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-              </button>
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto text-xs">
+            <div className="flex justify-between items-center border-b pb-3">
+              <h3 className="font-bold text-slate-900 text-base">New Foreign Remittance Assessment</h3>
+              <button onClick={() => setShowCreateModal(false)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">×</button>
             </div>
-
-            <form onSubmit={handleCreateSubmit} className="p-6 space-y-6">
-              {/* Step 1: Remitter (Payer) */}
-              <div className="space-y-4">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-600 border-b pb-1">
-                  1. Remitter (Indian Payer) Details
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Select Client *</label>
-                    <select
-                      value={createReq.clientId || ''}
-                      onChange={(e) => handleClientSelect(e.target.value)}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
-                    >
-                      <option value="">-- Choose Client --</option>
-                      {clients.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name} ({c.taxIds?.['PAN'] || 'No PAN'})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Remitter PAN *</label>
-                    <input
-                      type="text"
-                      maxLength={10}
-                      value={createReq.remitterPan || ''}
-                      onChange={(e) => setCreateReq({ ...createReq, remitterPan: e.target.value.toUpperCase() })}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono uppercase"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Remitter TAN</label>
-                    <input
-                      type="text"
-                      maxLength={10}
-                      value={createReq.remitterTan || ''}
-                      onChange={(e) => setCreateReq({ ...createReq, remitterTan: e.target.value.toUpperCase() })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono uppercase"
-                    />
-                  </div>
+            <form onSubmit={handleCreateRemittance} className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-semibold text-slate-700">Client / Payer Entity</label>
+                  <select
+                    value={createReq.clientId || ''}
+                    onChange={e => {
+                      const id = e.target.value
+                      const clt = clients.find(c => c.id === id)
+                      setCreateReq(prev => ({
+                        ...prev,
+                        clientId: id,
+                        remitterName: clt?.name || '',
+                        remitterPan: clt?.taxIds?.PAN || 'AABCZ1234F'
+                      }))
+                    }}
+                    className="w-full mt-1 p-2 border rounded bg-white"
+                    required
+                  >
+                    <option value="">Select client...</option>
+                    {clients.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-700">Remittance Reference</label>
+                  <input
+                    type="text"
+                    value={createReq.remittanceReference || ''}
+                    onChange={e => setCreateReq(prev => ({ ...prev, remittanceReference: e.target.value }))}
+                    className="w-full mt-1 p-2 border rounded font-mono"
+                    placeholder="REM-2025-001"
+                    required
+                  />
                 </div>
               </div>
 
-              {/* Step 2: Beneficiary (Non-Resident Payee) */}
-              <div className="space-y-4">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-600 border-b pb-1">
-                  2. Non-Resident Beneficiary (Remittee) Details
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Beneficiary Name *</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Amazon Web Services Inc"
-                      value={createReq.beneficiaryName || ''}
-                      onChange={(e) => setCreateReq({ ...createReq, beneficiaryName: e.target.value })}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Country of Residence *</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. United States"
-                      value={createReq.beneficiaryCountry || ''}
-                      onChange={(e) => setCreateReq({ ...createReq, beneficiaryCountry: e.target.value })}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Tax ID in Country (TIN/EIN)</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. EIN-91-1646860"
-                      value={createReq.beneficiaryTaxId || ''}
-                      onChange={(e) => setCreateReq({ ...createReq, beneficiaryTaxId: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                    />
-                  </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="font-semibold text-slate-700">Beneficiary Name</label>
+                  <input
+                    type="text"
+                    value={createReq.beneficiaryName || ''}
+                    onChange={e => setCreateReq(prev => ({ ...prev, beneficiaryName: e.target.value }))}
+                    className="w-full mt-1 p-2 border rounded"
+                    placeholder="Zenith LLC"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-700">Beneficiary Country</label>
+                  <input
+                    type="text"
+                    value={createReq.beneficiaryCountry || ''}
+                    onChange={e => setCreateReq(prev => ({ ...prev, beneficiaryCountry: e.target.value }))}
+                    className="w-full mt-1 p-2 border rounded"
+                    placeholder="United States"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-700">Country Code (2-digit)</label>
+                  <input
+                    type="text"
+                    value={createReq.beneficiaryCountryCode || ''}
+                    onChange={e => setCreateReq(prev => ({ ...prev, beneficiaryCountryCode: e.target.value }))}
+                    className="w-full mt-1 p-2 border rounded font-mono uppercase"
+                    placeholder="US"
+                  />
                 </div>
               </div>
 
-              {/* Step 3: Remittance Particulars */}
-              <div className="space-y-4">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-600 border-b pb-1">
-                  3. Remittance Particulars & RBI Purpose Code
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Currency *</label>
-                    <select
-                      value={createReq.remittanceCurrency || 'USD'}
-                      onChange={(e) => setCreateReq({ ...createReq, remittanceCurrency: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
-                    >
-                      {STANDARD_CURRENCIES.map((c) => (
-                        <option key={c} value={c}>{c}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Foreign Amount *</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      placeholder="50000"
-                      value={createReq.foreignAmount || ''}
-                      onChange={(e) => setCreateReq({ ...createReq, foreignAmount: parseFloat(e.target.value) || 0 })}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Exchange Rate (TT Selling) *</label>
-                    <input
-                      type="number"
-                      step="0.0001"
-                      value={createReq.exchangeRate || 85.0}
-                      onChange={(e) => setCreateReq({ ...createReq, exchangeRate: parseFloat(e.target.value) || 0 })}
-                      required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Approx INR Value</label>
-                    <div className="px-3 py-2 bg-gray-100 rounded-lg text-sm font-bold text-gray-800">
-                      ₹{((createReq.foreignAmount || 0) * (createReq.exchangeRate || 0)).toLocaleString('en-IN')}
-                    </div>
-                  </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="font-semibold text-slate-700">Foreign Amount</label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={createReq.foreignAmount || ''}
+                    onChange={e => setCreateReq(prev => ({ ...prev, foreignAmount: Number(e.target.value) }))}
+                    className="w-full mt-1 p-2 border rounded font-mono"
+                    required
+                  />
                 </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">RBI Purpose Code *</label>
-                    <select
-                      value={createReq.rbiPurposeCode || 'P0802'}
-                      onChange={(e) => {
-                        const sel = RBI_PURPOSE_CODES.find((x) => x.code === e.target.value)
-                        setCreateReq({
-                          ...createReq,
-                          rbiPurposeCode: e.target.value,
-                          purposeDescription: sel?.desc || ''
-                        })
-                      }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
-                    >
-                      {RBI_PURPOSE_CODES.map((r) => (
-                        <option key={r.code} value={r.code}>
-                          {r.code} - {r.desc.substring(0, 45)}... {r.exempt ? '(Exempt Rule 37BB)' : ''}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Nature of Remittance</label>
-                    <select
-                      value={createReq.natureOfRemittance || 'FeesForTechnicalServices'}
-                      onChange={(e) => setCreateReq({ ...createReq, natureOfRemittance: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
-                    >
-                      <option value="FeesForTechnicalServices">Fees for Technical Services (FTS)</option>
-                      <option value="Royalty">Royalty (IP / Software License)</option>
-                      <option value="ProfessionalServices">Professional Services</option>
-                      <option value="Interest">Interest</option>
-                      <option value="Dividend">Dividend</option>
-                      <option value="PurchaseOfGoods">Purchase of Commercial Goods</option>
-                      <option value="Reimbursement">Reimbursement of Actual Expenses</option>
-                      <option value="Other">Other Non-Resident Payment</option>
-                    </select>
-                  </div>
+                <div>
+                  <label className="font-semibold text-slate-700">Currency</label>
+                  <select
+                    value={createReq.remittanceCurrency || 'USD'}
+                    onChange={e => setCreateReq(prev => ({ ...prev, remittanceCurrency: e.target.value }))}
+                    className="w-full mt-1 p-2 border rounded bg-white"
+                  >
+                    {STANDARD_CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-700">Exchange Rate (₹)</label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={createReq.exchangeRate || 85}
+                    onChange={e => setCreateReq(prev => ({ ...prev, exchangeRate: Number(e.target.value) }))}
+                    className="w-full mt-1 p-2 border rounded font-mono"
+                    required
+                  />
                 </div>
               </div>
 
-              {/* Step 4: Taxability & DTAA Relief */}
-              <div className="space-y-4">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-600 border-b pb-1">
-                  4. Section 195 Taxability & DTAA Treaty Relief
-                </h4>
-
-                <div className="flex items-center gap-6">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={createReq.isChargeableToTax ?? true}
-                      onChange={(e) => setCreateReq({ ...createReq, isChargeableToTax: e.target.checked })}
-                      className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4"
-                    />
-                    <span className="text-xs font-medium text-gray-800">Chargeable to Tax in India (Sec 195)</span>
-                  </label>
-
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={createReq.treatyBenefitClaimed ?? true}
-                      onChange={(e) => setCreateReq({ ...createReq, treatyBenefitClaimed: e.target.checked })}
-                      className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4"
-                    />
-                    <span className="text-xs font-medium text-gray-800">Claim DTAA Treaty Benefit (Sec 90)</span>
-                  </label>
-
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={createReq.taxBorneByRemitter ?? false}
-                      onChange={(e) => setCreateReq({ ...createReq, taxBorneByRemitter: e.target.checked })}
-                      className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4"
-                    />
-                    <span className="text-xs font-medium text-gray-800">Tax Borne by Remitter (Sec 195A Grossing up)</span>
-                  </label>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-semibold text-slate-700">RBI Purpose Code</label>
+                  <select
+                    value={createReq.rbiPurposeCode || 'P0802'}
+                    onChange={e => {
+                      const code = e.target.value
+                      const p = RBI_PURPOSE_CODES.find(x => x.code === code)
+                      setCreateReq(prev => ({ ...prev, rbiPurposeCode: code, purposeDescription: p?.desc || '' }))
+                    }}
+                    className="w-full mt-1 p-2 border rounded bg-white"
+                  >
+                    {RBI_PURPOSE_CODES.map(p => (
+                      <option key={p.code} value={p.code}>{p.code} - {p.desc}</option>
+                    ))}
+                  </select>
                 </div>
-
-                {createReq.treatyBenefitClaimed && (
-                  <div className="p-4 bg-indigo-50/60 rounded-xl border border-indigo-200 space-y-3">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">Treaty Country</label>
-                        <input
-                          type="text"
-                          value={createReq.treatyCountry || ''}
-                          onChange={(e) => setCreateReq({ ...createReq, treatyCountry: e.target.value })}
-                          className="w-full px-3 py-1.5 border border-gray-300 rounded text-xs bg-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">Treaty Article</label>
-                        <input
-                          type="text"
-                          value={createReq.treatyArticle || ''}
-                          onChange={(e) => setCreateReq({ ...createReq, treatyArticle: e.target.value })}
-                          className="w-full px-3 py-1.5 border border-gray-300 rounded text-xs bg-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">Treaty Tax Rate (%)</label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={createReq.treatyTaxRate || 10.0}
-                          onChange={(e) => setCreateReq({ ...createReq, treatyTaxRate: parseFloat(e.target.value) || 0 })}
-                          className="w-full px-3 py-1.5 border border-gray-300 rounded text-xs bg-white"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-indigo-100 text-xs">
-                      <label className="flex items-center gap-1.5 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={createReq.hasTrc ?? true}
-                          onChange={(e) => setCreateReq({ ...createReq, hasTrc: e.target.checked })}
-                          className="rounded text-indigo-600"
-                        />
-                        <span>TRC Valid</span>
-                      </label>
-                      <label className="flex items-center gap-1.5 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={createReq.hasForm10F ?? true}
-                          onChange={(e) => setCreateReq({ ...createReq, hasForm10F: e.target.checked })}
-                          className="rounded text-indigo-600"
-                        />
-                        <span>Form 10F Verified</span>
-                      </label>
-                      <label className="flex items-center gap-1.5 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={createReq.noPeDeclaration ?? true}
-                          onChange={(e) => setCreateReq({ ...createReq, noPeDeclaration: e.target.checked })}
-                          className="rounded text-indigo-600"
-                        />
-                        <span>No-PE Declaration</span>
-                      </label>
-                      <label className="flex items-center gap-1.5 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={createReq.beneficialOwnershipConfirmed ?? true}
-                          onChange={(e) => setCreateReq({ ...createReq, beneficialOwnershipConfirmed: e.target.checked })}
-                          className="rounded text-indigo-600"
-                        />
-                        <span>Beneficial Owner</span>
-                      </label>
-                    </div>
-                  </div>
-                )}
+                <div>
+                  <label className="font-semibold text-slate-700">Nature of Remittance</label>
+                  <select
+                    value={createReq.natureOfRemittance || 'FeesForTechnicalServices'}
+                    onChange={e => setCreateReq(prev => ({ ...prev, natureOfRemittance: e.target.value }))}
+                    className="w-full mt-1 p-2 border rounded bg-white"
+                  >
+                    <option value="FeesForTechnicalServices">Fees for Technical Services (FTS)</option>
+                    <option value="Royalty">Royalty</option>
+                    <option value="ProfessionalServices">Professional Services</option>
+                    <option value="Interest">Interest</option>
+                    <option value="Dividend">Dividend</option>
+                    <option value="PurchaseOfGoods">Purchase of Goods (Commercial)</option>
+                  </select>
+                </div>
               </div>
 
-              {/* Form Buttons */}
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+              <div className="flex justify-end gap-2 pt-4 border-t">
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  className="px-4 py-2 border rounded text-slate-700 hover:bg-slate-50 font-medium"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold shadow transition-colors"
+                  className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded font-medium shadow-sm"
                 >
-                  Create Assessment & Generate Draft 15CA/CB
+                  Save Remittance Assessment
                 </button>
               </div>
             </form>
@@ -1258,90 +1767,71 @@ export function ForeignRemittancePage() {
         </div>
       )}
 
-      {/* CERTIFY MODAL */}
+      {/* MODAL: CERTIFY 15CB */}
       {showCertifyModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl border border-gray-200 space-y-4">
-            <div className="flex items-center gap-2">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-600">
-                <circle cx="12" cy="8" r="7"></circle>
-                <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline>
-              </svg>
-              <h3 className="text-base font-bold text-gray-900">Certify Form 15CB (Chartered Accountant)</h3>
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 text-xs">
+            <div className="flex justify-between items-center border-b pb-3">
+              <h3 className="font-bold text-slate-900 text-base">Sign &amp; Issue Form 15CB Certificate</h3>
+              <button onClick={() => setShowCertifyModal(false)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">×</button>
             </div>
-            <p className="text-xs text-gray-600 leading-relaxed">
-              In accordance with Rule 37BB(2) and ICAI UDIN guidelines, please enter your professional details and generated 18-digit UDIN.
-            </p>
-
-            <form onSubmit={handleCertify} className="space-y-3">
+            <form onSubmit={handleCertifyRemittance} className="space-y-3">
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Chartered Accountant Name *</label>
+                <label className="font-semibold text-slate-700">Chartered Accountant Name</label>
                 <input
                   type="text"
                   value={certifyForm.caName}
-                  onChange={(e) => setCertifyForm({ ...certifyForm, caName: e.target.value })}
+                  onChange={e => setCertifyForm(prev => ({ ...prev, caName: e.target.value }))}
+                  className="w-full mt-1 p-2 border rounded"
                   required
-                  className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">ICAI Membership No *</label>
+                  <label className="font-semibold text-slate-700">ICAI Membership No.</label>
                   <input
                     type="text"
                     value={certifyForm.caMembershipNumber}
-                    onChange={(e) => setCertifyForm({ ...certifyForm, caMembershipNumber: e.target.value })}
+                    onChange={e => setCertifyForm(prev => ({ ...prev, caMembershipNumber: e.target.value }))}
+                    className="w-full mt-1 p-2 border rounded font-mono"
                     required
-                    className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm font-mono"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Firm FRN</label>
+                  <label className="font-semibold text-slate-700">Firm Reg. No. (FRN)</label>
                   <input
                     type="text"
                     value={certifyForm.caFrn}
-                    onChange={(e) => setCertifyForm({ ...certifyForm, caFrn: e.target.value })}
-                    className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm font-mono"
+                    onChange={e => setCertifyForm(prev => ({ ...prev, caFrn: e.target.value }))}
+                    className="w-full mt-1 p-2 border rounded font-mono"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Firm Name</label>
+                <label className="font-semibold text-slate-700">Unique Document ID (UDIN - 18 Chars)</label>
                 <input
                   type="text"
-                  value={certifyForm.caFirmName}
-                  onChange={(e) => setCertifyForm({ ...certifyForm, caFirmName: e.target.value })}
-                  className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Unique Document ID (UDIN) *</label>
-                <input
-                  type="text"
-                  maxLength={18}
-                  placeholder="24214589BK99887766"
                   value={certifyForm.udin}
-                  onChange={(e) => setCertifyForm({ ...certifyForm, udin: e.target.value.toUpperCase() })}
+                  onChange={e => setCertifyForm(prev => ({ ...prev, udin: e.target.value }))}
+                  className="w-full mt-1 p-2 border rounded font-mono uppercase font-bold text-sky-800"
                   required
-                  className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm font-mono tracking-wider uppercase text-blue-700 font-bold"
                 />
-                <span className="text-[10px] text-gray-400">Must be exactly 18 alphanumeric characters.</span>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t">
+              <div className="flex justify-end gap-2 pt-4 border-t">
                 <button
                   type="button"
                   onClick={() => setShowCertifyModal(false)}
-                  className="px-3 py-1.5 border border-gray-300 rounded text-xs text-gray-700 hover:bg-gray-50"
+                  className="px-4 py-2 border rounded text-slate-700 hover:bg-slate-50 font-medium"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-xs font-semibold shadow"
+                  className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded font-medium shadow-sm"
                 >
-                  Sign & Certify
+                  Attest &amp; Bind UDIN
                 </button>
               </div>
             </form>
@@ -1349,39 +1839,659 @@ export function ForeignRemittancePage() {
         </div>
       )}
 
-      {/* RECORD FILING MODAL */}
-      {showFileModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-xl max-w-sm w-full p-5 shadow-2xl border border-gray-200 space-y-3">
-            <h3 className="text-sm font-bold text-gray-900">Record Income Tax Portal Filing</h3>
-            <p className="text-xs text-gray-500">
-              Enter the Acknowledgement Number issued upon successful Form 15CA submission on the e-filing portal.
-            </p>
-            <form onSubmit={handleFile} className="space-y-3">
-              <input
-                type="text"
-                placeholder="e.g. ACK15CA20240019284"
-                value={portalAck}
-                onChange={(e) => setPortalAck(e.target.value)}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded text-sm font-mono"
-              />
-              <div className="flex justify-end gap-2">
+      {/* MODAL: NEW FIRMS FILING (FC-GPR / FC-TRS) */}
+      {showFirmsModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto text-xs">
+            <div className="flex justify-between items-center border-b pb-3">
+              <h3 className="font-bold text-slate-900 text-base">New RBI FIRMS Single Master Form Filing</h3>
+              <button onClick={() => setShowFirmsModal(false)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">×</button>
+            </div>
+            <form onSubmit={handleSaveFirms} className="space-y-4">
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="font-semibold text-slate-700">Filing Type</label>
+                  <select
+                    value={firmsType}
+                    onChange={e => setFirmsType(e.target.value as FirmsFilingType)}
+                    className="w-full mt-1 p-2 border rounded bg-white font-bold"
+                  >
+                    <option value="FcGpr">Form FC-GPR (Allotment of Shares)</option>
+                    <option value="FcTrs">Form FC-TRS (Transfer of Shares)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-700">Reference Number</label>
+                  <input
+                    type="text"
+                    value={firmsRefNo}
+                    onChange={e => setFirmsRefNo(e.target.value)}
+                    className="w-full mt-1 p-2 border rounded font-mono"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-700">Client Account</label>
+                  <select
+                    value={firmsClientId}
+                    onChange={e => setFirmsClientId(e.target.value)}
+                    className="w-full mt-1 p-2 border rounded bg-white"
+                    required
+                  >
+                    <option value="">Select client...</option>
+                    {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="font-semibold text-slate-700">Indian Entity Name</label>
+                  <input
+                    type="text"
+                    value={firmsEntityName}
+                    onChange={e => setFirmsEntityName(e.target.value)}
+                    className="w-full mt-1 p-2 border rounded"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-700">CIN</label>
+                  <input
+                    type="text"
+                    value={firmsCin}
+                    onChange={e => setFirmsCin(e.target.value)}
+                    className="w-full mt-1 p-2 border rounded font-mono uppercase"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-700">PAN</label>
+                  <input
+                    type="text"
+                    value={firmsPan}
+                    onChange={e => setFirmsPan(e.target.value)}
+                    className="w-full mt-1 p-2 border rounded font-mono uppercase"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-semibold text-slate-700">Non-Resident Counterparty</label>
+                  <input
+                    type="text"
+                    value={firmsNrName}
+                    onChange={e => setFirmsNrName(e.target.value)}
+                    className="w-full mt-1 p-2 border rounded"
+                    placeholder="Global Ventures LLC"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-700">Country of Non-Resident</label>
+                  <input
+                    type="text"
+                    value={firmsNrCountry}
+                    onChange={e => setFirmsNrCountry(e.target.value)}
+                    className="w-full mt-1 p-2 border rounded"
+                    placeholder="United States"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-4 gap-3">
+                <div>
+                  <label className="font-semibold text-slate-700">Instrument</label>
+                  <select
+                    value={firmsInstrumentType}
+                    onChange={e => setFirmsInstrumentType(e.target.value as CapitalInstrumentType)}
+                    className="w-full mt-1 p-2 border rounded bg-white"
+                  >
+                    <option value="EquityShares">Equity Shares</option>
+                    <option value="CCDs">CCDs (Debentures)</option>
+                    <option value="CCPS">CCPS (Preference)</option>
+                    <option value="ShareWarrants">Share Warrants</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-700">Number of Units</label>
+                  <input
+                    type="number"
+                    value={firmsCount}
+                    onChange={e => setFirmsCount(Number(e.target.value))}
+                    className="w-full mt-1 p-2 border rounded font-mono"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-700">Issue/Transfer Price (₹)</label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={firmsIssuePrice}
+                    onChange={e => setFirmsIssuePrice(Number(e.target.value))}
+                    className="w-full mt-1 p-2 border rounded font-mono font-bold text-sky-800"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-700">DCF Fair Value Floor (₹)</label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={firmsFairValue}
+                    onChange={e => setFirmsFairValue(Number(e.target.value))}
+                    className="w-full mt-1 p-2 border rounded font-mono font-bold text-slate-800"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="font-semibold text-slate-700">Date of Allotment / Transfer</label>
+                  <input
+                    type="date"
+                    value={firmsAllotmentDate}
+                    onChange={e => setFirmsAllotmentDate(e.target.value)}
+                    className="w-full mt-1 p-2 border rounded font-mono"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-700">Valuation Method</label>
+                  <input
+                    type="text"
+                    value={firmsValMethod}
+                    onChange={e => setFirmsValMethod(e.target.value)}
+                    className="w-full mt-1 p-2 border rounded"
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-700">Registered Valuer Name</label>
+                  <input
+                    type="text"
+                    value={firmsValuer}
+                    onChange={e => setFirmsValuer(e.target.value)}
+                    className="w-full mt-1 p-2 border rounded"
+                  />
+                </div>
+              </div>
+
+              {firmsType === 'FcTrs' && (
+                <div className="grid grid-cols-2 gap-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
+                  <div>
+                    <label className="font-semibold text-slate-700">Transfer Direction</label>
+                    <select
+                      value={firmsDirection}
+                      onChange={e => setFirmsDirection(e.target.value as TransferDirectionType)}
+                      className="w-full mt-1 p-2 border rounded bg-white"
+                    >
+                      <option value="ResidentToNonResident">Resident to Non-Resident (Floor: &ge; Fair Value)</option>
+                      <option value="NonResidentToResident">Non-Resident to Resident (Ceiling: &le; Fair Value)</option>
+                      <option value="NonResidentToNonResident">Non-Resident to Non-Resident (Exempt)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="font-semibold text-slate-700">Transfer Mode</label>
+                    <select
+                      value={firmsTransferMode}
+                      onChange={e => setFirmsTransferMode(e.target.value as TransferModeType)}
+                      className="w-full mt-1 p-2 border rounded bg-white"
+                    >
+                      <option value="Sale">Sale (Cash / AD Bank Wire)</option>
+                      <option value="Gift">Gift (Prior RBI Approval)</option>
+                      <option value="Swap">Swap of Shares</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 pt-4 border-t">
                 <button
                   type="button"
-                  onClick={() => setShowFileModal(false)}
-                  className="px-3 py-1.5 border border-gray-300 rounded text-xs text-gray-700 hover:bg-gray-50"
+                  onClick={() => setShowFirmsModal(false)}
+                  className="px-4 py-2 border rounded text-slate-700 hover:bg-slate-50 font-medium"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-semibold"
+                  disabled={loading}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded font-medium shadow-sm"
                 >
-                  Save Filing
+                  Save FIRMS Filing
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: CERTIFY FIRMS FILING */}
+      {showCertifyFirmsModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 text-xs">
+            <div className="flex justify-between items-center border-b pb-3">
+              <h3 className="font-bold text-slate-900 text-base">Certify FEMA FIRMS Compliance</h3>
+              <button onClick={() => setShowCertifyFirmsModal(false)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">×</button>
+            </div>
+            <form onSubmit={handleCertifyFirms} className="space-y-3">
+              <div>
+                <label className="font-semibold text-slate-700">Practitioner Name (CA / CS)</label>
+                <input
+                  type="text"
+                  value={certifyForm.caName}
+                  onChange={e => setCertifyForm(prev => ({ ...prev, caName: e.target.value }))}
+                  className="w-full mt-1 p-2 border rounded"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="font-semibold text-slate-700">Membership Number</label>
+                  <input
+                    type="text"
+                    value={certifyForm.caMembershipNumber}
+                    onChange={e => setCertifyForm(prev => ({ ...prev, caMembershipNumber: e.target.value }))}
+                    className="w-full mt-1 p-2 border rounded font-mono"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-700">Firm Name</label>
+                  <input
+                    type="text"
+                    value={certifyForm.caFirmName}
+                    onChange={e => setCertifyForm(prev => ({ ...prev, caFirmName: e.target.value }))}
+                    className="w-full mt-1 p-2 border rounded"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="font-semibold text-slate-700">Unique Document ID (UDIN)</label>
+                <input
+                  type="text"
+                  value={certifyForm.udin}
+                  onChange={e => setCertifyForm(prev => ({ ...prev, udin: e.target.value }))}
+                  className="w-full mt-1 p-2 border rounded font-mono uppercase font-bold text-indigo-700"
+                  required
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-4 border-t">
+                <button
+                  type="button"
+                  onClick={() => setShowCertifyFirmsModal(false)}
+                  className="px-4 py-2 border rounded text-slate-700 hover:bg-slate-50 font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded font-medium shadow-sm"
+                >
+                  Certify FIRMS Filing
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: NEW ANNUAL FLA RETURN */}
+      {showFlaModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto text-xs">
+            <div className="flex justify-between items-center border-b pb-3">
+              <h3 className="font-bold text-slate-900 text-base">New RBI Annual FLA Return (FLAIR Portal)</h3>
+              <button onClick={() => setShowFlaModal(false)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">×</button>
+            </div>
+            <form onSubmit={handleSaveFla} className="space-y-4">
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="font-semibold text-slate-700">Financial Year</label>
+                  <select
+                    value={flaFy}
+                    onChange={e => setFlaFy(e.target.value)}
+                    className="w-full mt-1 p-2 border rounded bg-white font-bold"
+                  >
+                    <option value="2024-25">FY 2024-25</option>
+                    <option value="2025-26">FY 2025-26</option>
+                    <option value="2023-24">FY 2023-24</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-700">Client Account</label>
+                  <select
+                    value={flaClientId}
+                    onChange={e => setFlaClientId(e.target.value)}
+                    className="w-full mt-1 p-2 border rounded bg-white"
+                    required
+                  >
+                    <option value="">Select client...</option>
+                    {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-700">Audit Status</label>
+                  <select
+                    value={flaAuditStatus}
+                    onChange={e => setFlaAuditStatus(e.target.value as FlaAuditStatus)}
+                    className="w-full mt-1 p-2 border rounded bg-white"
+                  >
+                    <option value="Audited">Audited Balance Sheet</option>
+                    <option value="UnauditedProvisional">Unaudited / Provisional</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="font-semibold text-slate-700">Company Name</label>
+                  <input
+                    type="text"
+                    value={flaCompanyName}
+                    onChange={e => setFlaCompanyName(e.target.value)}
+                    className="w-full mt-1 p-2 border rounded"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-700">CIN</label>
+                  <input
+                    type="text"
+                    value={flaCin}
+                    onChange={e => setFlaCin(e.target.value)}
+                    className="w-full mt-1 p-2 border rounded font-mono uppercase"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-700">PAN</label>
+                  <input
+                    type="text"
+                    value={flaPan}
+                    onChange={e => setFlaPan(e.target.value)}
+                    className="w-full mt-1 p-2 border rounded font-mono uppercase"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="border rounded-lg p-3 bg-slate-50 space-y-2">
+                <span className="font-bold text-slate-800 block">Section I: Financial Particulars</span>
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="text-slate-500 text-[11px]">Paid-up Capital (₹)</label>
+                    <input
+                      type="number"
+                      value={flaPaidUpCapital}
+                      onChange={e => setFlaPaidUpCapital(Number(e.target.value))}
+                      className="w-full p-1.5 border rounded font-mono bg-white"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="text-slate-500 text-[11px]">Reserves &amp; Surplus (₹)</label>
+                    <input
+                      type="number"
+                      value={flaReserves}
+                      onChange={e => setFlaReserves(Number(e.target.value))}
+                      className="w-full p-1.5 border rounded font-mono bg-white"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="text-slate-500 text-[11px]">Sales Turnover (₹)</label>
+                    <input
+                      type="number"
+                      value={flaSalesTurnover}
+                      onChange={e => setFlaSalesTurnover(Number(e.target.value))}
+                      className="w-full p-1.5 border rounded font-mono bg-white"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="border rounded-lg p-3 bg-slate-50 space-y-2">
+                <span className="font-bold text-slate-800 block">Section II: Foreign Direct Investment (FDI in India)</span>
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="text-slate-500 text-[11px]">Foreign Equity Holding (%)</label>
+                    <input
+                      type="number"
+                      step="any"
+                      value={flaForeignEquityPct}
+                      onChange={e => setFlaForeignEquityPct(Number(e.target.value))}
+                      className="w-full p-1.5 border rounded font-mono bg-white font-bold text-emerald-700"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="text-slate-500 text-[11px]">FDI at Face Value (₹)</label>
+                    <input
+                      type="number"
+                      value={flaFdiFaceValue}
+                      onChange={e => setFlaFdiFaceValue(Number(e.target.value))}
+                      className="w-full p-1.5 border rounded font-mono bg-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-slate-500 text-[11px]">Fresh FDI Inflows (₹)</label>
+                    <input
+                      type="number"
+                      value={flaFreshFdi}
+                      onChange={e => setFlaFreshFdi(Number(e.target.value))}
+                      className="w-full p-1.5 border rounded font-mono bg-white"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="border rounded-lg p-3 bg-slate-50 space-y-2">
+                <span className="font-bold text-slate-800 block">Section III &amp; IV: Overseas Investment &amp; Other Foreign Liabilities</span>
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="text-slate-500 text-[11px]">ODI Investment in WOS/JV (₹)</label>
+                    <input
+                      type="number"
+                      value={flaOdiEquityInv}
+                      onChange={e => setFlaOdiEquityInv(Number(e.target.value))}
+                      className="w-full p-1.5 border rounded font-mono bg-white text-purple-700 font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-slate-500 text-[11px]">ECB Outstanding (₹)</label>
+                    <input
+                      type="number"
+                      value={flaEcb}
+                      onChange={e => setFlaEcb(Number(e.target.value))}
+                      className="w-full p-1.5 border rounded font-mono bg-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-slate-500 text-[11px]">Foreign Bank Balances (₹)</label>
+                    <input
+                      type="number"
+                      value={flaBankBalances}
+                      onChange={e => setFlaBankBalances(Number(e.target.value))}
+                      className="w-full p-1.5 border rounded font-mono bg-white"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4 border-t">
+                <button
+                  type="button"
+                  onClick={() => setShowFlaModal(false)}
+                  className="px-4 py-2 border rounded text-slate-700 hover:bg-slate-50 font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded font-medium shadow-sm"
+                >
+                  Compile Annual FLA Return
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: CERTIFY ANNUAL FLA */}
+      {showCertifyFlaModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 text-xs">
+            <div className="flex justify-between items-center border-b pb-3">
+              <h3 className="font-bold text-slate-900 text-base">Certify Annual FLA Return</h3>
+              <button onClick={() => setShowCertifyFlaModal(false)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">×</button>
+            </div>
+            <form onSubmit={handleCertifyFla} className="space-y-3">
+              <div>
+                <label className="font-semibold text-slate-700">Certified by Chartered Accountant</label>
+                <input
+                  type="text"
+                  value={certifyForm.caName}
+                  onChange={e => setCertifyForm(prev => ({ ...prev, caName: e.target.value }))}
+                  className="w-full mt-1 p-2 border rounded"
+                  required
+                />
+              </div>
+              <div>
+                <label className="font-semibold text-slate-700">Unique Document ID (UDIN)</label>
+                <input
+                  type="text"
+                  value={certifyForm.udin}
+                  onChange={e => setCertifyForm(prev => ({ ...prev, udin: e.target.value }))}
+                  className="w-full mt-1 p-2 border rounded font-mono uppercase font-bold text-emerald-800"
+                  required
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-4 border-t">
+                <button
+                  type="button"
+                  onClick={() => setShowCertifyFlaModal(false)}
+                  className="px-4 py-2 border rounded text-slate-700 hover:bg-slate-50 font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded font-medium shadow-sm"
+                >
+                  Attest &amp; Certify Return
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: RECORD FLA FILING ACK */}
+      {showFileFlaModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 text-xs">
+            <div className="flex justify-between items-center border-b pb-3">
+              <h3 className="font-bold text-slate-900 text-base">Record RBI FLAIR Portal Acknowledgment</h3>
+              <button onClick={() => setShowFileFlaModal(false)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">×</button>
+            </div>
+            <form onSubmit={handleFileFla} className="space-y-3">
+              <div>
+                <label className="font-semibold text-slate-700">RBI FLAIR Portal Acknowledgment Reference Number</label>
+                <input
+                  type="text"
+                  value={portalAck}
+                  onChange={e => setPortalAck(e.target.value)}
+                  className="w-full mt-1 p-2 border rounded font-mono uppercase font-bold text-slate-900"
+                  placeholder="FLAIR/2024-25/104928"
+                  required
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-4 border-t">
+                <button
+                  type="button"
+                  onClick={() => setShowFileFlaModal(false)}
+                  className="px-4 py-2 border rounded text-slate-700 hover:bg-slate-50 font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white rounded font-medium shadow-sm"
+                >
+                  Save Acknowledgment
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: FIRMS CERTIFICATE HTML VIEWER */}
+      {showFirmsCertViewer && (
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-4xl w-full h-[85vh] shadow-2xl flex flex-col overflow-hidden">
+            <div className="p-4 bg-slate-900 text-white flex justify-between items-center">
+              <h3 className="font-bold text-sm">FEMA FIRMS Statutory Compliance Certificate</h3>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    const win = window.open('', '_blank')
+                    if (win) {
+                      win.document.write(firmsCertHtml)
+                      win.document.close()
+                      win.focus()
+                      win.print()
+                    }
+                  }}
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1 rounded text-xs font-semibold"
+                >
+                  Print PDF
+                </button>
+                <button onClick={() => setShowFirmsCertViewer(false)} className="text-slate-400 hover:text-white font-bold text-xl px-2">×</button>
+              </div>
+            </div>
+            <iframe title="FIRMS Cert Viewer" srcDoc={firmsCertHtml} className="w-full h-full bg-white" />
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: FLA REPORT HTML VIEWER */}
+      {showFlaReportViewer && (
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-4xl w-full h-[85vh] shadow-2xl flex flex-col overflow-hidden">
+            <div className="p-4 bg-slate-900 text-white flex justify-between items-center">
+              <h3 className="font-bold text-sm">RBI Annual FLA Return Dossier (FLAIR)</h3>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    const win = window.open('', '_blank')
+                    if (win) {
+                      win.document.write(flaReportHtml)
+                      win.document.close()
+                      win.focus()
+                      win.print()
+                    }
+                  }}
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded text-xs font-semibold"
+                >
+                  Print PDF
+                </button>
+                <button onClick={() => setShowFlaReportViewer(false)} className="text-slate-400 hover:text-white font-bold text-xl px-2">×</button>
+              </div>
+            </div>
+            <iframe title="FLA Report Viewer" srcDoc={flaReportHtml} className="w-full h-full bg-white" />
           </div>
         </div>
       )}

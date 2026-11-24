@@ -1512,6 +1512,66 @@ API:
 - `GET /api/ibc-cirp/cases/{id}/im-dossier` (`ibccirp.read`)
 - `POST /api/ibc-cirp/calculate-timeline` (`ibccirp.read`)
 
+## RBI FEMA Foreign Remittance, Form 15CA/15CB & Annual FLA Desk (Sprint 62)
+
+- **Option A (The High-Yield Cross-Border Practice Moat)**: Full-featured statutory workbench for cross-border foreign remittances, Section 195/195(6) withholding tax certificates, RBI FIRMS Single Master Form reporting (FC-GPR / FC-TRS), and mandatory annual Foreign Liabilities and Assets (FLA) returns on the RBI FLAIR portal.
+- **Form 15CB Statutory Certificate Engine (Section 195(6))**:
+  - Automated Withholding Tax (TDS) determination comparing domestic statutory rates (Sec 195 / 115A) against Double Taxation Avoidance Agreements (DTAA / Sec 90).
+  - Cross-border nature of remittance classification: Fees for Technical Services (FTS), Royalties, Professional Services, Interest, Dividends, Commercial Goods.
+  - Tax gross-up computation for remitter-borne tax agreements under Section 195A.
+  - Multi-tier supporting prerequisite verification checklist:
+    - Tax Residency Certificate (TRC) validity period.
+    - Electronic Form 10F verification on ITD portal.
+    - No-PE declaration by non-resident entity.
+    - Beneficial ownership confirmation and MLI Principal Purpose Test (PPT).
+  - 1-Click generation of official ICAI-compliant Form 15CB Statutory Certificate with UDIN binding.
+- **Rule 37BB Form 15CA Undertaking Generator**:
+  - Automated routing and XML schema generation across all four parts:
+    - **Part A**: Remittance not exceeding ₹5,00,000 in aggregate during the financial year.
+    - **Part B**: Remittance where an order or certificate u/s 195(2), 195(3), or 197 has been obtained from the AO.
+    - **Part C**: Remittance exceeding ₹5,00,000 chargeable to tax, accompanied by Form 15CB certificate.
+    - **Part D**: Remittance not chargeable to tax under the specified list of 33 purpose codes under Rule 37BB.
+- **DTAA Treaty, MFN & Article 5 PE Risk Analyzer**:
+  - **Most Favoured Nation (MFN) Clause Evaluator**: Evaluates treaty third-state lower tax rates against landmark Supreme Court ruling in *AO v. M/s Nestle SA (Civil Appeal No. 1420 of 2023)*, enforcing mandatory prerequisite of formal CBDT notification under Section 90(1) in the Official Gazette before granting concessional treaty rates.
+  - **Article 5 Permanent Establishment (PE) Risk Scorecard**: Real-time evaluation of non-resident exposure across Fixed Place PE (Art 5(1)), Service PE (>90/180 man-days in India), and Dependent Agent PE (authority to conclude contracts or habitually maintain stock of goods under Art 5(5)).
+- **RBI FIRMS Single Master Form Portal Engine (FC-GPR & FC-TRS)**:
+  - Automated statutory reporting for Foreign Direct Investment (FDI):
+    - **Form FC-GPR**: Allotment of capital instruments (Equity, CCDs, CCPS, Warrants) to persons resident outside India within **30 days** of allotment.
+    - **Form FC-TRS**: Transfer of capital instruments between resident and non-resident within **60 days** of transfer or receipt/payment of consideration.
+  - **FEMA NDI Rule 21 Pricing Guidelines Validator**:
+    - FC-GPR & Resident to Non-Resident transfers: Verifies issue/transfer price meets or exceeds the certified SEBI Merchant Banker / CA Discounted Free Cash Flow (DCF) floor.
+    - Non-Resident to Resident transfers: Verifies transfer price does not exceed the DCF ceiling.
+  - **Late Submission Fee (LSF) Matrix Calculator**: Computes estimated statutory penalty (`₹7,500 + 0.025% × Consideration × Delay Years`, capped at ₹1 Crore) for delayed filings under RBI Master Direction on Reporting.
+  - 1-Click CS/CA Compliance Certificate HTML generation for attachment to the FIRMS Single Master Form.
+- **RBI Annual Foreign Liabilities and Assets (FLA) Engine (FLAIR Portal)**:
+  - Mandatory annual return compiler conforming to RBI FLAIR reporting guidelines for companies with FDI or ODI by **July 15th** following the fiscal year-end.
+  - **Automated Balance Sheet & Net Worth Computation**: Computes statutory Net Worth from Paid-up Capital and Free Reserves.
+  - **FDI at Net Asset Value (NAV)**: Computes foreign liabilities position based on foreign equity holding percentage applied to audited Net Worth.
+  - **Overseas Direct Investment (ODI) Commitment**: Computes financial commitment across equity investment, loans, and corporate guarantees.
+  - Net Foreign Liabilities position tracker (Foreign Liabilities minus Overseas Assets).
+  - 1-Click official RBI FLAIR Return Dossier compilation with CS/CA digital attestation and Director verification block.
+
+API:
+- `GET /api/foreign-remittance/firms/summary` (`fema.firms.manage`)
+- `GET /api/foreign-remittance/firms/filings` (`fema.firms.manage`)
+- `GET /api/foreign-remittance/firms/filings/{id}` (`fema.firms.manage`)
+- `POST /api/foreign-remittance/firms/filings` (`fema.firms.manage`)
+- `PUT /api/foreign-remittance/firms/filings/{id}` (`fema.firms.manage`)
+- `DELETE /api/foreign-remittance/firms/filings/{id}` (`fema.firms.manage`)
+- `POST /api/foreign-remittance/firms/filings/{id}/certify` (`fema.firms.manage`)
+- `GET /api/foreign-remittance/firms/filings/{id}/certificate-html` (`fema.firms.manage`)
+- `GET /api/foreign-remittance/fla/summary` (`fema.fla.certify`)
+- `GET /api/foreign-remittance/fla/returns` (`fema.fla.certify`)
+- `GET /api/foreign-remittance/fla/returns/{id}` (`fema.fla.certify`)
+- `POST /api/foreign-remittance/fla/returns` (`fema.fla.certify`)
+- `PUT /api/foreign-remittance/fla/returns/{id}` (`fema.fla.certify`)
+- `DELETE /api/foreign-remittance/fla/returns/{id}` (`fema.fla.certify`)
+- `POST /api/foreign-remittance/fla/returns/{id}/certify` (`fema.fla.certify`)
+- `POST /api/foreign-remittance/fla/returns/{id}/file` (`fema.fla.certify`)
+- `GET /api/foreign-remittance/fla/returns/{id}/report-html` (`fema.fla.certify`)
+- `POST /api/foreign-remittance/evaluate-mfn` (`fema.firms.manage`)
+- `POST /api/foreign-remittance/evaluate-pe` (`fema.firms.manage`)
+
 ## Notes
 
 - Package versions are in `Directory.Packages.props`. If restore can't find a version,

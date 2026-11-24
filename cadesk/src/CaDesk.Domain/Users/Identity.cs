@@ -228,4 +228,6 @@ public static class Perms
     public const string IbcCirpRead = "ibccirp.read";
     public const string IbcCirpManage = "ibccirp.manage";
     public const string IbcCirpCertify = "ibccirp.certify";
+    public const string FemaFirmsManage = "fema.firms.manage";
+    public const string FemaFlaCertify = "fema.fla.certify";
 }
