@@ -233,6 +233,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
     public DbSet<ConfigChangeLog> ConfigChangeLog => Set<ConfigChangeLog>();
     public DbSet<Secret> Secrets => Set<Secret>();
     public DbSet<CaDesk.Domain.Features.FirmFeature> FirmFeatures => Set<CaDesk.Domain.Features.FirmFeature>();
+    public DbSet<CaDesk.Domain.Office.AttendanceRecord> AttendanceRecords => Set<CaDesk.Domain.Office.AttendanceRecord>();
+    public DbSet<CaDesk.Domain.Office.LeaveBalance> LeaveBalances => Set<CaDesk.Domain.Office.LeaveBalance>();
+    public DbSet<CaDesk.Domain.Office.LeaveRequest> LeaveRequests => Set<CaDesk.Domain.Office.LeaveRequest>();
+    public DbSet<CaDesk.Domain.Office.OfficeExpense> OfficeExpenses => Set<CaDesk.Domain.Office.OfficeExpense>();
+    public DbSet<CaDesk.Domain.Office.InwardOutwardRegister> InwardOutwardRegisters => Set<CaDesk.Domain.Office.InwardOutwardRegister>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     /// <summary>Read by the query filters at query time. Guid.Empty = no firm = no rows.</summary>
@@ -1522,6 +1527,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
             e.Property(x => x.NewValues).HasColumnType("jsonb");
             e.HasQueryFilter(a => a.FirmId == CurrentFirmId);
         });
+
+        b.Entity<CaDesk.Domain.Office.AttendanceRecord>(e => e.ToTable("attendance_records"));
+        b.Entity<CaDesk.Domain.Office.LeaveBalance>(e => e.ToTable("leave_balances"));
+        b.Entity<CaDesk.Domain.Office.LeaveRequest>(e => e.ToTable("leave_requests"));
+        b.Entity<CaDesk.Domain.Office.OfficeExpense>(e => e.ToTable("office_expenses"));
+        b.Entity<CaDesk.Domain.Office.InwardOutwardRegister>(e => e.ToTable("inward_outward_registers"));
 
         ApplyTenantFilters(b);
         ApplySnakeCaseNames(b);

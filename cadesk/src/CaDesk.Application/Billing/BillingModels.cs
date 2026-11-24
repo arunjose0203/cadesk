@@ -68,7 +68,9 @@ public record CreateInvoiceRequest(
     string? SupplierGstin = null,
     string? RecipientGstin = null,
     string? PlaceOfSupply = null,
-    bool? IsReverseCharge = null
+    bool? IsReverseCharge = null,
+    bool? IncludeUnbilledExpenses = null,
+    List<Guid>? ExpenseIds = null
 );
 
 public record UpdateInvoiceRequest(

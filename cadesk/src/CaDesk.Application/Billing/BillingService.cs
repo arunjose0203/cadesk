@@ -136,6 +136,29 @@ public class BillingService(IAppDbContext db, ITenantContext tenant)
             }
         }
 
+        // Include unbilled reimbursable client expenses
+        List<Domain.Office.OfficeExpense>? expensesToBill = null;
+        if (req.IncludeUnbilledExpenses == true || (req.ExpenseIds != null && req.ExpenseIds.Count > 0))
+        {
+            var expQuery = db.OfficeExpenses
+                .Where(x => x.ClientId == req.ClientId && x.IsReimbursableByClient && !x.IsClientBilled && x.Status == Domain.Office.ExpenseStatus.Approved);
+
+            if (req.ExpenseIds != null && req.ExpenseIds.Count > 0)
+                expQuery = expQuery.Where(x => req.ExpenseIds.Contains(x.Id));
+
+            expensesToBill = await expQuery.ToListAsync(ct);
+            foreach (var exp in expensesToBill)
+            {
+                allItems.Add(new InvoiceItemInput(
+                    $"Reimbursement: {exp.Description} ({exp.Date:dd/MM/yyyy} - {exp.Category})",
+                    "998239",
+                    1m,
+                    exp.Amount,
+                    18.00m
+                ));
+            }
+        }
+
         if (allItems.Count == 0)
             throw new RequestValidationException("Items", "An invoice must contain at least one line item.");
 
@@ -257,6 +280,18 @@ public class BillingService(IAppDbContext db, ITenantContext tenant)
                 te.IsBilled = true;
                 var matchingItem = invoice.Items.FirstOrDefault(x => x.TimeEntryId == te.Id);
                 if (matchingItem != null) te.InvoiceItemId = matchingItem.Id;
+            }
+            await db.SaveChangesAsync(ct);
+        }
+
+        if (expensesToBill != null && expensesToBill.Count > 0)
+        {
+            foreach (var exp in expensesToBill)
+            {
+                exp.IsClientBilled = true;
+                exp.BilledInvoiceId = invoice.Id;
+                exp.UpdatedAt = DateTime.UtcNow;
+                exp.UpdatedBy = currentUserId;
             }
             await db.SaveChangesAsync(ct);
         }

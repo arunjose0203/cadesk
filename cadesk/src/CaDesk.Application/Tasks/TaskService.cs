@@ -32,7 +32,7 @@ public sealed record SaveTaskRequest(string Title, string? Description, Guid? Cl
 public sealed record CompleteTaskRequest(DateOnly? FiledOn, string? AckNo, string? Comment, uint? Version);
 public sealed record ReviewTaskRequest(bool Approve, string? Comment, uint? Version);
 
-public sealed record WorkloadRow(Guid? UserId, string Name, int Open, int Overdue, int DueThisWeek, int WaitingReview, int ToReview);
+public sealed record WorkloadRow(Guid? UserId, string Name, int Open, int Overdue, int DueThisWeek, int WaitingReview, int ToReview, string? LeaveStatus = null);
 
 public sealed record SaveTemplateRequest(string Name, List<string> Items);
 public sealed record TemplateDto(Guid Id, string? TypeCode, string Name, IReadOnlyList<string> Items, bool FirmOwn);
@@ -90,16 +90,22 @@ public sealed class TaskService(IAppDbContext db, ISettings settings, ITenantCon
         var templates = await TemplatesByTypeAsync(ct);
         var load = rule == "round_robin" ? await OpenLoadAsync(ct) : null;
 
+        var onLeaveUserIds = (await db.LeaveRequests.AsNoTracking()
+            .Where(r => r.Status == Domain.Office.LeaveStatus.Approved && r.StartDate <= today && r.EndDate >= today)
+            .Select(r => r.UserId)
+            .ToListAsync(ct)).ToHashSet();
+
         foreach (var x in missing)
         {
             var d = x.d;
             var reviewRequired = await ReviewFor(d.ClientId);
-            Guid? assignee = rule switch
+            Guid? candidate = rule switch
             {
                 "unassigned" => null,
                 "round_robin" => PickLeastLoaded(load!),
                 _ => d.AssignedUserId ?? x.AssignedUserId,
             };
+            Guid? assignee = candidate.HasValue && onLeaveUserIds.Contains(candidate.Value) ? null : candidate;
             var task = new WorkTask
             {
                 ClientId = d.ClientId, DeadlineId = d.Id,
@@ -277,11 +283,16 @@ public sealed class TaskService(IAppDbContext db, ISettings settings, ITenantCon
         var reviewers = (await UsersWithPermissionAsync(Perms.TasksReview, ct)).ToHashSet();
 
         var users = await db.Users.AsNoTracking().Where(u => u.IsActive).OrderBy(u => u.Name).Select(u => new { u.Id, u.Name }).ToListAsync(ct);
+        var activeLeaves = await db.LeaveRequests.AsNoTracking()
+            .Where(r => r.Status == Domain.Office.LeaveStatus.Approved && r.StartDate <= today && r.EndDate >= today)
+            .ToDictionaryAsync(r => r.UserId, r => $"On Leave ({r.LeaveType})", ct);
+
         var rows = users.Select(u =>
         {
             var c = counts.FirstOrDefault(x => x.UserId == u.Id);
             return new WorkloadRow(u.Id, u.Name, c?.Open ?? 0, c?.Overdue ?? 0, c?.Week ?? 0, c?.Waiting ?? 0,
-                named.GetValueOrDefault(u.Id) + (reviewers.Contains(u.Id) ? anyReviewer : 0));
+                named.GetValueOrDefault(u.Id) + (reviewers.Contains(u.Id) ? anyReviewer : 0),
+                activeLeaves.GetValueOrDefault(u.Id));
         }).ToList();
         var none = counts.FirstOrDefault(x => x.UserId == null);
         if (none is not null) rows.Add(new WorkloadRow(null, "Unassigned", none.Open, none.Overdue, none.Week, none.Waiting, 0));

@@ -236,4 +236,8 @@ public static class Perms
     public const string SecurityManage = "security.manage";
     public const string SecurityRead = "security.read";
     public const string ExtractionsApprove = "extractions.approve";
+    public const string AttendanceManage = "attendance.manage";
+    public const string LeaveApprove = "leave.approve";
+    public const string ExpenseApprove = "expense.approve";
+    public const string RegisterManage = "register.manage";
 }
