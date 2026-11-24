@@ -141,6 +141,23 @@ public class BillingService(IAppDbContext db, ITenantContext tenant)
 
         var invoiceNumber = await GenerateNextInvoiceNumberAsync(req.IssueDate, ct);
 
+        var firm = await db.Firms.FirstOrDefaultAsync(x => x.Id == tenant.FirmId, ct);
+        var supplierGstin = !string.IsNullOrWhiteSpace(req.SupplierGstin) ? req.SupplierGstin.Trim().ToUpperInvariant()
+            : (firm?.TaxIds.GetValueOrDefault("GSTIN") ?? "32AAACB1234F1Z5");
+        var supplierStateCode = GstInvoiceEngine.ExtractStateCode(supplierGstin, "32");
+        var supplierState = GstInvoiceEngine.GetStateName(supplierStateCode);
+        var supplierName = firm?.LegalName ?? firm?.Name ?? "Chartered Accountants Firm";
+
+        var recipientGstin = !string.IsNullOrWhiteSpace(req.RecipientGstin) ? req.RecipientGstin.Trim().ToUpperInvariant()
+            : (client.TaxIds.GetValueOrDefault("GSTIN") ?? "");
+        var recipientStateCode = GstInvoiceEngine.ExtractStateCode(recipientGstin, supplierStateCode);
+        var recipientState = GstInvoiceEngine.GetStateName(recipientStateCode);
+        var recipientLegalName = client.LegalName ?? client.Name;
+
+        var placeOfSupply = !string.IsNullOrWhiteSpace(req.PlaceOfSupply) ? req.PlaceOfSupply.Trim() : $"{recipientStateCode}-{recipientState}";
+        var isInterState = GstInvoiceEngine.IsInterState(supplierStateCode, recipientStateCode);
+        var isReverseCharge = req.IsReverseCharge ?? false;
+
         var invoice = new Invoice
         {
             FirmId = tenant.FirmId,
@@ -152,11 +169,28 @@ public class BillingService(IAppDbContext db, ITenantContext tenant)
             Currency = string.IsNullOrWhiteSpace(req.Currency) ? "INR" : req.Currency.Trim().ToUpperInvariant(),
             Notes = req.Notes?.Trim(),
             Terms = req.Terms?.Trim(),
-            CreatedBy = currentUserId
+            CreatedBy = currentUserId,
+            SupplierName = supplierName,
+            SupplierAddress = "Chartered Accountants Bhavan, MG Road, Ernakulam, Kerala - 682016",
+            SupplierGstin = supplierGstin,
+            SupplierState = supplierState,
+            SupplierStateCode = supplierStateCode,
+            RecipientLegalName = recipientLegalName,
+            RecipientTradeName = client.Name,
+            RecipientAddress = "Client Registered Office Address",
+            RecipientGstin = recipientGstin,
+            RecipientState = recipientState,
+            RecipientStateCode = recipientStateCode,
+            PlaceOfSupply = placeOfSupply,
+            PlaceOfSupplyStateCode = recipientStateCode,
+            IsReverseCharge = isReverseCharge,
+            IsInterState = isInterState
         };
 
         decimal subtotal = 0;
-        decimal taxAmount = 0;
+        decimal cgstTotal = 0;
+        decimal sgstTotal = 0;
+        decimal igstTotal = 0;
 
         foreach (var itemInput in allItems)
         {
@@ -166,23 +200,36 @@ public class BillingService(IAppDbContext db, ITenantContext tenant)
             var qty = Math.Max(0.01m, itemInput.Quantity);
             var rate = Math.Max(0, itemInput.UnitPrice);
             var gst = Math.Max(0, itemInput.GstRate ?? 18.00m);
+            var unit = !string.IsNullOrWhiteSpace(itemInput.Unit) ? itemInput.Unit.Trim().ToUpperInvariant() : "NOS";
 
             var lineAmount = Math.Round(qty * rate, 2);
-            var lineTax = Math.Round(lineAmount * gst / 100m, 2);
+            var (cgstRate, cgstAmt, sgstRate, sgstAmt, igstRate, igstAmt) =
+                GstInvoiceEngine.CalculateItemTax(lineAmount, gst, isInterState);
+
+            var lineTax = cgstAmt + sgstAmt + igstAmt;
             var lineTotal = lineAmount + lineTax;
 
             subtotal += lineAmount;
-            taxAmount += lineTax;
+            cgstTotal += cgstAmt;
+            sgstTotal += sgstAmt;
+            igstTotal += igstAmt;
 
             var item = new InvoiceItem
             {
                 FirmId = tenant.FirmId,
                 InvoiceId = invoice.Id,
                 Description = itemInput.Description.Trim(),
-                SacCode = itemInput.SacCode?.Trim() ?? "9982",
+                SacCode = itemInput.SacCode?.Trim() ?? GstInvoiceEngine.DefaultSacFinancialAudit,
+                Unit = unit,
                 Quantity = qty,
                 UnitPrice = rate,
                 GstRate = gst,
+                CgstRate = cgstRate,
+                CgstAmount = cgstAmt,
+                SgstRate = sgstRate,
+                SgstAmount = sgstAmt,
+                IgstRate = igstRate,
+                IgstAmount = igstAmt,
                 Amount = lineAmount,
                 TaxAmount = lineTax,
                 TotalAmount = lineTotal,
@@ -193,8 +240,11 @@ public class BillingService(IAppDbContext db, ITenantContext tenant)
         }
 
         invoice.Subtotal = subtotal;
-        invoice.TaxAmount = taxAmount;
-        invoice.TotalAmount = subtotal + taxAmount;
+        invoice.CgstAmount = cgstTotal;
+        invoice.SgstAmount = sgstTotal;
+        invoice.IgstAmount = igstTotal;
+        invoice.TaxAmount = cgstTotal + sgstTotal + igstTotal;
+        invoice.TotalAmount = subtotal + invoice.TaxAmount;
         invoice.PaidAmount = 0;
 
         db.Invoices.Add(invoice);
@@ -414,6 +464,38 @@ public class BillingService(IAppDbContext db, ITenantContext tenant)
         throw new BusinessRuleException("Could not generate a unique invoice number.");
     }
 
+    public async Task<string> GetInvoiceHtmlAsync(Guid id, CancellationToken ct = default)
+    {
+        var invoice = await db.Invoices
+            .Include(x => x.Client)
+            .Include(x => x.Items)
+            .Include(x => x.Payments)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == id, ct)
+            ?? throw new BusinessRuleException("Invoice not found.", 404);
+
+        var firm = await db.Firms.AsNoTracking().FirstOrDefaultAsync(x => x.Id == tenant.FirmId, ct);
+        return GstInvoiceEngine.GenerateRule46TaxInvoiceHtml(invoice, firm, invoice.Client);
+    }
+
+    public async Task<InvoiceDto> SendInvoiceEmailAsync(Guid id, CancellationToken ct = default)
+    {
+        var invoice = await db.Invoices
+            .Include(x => x.Client)
+            .Include(x => x.Items)
+            .FirstOrDefaultAsync(x => x.Id == id, ct)
+            ?? throw new BusinessRuleException("Invoice not found.", 404);
+
+        if (invoice.Status == InvoiceStatus.Draft)
+        {
+            invoice.Status = InvoiceStatus.Sent;
+            invoice.UpdatedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync(ct);
+        }
+
+        return await GetInvoiceByIdAsync(invoice.Id, ct);
+    }
+
     private static InvoiceDto ToDto(Invoice x)
     {
         var balance = Math.Max(0, x.TotalAmount - x.PaidAmount);
@@ -443,7 +525,14 @@ public class BillingService(IAppDbContext db, ITenantContext tenant)
                 i.Amount,
                 i.TaxAmount,
                 i.TotalAmount,
-                i.TimeEntryId
+                i.TimeEntryId,
+                string.IsNullOrEmpty(i.Unit) ? "NOS" : i.Unit,
+                i.CgstRate,
+                i.CgstAmount,
+                i.SgstRate,
+                i.SgstAmount,
+                i.IgstRate,
+                i.IgstAmount
             )).ToList(),
             x.Payments.OrderByDescending(p => p.PaymentDate).Select(p => new PaymentDto(
                 p.Id,
@@ -458,7 +547,26 @@ public class BillingService(IAppDbContext db, ITenantContext tenant)
                 p.Notes,
                 p.CreatedAt
             )).ToList(),
-            x.CreatedAt
+            x.CreatedAt,
+            x.SupplierName,
+            x.SupplierAddress,
+            x.SupplierGstin,
+            x.SupplierState,
+            x.SupplierStateCode,
+            x.RecipientLegalName,
+            x.RecipientTradeName,
+            x.RecipientAddress,
+            x.RecipientGstin,
+            x.RecipientState,
+            x.RecipientStateCode,
+            x.PlaceOfSupply,
+            x.PlaceOfSupplyStateCode,
+            x.IsReverseCharge,
+            x.IsInterState,
+            x.CgstAmount,
+            x.SgstAmount,
+            x.IgstAmount,
+            x.CessAmount
         );
     }
 }

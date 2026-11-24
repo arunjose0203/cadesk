@@ -52,7 +52,8 @@ public record InvoiceItemInput(
     decimal Quantity,
     decimal UnitPrice,
     decimal? GstRate,
-    Guid? TimeEntryId
+    Guid? TimeEntryId = null,
+    string? Unit = "NOS"
 );
 
 public record CreateInvoiceRequest(
@@ -63,7 +64,11 @@ public record CreateInvoiceRequest(
     string? Notes,
     string? Terms,
     List<InvoiceItemInput> Items,
-    List<Guid>? TimeEntryIds
+    List<Guid>? TimeEntryIds = null,
+    string? SupplierGstin = null,
+    string? RecipientGstin = null,
+    string? PlaceOfSupply = null,
+    bool? IsReverseCharge = null
 );
 
 public record UpdateInvoiceRequest(
@@ -84,7 +89,14 @@ public record InvoiceItemDto(
     decimal Amount,
     decimal TaxAmount,
     decimal TotalAmount,
-    Guid? TimeEntryId
+    Guid? TimeEntryId,
+    string Unit = "NOS",
+    decimal CgstRate = 0,
+    decimal CgstAmount = 0,
+    decimal SgstRate = 0,
+    decimal SgstAmount = 0,
+    decimal IgstRate = 0,
+    decimal IgstAmount = 0
 );
 
 public record RecordPaymentRequest(
@@ -127,7 +139,26 @@ public record InvoiceDto(
     string? Terms,
     List<InvoiceItemDto> Items,
     List<PaymentDto> Payments,
-    DateTime CreatedAt
+    DateTime CreatedAt,
+    string SupplierName = "",
+    string SupplierAddress = "",
+    string SupplierGstin = "",
+    string SupplierState = "Kerala",
+    string SupplierStateCode = "32",
+    string RecipientLegalName = "",
+    string RecipientTradeName = "",
+    string RecipientAddress = "",
+    string RecipientGstin = "",
+    string RecipientState = "",
+    string RecipientStateCode = "",
+    string PlaceOfSupply = "",
+    string PlaceOfSupplyStateCode = "",
+    bool IsReverseCharge = false,
+    bool IsInterState = false,
+    decimal CgstAmount = 0,
+    decimal SgstAmount = 0,
+    decimal IgstAmount = 0,
+    decimal CessAmount = 0
 );
 
 public record BillingSummaryDto(

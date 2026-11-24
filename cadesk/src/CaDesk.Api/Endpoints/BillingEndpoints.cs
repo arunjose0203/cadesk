@@ -30,6 +30,18 @@ public static class BillingEndpoints
             return Results.Ok(invoice);
         }).RequirePermission(Perms.BillingRead);
 
+        g.MapGet("/{id:guid}/html", async (Guid id, BillingService svc, CancellationToken ct) =>
+        {
+            var html = await svc.GetInvoiceHtmlAsync(id, ct);
+            return Results.Content(html, "text/html");
+        }).RequirePermission(Perms.BillingRead);
+
+        g.MapPost("/{id:guid}/send-email", async (Guid id, BillingService svc, CancellationToken ct) =>
+        {
+            var invoice = await svc.SendInvoiceEmailAsync(id, ct);
+            return Results.Ok(invoice);
+        }).RequirePermission(Perms.BillingManage);
+
         g.MapPost("/", async (CreateInvoiceRequest req, ClaimsPrincipal user, BillingService svc, CancellationToken ct) =>
         {
             var userId = Guid.Parse(user.FindFirstValue("sub") ?? user.FindFirstValue(ClaimTypes.NameIdentifier)!);

@@ -202,14 +202,14 @@ public static class TaxEngine
 
         decimal taxAfterRebate = Math.Max(0, totalTaxBeforeRebate - rebate87A);
 
-        // 10. Surcharge
-        decimal surchargeRate = 0;
-        if (totalTaxableIncome > 50000000m) surchargeRate = isNewRegime ? 0.25m : 0.37m; // > 5 Cr: 37% old regime, capped at 25% new regime
-        else if (totalTaxableIncome > 20000000m) surchargeRate = 0.25m; // > 2 Cr
-        else if (totalTaxableIncome > 10000000m) surchargeRate = 0.15m; // > 1 Cr
-        else if (totalTaxableIncome > 5000000m) surchargeRate = 0.10m;  // > 50 Lakhs
-
-        decimal surcharge = Math.Round(taxAfterRebate * surchargeRate, 2);
+        // 10. Surcharge with Statutory Marginal Relief
+        var (surcharge, _) = CalculateSurchargeWithMarginalRelief(
+            totalTaxableIncome,
+            taxAfterRebate,
+            isNewRegime,
+            inc => isNewRegime
+                ? ComputeNewRegimeSlabs(inc, newRules).TotalTax
+                : ComputeOldRegimeSlabs(inc, req.TaxpayerCategory ?? "individual").TotalTax);
 
         // 11. Health & Education Cess (4%)
         decimal cess = Math.Round((taxAfterRebate + surcharge) * 0.04m, 2);
@@ -306,10 +306,10 @@ public static class TaxEngine
         // Senior Citizen (60-80): ₹3,00,000
         // Super Senior (80+): ₹5,00,000
 
-        decimal basicExemption = category switch
+        decimal basicExemption = category?.Trim().ToLowerInvariant() switch
         {
-            "super_senior" => 500000m,
-            "senior_citizen" => 300000m,
+            "super_senior" or "supersenior" or "super_senior_citizen" => 500000m,
+            "senior_citizen" or "senior" or "seniorcitizen" => 300000m,
             _ => 250000m
         };
 
@@ -348,5 +348,70 @@ public static class TaxEngine
         }
 
         return (tax, slabs);
+    }
+
+    public static (decimal Surcharge, decimal MarginalRelief) CalculateSurchargeWithMarginalRelief(
+        decimal totalTaxableIncome,
+        decimal taxAfterRebate,
+        bool isNewRegime,
+        Func<decimal, decimal> computeTaxAtIncome)
+    {
+        if (totalTaxableIncome <= 5000000m || taxAfterRebate <= 0)
+            return (0m, 0m);
+
+        decimal surchargeRate;
+        decimal threshold;
+        decimal priorSurchargeRate;
+
+        if (totalTaxableIncome > 50000000m) // > 5 Cr
+        {
+            surchargeRate = isNewRegime ? 0.25m : 0.37m;
+            threshold = 50000000m;
+            priorSurchargeRate = 0.25m;
+        }
+        else if (totalTaxableIncome > 20000000m) // > 2 Cr
+        {
+            surchargeRate = 0.25m;
+            threshold = 20000000m;
+            priorSurchargeRate = 0.15m;
+        }
+        else if (totalTaxableIncome > 10000000m) // > 1 Cr
+        {
+            surchargeRate = 0.15m;
+            threshold = 10000000m;
+            priorSurchargeRate = 0.10m;
+        }
+        else // > 50 Lakhs
+        {
+            surchargeRate = 0.10m;
+            threshold = 5000000m;
+            priorSurchargeRate = 0m;
+        }
+
+        // In New Regime, surcharge is capped at 25% for all income above 2 Cr
+        if (isNewRegime && threshold == 50000000m)
+        {
+            priorSurchargeRate = 0.25m;
+        }
+
+        decimal standardSurcharge = Math.Round(taxAfterRebate * surchargeRate, 2);
+
+        // Compute threshold tax
+        decimal thresholdTax = computeTaxAtIncome(threshold);
+        decimal thresholdSurcharge = Math.Round(thresholdTax * priorSurchargeRate, 2);
+        decimal totalAtThreshold = thresholdTax + thresholdSurcharge;
+
+        decimal excessIncome = totalTaxableIncome - threshold;
+        decimal maxPayable = totalAtThreshold + excessIncome;
+        decimal actualPayableBeforeRelief = taxAfterRebate + standardSurcharge;
+
+        if (actualPayableBeforeRelief > maxPayable)
+        {
+            decimal relief = actualPayableBeforeRelief - maxPayable;
+            decimal effectiveSurcharge = Math.Max(0, standardSurcharge - relief);
+            return (effectiveSurcharge, relief);
+        }
+
+        return (standardSurcharge, 0m);
     }
 }

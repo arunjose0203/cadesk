@@ -19,6 +19,12 @@ public static class TaxComputationEndpoints
             return Results.Ok(result.Result);
         }).RequirePermission(Perms.ComputationsRun);
 
+        g.MapPost("/comparison", (CalculateTaxRequest req, TaxComputationService svc) =>
+        {
+            var result = svc.PreviewComparisonAsync(req);
+            return Results.Ok(result.Result);
+        }).RequirePermission(Perms.ComputationsRun);
+
         // List computations
         g.MapGet("/computations", async (Guid? clientId, string? assessmentYear, int? skip, int? take, TaxComputationService svc, CancellationToken ct) =>
         {

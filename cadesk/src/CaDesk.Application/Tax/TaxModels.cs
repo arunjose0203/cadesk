@@ -29,7 +29,10 @@ public record RegimeTaxResult(
     decimal PrepaidTaxes,
     decimal NetPayableOrRefund,
     List<TaxSlabBreakdown> SlabBreakdown
-);
+)
+{
+    public decimal SpecialTax => SpecialRateTax;
+}
 
 public record RegimeComparisonDto(
     RegimeTaxResult OldRegime,
@@ -37,52 +40,55 @@ public record RegimeComparisonDto(
     string RecommendedRegime,
     decimal TaxSavings,
     string RecommendationReason
-);
+)
+{
+    public decimal Savings => TaxSavings;
+}
 
 public record CalculateTaxRequest(
     Guid ClientId,
     string AssessmentYear,
     string FinancialYear,
-    string? TaxpayerCategory,
-    string? OptedRegime,
+    string? TaxpayerCategory = "individual",
+    string? OptedRegime = null,
     // Salary
-    decimal GrossSalary,
-    decimal HraReceived,
-    decimal RentPaid,
-    bool IsMetro,
-    decimal ProfessionalTax,
+    decimal GrossSalary = 0,
+    decimal HraReceived = 0,
+    decimal RentPaid = 0,
+    bool IsMetro = false,
+    decimal ProfessionalTax = 0,
     // House property
-    decimal AnnualRentReceived,
-    decimal MunicipalTaxesPaid,
-    decimal HousingLoanInterest,
-    bool IsSelfOccupied,
+    decimal AnnualRentReceived = 0,
+    decimal MunicipalTaxesPaid = 0,
+    decimal HousingLoanInterest = 0,
+    bool IsSelfOccupied = false,
     // Business
-    decimal BusinessGrossTurnover,
-    decimal NetProfit,
-    string? PresumptiveSection,
+    decimal BusinessGrossTurnover = 0,
+    decimal NetProfit = 0,
+    string? PresumptiveSection = null,
     // Capital gains
-    decimal Stcg111A,
-    decimal StcgNormal,
-    decimal Ltcg112A,
-    decimal Ltcg112,
+    decimal Stcg111A = 0,
+    decimal StcgNormal = 0,
+    decimal Ltcg112A = 0,
+    decimal Ltcg112 = 0,
     // Other sources
-    decimal SavingsInterest,
-    decimal FdInterest,
-    decimal DividendIncome,
-    decimal OtherIncome,
+    decimal SavingsInterest = 0,
+    decimal FdInterest = 0,
+    decimal DividendIncome = 0,
+    decimal OtherIncome = 0,
     // Chapter VI-A Deductions
-    decimal Section80C,
-    decimal Section80Ccd1B,
-    decimal Section80D,
-    decimal Section80E,
-    decimal Section80G,
-    decimal Section80Tta,
+    decimal Section80C = 0,
+    decimal Section80Ccd1B = 0,
+    decimal Section80D = 0,
+    decimal Section80E = 0,
+    decimal Section80G = 0,
+    decimal Section80Tta = 0,
     // Taxes paid
-    decimal TdsPaid,
-    decimal TcsPaid,
-    decimal AdvanceTaxPaid,
-    decimal SelfAssessmentTaxPaid,
-    string? Notes
+    decimal TdsPaid = 0,
+    decimal TcsPaid = 0,
+    decimal AdvanceTaxPaid = 0,
+    decimal SelfAssessmentTaxPaid = 0,
+    string? Notes = null
 );
 
 public record TaxComputationDto(

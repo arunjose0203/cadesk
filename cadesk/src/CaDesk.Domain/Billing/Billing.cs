@@ -68,6 +68,30 @@ public class Invoice : TenantEntity
     public string? Notes { get; set; }
     public string? Terms { get; set; }
 
+    // Rule 46 & Section 31 CGST Act Statutory B2B Tax Invoice Fields
+    public string SupplierName { get; set; } = "";
+    public string SupplierAddress { get; set; } = "";
+    public string SupplierGstin { get; set; } = "";
+    public string SupplierState { get; set; } = "Kerala";
+    public string SupplierStateCode { get; set; } = "32";
+
+    public string RecipientLegalName { get; set; } = "";
+    public string RecipientTradeName { get; set; } = "";
+    public string RecipientAddress { get; set; } = "";
+    public string RecipientGstin { get; set; } = "";
+    public string RecipientState { get; set; } = "";
+    public string RecipientStateCode { get; set; } = "";
+
+    public string PlaceOfSupply { get; set; } = "";
+    public string PlaceOfSupplyStateCode { get; set; } = "";
+    public bool IsReverseCharge { get; set; }
+    public bool IsInterState { get; set; }
+
+    public decimal CgstAmount { get; set; }
+    public decimal SgstAmount { get; set; }
+    public decimal IgstAmount { get; set; }
+    public decimal CessAmount { get; set; }
+
     public Client? Client { get; set; }
     public List<InvoiceItem> Items { get; set; } = new();
     public List<Payment> Payments { get; set; } = new();
@@ -82,9 +106,18 @@ public class InvoiceItem : Entity, ITenantOwned
     public Guid InvoiceId { get; set; }
     public string Description { get; set; } = "";
     public string? SacCode { get; set; }
+    public string Unit { get; set; } = "NOS";
     public decimal Quantity { get; set; } = 1;
     public decimal UnitPrice { get; set; }
     public decimal GstRate { get; set; } = 18m;
+    public decimal CgstRate { get; set; }
+    public decimal CgstAmount { get; set; }
+    public decimal SgstRate { get; set; }
+    public decimal SgstAmount { get; set; }
+    public decimal IgstRate { get; set; }
+    public decimal IgstAmount { get; set; }
+    public decimal CessRate { get; set; }
+    public decimal CessAmount { get; set; }
     public decimal Amount { get; set; }
     public decimal TaxAmount { get; set; }
     public decimal TotalAmount { get; set; }
