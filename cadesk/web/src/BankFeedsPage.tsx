@@ -18,7 +18,11 @@ import { toError,
 } from './api'
 import ConnectedBankingDesk from './ConnectedBankingDesk'
 
-export const BankFeedsPage: React.FC = () => {
+interface BankFeedsPageProps {
+  isFeatureEnabled?: (key: string) => boolean
+}
+
+export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }) => {
   const [activeTab, setActiveTab] = useState<'accounts' | 'transactions' | 'brs' | 'rules' | 'forensic' | 'connected-banking'>('accounts')
   const [clients, setClients] = useState<Client[]>([])
   const [accounts, setAccounts] = useState<BankAccountDto[]>([])
@@ -517,27 +521,29 @@ export const BankFeedsPage: React.FC = () => {
             </span>
           )}
         </button>
-        <button
-          onClick={() => setActiveTab('connected-banking')}
-          style={{
-            padding: '10px 20px',
-            border: 'none',
-            background: 'none',
-            cursor: 'pointer',
-            fontWeight: activeTab === 'connected-banking' ? 700 : 400,
-            borderBottom: activeTab === 'connected-banking' ? '3px solid #0284c7' : 'none',
-            color: activeTab === 'connected-banking' ? '#0284c7' : 'inherit',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}
-        >
-          <span>🌐 Connected Banking &amp; Payout Desk</span>
-        </button>
+        {(isFeatureEnabled ? isFeatureEnabled('connected-banking') : false) && (
+          <button
+            onClick={() => setActiveTab('connected-banking')}
+            style={{
+              padding: '10px 20px',
+              border: 'none',
+              background: 'none',
+              cursor: 'pointer',
+              fontWeight: activeTab === 'connected-banking' ? 700 : 400,
+              borderBottom: activeTab === 'connected-banking' ? '3px solid #0284c7' : 'none',
+              color: activeTab === 'connected-banking' ? '#0284c7' : 'inherit',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+            <span>🌐 Connected Banking &amp; Payout Desk</span>
+          </button>
+        )}
       </div>
 
       {/* Tab: Connected Banking & Payout Desk */}
-      {activeTab === 'connected-banking' && (
+      {activeTab === 'connected-banking' && (isFeatureEnabled ? isFeatureEnabled('connected-banking') : false) && (
         <ConnectedBankingDesk accounts={accounts} onRefreshAccounts={loadAccounts} />
       )}
 

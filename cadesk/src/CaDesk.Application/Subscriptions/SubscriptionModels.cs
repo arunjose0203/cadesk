@@ -59,6 +59,12 @@ public record UpgradePlanResponseDto(
     string Message
 );
 
+public record AdminApplyUpgradeRequest(
+    Guid FirmId,
+    string TargetTier,
+    string InvoiceNumber
+);
+
 public record SubscriptionInvoiceDto(
     Guid Id,
     string InvoiceNumber,

@@ -4,8 +4,8 @@ namespace CaDesk.Domain.SecurityCompliance;
 
 public static class SecurityFrameworks
 {
-    public const string Iso27001_2022 = "ISO/IEC 27001:2022";
-    public const string Soc2_TypeII = "SOC 2 Type II (Trust Services Criteria)";
+    public const string Iso27001_2022 = "Controls aligned to ISO/IEC 27001:2022";
+    public const string Soc2_TypeII = "Controls aligned to SOC 2 Criteria";
     public const string DpdpAct2023 = "Digital Personal Data Protection Act 2023";
 }
 

@@ -9,7 +9,9 @@ public static class EsgCsrEndpoints
 {
     public static IEndpointRouteBuilder MapEsgCsrEndpoints(this IEndpointRouteBuilder app)
     {
-        var g = app.MapGroup("/api/esg-csr").WithTags("SEBI BRSR Core & Sec 135 CSR Desk");
+        var g = app.MapGroup("/api/esg-csr")
+            .WithTags("SEBI BRSR Core & Sec 135 CSR Desk")
+            .RequireFeature(CaDesk.Domain.Features.FeatureKeys.EsgCsr);
 
         // 1. CSR Assessments
         g.MapGet("/assessments", async ([FromQuery] Guid? clientId, IEsgCsrService svc, CancellationToken ct) =>

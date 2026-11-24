@@ -232,6 +232,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
     public DbSet<ConfigValue> ConfigValues => Set<ConfigValue>();
     public DbSet<ConfigChangeLog> ConfigChangeLog => Set<ConfigChangeLog>();
     public DbSet<Secret> Secrets => Set<Secret>();
+    public DbSet<CaDesk.Domain.Features.FirmFeature> FirmFeatures => Set<CaDesk.Domain.Features.FirmFeature>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     /// <summary>Read by the query filters at query time. Guid.Empty = no firm = no rows.</summary>
@@ -867,6 +868,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
         b.Entity<CsrAssessment>(e =>
         {
             e.ToTable("csr_assessments");
+            e.Property(x => x.NetProfitFyMinus1).HasColumnName("net_profit_fy_minus_1");
+            e.Property(x => x.NetProfitFyMinus2).HasColumnName("net_profit_fy_minus_2");
+            e.Property(x => x.NetProfitFyMinus3).HasColumnName("net_profit_fy_minus_3");
+            e.Property(x => x.MandatoryCsrObligation2Pct).HasColumnName("mandatory_csr_obligation_2_pct");
             e.Property(x => x.Status).HasConversion<string>();
             e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
             e.HasMany(x => x.Projects).WithOne(x => x.CsrAssessment).HasForeignKey(x => x.CsrAssessmentId).OnDelete(DeleteBehavior.Cascade);
@@ -888,6 +893,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
         b.Entity<CirpCase>(e =>
         {
             e.ToTable("cirp_cases");
+            e.Property(x => x.MoratoriumSection14Declared).HasColumnName("moratorium_section_14_declared");
+            e.Property(x => x.Initial180DaysDeadline).HasColumnName("initial_180_days_deadline");
+            e.Property(x => x.Extended270DaysDeadline).HasColumnName("extended_270_days_deadline");
+            e.Property(x => x.Final330DaysLimit).HasColumnName("final_330_days_limit");
             e.Property(x => x.Stage).HasConversion<string>();
             e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
             e.HasMany(x => x.CocMembers).WithOne(x => x.CirpCase).HasForeignKey(x => x.CirpCaseId).OnDelete(DeleteBehavior.Cascade);
@@ -1496,6 +1505,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
             e.Property(x => x.OldValue).HasColumnType("jsonb");
             e.Property(x => x.NewValue).HasColumnType("jsonb");
             e.HasQueryFilter(c => c.FirmId == CurrentFirmId);
+        });
+
+        b.Entity<CaDesk.Domain.Features.FirmFeature>(e =>
+        {
+            e.ToTable("firm_features");
+            e.HasIndex(x => new { x.FirmId, x.FeatureKey }).IsUnique();
         });
 
         b.Entity<Secret>(e => e.ToTable("secrets"));

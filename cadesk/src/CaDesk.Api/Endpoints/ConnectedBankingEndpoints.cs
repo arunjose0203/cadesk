@@ -10,7 +10,9 @@ public static class ConnectedBankingEndpoints
 {
     public static IEndpointRouteBuilder MapConnectedBankingEndpoints(this IEndpointRouteBuilder app)
     {
-        var g = app.MapGroup("/api/connected-banking").WithTags("ConnectedBanking");
+        var g = app.MapGroup("/api/connected-banking")
+            .WithTags("ConnectedBanking")
+            .RequireFeature(CaDesk.Domain.Features.FeatureKeys.ConnectedBanking);
 
         // 1. List connected bank API feeds
         g.MapGet("/accounts", async ([FromQuery] Guid? clientId, ConnectedBankingService svc, CancellationToken ct) =>
@@ -63,7 +65,7 @@ public static class ConnectedBankingEndpoints
             {
                 return Results.BadRequest(new { error = ex.Message });
             }
-        }).RequireAuthorization(Policies.FirmMember);
+        }).RequirePermission(Perms.BankingPayoutCreate);
 
         // 6. Submit Batch for Partner Review (Maker)
         g.MapPost("/payouts/{id:guid}/submit", async (Guid id, ClaimsPrincipal user, ConnectedBankingService svc, CancellationToken ct) =>
@@ -78,7 +80,7 @@ public static class ConnectedBankingEndpoints
             {
                 return Results.BadRequest(new { error = ex.Message });
             }
-        }).RequireAuthorization(Policies.FirmMember);
+        }).RequirePermission(Perms.BankingPayoutCreate);
 
         // 7. Authorize Payout Batch (Partner Checker)
         g.MapPost("/payouts/{id:guid}/authorize", async (Guid id, [FromBody] AuthorizePayoutBatchRequest req, ClaimsPrincipal user, ConnectedBankingService svc, CancellationToken ct) =>
@@ -89,11 +91,15 @@ public static class ConnectedBankingEndpoints
                 var batch = await svc.AuthorizePayoutBatchAsync(id, userId, req, ct);
                 return Results.Ok(batch);
             }
+            catch (InvalidOperationException ex)
+            {
+                return Results.UnprocessableEntity(new { error = ex.Message });
+            }
             catch (Exception ex)
             {
                 return Results.BadRequest(new { error = ex.Message });
             }
-        }).RequireAuthorization(Policies.FirmMember);
+        }).RequirePermission(Perms.BankingPayoutApprove);
 
         // 8. Reject Payout Batch (Partner Checker)
         g.MapPost("/payouts/{id:guid}/reject", async (Guid id, [FromBody] RejectPayoutBatchRequest req, ClaimsPrincipal user, ConnectedBankingService svc, CancellationToken ct) =>
@@ -108,7 +114,7 @@ public static class ConnectedBankingEndpoints
             {
                 return Results.BadRequest(new { error = ex.Message });
             }
-        }).RequireAuthorization(Policies.FirmMember);
+        }).RequirePermission(Perms.BankingPayoutApprove);
 
         // 9. 1-Click Statutory Tax Challan Payout Generation
         g.MapPost("/payouts/tax-challan", async ([FromBody] GenerateTaxChallanPayoutRequest req, ClaimsPrincipal user, ConnectedBankingService svc, CancellationToken ct) =>

@@ -92,8 +92,8 @@ public class SecurityComplianceUnitTests
     [Fact]
     public void FrameworkConstants_MatchIndustryStandards()
     {
-        Assert.Equal("ISO/IEC 27001:2022", SecurityFrameworks.Iso27001_2022);
-        Assert.Equal("SOC 2 Type II (Trust Services Criteria)", SecurityFrameworks.Soc2_TypeII);
+        Assert.Equal("Controls aligned to ISO/IEC 27001:2022", SecurityFrameworks.Iso27001_2022);
+        Assert.Equal("Controls aligned to SOC 2 Criteria", SecurityFrameworks.Soc2_TypeII);
         Assert.Equal("Digital Personal Data Protection Act 2023", SecurityFrameworks.DpdpAct2023);
     }
 }

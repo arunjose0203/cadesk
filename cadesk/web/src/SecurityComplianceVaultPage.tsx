@@ -126,20 +126,20 @@ export default function SecurityComplianceVaultPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
             <span style={{ fontSize: '26px' }}>🛡️</span>
             <h1 style={{ fontSize: '24px', fontWeight: 800, margin: 0, color: '#0f172a' }}>
-              ISO 27001:2022 &amp; SOC 2 Type II Compliance Evidence Vault
+              Security Controls &amp; Data Protection Vault
             </h1>
             <span style={{ fontSize: '11px', background: '#dcfce7', color: '#15803d', padding: '3px 8px', borderRadius: '4px', fontWeight: 700 }}>
-              ISO/IEC 27001:2022
+              CONTROLS ALIGNED TO ISO/IEC 27001
             </span>
             <span style={{ fontSize: '11px', background: '#e0e7ff', color: '#3730a3', padding: '3px 8px', borderRadius: '4px', fontWeight: 700 }}>
-              SOC 2 TYPE II
+              SOC 2 ALIGNED
             </span>
             <span style={{ fontSize: '11px', background: '#fef3c7', color: '#92400e', padding: '3px 8px', borderRadius: '4px', fontWeight: 700 }}>
               DPDP ACT 2023
             </span>
           </div>
           <p style={{ margin: 0, color: '#64748b', fontSize: '14px' }}>
-            Continuous security telemetry verification, Statement of Applicability (SoA), and 1-click Security Whitepaper generator for enterprise client vendor assessments and NFRA/ICAI peer reviews.
+            Continuous security telemetry verification, Statement of Applicability (SoA), and 1-click Security Controls Whitepaper generator for enterprise client vendor assessments and NFRA/ICAI peer reviews. Controls designed in alignment with ISO/IEC 27001 and SOC 2.
           </p>
         </div>
 

@@ -138,22 +138,22 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON aqmm_responses TO cadesk_app;
 
 
 -- Register AQMM permissions
-INSERT INTO permissions (code, name, description)
+INSERT INTO permissions (code, area, description)
 VALUES
-    ('aqmm.read', 'View AQMM Assessment', 'Can view the ICAI AQMM v1.0 maturity scores and self-assessments'),
-    ('aqmm.manage', 'Manage AQMM Assessment', 'Can score, update responses, and certify AQMM assessments')
+    ('aqmm.read', 'aqmm', 'Can view the ICAI AQMM v1.0 maturity scores and self-assessments'),
+    ('aqmm.manage', 'aqmm', 'Can score, update responses, and certify AQMM assessments')
 ON CONFLICT (code) DO NOTHING;
 
 -- Grant to Partner and Manager roles
-INSERT INTO role_permissions (role_id, permission_code)
-SELECT r.id, p.code
+INSERT INTO role_permissions (role_id, permission_code, firm_id)
+SELECT r.id, p.code, r.firm_id
 FROM roles r
 CROSS JOIN (VALUES ('aqmm.read'), ('aqmm.manage')) AS p(code)
 WHERE r.name IN ('Partner', 'Admin')
 ON CONFLICT (role_id, permission_code) DO NOTHING;
 
-INSERT INTO role_permissions (role_id, permission_code)
-SELECT r.id, 'aqmm.read'
+INSERT INTO role_permissions (role_id, permission_code, firm_id)
+SELECT r.id, 'aqmm.read', r.firm_id
 FROM roles r
 WHERE r.name = 'Manager'
 ON CONFLICT (role_id, permission_code) DO NOTHING;

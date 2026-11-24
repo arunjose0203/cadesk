@@ -220,19 +220,58 @@ public sealed class PartnerCompanionService(
 
         if (audit is null) return false;
 
-        audit.Status = EngagementStatus.PartnerSignoff;
+        // 1. Stage Gate: allow only when in PartnerSignoff stage
+        if (audit.Status != EngagementStatus.PartnerSignoff)
+        {
+            throw new InvalidOperationException($"Audit engagement is currently in '{audit.Status}' stage. Quick sign-off is only permitted when the audit has reached the PartnerSignoff stage.");
+        }
+
+        // 2. Quality review clearance check: open review notes & EQR clearance
+        var openNotesCount = await db.AuditReviewNotes
+            .CountAsync(n => n.FirmId == tenant.FirmId && n.EngagementId == auditId && (n.Status == ReviewNoteStatus.Open || n.Status == ReviewNoteStatus.Reopened), ct);
+
+        var (allowed, reason) = AuditQualityEngine.CanSignOffAudit(openNotesCount, audit.EqrRequired, audit.EqrStatus);
+        if (!allowed)
+        {
+            throw new InvalidOperationException(reason);
+        }
+
+        // 3. Validate UDIN format (ICAI 18-character alphanumeric identifier)
+        if (!UdinValidator.IsValid(req.Udin))
+        {
+            throw new ArgumentException("Invalid ICAI UDIN format. Must be an 18-character alphanumeric identifier starting with a 2-digit fiscal issuance year.");
+        }
+
+        // 4. Save to dedicated fields, not free-text notes
+        audit.Udin = req.Udin!.Trim().ToUpperInvariant();
+        audit.PartnerMembershipNo = req.PartnerMembershipNo?.Trim();
+        audit.PartnerSignoffRemarks = req.Remarks?.Trim();
         audit.LeadPartnerId = partnerUserId;
         audit.AuditReportDate = DateOnly.FromDateTime(NowUtc);
+        audit.ArchivalDeadline = AuditQualityEngine.CalculateArchivalDeadline(audit.AuditReportDate.Value);
+        audit.UpdatedAt = DateTime.UtcNow;
+        audit.UpdatedBy = partnerUserId;
 
-        var note = new StringBuilder();
-        if (!string.IsNullOrWhiteSpace(req.PartnerMembershipNo)) note.AppendLine($"Signed by Partner M.No: {req.PartnerMembershipNo.Trim()}");
-        if (!string.IsNullOrWhiteSpace(req.Udin)) note.AppendLine($"ICAI UDIN: {req.Udin.Trim()}");
-        if (!string.IsNullOrWhiteSpace(req.Remarks)) note.AppendLine($"Partner Remarks: {req.Remarks.Trim()}");
-
-        if (note.Length > 0)
+        // 5. Explicit audit-log entry
+        db.AuditLogs.Add(new AuditLog
         {
-            audit.Notes = string.IsNullOrEmpty(audit.Notes) ? note.ToString().Trim() : $"{audit.Notes}\n{note.ToString().Trim()}";
-        }
+            FirmId = tenant.FirmId,
+            ActorId = partnerUserId,
+            ActorType = AuditActor.User,
+            Entity = "AuditEngagement",
+            EntityId = audit.Id.ToString(),
+            Action = "signoff",
+            NewValues = System.Text.Json.JsonSerializer.Serialize(new
+            {
+                udin = audit.Udin,
+                membershipNo = audit.PartnerMembershipNo,
+                remarks = audit.PartnerSignoffRemarks,
+                status = audit.Status,
+                reportDate = audit.AuditReportDate,
+                archivalDeadline = audit.ArchivalDeadline
+            }),
+            At = DateTime.UtcNow
+        });
 
         await db.SaveChangesAsync(ct);
         return true;

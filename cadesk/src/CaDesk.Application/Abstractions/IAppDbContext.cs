@@ -212,6 +212,7 @@ public interface IAppDbContext
     DbSet<CaDesk.Domain.ConnectedBanking.ConnectedBankCredential> ConnectedBankCredentials { get; }
     DbSet<CaDesk.Domain.ConnectedBanking.PayoutBatch> PayoutBatches { get; }
     DbSet<CaDesk.Domain.ConnectedBanking.PayoutItem> PayoutItems { get; }
+    DbSet<CaDesk.Domain.Features.FirmFeature> FirmFeatures { get; }
     DbSet<CaDesk.Domain.Audit.AuditLog> AuditLogs { get; }
     /// <summary>For transactions and the few raw SQL calls (numbering, jsonb lookups). RLS still applies.</summary>
     DatabaseFacade Database { get; }

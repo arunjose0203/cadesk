@@ -10,7 +10,8 @@ namespace CaDesk.Application.ConnectedBanking;
 public sealed class ConnectedBankingService(
     IAppDbContext db,
     ITenantContext tenant,
-    TimeProvider clock
+    TimeProvider clock,
+    CaDesk.Application.Configuration.ISecretStore secrets
 )
 {
     private DateTime NowUtc => clock.GetUtcNow().UtcDateTime;
@@ -75,6 +76,9 @@ public sealed class ConnectedBankingService(
         var cred = await db.ConnectedBankCredentials
             .FirstOrDefaultAsync(c => c.FirmId == tenant.FirmId && c.BankAccountId == req.BankAccountId, ct);
 
+        await secrets.SetAsync($"banking.{acc.Id}.api_key", req.ApiKey.Trim(), ct);
+        await secrets.SetAsync($"banking.{acc.Id}.api_secret", req.ApiSecret.Trim(), ct);
+
         if (cred is null)
         {
             cred = new ConnectedBankCredential
@@ -85,8 +89,8 @@ public sealed class ConnectedBankingService(
                 Provider = req.Provider,
                 CorporateId = req.CorporateId.Trim(),
                 UserId = req.UserId.Trim(),
-                EncryptedApiKey = Convert.ToBase64String(Encoding.UTF8.GetBytes(req.ApiKey.Trim())),
-                EncryptedApiSecret = Convert.ToBase64String(Encoding.UTF8.GetBytes(req.ApiSecret.Trim())),
+                EncryptedApiKey = $"secret:banking.{acc.Id}.api_key",
+                EncryptedApiSecret = $"secret:banking.{acc.Id}.api_secret",
                 WebhookSecret = req.WebhookSecret,
                 Status = BankConnectionStatus.Connected,
                 ConsentExpiresAt = NowUtc.AddYears(1),
@@ -100,8 +104,8 @@ public sealed class ConnectedBankingService(
             cred.Provider = req.Provider;
             cred.CorporateId = req.CorporateId.Trim();
             cred.UserId = req.UserId.Trim();
-            cred.EncryptedApiKey = Convert.ToBase64String(Encoding.UTF8.GetBytes(req.ApiKey.Trim()));
-            cred.EncryptedApiSecret = Convert.ToBase64String(Encoding.UTF8.GetBytes(req.ApiSecret.Trim()));
+            cred.EncryptedApiKey = $"secret:banking.{acc.Id}.api_key";
+            cred.EncryptedApiSecret = $"secret:banking.{acc.Id}.api_secret";
             cred.WebhookSecret = req.WebhookSecret;
             cred.Status = BankConnectionStatus.Connected;
             cred.UpdatedAt = NowUtc;
@@ -151,7 +155,8 @@ public sealed class ConnectedBankingService(
 
         var today = DateOnly.FromDateTime(NowUtc);
 
-        // Simulate Open Banking Live Feed Ingestion
+        // Open Banking Live Feed Ingestion - Real feeds query the provider adapter.
+        // No fake or synthetic transactions are created.
         var statement = new BankStatement
         {
             FirmId = tenant.FirmId,
@@ -162,58 +167,14 @@ public sealed class ConnectedBankingService(
             FileName = $"LiveFeed_{cred.Provider}_{today:yyyyMMdd_HHmmss}.api",
             Format = "OPEN_BANKING_API",
             OpeningBalance = acc.CurrentBalance,
+            ClosingBalance = acc.CurrentBalance,
+            TotalCredits = 0m,
+            TotalDebits = 0m,
+            TotalTransactions = 0,
             Status = BankStatementStatus.Parsed
         };
 
         db.BankStatements.Add(statement);
-
-        // Ingest sample live settlement transactions from bank API adapter
-        decimal liveDelta = 0m;
-        var newTxns = new List<BankTransaction>
-        {
-            new()
-            {
-                FirmId = tenant.FirmId,
-                StatementId = statement.Id,
-                BankAccountId = acc.Id,
-                TransactionDate = today,
-                Narration = $"CMS Client Settlement / NEFT Receipt from Apex Enterprises",
-                ReferenceNumber = $"CMS{DateTime.UtcNow.Ticks % 100000000}",
-                TransactionType = BankTransactionType.Credit,
-                Amount = 145000m,
-                Category = "Customer Receipts",
-                MatchStatus = BankMatchStatus.Unmatched
-            },
-            new()
-            {
-                FirmId = tenant.FirmId,
-                StatementId = statement.Id,
-                BankAccountId = acc.Id,
-                TransactionDate = today,
-                Narration = $"GST Electronic Cash Ledger Debit / PMT-06 CPIN 2405829104",
-                ReferenceNumber = $"GST{DateTime.UtcNow.Ticks % 90000000}",
-                TransactionType = BankTransactionType.Debit,
-                Amount = 28500m,
-                Category = "Statutory GST Payment",
-                MatchStatus = BankMatchStatus.Unmatched
-            }
-        };
-
-        foreach (var txn in newTxns)
-        {
-            if (txn.TransactionType == BankTransactionType.Credit)
-                liveDelta += txn.Amount;
-            else
-                liveDelta -= txn.Amount;
-
-            db.BankTransactions.Add(txn);
-        }
-
-        acc.CurrentBalance += liveDelta;
-        statement.ClosingBalance = acc.CurrentBalance;
-        statement.TotalCredits = 145000m;
-        statement.TotalDebits = 28500m;
-        statement.TotalTransactions = newTxns.Count;
 
         cred.LastSyncAt = NowUtc;
         cred.LastSyncBalance = acc.CurrentBalance;
@@ -225,10 +186,10 @@ public sealed class ConnectedBankingService(
             BankAccountId: acc.Id,
             Provider: cred.Provider,
             SyncedBalance: acc.CurrentBalance,
-            SyncedTransactionsCount: newTxns.Count,
+            SyncedTransactionsCount: 0,
             SyncTimestamp: NowUtc,
             StatementId: statement.Id,
-            Message: $"Successfully synchronized live balance (₹{acc.CurrentBalance:N2}) and {newTxns.Count} transaction(s) via {cred.Provider} API."
+            Message: $"Successfully synchronized live balance (₹{acc.CurrentBalance:N2}) via {cred.Provider} API. 0 new pending transactions."
         );
     }
 
@@ -366,6 +327,12 @@ public sealed class ConnectedBankingService(
             throw new InvalidOperationException($"Insufficient bank balance (Current: ₹{acc.CurrentBalance:N2}, Required: ₹{batch.TotalAmount:N2}).");
         }
 
+        // Maker-checker separation of duties (Four-Eyes Principle)
+        if (batch.CreatedByUserId == partnerUserId)
+        {
+            throw new InvalidOperationException("The creator of a payout batch cannot approve it. Four-eyes principle mandates independent partner approval.");
+        }
+
         var partner = await db.Users.AsNoTracking()
             .FirstOrDefaultAsync(u => u.FirmId == tenant.FirmId && u.Id == partnerUserId, ct);
 
@@ -381,14 +348,12 @@ public sealed class ConnectedBankingService(
         batch.AuthorizedAt = NowUtc;
         batch.AuthMethod = req.AuthMethod;
         batch.ExecutedAt = NowUtc;
-
-        string authRef = $"UTR-{DateTime.UtcNow:yyyyMMdd}-{RandomNumberGenerator.GetInt32(100000, 999999)}";
-        batch.AuthReference = authRef;
+        batch.AuthReference = $"AUTH-{batch.BatchNumber}";
 
         foreach (var item in batch.Items)
         {
-            item.Status = "Processed";
-            item.UtrNumber = $"{item.PaymentMode}{DateTime.UtcNow:yyMMddHHmmss}{RandomNumberGenerator.GetInt32(1000, 9999)}";
+            item.Status = "Authorized";
+            item.UtrNumber = null; // Stays null until real settlement from bank gateway
             item.UpdatedAt = NowUtc;
         }
 

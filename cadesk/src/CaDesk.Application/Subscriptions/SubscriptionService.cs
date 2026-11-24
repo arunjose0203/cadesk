@@ -94,12 +94,18 @@ public class SubscriptionService(IAppDbContext db, ITenantContext tenant)
 
         var (baseAmount, cgst, sgst, igst, totalAmount) = SubscriptionEngine.CalculateGstBreakdown(basePrice);
 
-        var invoiceNum = $"CD-INV-{DateTime.UtcNow:yyyyMM}-{Random.Shared.Next(1000, 9999)}";
+        // Sequential invoice numbering per financial year: CD/{FY}/{SEQ:4}
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        int startYear = today.Month >= 4 ? today.Year : today.Year - 1;
+        string fy = $"{startYear}-{(startYear + 1) % 100:D2}";
+        int seq = await db.SubscriptionInvoices.CountAsync(ct) + 1;
+        var invoiceNum = $"CD/{fy}/{seq:D4}";
+
         var invoice = new SubscriptionInvoice
         {
             FirmId = firmId,
             InvoiceNumber = invoiceNum,
-            InvoiceDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            InvoiceDate = today,
             PlanTier = targetTier,
             BillingInterval = isAnnual ? SubscriptionBillingInterval.Annual : SubscriptionBillingInterval.Monthly,
             BaseAmount = baseAmount,
@@ -108,9 +114,9 @@ public class SubscriptionService(IAppDbContext db, ITenantContext tenant)
             IgstAmount = igst,
             TotalAmount = totalAmount,
             SacCode = "998311",
-            PaymentStatus = "Paid",
-            PaymentMethod = req.PaymentMethod,
-            TransactionReference = req.TransactionReference ?? $"TXN-{Guid.NewGuid():N}"[..18].ToUpperInvariant(),
+            PaymentStatus = "Pending",
+            PaymentMethod = req.PaymentMethod ?? "PaymentPending",
+            TransactionReference = req.TransactionReference ?? $"ORD-{Guid.NewGuid():N}"[..18].ToUpperInvariant(),
             FirmGstin = req.FirmGstin
         };
         db.SubscriptionInvoices.Add(invoice);
@@ -118,42 +124,61 @@ public class SubscriptionService(IAppDbContext db, ITenantContext tenant)
         var sub = await db.FirmSubscriptions.FirstOrDefaultAsync(s => s.FirmId == firmId, ct);
         if (sub == null)
         {
-            sub = new FirmSubscription { FirmId = firmId };
+            sub = new FirmSubscription { FirmId = firmId, PlanTier = SubscriptionPlanTier.Starter, Status = SubscriptionStatus.Trialing };
             db.FirmSubscriptions.Add(sub);
         }
 
-        sub.PlanTier = targetTier;
-        sub.Status = SubscriptionStatus.Active;
-        sub.BillingInterval = invoice.BillingInterval;
-        sub.CurrentPeriodStart = DateTime.UtcNow;
-        sub.CurrentPeriodEnd = isAnnual ? DateTime.UtcNow.AddYears(1) : DateTime.UtcNow.AddMonths(1);
-        sub.CancelAtPeriodEnd = false;
-        sub.LastPaymentAmount = totalAmount;
-        sub.LastPaymentDate = DateTime.UtcNow;
+        // Upgrading creates a pending order only. Plan changes only upon verified payment or manual admin upgrade.
         sub.LastPaymentInvoiceNumber = invoiceNum;
         sub.UpdatedAt = DateTime.UtcNow;
-
-        var firm = await db.Firms.FirstOrDefaultAsync(f => f.Id == firmId, ct);
-        if (firm != null)
-        {
-            firm.PlanCode = targetTier;
-            firm.Status = FirmStatus.Active;
-            firm.UpdatedAt = DateTime.UtcNow;
-        }
 
         await db.SaveChangesAsync(ct);
 
         return new UpgradePlanResponseDto(
             Success: true,
-            PlanTier: targetTier,
-            Status: "Active",
+            PlanTier: sub.PlanTier,
+            Status: "OrderCreated",
             InvoiceNumber: invoiceNum,
-            TotalAmountPaid: totalAmount,
+            TotalAmountPaid: 0,
             CgstAmount: cgst,
             SgstAmount: sgst,
             IgstAmount: igst,
-            Message: $"Successfully upgraded to {planDef.DisplayName}. Next renewal date: {sub.CurrentPeriodEnd:dd MMMM yyyy}."
+            Message: $"Upgrade order created. Pro-forma invoice #{invoiceNum} generated. The plan will update upon verified payment confirmation or manual activation."
         );
+    }
+
+    public async Task<bool> AdminApplyPlanUpgradeAsync(Guid targetFirmId, string targetTier, string invoiceNum, CancellationToken ct = default)
+    {
+        var targetTierUpper = targetTier.ToUpperInvariant();
+        var sub = await db.FirmSubscriptions.FirstOrDefaultAsync(s => s.FirmId == targetFirmId, ct);
+        if (sub == null)
+        {
+            sub = new FirmSubscription { FirmId = targetFirmId };
+            db.FirmSubscriptions.Add(sub);
+        }
+
+        var invoice = await db.SubscriptionInvoices.FirstOrDefaultAsync(i => i.FirmId == targetFirmId && i.InvoiceNumber == invoiceNum, ct);
+        if (invoice != null)
+        {
+            invoice.PaymentStatus = "Paid";
+        }
+
+        sub.PlanTier = targetTierUpper;
+        sub.Status = SubscriptionStatus.Active;
+        sub.CurrentPeriodStart = DateTime.UtcNow;
+        sub.CurrentPeriodEnd = DateTime.UtcNow.AddYears(1);
+        sub.UpdatedAt = DateTime.UtcNow;
+
+        var firm = await db.Firms.FirstOrDefaultAsync(f => f.Id == targetFirmId, ct);
+        if (firm != null)
+        {
+            firm.PlanCode = targetTierUpper;
+            firm.Status = FirmStatus.Active;
+            firm.UpdatedAt = DateTime.UtcNow;
+        }
+
+        await db.SaveChangesAsync(ct);
+        return true;
     }
 
     public async Task<List<SubscriptionInvoiceDto>> GetSubscriptionInvoicesAsync(CancellationToken ct = default)

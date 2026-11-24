@@ -22,9 +22,10 @@ import { toError,
 
 interface TaxNoticesPageProps {
   can?: (p: string) => boolean
+  isFeatureEnabled?: (key: string) => boolean
 }
 
-export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can }) => {
+export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEnabled }) => {
   const [activeTab, setActiveTab] = useState<'notices' | 'copilot' | 'hearings' | 'responses' | 'demands'>('notices')
   const [copilotNoticeId, setCopilotNoticeId] = useState<string | null>(null)
   const [loading, setLoading] = useState<boolean>(false)
@@ -392,23 +393,25 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can }) => {
         >
           Notices & Inquiries ({notices.length})
         </button>
-        <button
-          onClick={() => setActiveTab('copilot')}
-          style={{
-            padding: '10px 18px',
-            border: 'none',
-            background: 'none',
-            cursor: 'pointer',
-            fontWeight: activeTab === 'copilot' ? 700 : 400,
-            borderBottom: activeTab === 'copilot' ? '3px solid #6366f1' : 'none',
-            color: activeTab === 'copilot' ? '#4f46e5' : 'inherit',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px'
-          }}
-        >
-          <span>🤖</span> CA Copilot: Notice Defense Drafter
-        </button>
+        {(isFeatureEnabled ? isFeatureEnabled('tax-copilot') : false) && (
+          <button
+            onClick={() => setActiveTab('copilot')}
+            style={{
+              padding: '10px 18px',
+              border: 'none',
+              background: 'none',
+              cursor: 'pointer',
+              fontWeight: activeTab === 'copilot' ? 700 : 400,
+              borderBottom: activeTab === 'copilot' ? '3px solid #6366f1' : 'none',
+              color: activeTab === 'copilot' ? '#4f46e5' : 'inherit',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <span>🤖</span> CA Copilot: Notice Defense Drafter
+          </button>
+        )}
         <button
           onClick={() => setActiveTab('hearings')}
           style={{
@@ -624,7 +627,7 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can }) => {
       )}
 
       {/* Tab: CA Copilot Notice Defense Drafter */}
-      {activeTab === 'copilot' && (
+      {activeTab === 'copilot' && (isFeatureEnabled ? isFeatureEnabled('tax-copilot') : false) && (
         <TaxCopilotDesk
           can={can}
           initialNoticeId={copilotNoticeId}

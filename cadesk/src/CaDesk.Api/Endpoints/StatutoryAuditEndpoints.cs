@@ -112,7 +112,7 @@ public static class StatutoryAuditEndpoints
             var userId = Guid.Parse(user.FindFirstValue("sub") ?? user.FindFirstValue(ClaimTypes.NameIdentifier)!);
             var eng = await svc.SignOffAuditAsync(id, req, userId, ct);
             return Results.Ok(eng);
-        }).RequirePermission(Perms.AuditReview);
+        }).RequirePermission(Perms.AuditSignoff);
 
         // Lock & archive engagement file (SQC 1 Para 74 60-day limit)
         g.MapPost("/engagements/{id:guid}/archive", async (Guid id, ArchiveEngagementRequest req, ClaimsPrincipal user, AuditService svc, CancellationToken ct) =>

@@ -25,11 +25,18 @@ public static class SubscriptionEndpoints
             return Results.Ok(plans);
         });
 
-        // 3. Upgrade / change plan tier (simulates Razorpay order & issues GST tax invoice)
+        // 3. Upgrade / change plan tier (creates pending order and issues pro-forma invoice)
         g.MapPost("/upgrade", async (UpgradePlanRequest req, SubscriptionService svc, CancellationToken ct) =>
         {
             var result = await svc.UpgradePlanAsync(req, ct);
             return Results.Ok(result);
+        }).RequirePermission(Perms.SettingsManage);
+
+        // 3b. Manual Admin plan activation (Sprint 62)
+        g.MapPost("/admin/apply-upgrade", async (AdminApplyUpgradeRequest req, SubscriptionService svc, CancellationToken ct) =>
+        {
+            var success = await svc.AdminApplyPlanUpgradeAsync(req.FirmId, req.TargetTier, req.InvoiceNumber, ct);
+            return success ? Results.Ok(new { success = true, message = "Plan upgrade applied manually." }) : Results.NotFound();
         }).RequirePermission(Perms.SettingsManage);
 
         // 4. Get invoice history

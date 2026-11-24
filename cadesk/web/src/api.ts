@@ -9677,6 +9677,17 @@ export const ibcCirpApi = {
     })
 }
 
+export const featuresApi = {
+  getFeatures: () => api<Record<string, boolean>>('/api/features'),
+  getFeature: (key: string) => api<{ key: string; isEnabled: boolean }>(`/api/features/${key}`),
+  setFeature: (key: string, enabled: boolean) =>
+    api<{ key: string; isEnabled: boolean }>(`/api/features/${key}`, {
+      method: 'POST',
+      body: JSON.stringify({ enabled })
+    })
+}
+
+
 
 
 

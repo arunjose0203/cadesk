@@ -144,6 +144,7 @@ builder.Services.AddScoped<CaDesk.Application.LedgerSync.ILedgerSyncService, CaD
 builder.Services.AddScoped<CaDesk.Application.TaxLitigation.ITaxLitigationService, CaDesk.Application.TaxLitigation.TaxLitigationService>();
 builder.Services.AddScoped<CaDesk.Application.EsgCsr.IEsgCsrService, CaDesk.Application.EsgCsr.EsgCsrService>();
 builder.Services.AddScoped<CaDesk.Application.Ibc.IIbcCirpService, CaDesk.Application.Ibc.IbcCirpService>();
+builder.Services.AddScoped<CaDesk.Application.Features.IFeatureFlagService, CaDesk.Application.Features.FeatureFlagService>();
 var docOptions = config.GetSection("Documents").Get<CaDesk.Api.Documents.DocumentOptions>() ?? new();
 var storagePath = docOptions.StoragePath;
 if (storagePath.Length == 0)
@@ -354,6 +355,7 @@ app.MapLedgerSyncEndpoints();
 app.MapTaxLitigationEndpoints();
 app.MapEsgCsrEndpoints();
 app.MapIbcCirpEndpoints();
+CaDesk.Api.Endpoints.FeatureEndpoints.Map(app);
 
 app.Run();
 

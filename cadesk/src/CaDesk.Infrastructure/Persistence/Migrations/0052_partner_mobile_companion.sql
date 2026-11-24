@@ -27,14 +27,14 @@ CREATE INDEX IF NOT EXISTS idx_partner_mobile_preferences_user
     ON partner_mobile_preferences (firm_id, user_id);
 
 -- Register Partner Companion permissions
-INSERT INTO permissions (code, name, category, description)
+INSERT INTO permissions (code, area, description)
 VALUES 
-    ('partner.companion', 'Access Partner Mobile Companion Desk', 'Partner', 'Access mobile PWA companion desk, action center pulse, 1-tap audit sign-offs, and quick approvals')
+    ('partner.companion', 'partner', 'Access mobile PWA companion desk, action center pulse, 1-tap audit sign-offs, and quick approvals')
 ON CONFLICT (code) DO NOTHING;
 
 -- Grant to admin / partner roles
-INSERT INTO role_permissions (role_id, permission_code)
-SELECT r.id, 'partner.companion'
+INSERT INTO role_permissions (role_id, permission_code, firm_id)
+SELECT r.id, 'partner.companion', r.firm_id
 FROM roles r
-WHERE r.name IN ('admin', 'partner', 'lead_partner', 'managing_partner')
+WHERE r.name IN ('admin', 'partner', 'lead_partner', 'managing_partner', 'Partner', 'Admin')
 ON CONFLICT DO NOTHING;

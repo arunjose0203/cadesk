@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { api, onSessionEnded, refreshSession, setAccessToken, type AuthResult, type UserProfile } from './api'
+import { api, onSessionEnded, refreshSession, setAccessToken, featuresApi, type AuthResult, type UserProfile } from './api'
 import AuthScreens from './AuthScreens'
 import ClientsPage from './ClientsPage'
 import UsersPage from './UsersPage'
@@ -55,6 +55,23 @@ import { LandingPage } from './LandingPage'
 import { OnboardingWizard } from './OnboardingWizard'
 import { ProductTourModal } from './ProductTourModal'
 
+function FeatureDisabledNotice({ featureName }: { featureName: string }) {
+  return (
+    <div style={{ padding: '60px 20px', textAlign: 'center', maxWidth: '600px', margin: '40px auto', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+      <div style={{ fontSize: '48px', marginBottom: '16px' }}>🔒</div>
+      <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#0f172a', marginBottom: '8px' }}>
+        {featureName} is Not Enabled
+      </h2>
+      <p style={{ color: '#64748b', fontSize: '14px', lineHeight: 1.5, marginBottom: '20px' }}>
+        This module is currently disabled for your firm under firm security settings. Please contact your Managing Partner or firm administrator to enable access.
+      </p>
+      <div style={{ display: 'inline-block', fontSize: '12px', background: '#e2e8f0', color: '#475569', padding: '4px 10px', borderRadius: '4px', fontWeight: 600 }}>
+        HTTP 404 / Feature Gated
+      </div>
+    </div>
+  )
+}
+
 type Page = 'tasks' | 'deadlines' | 'clients' | 'billing' | 'trial-balance' | 'tax' | 'audit-workspace' | 'aqmm' | 'gst-reconcile' | 'tds' | 'mca' | 'engagement' | 'banking' | 'ledger-sync' | 'reports' | 'practice-health' | 'tax-notices' | 'tax-litigation' | 'payroll' | 'einvoicing' | 'fixed-assets' | 'advance-tax' | 'gstr9' | 'presumptive' | 'caro' | 'taxaudit' | 'schedule3' | 'branchaudit' | 'auditcommittee' | 'foreignremittance' | 'relatedparty' | 'internalaudit' | 'antiprofiteering' | 'secretarialaudit' | 'transferpricing' | 'uae-tax' | 'costaudit' | 'dsc' | 'portal' | 'users' | 'settings' | 'audit' | 'security' | 'subscriptions' | 'communications' | 'security-compliance' | 'partner-desk' | 'esg-csr' | 'ibc-cirp'
 
 export default function App() {
@@ -64,6 +81,7 @@ export default function App() {
   }
 
   const [user, setUser] = useState<UserProfile | null>(null)
+  const [features, setFeatures] = useState<Record<string, boolean>>({})
   const [checking, setChecking] = useState(true)
   const searchParams = new URLSearchParams(window.location.search)
   const initialPage = (searchParams.get('page') as Page) || (searchParams.get('pwa') === 'partner' ? 'partner-desk' : 'clients')
@@ -72,6 +90,25 @@ export default function App() {
   const [publicView, setPublicView] = useState<'landing' | 'auth' | 'wizard'>('landing')
   const [showTour, setShowTour] = useState<boolean>(false)
   const idleTimer = useRef<number | undefined>(undefined)
+
+  useEffect(() => {
+    if (user) {
+      featuresApi.getFeatures()
+        .then(res => setFeatures(res))
+        .catch(() => setFeatures({}))
+    }
+  }, [user])
+
+  const isFeatureEnabled = (key: string): boolean => {
+    if (key in features) return Boolean(features[key])
+    const disabledByDefault = [
+      'banking', 'connected-banking', 'einvoicing', 'tax-copilot',
+      'uae-tax', 'practice-health', 'ledger-sync', 'tax-litigation',
+      'esg-csr', 'ibc-cirp'
+    ]
+    if (disabledByDefault.includes(key.toLowerCase())) return false
+    return true
+  }
 
   // Restore the session from the refresh cookie on page load.
   useEffect(() => {
@@ -376,7 +413,7 @@ export default function App() {
             Bank Feeds & BRS
           </button>
         )}
-        {(can('ledgersync.read') || can('bank.read')) && (
+        {(can('ledgersync.read') || can('bank.read')) && isFeatureEnabled('ledger-sync') && (
           <button className={page === 'ledger-sync' ? 'active' : ''} onClick={() => setPage('ledger-sync')}>
             <span style={{ fontSize: '14px', lineHeight: 1 }}>🔄</span>
             Tally/Busy Auto-Recon
@@ -392,7 +429,7 @@ export default function App() {
             MIS & Reports
           </button>
         )}
-        {can('practicehealth.read') && (
+        {can('practicehealth.read') && isFeatureEnabled('practice-health') && (
           <button className={page === 'practice-health' ? 'active' : ''} onClick={() => setPage('practice-health')}>
             <span style={{ fontSize: '14px', lineHeight: 1 }}>💎</span>
             Valuation &amp; Health
@@ -409,19 +446,19 @@ export default function App() {
             Tax Notices & Scrutiny
           </button>
         )}
-        {(can('taxlitigation.read') || can('notices.read')) && (
+        {(can('taxlitigation.read') || can('notices.read')) && isFeatureEnabled('tax-litigation') && (
           <button className={page === 'tax-litigation' ? 'active' : ''} onClick={() => setPage('tax-litigation')}>
             <span style={{ fontSize: '14px', lineHeight: 1 }}>🏛️</span>
             ITAT &amp; HC Appeals
           </button>
         )}
-        {(can('esgcsr.read') || can('caro.read') || can('audit.read')) && (
+        {(can('esgcsr.read') || can('caro.read') || can('audit.read')) && isFeatureEnabled('esg-csr') && (
           <button className={page === 'esg-csr' ? 'active' : ''} onClick={() => setPage('esg-csr')}>
             <span style={{ fontSize: '14px', lineHeight: 1 }}>🌱</span>
             ESG &amp; CSR Audit
           </button>
         )}
-        {(can('ibccirp.read') || can('audit.read')) && (
+        {(can('ibccirp.read') || can('audit.read')) && isFeatureEnabled('ibc-cirp') && (
           <button className={page === 'ibc-cirp' ? 'active' : ''} onClick={() => setPage('ibc-cirp')}>
             <span style={{ fontSize: '14px', lineHeight: 1 }}>⚖️</span>
             IBC &amp; CIRP Desk
@@ -438,7 +475,7 @@ export default function App() {
             Payroll & PF/ESI
           </button>
         )}
-        {can('einvoice.read') && (
+        {can('einvoice.read') && isFeatureEnabled('einvoicing') && (
           <button className={page === 'einvoicing' ? 'active' : ''} onClick={() => setPage('einvoicing')}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="1" y="3" width="15" height="13"></rect>
@@ -602,7 +639,7 @@ export default function App() {
             Transfer Pricing (Form 3CEB)
           </button>
         )}
-        {can('uaecorporatetax.read') && (
+        {can('uaecorporatetax.read') && isFeatureEnabled('uae-tax') && (
           <button className={page === 'uae-tax' ? 'active' : ''} onClick={() => setPage('uae-tax')}>
             <span style={{ fontSize: '14px', lineHeight: 1 }}>🇦🇪</span>
             UAE Corporate Tax
@@ -708,16 +745,16 @@ export default function App() {
       {page === 'tds' && can('tds.read') && <TdsPage />}
       {page === 'mca' && can('mca.read') && <McaCompliancePage />}
       {page === 'engagement' && can('engagement.read') && <EngagementKycPage />}
-      {page === 'banking' && can('bank.read') && <BankFeedsPage />}
-      {page === 'ledger-sync' && (can('ledgersync.read') || can('bank.read')) && <LedgerSyncDeskPage can={can} />}
+      {page === 'banking' && can('bank.read') && <BankFeedsPage isFeatureEnabled={isFeatureEnabled} />}
+      {page === 'ledger-sync' && (can('ledgersync.read') || can('bank.read')) && (isFeatureEnabled('ledger-sync') ? <LedgerSyncDeskPage can={can} /> : <FeatureDisabledNotice featureName="Ledger Sync & Auto-Reconciliation" />)}
       {page === 'reports' && can('reports.read') && <ReportsPage can={can} />}
-      {page === 'practice-health' && can('practicehealth.read') && <PracticeHealthDeskPage can={can} />}
-      {page === 'tax-notices' && can('notices.read') && <TaxNoticesPage can={can} />}
-      {page === 'tax-litigation' && (can('taxlitigation.read') || can('notices.read')) && <TaxLitigationDeskPage can={can} />}
-      {page === 'esg-csr' && (can('esgcsr.read') || can('caro.read') || can('audit.read')) && <EsgCsrDeskPage can={can} />}
-      {page === 'ibc-cirp' && (can('ibccirp.read') || can('audit.read')) && <IbcCirpDeskPage can={can} />}
+      {page === 'practice-health' && can('practicehealth.read') && (isFeatureEnabled('practice-health') ? <PracticeHealthDeskPage can={can} /> : <FeatureDisabledNotice featureName="Practice Health & Valuation" />)}
+      {page === 'tax-notices' && can('notices.read') && <TaxNoticesPage can={can} isFeatureEnabled={isFeatureEnabled} />}
+      {page === 'tax-litigation' && (can('taxlitigation.read') || can('notices.read')) && (isFeatureEnabled('tax-litigation') ? <TaxLitigationDeskPage can={can} /> : <FeatureDisabledNotice featureName="ITAT & High Court Appeals" />)}
+      {page === 'esg-csr' && (can('esgcsr.read') || can('caro.read') || can('audit.read')) && (isFeatureEnabled('esg-csr') ? <EsgCsrDeskPage can={can} /> : <FeatureDisabledNotice featureName="SEBI BRSR & CSR Statutory Audit" />)}
+      {page === 'ibc-cirp' && (can('ibccirp.read') || can('audit.read')) && (isFeatureEnabled('ibc-cirp') ? <IbcCirpDeskPage can={can} /> : <FeatureDisabledNotice featureName="IBC 2016 Insolvency & CIRP Desk" />)}
       {page === 'payroll' && can('payroll.read') && <PayrollPage can={can} />}
-      {page === 'einvoicing' && can('einvoice.read') && <EInvoicingPage can={can} />}
+      {page === 'einvoicing' && can('einvoice.read') && (isFeatureEnabled('einvoicing') ? <EInvoicingPage can={can} /> : <FeatureDisabledNotice featureName="E-Invoicing & E-Way Bill" />)}
       {page === 'fixed-assets' && can('assets.read') && <FixedAssetsPage can={can} />}
       {page === 'advance-tax' && can('advancetax.read') && <AdvanceTaxPage can={can} />}
       {page === 'gstr9' && can('gstr9.read') && <Gstr9Page />}
@@ -733,7 +770,7 @@ export default function App() {
       {page === 'antiprofiteering' && can('antiprofiteering.read') && <AntiProfiteeringPage />}
       {page === 'secretarialaudit' && can('secretarialaudit.read') && <SecretarialAuditPage />}
       {page === 'transferpricing' && can('transferpricing.read') && <TransferPricingPage />}
-      {page === 'uae-tax' && can('uaecorporatetax.read') && <UaeCorporateTaxDesk can={can} />}
+      {page === 'uae-tax' && can('uaecorporatetax.read') && (isFeatureEnabled('uae-tax') ? <UaeCorporateTaxDesk can={can} /> : <FeatureDisabledNotice featureName="UAE Corporate Tax" />)}
       {page === 'costaudit' && can('costaudit.read') && <CostAuditPage />}
       {page === 'dsc' && can('dsc.read') && <DscPage can={can} meId={user.id} />}
       {page === 'portal' && can('portal.read') && <PortalPage can={can} meId={user.id} />}

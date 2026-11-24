@@ -71,22 +71,22 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON security_control_evidences TO cadesk_app
 
 
 -- Register Security Compliance permissions
-INSERT INTO permissions (code, name, description)
+INSERT INTO permissions (code, area, description)
 VALUES
-    ('security.read', 'View Security & Trust Center', 'Can view the ISO 27001 & SOC 2 compliance evidence vault and security whitepapers'),
-    ('security.manage', 'Manage Security Controls & Evidence', 'Can run continuous audit telemetry scans and update control evidence')
+    ('security.read', 'security', 'Can view the ISO 27001 & SOC 2 compliance evidence vault and security whitepapers'),
+    ('security.manage', 'security', 'Can run continuous audit telemetry scans and update control evidence')
 ON CONFLICT (code) DO NOTHING;
 
 -- Grant to Partner and Admin
-INSERT INTO role_permissions (role_id, permission_code)
-SELECT r.id, p.code
+INSERT INTO role_permissions (role_id, permission_code, firm_id)
+SELECT r.id, p.code, r.firm_id
 FROM roles r
 CROSS JOIN (VALUES ('security.read'), ('security.manage')) AS p(code)
 WHERE r.name IN ('Partner', 'Admin')
 ON CONFLICT (role_id, permission_code) DO NOTHING;
 
-INSERT INTO role_permissions (role_id, permission_code)
-SELECT r.id, 'security.read'
+INSERT INTO role_permissions (role_id, permission_code, firm_id)
+SELECT r.id, 'security.read', r.firm_id
 FROM roles r
 WHERE r.name = 'Manager'
 ON CONFLICT (role_id, permission_code) DO NOTHING;

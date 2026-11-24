@@ -1,8 +1,10 @@
 using System.Net;
 using System.Net.Http.Json;
+using CaDesk.Api.Endpoints;
 using CaDesk.Application.Clients;
 using CaDesk.Application.EInvoicing;
 using CaDesk.Domain.EInvoicing;
+using CaDesk.Domain.Features;
 using Xunit;
 
 namespace CaDesk.IntegrationTests;
@@ -19,7 +21,10 @@ public class EInvoicingTests(ApiFactory api) : IClassFixture<ApiFactory>
     private async Task<(HttpClient Client, Guid UserId)> NewFirmAsync(string name = "Logistics Tax Advisory")
     {
         var auth = await api.SignUpAsync(name);
-        return (api.WithToken(auth.AccessToken), auth.UserId);
+        var http = api.WithToken(auth.AccessToken);
+        var enableRes = await http.PostAsJsonAsync($"/api/features/{FeatureKeys.EInvoicing}", new SetFeatureRequest(true));
+        enableRes.EnsureSuccessStatusCode();
+        return (http, auth.UserId);
     }
 
     private static async Task<ClientDto> CreateClientAsync(HttpClient http, string name = "Mahindra Logistics Ltd")

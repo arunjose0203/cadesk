@@ -11,7 +11,8 @@ public sealed class SecurityComplianceService(
     IAppDbContext db,
     ISettings settings,
     ITenantContext tenant,
-    TimeProvider clock
+    TimeProvider clock,
+    Microsoft.Extensions.Configuration.IConfiguration config
 )
 {
     private DateTime NowUtc => clock.GetUtcNow().UtcDateTime;
@@ -190,7 +191,10 @@ public sealed class SecurityComplianceService(
         var cSov = controls.FirstOrDefault(c => c.ControlCode == "PE-03");
         if (cSov != null)
         {
-            string signal = "All accounting data, financial ledgers, and audit workpapers hosted exclusively in cloud regions within India (Mumbai/Pune).";
+            var region = config["DataResidency:DataCenterLocation"]
+                ?? config["DataResidency:Region"]
+                ?? "Mumbai, Republic of India (ap-south-1)";
+            string signal = $"All accounting data, financial ledgers, and audit workpapers hosted exclusively in cloud regions within India ({region}).";
             cSov.TelemetrySignal = signal;
             cSov.Status = SecurityControlStatus.Compliant;
             cSov.LastTestedAt = NowUtc;
@@ -310,6 +314,10 @@ public sealed class SecurityComplianceService(
         var firm = await db.Firms.AsNoTracking().FirstOrDefaultAsync(f => f.Id == tenant.FirmId, ct);
         var assessment = await GetOrCreateAssessmentAsync(null, ct);
 
+        var region = config["DataResidency:DataCenterLocation"]
+            ?? config["DataResidency:Region"]
+            ?? "Mumbai, Republic of India";
+
         return new TrustCenterOverviewDto(
             FirmName: firm?.Name ?? "CA Firm",
             CertificationStatus: assessment.Status,
@@ -319,7 +327,7 @@ public sealed class SecurityComplianceService(
             {
                 "PostgreSQL Kernel Row-Level Security (RLS) Dual-Lock Multi-Tenant Isolation",
                 "AES-256 Encrypted Daily Backups with GFS Rotation & S3/GCS Sync",
-                "Strict Data Sovereignty: 100% Data Resides in Republic of India Cloud Regions",
+                $"Strict Data Sovereignty: 100% Data Resides in Republic of India Cloud Regions ({region})",
                 "Zero External AI Model Training on Sensitive Accounting Ledgers",
                 "ClamAV Real-Time Streaming Antivirus on Document Vault"
             },
@@ -337,9 +345,13 @@ public sealed class SecurityComplianceService(
             .OrderBy(e => e.ControlCode)
             .ToListAsync(ct);
 
+        var region = config["DataResidency:DataCenterLocation"]
+            ?? config["DataResidency:Region"]
+            ?? "Mumbai, Republic of India";
+
         var sb = new StringBuilder();
         sb.AppendLine("<!DOCTYPE html><html><head><meta charset='utf-8'/>");
-        sb.AppendLine($"<title>ISO 27001:2022 & SOC 2 Type II Security Whitepaper - {firmName}</title>");
+        sb.AppendLine($"<title>Security &amp; Data Protection Controls Dossier - {firmName}</title>");
         sb.AppendLine("<style>");
         sb.AppendLine("@page { size: A4; margin: 18mm; }");
         sb.AppendLine("body { font-family: 'Segoe UI', Arial, sans-serif; color: #0f172a; line-height: 1.5; margin: 0; padding: 24px; }");
@@ -366,11 +378,11 @@ public sealed class SecurityComplianceService(
         sb.AppendLine("<div class='cover'>");
         sb.AppendLine("<div>");
         sb.AppendLine($"<div class='firm-title'>{firmName}</div>");
-        sb.AppendLine("<div class='doc-subtitle'>Enterprise Security Whitepaper &amp; Trust Center Dossier</div>");
-        sb.AppendLine("<div style='font-size: 12px; color: #64748b; margin-top: 6px;'>Standards: ISO/IEC 27001:2022 · SOC 2 Type II · DPDP Act 2023</div>");
+        sb.AppendLine("<div class='doc-subtitle'>Enterprise Security Controls &amp; Data Protection Dossier</div>");
+        sb.AppendLine("<div style='font-size: 12px; color: #64748b; margin-top: 6px;'>Standards: Designed with controls aligned to ISO/IEC 27001:2022 · SOC 2 Criteria · DPDP Act 2023</div>");
         sb.AppendLine("</div>");
         sb.AppendLine("<div style='text-align: right;'>");
-        sb.AppendLine("<span class='badge badge-green'>AUDIT QUALITY CERTIFIED</span>");
+        sb.AppendLine("<span class='badge badge-green'>INTERNAL CONTROL REVIEW</span>");
         sb.AppendLine($"<div style='font-size: 12px; color: #64748b; margin-top: 6px;'>Evaluated: {assessment.LastEvaluatedAt:d MMM yyyy}</div>");
         sb.AppendLine($"<div style='font-size: 12px; color: #64748b;'>Period: {assessment.AssessmentPeriod}</div>");
         sb.AppendLine("</div>");
@@ -417,7 +429,7 @@ public sealed class SecurityComplianceService(
         // Data Sovereignty & Sub-processors
         sb.AppendLine("<div class='section-title'>4. Data Sovereignty &amp; Sub-Processor Disclosure (DPDP Act 2023)</div>");
         sb.AppendLine("<p style='font-size: 12px; color: #334155; line-height: 1.6;'>");
-        sb.AppendLine("All production databases, document vaults, and customer financial records reside exclusively in Tier-IV cloud facilities within the Republic of India (Mumbai/Pune). Under the Digital Personal Data Protection Act 2023, client accounting ledgers and personal data are strictly processed under purposeful engagement mandates (ICAI SA 210) and are <b>never transmitted to third-party AI models or public LLM training datasets</b>.");
+        sb.AppendLine($"All production databases, document vaults, and customer financial records reside exclusively in cloud facilities within the Republic of India ({region}). Under the Digital Personal Data Protection Act 2023, client accounting ledgers and personal data are strictly processed under purposeful engagement mandates (ICAI SA 210) and are <b>never transmitted to third-party AI models or public LLM training datasets</b>.");
         sb.AppendLine("</p>");
 
         // Partner Certification Seal

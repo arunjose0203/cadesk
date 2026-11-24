@@ -20,13 +20,24 @@ public static class PartnerCompanionEndpoints
             return Results.Ok(result);
         }).RequireAuthorization(Policies.FirmMember);
 
-        // 1-Tap Audit Sign-off
+        // 1-Tap Audit Sign-off (Requires partner sign-off permission)
         g.MapPost("/audit/{id:guid}/quick-sign", async (Guid id, [FromBody] QuickSignAuditRequest req, ClaimsPrincipal user, PartnerCompanionService svc, CancellationToken ct) =>
         {
             var userId = GetUserId(user);
-            var success = await svc.QuickSignAuditAsync(id, userId, req, ct);
-            return success ? Results.Ok(new { success = true, message = "Audit sign-off recorded successfully." }) : Results.NotFound();
-        }).RequireAuthorization(Policies.FirmMember);
+            try
+            {
+                var success = await svc.QuickSignAuditAsync(id, userId, req, ct);
+                return success ? Results.Ok(new { success = true, message = "Audit sign-off recorded successfully." }) : Results.NotFound();
+            }
+            catch (ArgumentException ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Results.UnprocessableEntity(new { error = ex.Message });
+            }
+        }).RequirePermission(Perms.AuditSignoff);
 
         // Quick Approve Timesheets
         g.MapPost("/timesheet/quick-approve", async ([FromBody] QuickApproveTimesheetsRequest req, ClaimsPrincipal user, PartnerCompanionService svc, CancellationToken ct) =>

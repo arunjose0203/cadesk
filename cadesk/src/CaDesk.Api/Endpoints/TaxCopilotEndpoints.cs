@@ -9,7 +9,9 @@ public static class TaxCopilotEndpoints
 {
     public static IEndpointRouteBuilder MapTaxCopilotEndpoints(this IEndpointRouteBuilder app)
     {
-        var g = app.MapGroup("/api/tax-copilot").WithTags("CA Copilot: Statutory Citation & Notice Defense Drafter");
+        var g = app.MapGroup("/api/tax-copilot")
+            .WithTags("CA Copilot: Statutory Citation & Notice Defense Drafter")
+            .RequireFeature(CaDesk.Domain.Features.FeatureKeys.TaxCopilot);
 
         // 1. Notice Text / OCR Ingestion & Categorization
         g.MapPost("/parse", async (ParseNoticeRequest req, ITaxCopilotService svc, CancellationToken ct) =>

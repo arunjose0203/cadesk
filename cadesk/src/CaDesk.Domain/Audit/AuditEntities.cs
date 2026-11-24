@@ -174,6 +174,11 @@ public class AuditEngagement : ITenantOwned
     public string? AuditOpinion { get; set; }
     public string? Notes { get; set; }
 
+    // Dedicated Partner Sign-off & ICAI UDIN
+    public string? Udin { get; set; }
+    public string? PartnerMembershipNo { get; set; }
+    public string? PartnerSignoffRemarks { get; set; }
+
     // ICAI SQC 1 & SA 220 Engagement Quality Control Review & Archival
     public DateOnly? AuditReportDate { get; set; }
     public DateOnly? ArchivalDeadline { get; set; }
@@ -352,5 +357,21 @@ public static class AuditQualityEngine
             ("CARO_2020", "All applicable clauses of Companies (Auditor's Report) Order verified", true),
             ("TB_AGREEMENT", "Financial statements agree in all respects with underlying trial balance and books", true)
         ];
+    }
+}
+
+public static class UdinValidator
+{
+    private static readonly System.Text.RegularExpressions.Regex UdinRegex =
+        new(@"^[0-9]{2}[0-9A-Za-z]{16}$", System.Text.RegularExpressions.RegexOptions.Compiled);
+
+    /// <summary>
+    /// Validates that an ICAI UDIN is an 18-character alphanumeric string starting with a 2-digit fiscal issuance year.
+    /// </summary>
+    public static bool IsValid(string? udin)
+    {
+        if (string.IsNullOrWhiteSpace(udin)) return false;
+        var trimmed = udin.Trim();
+        return trimmed.Length == 18 && UdinRegex.IsMatch(trimmed);
     }
 }

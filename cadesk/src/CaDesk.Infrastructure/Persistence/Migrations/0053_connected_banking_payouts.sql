@@ -94,24 +94,24 @@ CREATE INDEX IF NOT EXISTS idx_payout_items_batch_id
     ON payout_items (firm_id, batch_id);
 
 -- Register Banking Payout Permissions
-INSERT INTO permissions (code, name, category, description)
+INSERT INTO permissions (code, area, description)
 VALUES 
-    ('banking.connected.manage', 'Manage Connected Bank API Integrations', 'Banking', 'Connect ICICI, HDFC, Axis, and Open API corporate bank accounts and trigger live balance syncs'),
-    ('banking.payout.maker', 'Create Payout Batches (Maker)', 'Banking', 'Create vendor invoice, salary, and statutory tax challan payout batches'),
-    ('banking.payout.checker', 'Authorize Payout Batches (Checker / Partner)', 'Banking', 'Authorize bank disbursements with OTP, DSC or Biometrics and release payments')
+    ('banking.connected.manage', 'banking', 'Connect ICICI, HDFC, Axis, and Open API corporate bank accounts and trigger live balance syncs'),
+    ('banking.payout.maker', 'banking', 'Create vendor invoice, salary, and statutory tax challan payout batches'),
+    ('banking.payout.checker', 'banking', 'Authorize bank disbursements with OTP, DSC or Biometrics and release payments')
 ON CONFLICT (code) DO NOTHING;
 
 -- Grant permissions to default roles
-INSERT INTO role_permissions (role_id, permission_code)
-SELECT r.id, p.code
+INSERT INTO role_permissions (role_id, permission_code, firm_id)
+SELECT r.id, p.code, r.firm_id
 FROM roles r
 CROSS JOIN permissions p
 WHERE p.code IN ('banking.connected.manage', 'banking.payout.maker', 'banking.payout.checker')
-  AND r.name IN ('admin', 'partner', 'lead_partner', 'managing_partner')
+  AND r.name IN ('admin', 'partner', 'lead_partner', 'managing_partner', 'Partner', 'Admin')
 ON CONFLICT DO NOTHING;
 
-INSERT INTO role_permissions (role_id, permission_code)
-SELECT r.id, 'banking.payout.maker'
+INSERT INTO role_permissions (role_id, permission_code, firm_id)
+SELECT r.id, 'banking.payout.maker', r.firm_id
 FROM roles r
-WHERE r.name IN ('manager', 'staff', 'article_trainee')
+WHERE r.name IN ('manager', 'staff', 'article_trainee', 'Manager', 'Staff')
 ON CONFLICT DO NOTHING;

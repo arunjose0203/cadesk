@@ -228,6 +228,12 @@ public static class Perms
     public const string IbcCirpRead = "ibccirp.read";
     public const string IbcCirpManage = "ibccirp.manage";
     public const string IbcCirpCertify = "ibccirp.certify";
-    public const string FemaFirmsManage = "fema.firms.manage";
-    public const string FemaFlaCertify = "fema.fla.certify";
+    public const string AuditSignoff = "audit.signoff";
+    public const string BankingPayoutCreate = "banking.payout.create";
+    public const string BankingPayoutApprove = "banking.payout.approve";
+    public const string AqmmManage = "aqmm.manage";
+    public const string AqmmRead = "aqmm.read";
+    public const string SecurityManage = "security.manage";
+    public const string SecurityRead = "security.read";
+    public const string ExtractionsApprove = "extractions.approve";
 }
