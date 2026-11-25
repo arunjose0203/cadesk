@@ -3,11 +3,11 @@
 # Runs pg_dump + AES-256-CBC encryption on a daily cron schedule
 # ==============================================================================
 
-FROM alpine:3.20
+FROM alpine:3.21
 
-# Install postgresql-client, openssl, bash, curl, coreutils, ca-certificates, and aws-cli
+# Install postgresql17-client (matching postgres:17-alpine), openssl, bash, curl, coreutils, ca-certificates, and aws-cli
 RUN apk add --no-cache \
-    postgresql16-client \
+    postgresql17-client \
     openssl \
     bash \
     curl \

@@ -7,7 +7,11 @@ data:
   ASPNETCORE_ENVIRONMENT: "Production"
   SITE_ADDRESS: "app.cadesk.in"
   Database__MigrateOnStartup: "true"
+  Documents__Storage: "Local"
   Documents__StoragePath: "/documents"
+  # Set Documents__Storage: "S3" + Documents__S3__Endpoint / Bucket / Region (and keys in 02-secret.yaml) for multi-replica pods
+  Documents__S3__Region: "ap-south-1"
+  Documents__S3__Prefix: "documents"
   Documents__Scan__Mode: "None"
   DataProtection__KeysPath: "/keys"
   Jwt__Issuer: "cadesk"

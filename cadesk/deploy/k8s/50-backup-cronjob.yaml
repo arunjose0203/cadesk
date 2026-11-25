@@ -34,7 +34,7 @@ spec:
                   valueFrom:
                     secretKeyRef:
                       name: cadesk-secrets
-                      key: ConnectionStrings__Owner
+                      key: OWNER_DB_PASSWORD
                 - name: BACKUP_ENCRYPTION_KEY
                   valueFrom:
                     secretKeyRef:

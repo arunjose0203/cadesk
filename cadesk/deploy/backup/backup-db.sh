@@ -28,6 +28,7 @@ DAY_OF_MONTH=$(date -u +"%d") # 01 .. 31
 
 BACKUP_PASSPHRASE="${BACKUP_ENCRYPTION_KEY:-default_secure_backup_key_change_in_production_123456}"
 S3_BUCKET="${BACKUP_S3_BUCKET:-}"
+S3_ENDPOINT="${BACKUP_S3_ENDPOINT:-}"
 GCS_BUCKET="${BACKUP_GCS_BUCKET:-}"
 HEALTHCHECK_URL="${HEALTHCHECK_BACKUP_URL:-}"
 
@@ -96,9 +97,14 @@ fi
 
 # 5. Cloud Storage Sync
 if [[ -n "${S3_BUCKET}" ]]; then
-    echo "[4/5] Uploading encrypted backup to AWS S3 (${S3_BUCKET})..."
-    aws s3 cp "${ENC_FILE}" "s3://${S3_BUCKET}/backups/daily/"
-    aws s3 cp "${SHA_FILE}" "s3://${S3_BUCKET}/backups/daily/"
+    echo "[4/5] Uploading encrypted backup to S3 (${S3_BUCKET})..."
+    if [[ -n "${S3_ENDPOINT}" ]]; then
+        aws --endpoint-url "${S3_ENDPOINT}" s3 cp "${ENC_FILE}" "s3://${S3_BUCKET}/backups/daily/"
+        aws --endpoint-url "${S3_ENDPOINT}" s3 cp "${SHA_FILE}" "s3://${S3_BUCKET}/backups/daily/"
+    else
+        aws s3 cp "${ENC_FILE}" "s3://${S3_BUCKET}/backups/daily/"
+        aws s3 cp "${SHA_FILE}" "s3://${S3_BUCKET}/backups/daily/"
+    fi
 fi
 
 if [[ -n "${GCS_BUCKET}" ]]; then
