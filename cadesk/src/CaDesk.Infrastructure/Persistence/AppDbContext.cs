@@ -234,6 +234,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
     public DbSet<Secret> Secrets => Set<Secret>();
     public DbSet<CaDesk.Domain.Features.FirmFeature> FirmFeatures => Set<CaDesk.Domain.Features.FirmFeature>();
     public DbSet<CaDesk.Domain.Office.AttendanceRecord> AttendanceRecords => Set<CaDesk.Domain.Office.AttendanceRecord>();
+    public DbSet<CaDesk.Domain.Legal.LegalAcceptance> LegalAcceptances => Set<CaDesk.Domain.Legal.LegalAcceptance>();
+    public DbSet<CaDesk.Domain.Support.ProblemReport> ProblemReports => Set<CaDesk.Domain.Support.ProblemReport>();
     public DbSet<CaDesk.Domain.Office.LeaveBalance> LeaveBalances => Set<CaDesk.Domain.Office.LeaveBalance>();
     public DbSet<CaDesk.Domain.Office.LeaveRequest> LeaveRequests => Set<CaDesk.Domain.Office.LeaveRequest>();
     public DbSet<CaDesk.Domain.Office.OfficeExpense> OfficeExpenses => Set<CaDesk.Domain.Office.OfficeExpense>();
@@ -1529,6 +1531,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
         });
 
         b.Entity<CaDesk.Domain.Office.AttendanceRecord>(e => e.ToTable("attendance_records"));
+        b.Entity<CaDesk.Domain.Legal.LegalAcceptance>(e => e.ToTable("legal_acceptances"));
+        b.Entity<CaDesk.Domain.Support.ProblemReport>(e => e.ToTable("problem_reports"));
         b.Entity<CaDesk.Domain.Office.LeaveBalance>(e => e.ToTable("leave_balances"));
         b.Entity<CaDesk.Domain.Office.LeaveRequest>(e => e.ToTable("leave_requests"));
         b.Entity<CaDesk.Domain.Office.OfficeExpense>(e => e.ToTable("office_expenses"));

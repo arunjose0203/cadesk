@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en-IN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GST returns: GSTR-1, GSTR-3B check and GSTR-9 · CaDesk Help</title>
+<link rel="stylesheet" href="/legal/legal.css">
+<link rel="stylesheet" href="/help/help.css">
+</head>
+<body>
+<main>
+<p class="crumbs"><a href="/help/index.html">Help centre</a></p>
+<header class="doc">
+<h1>GST returns: GSTR-1, GSTR-3B check and GSTR-9</h1>
+<p>Prepare GST return files from a client’s sales register. Everything is worked out in your browser.</p>
+</header>
+
+<p>Open the <em>GSTR-1 &amp; 3B</em> desk and pick the client and period. The sales register can be an Excel file (.xlsx) or a CSV, for example one exported from Tally. CaDesk finds the header row by itself and understands common column names such as <em>Voucher No</em>, <em>GSTIN/UIN</em>, <em>Taxable Amount</em> and <em>Integrated Tax</em>.</p>
+
+<h2>GSTR-1</h2>
+<ol class="steps">
+<li>Download the template if the client’s export doesn’t have the columns: document type, number and date, customer GSTIN, place of supply, rate, taxable value, tax amounts and HSN. For credit notes and amendments, also fill the original document columns.</li>
+<li>Upload the register. CaDesk lists errors (which stop the file) and warnings (worth a look): wrong GSTINs, tax that doesn’t match the rate, place of supply that doesn’t match IGST or CGST+SGST, and gaps in invoice numbering.</li>
+<li>Check the summary by table: B2B, B2CL (invoices to unregistered customers above ₹1 lakh in another state), B2CS, credit and debit notes, exports, nil-rated and exempt supplies, the HSN summary (split into B2B and B2C) and Table 13, documents issued, including cancelled ones.</li>
+<li>Download the JSON or save it to the client’s documents.</li>
+<li><strong>Before filing, import the JSON into the GST offline tool or upload it on the portal and read any errors it reports.</strong> You remain responsible for what is filed.</li>
+</ol>
+
+<h2>GSTR-3B check</h2>
+<p>Since the July 2025 period the portal fills Table 3 of GSTR-3B from GSTR-1 and doesn’t let you change it. So CaDesk doesn’t make a 3B file; it shows what 3B should contain so you can compare before filing:</p>
+<ul>
+<li>Tables 3.1 and 3.2 from the same sales register.</li>
+<li>Table 4 input tax credit from the client’s GSTR-2B match in <em>GST reconciliation</em> (Growth plan).</li>
+<li>How the tax is paid from credit and cash, in the order the law sets (IGST credit first, then CGST and SGST), and reverse-charge tax in cash.</li>
+<li>Interest at 18% a year and the late fee if you file after the due date. Due dates follow monthly filing or the quarterly QRMP scheme, where the 22nd or 24th depends on the client’s state.</li>
+</ul>
+
+<h2>GSTR-9 working</h2>
+<p>Choose <em>Annual</em>, the financial year, and upload the year’s sales register. CaDesk builds Tables 4, 5 and 17. Enter the advances (4F and 4G) yourself. Download the working as CSV or the JSON, and compare it with the GSTR-1s filed during the year before you file.</p>
+<nav class="legal" aria-label="Help">
+<a href="/help/index.html">All help topics</a><a href="/help/report-a-problem.html">Report a problem</a><a href="/legal/privacy.html">Privacy</a>
+</nav>
+</main>
+</body>
+</html>

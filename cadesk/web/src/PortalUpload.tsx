@@ -76,6 +76,10 @@ export default function PortalUpload({ token }: { token: string }) {
         <p className="muted small" style={{ marginTop: 16 }}>
           This link works until {fmtDate(info.expiresAt.slice(0, 10))}. Files are checked for viruses and kept privately by {info.firmName}.
         </p>
+        <p className="muted small">
+          {info.firmName} decides how your documents are used; CaDesk stores them for the firm in India.
+          {' '}<a href="/legal/privacy.html" target="_blank" rel="noopener noreferrer">Privacy notice</a>
+        </p>
       </section>
     </main>
   )

@@ -9,7 +9,7 @@ public static class IbcCirpEndpoints
 {
     public static IEndpointRouteBuilder MapIbcCirpEndpoints(this IEndpointRouteBuilder app)
     {
-        var g = app.MapGroup("/api/ibc-cirp")
+        var g = app.MapGroup("/api/ibc-cirp").RequirePlanDesk("ibc-cirp")
             .WithTags("IBC 2016 Insolvency & CIRP Desk")
             .RequireFeature(CaDesk.Domain.Features.FeatureKeys.IbcCirp);
 

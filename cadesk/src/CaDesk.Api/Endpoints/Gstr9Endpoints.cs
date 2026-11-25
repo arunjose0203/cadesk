@@ -9,7 +9,7 @@ public static class Gstr9Endpoints
 {
     public static void MapGstr9Endpoints(this IEndpointRouteBuilder app)
     {
-        var g = app.MapGroup("/api/gstr9")
+        var g = app.MapGroup("/api/gstr9").RequirePlanDesk("gstr9")
             .RequireAuthorization(Policies.FirmMember);
 
         g.MapGet("/returns", async (

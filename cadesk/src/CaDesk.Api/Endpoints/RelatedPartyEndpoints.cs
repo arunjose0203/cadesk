@@ -12,7 +12,7 @@ public static class RelatedPartyEndpoints
 {
     public static IEndpointRouteBuilder MapRelatedPartyEndpoints(this IEndpointRouteBuilder app)
     {
-        var g = app.MapGroup("/api/related-party").WithTags("Related Party Transactions & Section 188 / AS 18 / Ind AS 24 Desk");
+        var g = app.MapGroup("/api/related-party").RequirePlanDesk("relatedparty").WithTags("Related Party Transactions & Section 188 / AS 18 / Ind AS 24 Desk");
 
         // 1. Summary
         g.MapGet("/summary", async (Guid? clientId, string? fy, RelatedPartyService svc, CancellationToken ct) =>

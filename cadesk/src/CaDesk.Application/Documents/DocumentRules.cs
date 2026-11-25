@@ -23,6 +23,8 @@ public static class FileTypes
         ["xls"] = ("xls", "application/vnd.ms-excel"),
         ["csv"] = ("csv", "text/csv"),
         ["docx"] = ("docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"),
+        // Only for files CaDesk generates (GST return JSON); staff uploads still follow doc.allowed_types.
+        ["json"] = ("json", "application/json"),
     };
 
     private static ReadOnlySpan<byte> Jpeg => [0xFF, 0xD8, 0xFF];
@@ -64,6 +66,10 @@ public static class FileTypes
                 if (h.IndexOf((byte)0) >= 0) return "This is not a text (CSV) file.";
                 var text = Encoding.UTF8.GetString(h).TrimStart('﻿', ' ', '\t', '\r', '\n');
                 return text.StartsWith('<') ? "This looks like a web page, not a CSV file." : null;
+            case "json":
+                if (h.IndexOf((byte)0) >= 0) return "This is not a JSON file.";
+                var json = Encoding.UTF8.GetString(h).TrimStart('\uFEFF', ' ', '\t', '\r', '\n');
+                return json.StartsWith('{') || json.StartsWith('[') ? null : "This is not a JSON file.";
             case "xlsx":
             case "docx":
                 if (!h.StartsWith(Zip)) return $"This is not a valid .{extension} file.";

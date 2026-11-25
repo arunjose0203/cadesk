@@ -1,0 +1,50 @@
+import { api } from '../api'
+
+/* Saving files the GST desk generates into the client's document vault (Sprint 66).
+   The server accepts only .json, .csv and .pdf on this route and content-checks them. */
+
+export type SavedDocument = { id: string; name: string }
+
+export function saveGeneratedDocument(clientId: string, file: {
+  fileName: string
+  /** Text files (json, csv). */
+  content?: string
+  /** Binary files (pdf), base64. */
+  contentBase64?: string
+  typeCode?: string // filing folder, e.g. GSTR1_M
+  folder?: string
+  fy?: string // 2026-27
+  name?: string
+  notes?: string
+}): Promise<SavedDocument> {
+  return api<SavedDocument>(`/api/clients/${clientId}/documents/generated`, { method: 'POST', body: JSON.stringify(file) })
+}
+
+/** "102026" → "2026-27"; "032027" → "2026-27". */
+export function fyOfPeriod(period: string): string {
+  const m = Number(period.slice(0, 2)), y = Number(period.slice(2))
+  const start = m >= 4 ? y : y - 1
+  return `${start}-${String((start + 1) % 100).padStart(2, '0')}`
+}
+
+export function errorText(e: unknown): string {
+  if (e && typeof e === 'object') {
+    const o = e as { message?: unknown; errors?: Record<string, string[]>; title?: unknown; detail?: unknown }
+    if (o.errors) return Object.values(o.errors).flat().join(' ')
+    if (typeof o.detail === 'string') return o.detail
+    if (typeof o.message === 'string') return o.message
+    if (typeof o.title === 'string') return o.title
+  }
+  return 'The file could not be saved. Try again.'
+}
+
+export function download(name: string, text: string, type: string) {
+  const url = URL.createObjectURL(new Blob([text], { type }))
+  const a = document.createElement('a')
+  a.href = url
+  a.download = name
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}

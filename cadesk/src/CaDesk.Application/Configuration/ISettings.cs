@@ -46,6 +46,9 @@ public static class Keys
     public static readonly ConfigKey<string> WhatsAppCredentialsRef = new("whatsapp.credentials_ref");
     public static readonly ConfigKey<string> WhatsAppPhoneNumberId = new("whatsapp.phone_number_id");
     public static readonly ConfigKey<string> WhatsAppLanguage = new("whatsapp.language");
+    public static readonly ConfigKey<string> RazorpayKeyId = new("payments.razorpay.key_id");
+    public static readonly ConfigKey<string> RazorpayCredentialsRef = new("payments.razorpay.credentials_ref");
+    public static readonly ConfigKey<string> RazorpayWebhookSecretRef = new("payments.razorpay.webhook_secret_ref");
 
     public static readonly ConfigKey<string> TaskAutoAssignRule = new("task.auto_assign_rule");
     public static readonly ConfigKey<bool> TaskReviewRequired = new("task.review_required");

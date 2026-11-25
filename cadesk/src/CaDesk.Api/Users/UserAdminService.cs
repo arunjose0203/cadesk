@@ -34,7 +34,8 @@ public sealed class LoginEventItem
 /// No escalation: a caller can only grant, assign or invite with permissions they hold themselves,
 /// and can't change a user who has permissions they don't have (e.g. a Partner).
 /// </summary>
-public sealed class UserAdminService(AppDbContext db, ITenantContext tenant, TimeProvider clock, IHttpContextAccessor http, AuditWriter audit)
+public sealed class UserAdminService(AppDbContext db, ITenantContext tenant, TimeProvider clock, IHttpContextAccessor http, AuditWriter audit,
+    CaDesk.Application.Subscriptions.PlanAccessService plans)
 {
     private const string PartnerRole = "Partner";
     private static readonly TimeSpan InvitationLifetime = TimeSpan.FromDays(7);
@@ -205,6 +206,7 @@ public sealed class UserAdminService(AppDbContext db, ITenantContext tenant, Tim
         EnsureCallerHolds(await PermissionsOfRolesAsync([r.RoleId], ct), "invite with this role");
         if (await db.Users.IgnoreQueryFilters().AnyAsync(u => u.FirmId == tenant.FirmId && u.Email == email, ct))
             throw new BusinessRuleException("This email is already used by a user of the firm (or a removed user).");
+        await plans.EnsureUserRoomAsync(ct);
 
         var raw = SecureTokens.New();
         var inv = new Invitation

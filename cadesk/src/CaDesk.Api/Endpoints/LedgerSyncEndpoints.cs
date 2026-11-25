@@ -9,7 +9,7 @@ public static class LedgerSyncEndpoints
 {
     public static IEndpointRouteBuilder MapLedgerSyncEndpoints(this IEndpointRouteBuilder app)
     {
-        var g = app.MapGroup("/api/ledger-sync")
+        var g = app.MapGroup("/api/ledger-sync").RequirePlanDesk("ledger-sync")
             .WithTags("Ledger Sync & Auto-Reconciliation")
             .RequireFeature(CaDesk.Domain.Features.FeatureKeys.LedgerSync);
 

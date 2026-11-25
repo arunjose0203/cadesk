@@ -13,7 +13,7 @@ public static class TransferPricingEndpoints
 {
     public static IEndpointRouteBuilder MapTransferPricingEndpoints(this IEndpointRouteBuilder app)
     {
-        var g = app.MapGroup("/api/transfer-pricing").WithTags("Transfer Pricing Study & Form 3CEB Certification Desk (Income Tax Act Sec 92E / Rule 10D & 10E)");
+        var g = app.MapGroup("/api/transfer-pricing").RequirePlanDesk("transferpricing").WithTags("Transfer Pricing Study & Form 3CEB Certification Desk (Income Tax Act Sec 92E / Rule 10D & 10E)");
 
         // 1. Summary & Benchmark Calculator
         g.MapGet("/summary", async (Guid? clientId, string? financialYear, TransferPricingService svc, CancellationToken ct) =>

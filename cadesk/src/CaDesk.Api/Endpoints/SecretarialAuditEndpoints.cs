@@ -13,7 +13,7 @@ public static class SecretarialAuditEndpoints
 {
     public static IEndpointRouteBuilder MapSecretarialAuditEndpoints(this IEndpointRouteBuilder app)
     {
-        var g = app.MapGroup("/api/secretarial-audit").WithTags("Secretarial Audit & Form MR-3 Compliance Engine (Companies Act Sec 204 / Rule 9)");
+        var g = app.MapGroup("/api/secretarial-audit").RequirePlanDesk("secretarialaudit").WithTags("Secretarial Audit & Form MR-3 Compliance Engine (Companies Act Sec 204 / Rule 9)");
 
         // 1. Summary & Applicability
         g.MapGet("/summary", async (Guid? clientId, string? financialYear, SecretarialAuditService svc, CancellationToken ct) =>

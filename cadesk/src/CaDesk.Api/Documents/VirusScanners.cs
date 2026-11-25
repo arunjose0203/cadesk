@@ -10,6 +10,9 @@ public sealed class DocumentOptions
 {
     /// <summary>Folder for document files (a mounted volume in Docker). Back it up with the database.</summary>
     public string StoragePath { get; set; } = "";
+    /// <summary>Local (files under StoragePath) or S3 (an S3-compatible bucket: AWS S3, Cloudflare R2, MinIO).</summary>
+    public string Storage { get; set; } = "Local";
+    public CaDesk.Infrastructure.Documents.S3StorageOptions S3 { get; set; } = new();
     public ScanOptions Scan { get; set; } = new();
 }
 

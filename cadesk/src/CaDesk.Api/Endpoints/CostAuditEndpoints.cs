@@ -13,7 +13,7 @@ public static class CostAuditEndpoints
 {
     public static IEndpointRouteBuilder MapCostAuditEndpoints(this IEndpointRouteBuilder app)
     {
-        var g = app.MapGroup("/api/cost-audit").WithTags("Cost Audit & Form CRA-1 to CRA-4 Desk (Companies Act Sec 148 / Cost Records Rules 2014)");
+        var g = app.MapGroup("/api/cost-audit").RequirePlanDesk("costaudit").WithTags("Cost Audit & Form CRA-1 to CRA-4 Desk (Companies Act Sec 148 / Cost Records Rules 2014)");
 
         // 1. Summary & Calculations
         g.MapGet("/summary", async (Guid? clientId, string? financialYear, CostAuditService svc, CancellationToken ct) =>

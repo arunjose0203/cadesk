@@ -9,7 +9,7 @@ public static class StatutoryAuditEndpoints
 {
     public static IEndpointRouteBuilder MapStatutoryAuditEndpoints(this IEndpointRouteBuilder app)
     {
-        var g = app.MapGroup("/api/audit").WithTags("Statutory Audit & Working Papers");
+        var g = app.MapGroup("/api/audit").RequirePlanDesk("audit-workspace").WithTags("Statutory Audit & Working Papers");
 
         // KPI Summary
         g.MapGet("/summary", async (AuditService svc, CancellationToken ct) =>

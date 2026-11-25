@@ -13,7 +13,7 @@ public static class Schedule3Endpoints
 {
     public static IEndpointRouteBuilder MapSchedule3Endpoints(this IEndpointRouteBuilder app)
     {
-        var g = app.MapGroup("/api/schedule3").WithTags("Schedule III 11 Analytical Ratios & Disclosures");
+        var g = app.MapGroup("/api/schedule3").RequirePlanDesk("schedule3").WithTags("Schedule III 11 Analytical Ratios & Disclosures");
 
         // KPI Summary
         g.MapGet("/summary", async (Schedule3Service svc, CancellationToken ct) =>

@@ -13,7 +13,7 @@ public static class ForeignRemittanceEndpoints
 {
     public static IEndpointRouteBuilder MapForeignRemittanceEndpoints(this IEndpointRouteBuilder app)
     {
-        var g = app.MapGroup("/api/foreign-remittance").WithTags("Foreign Remittance & Form 15CA / 15CB Certification (Rule 37BB / Section 195 / DTAA)");
+        var g = app.MapGroup("/api/foreign-remittance").RequirePlanDesk("foreignremittance").WithTags("Foreign Remittance & Form 15CA / 15CB Certification (Rule 37BB / Section 195 / DTAA)");
 
         // 1. Summary
         g.MapGet("/summary", async (string? fy, ForeignRemittanceService svc, CancellationToken ct) =>

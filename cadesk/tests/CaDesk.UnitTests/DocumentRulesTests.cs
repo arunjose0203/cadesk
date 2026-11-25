@@ -44,6 +44,17 @@ public class DocumentRulesTests
     }
 
     [Fact]
+    public void Generated_json_must_look_like_json()
+    {
+        Assert.Equal("json", FileTypes.CodeOf("json"));
+        Assert.Equal("application/json", FileTypes.ContentTypeOf("json"));
+        Assert.Null(FileTypes.CheckContent("json", S("{\"gstin\":\"32AAACK1234M1ZU\",\"fp\":\"102026\"}")));
+        Assert.Null(FileTypes.CheckContent("json", S("\n  [1,2]")));
+        Assert.NotNull(FileTypes.CheckContent("json", S("<html>")));
+        Assert.NotNull(FileTypes.CheckContent("json", S(0x7B, 0x00, 0x7D)));            // binary
+    }
+
+    [Fact]
     public void Office_files_must_be_real_packages_without_macros()
     {
         Assert.Null(FileTypes.CheckContent("xlsx", Zip("[Content_Types].xml", "xl/workbook.xml")));

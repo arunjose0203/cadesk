@@ -1,0 +1,12 @@
+/* Help centre: builds on /legal/legal.css */
+.crumbs { font-size: 14px; color: var(--muted); margin-bottom: 8px; }
+.crumbs a { color: var(--muted); }
+ol.steps { padding-left: 24px; }
+ol.steps > li { margin: 10px 0; }
+.topics { list-style: none; padding: 0; margin: 0; }
+.topics li { border-bottom: 1px solid var(--rule); padding: 14px 0; }
+.topics a { font-weight: 600; font-size: 17px; text-decoration: none; }
+.topics p { margin: 2px 0 0; color: var(--muted); font-size: 15px; }
+kbd { font: 13px ui-monospace, monospace; border: 1px solid var(--rule); border-radius: 4px; padding: 1px 5px; }
+code { font: 14px ui-monospace, monospace; }
+.tip { background: var(--note); border-left: 3px solid var(--accent); padding: 10px 14px; font-size: 15px; }

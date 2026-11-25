@@ -9,7 +9,7 @@ public static class PracticeHealthEndpoints
 {
     public static IEndpointRouteBuilder MapPracticeHealthEndpoints(this IEndpointRouteBuilder app)
     {
-        var g = app.MapGroup("/api/practice-health")
+        var g = app.MapGroup("/api/practice-health").RequirePlanDesk("practice-health")
             .WithTags("Practice Health, Succession & Valuation Desk")
             .RequireFeature(CaDesk.Domain.Features.FeatureKeys.PracticeHealth);
 

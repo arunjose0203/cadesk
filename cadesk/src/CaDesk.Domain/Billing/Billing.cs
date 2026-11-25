@@ -24,8 +24,10 @@ public static class PaymentMode
     public const string Cash = "cash";
     public const string Card = "card";
     public const string Other = "other";
+    /// <summary>Paid through the firm's payment gateway (Razorpay payment link); recorded by the webhook.</summary>
+    public const string Online = "online";
 
-    public static readonly string[] All = [BankTransfer, Upi, Cheque, Cash, Card, Other];
+    public static readonly string[] All = [BankTransfer, Upi, Cheque, Cash, Card, Other, Online];
 }
 
 /// <summary>
@@ -95,6 +97,12 @@ public class Invoice : TenantEntity
     public Client? Client { get; set; }
     public List<InvoiceItem> Items { get; set; } = new();
     public List<Payment> Payments { get; set; } = new();
+
+    // Online payment (Sprint 69): the current Razorpay payment link for the balance due.
+    public string? PaymentLinkId { get; set; }
+    public string? PaymentLinkUrl { get; set; }
+    public string? PaymentLinkStatus { get; set; }
+    public decimal? PaymentLinkAmount { get; set; }
 }
 
 /// <summary>
@@ -139,4 +147,6 @@ public class Payment : Entity, ITenantOwned
     public string? Notes { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public Guid? CreatedBy { get; set; }
+    /// <summary>The gateway's payment id (Razorpay "pay_..."); unique per firm so a repeated webhook can't record it twice.</summary>
+    public string? GatewayPaymentId { get; set; }
 }

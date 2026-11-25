@@ -18,6 +18,9 @@ public static class SubscriptionEndpoints
             return Results.Ok(status);
         });
 
+        // 1b. Which desks the plan opens, and its user and client limits (Sprint 71)
+        g.MapGet("/desks", async (PlanAccessService plans, CancellationToken ct) => Results.Ok(await plans.GetDesksAsync(ct)));
+
         // 2. Get available pricing plans and features
         g.MapGet("/plans", (SubscriptionService svc) =>
         {

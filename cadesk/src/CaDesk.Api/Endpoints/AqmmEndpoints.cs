@@ -1,3 +1,4 @@
+using CaDesk.Api.Auth;
 using CaDesk.Application.Aqmm;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -9,7 +10,7 @@ public static class AqmmEndpoints
 {
     public static IEndpointRouteBuilder MapAqmmEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/aqmm")
+        var group = app.MapGroup("/api/aqmm").RequirePlanDesk("aqmm")
             .RequireAuthorization(Policies.FirmMember);
 
         // Get current firm's AQMM assessment summary

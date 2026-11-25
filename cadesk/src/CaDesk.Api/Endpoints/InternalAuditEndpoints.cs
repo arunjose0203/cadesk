@@ -12,7 +12,7 @@ public static class InternalAuditEndpoints
 {
     public static IEndpointRouteBuilder MapInternalAuditEndpoints(this IEndpointRouteBuilder app)
     {
-        var g = app.MapGroup("/api/internal-audit").WithTags("Internal Audit Risk & Control Matrix (RCM) & IFC Testing Desk");
+        var g = app.MapGroup("/api/internal-audit").RequirePlanDesk("internalaudit").WithTags("Internal Audit Risk & Control Matrix (RCM) & IFC Testing Desk");
 
         // 1. Summary
         g.MapGet("/summary", async (Guid? clientId, string? financialYear, InternalAuditService svc, CancellationToken ct) =>

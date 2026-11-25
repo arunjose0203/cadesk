@@ -10,7 +10,7 @@ public static class ConnectedBankingEndpoints
 {
     public static IEndpointRouteBuilder MapConnectedBankingEndpoints(this IEndpointRouteBuilder app)
     {
-        var g = app.MapGroup("/api/connected-banking")
+        var g = app.MapGroup("/api/connected-banking").RequirePlanDesk("banking")
             .WithTags("ConnectedBanking")
             .RequireFeature(CaDesk.Domain.Features.FeatureKeys.ConnectedBanking);
 

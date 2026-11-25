@@ -8,7 +8,7 @@ public static class BankFeedEndpoints
 {
     public static IEndpointRouteBuilder MapBankFeedEndpoints(this IEndpointRouteBuilder app)
     {
-        var g = app.MapGroup("/api/bank").WithTags("Bank Feeds & Automated BRS Auto-Matcher");
+        var g = app.MapGroup("/api/bank").RequirePlanDesk("banking").WithTags("Bank Feeds & Automated BRS Auto-Matcher");
 
         // Bank Accounts CRUD
         g.MapGet("/accounts", async (Guid? clientId, IBankFeedService svc, CancellationToken ct) =>

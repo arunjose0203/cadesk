@@ -643,6 +643,15 @@ public class Gstr9Service(IAppDbContext db, ITenantContext tenant) : IGstr9Servi
         );
     }
 
+    /// <summary>
+    /// Table rows that follow directly from the figures entered on the compile form.
+    /// Earlier versions also produced rows such as 4A/4B, 5A/5C and head-wise IGST/CGST/SGST
+    /// amounts by applying fixed percentages (e.g. B2C = 20% of outward supplies). Those
+    /// numbers were invented, so they are no longer created. Head-wise ITC and tax figures
+    /// stay on the return itself (ItcAvailed3b, ItcReversed, TotalTaxPayable, ...); the
+    /// table-wise split of Tables 4, 5 and 17 is worked out from the annual sales register
+    /// on the GSTR-1 &amp; 3B desk (Sprint 66).
+    /// </summary>
     private static List<Gstr9TableEntry> CreateStandardTableEntries(
         Guid returnId,
         CompileGstr9ReturnRequest req,
@@ -650,41 +659,14 @@ public class Gstr9Service(IAppDbContext db, ITenantContext tenant) : IGstr9Servi
         decimal netItc,
         decimal itcVariance)
     {
+        _ = netItc;
+        _ = itcVariance;
         var list = new List<Gstr9TableEntry>
         {
-            // Table 4: Details of advances, inward and outward supplies made during the financial year on which tax is payable
-            new() { Gstr9ReturnId = returnId, TableSection = Gstr9TableSection.Table4, RowCode = "4A", Description = "Supplies made to un-registered persons (B2C)", TaxableValue = req.OutwardTaxableSupplies * 0.2m, IgstAmount = req.TotalTaxPayable * 0.1m, CgstAmount = req.TotalTaxPayable * 0.05m, SgstAmount = req.TotalTaxPayable * 0.05m },
-            new() { Gstr9ReturnId = returnId, TableSection = Gstr9TableSection.Table4, RowCode = "4B", Description = "Supplies made to registered persons (B2B)", TaxableValue = req.OutwardTaxableSupplies * 0.8m, IgstAmount = req.TotalTaxPayable * 0.4m, CgstAmount = req.TotalTaxPayable * 0.2m, SgstAmount = req.TotalTaxPayable * 0.2m },
-            new() { Gstr9ReturnId = returnId, TableSection = Gstr9TableSection.Table4, RowCode = "4G", Description = "Inward supplies on which tax is to be paid on reverse charge basis", TaxableValue = req.RcmInwardSupplies, IgstAmount = 0, CgstAmount = req.RcmInwardSupplies * 0.09m, SgstAmount = req.RcmInwardSupplies * 0.09m },
-            new() { Gstr9ReturnId = returnId, TableSection = Gstr9TableSection.Table4, RowCode = "4N", Description = "Total Outward Taxable Supplies (on which tax is payable)", TaxableValue = req.OutwardTaxableSupplies, IgstAmount = req.TotalTaxPayable * 0.5m, CgstAmount = req.TotalTaxPayable * 0.25m, SgstAmount = req.TotalTaxPayable * 0.25m },
-
-            // Table 5: Details of Outward supplies on which tax is NOT payable
-            new() { Gstr9ReturnId = returnId, TableSection = Gstr9TableSection.Table5, RowCode = "5A", Description = "Zero rated supply (Export) without payment of tax", TaxableValue = req.OutwardExemptedSupplies * 0.3m },
-            new() { Gstr9ReturnId = returnId, TableSection = Gstr9TableSection.Table5, RowCode = "5C", Description = "Exempted supplies", TaxableValue = req.OutwardExemptedSupplies * 0.7m },
-            new() { Gstr9ReturnId = returnId, TableSection = Gstr9TableSection.Table5, RowCode = "5M", Description = "Total Outward Supplies on which tax is not payable", TaxableValue = req.OutwardExemptedSupplies },
-            new() { Gstr9ReturnId = returnId, TableSection = Gstr9TableSection.Table5, RowCode = "5N", Description = "Total Turnover (including advances) (4N + 5M - 4G)", TaxableValue = totalTurnover },
-
-            // Table 6: Details of ITC availed during the financial year
-            new() { Gstr9ReturnId = returnId, TableSection = Gstr9TableSection.Table6, RowCode = "6A", Description = "Total amount of input tax credit availed through FORM GSTR-3B", IgstAmount = req.ItcAvailed3b * 0.5m, CgstAmount = req.ItcAvailed3b * 0.25m, SgstAmount = req.ItcAvailed3b * 0.25m },
-            new() { Gstr9ReturnId = returnId, TableSection = Gstr9TableSection.Table6, RowCode = "6B", Description = "Inward supplies (other than imports and inward supplies liable to reverse charge but includes services received from SEZs)", IgstAmount = req.ItcCategorizedB2b * 0.5m, CgstAmount = req.ItcCategorizedB2b * 0.25m, SgstAmount = req.ItcCategorizedB2b * 0.25m },
-
-            // Table 7: Details of ITC Reversed and Ineligible ITC
-            new() { Gstr9ReturnId = returnId, TableSection = Gstr9TableSection.Table7, RowCode = "7I", Description = "Total ITC Reversed (Rule 37, 39, 42, 43, Sec 17(5))", IgstAmount = req.ItcReversed * 0.5m, CgstAmount = req.ItcReversed * 0.25m, SgstAmount = req.ItcReversed * 0.25m },
-            new() { Gstr9ReturnId = returnId, TableSection = Gstr9TableSection.Table7, RowCode = "7J", Description = "Net ITC Available for Utilization (6A - 7I)", IgstAmount = netItc * 0.5m, CgstAmount = netItc * 0.25m, SgstAmount = netItc * 0.25m },
-
-            // Table 8: Other ITC related information
-            new() { Gstr9ReturnId = returnId, TableSection = Gstr9TableSection.Table8, RowCode = "8A", Description = "ITC as per GSTR-2A/2B (auto-drafted)", IgstAmount = req.ItcAsPer2a * 0.5m, CgstAmount = req.ItcAsPer2a * 0.25m, SgstAmount = req.ItcAsPer2a * 0.25m },
-            new() { Gstr9ReturnId = returnId, TableSection = Gstr9TableSection.Table8, RowCode = "8B", Description = "ITC as per Table 6(B) and 6(H) above", IgstAmount = req.ItcCategorizedB2b * 0.5m, CgstAmount = req.ItcCategorizedB2b * 0.25m, SgstAmount = req.ItcCategorizedB2b * 0.25m },
-            new() { Gstr9ReturnId = returnId, TableSection = Gstr9TableSection.Table8, RowCode = "8C", Description = "ITC on inward supplies received during current FY but availed in subsequent FY", IgstAmount = req.ItcSubsequentFy * 0.5m, CgstAmount = req.ItcSubsequentFy * 0.25m, SgstAmount = req.ItcSubsequentFy * 0.25m },
-            new() { Gstr9ReturnId = returnId, TableSection = Gstr9TableSection.Table8, RowCode = "8D", Description = "Difference [8A - (8B + 8C)]", IgstAmount = itcVariance * 0.5m, CgstAmount = itcVariance * 0.25m, SgstAmount = itcVariance * 0.25m },
-
-            // Table 9: Details of tax paid as declared in returns filed during the financial year
-            new() { Gstr9ReturnId = returnId, TableSection = Gstr9TableSection.Table9, RowCode = "9_IGST", Description = "Integrated Tax (IGST) Payable vs Paid", TaxableValue = req.TotalTaxPayable * 0.5m, IgstAmount = req.TotalTaxPayable * 0.5m },
-            new() { Gstr9ReturnId = returnId, TableSection = Gstr9TableSection.Table9, RowCode = "9_CGST", Description = "Central Tax (CGST) Payable vs Paid", TaxableValue = req.TotalTaxPayable * 0.25m, CgstAmount = req.TotalTaxPayable * 0.25m },
-            new() { Gstr9ReturnId = returnId, TableSection = Gstr9TableSection.Table9, RowCode = "9_SGST", Description = "State Tax (SGST) Payable vs Paid", TaxableValue = req.TotalTaxPayable * 0.25m, SgstAmount = req.TotalTaxPayable * 0.25m },
-
-            // Table 10-14: Particulars of the transactions for the financial year declared in returns of the next financial year
-            new() { Gstr9ReturnId = returnId, TableSection = Gstr9TableSection.Table10_14, RowCode = "14", Description = "Differential tax paid on account of declaration in Table 10 & 11", TaxableValue = req.PreviousFyAmendmentsTax, IgstAmount = req.PreviousFyAmendmentsTax * 0.5m, CgstAmount = req.PreviousFyAmendmentsTax * 0.25m, SgstAmount = req.PreviousFyAmendmentsTax * 0.25m }
+            new() { Gstr9ReturnId = returnId, TableSection = Gstr9TableSection.Table4, RowCode = "4G", Description = "Inward supplies on which tax is to be paid on reverse charge basis (taxable value)", TaxableValue = req.RcmInwardSupplies },
+            new() { Gstr9ReturnId = returnId, TableSection = Gstr9TableSection.Table4, RowCode = "4N", Description = "Supplies and advances on which tax is to be paid (taxable value)", TaxableValue = req.OutwardTaxableSupplies },
+            new() { Gstr9ReturnId = returnId, TableSection = Gstr9TableSection.Table5, RowCode = "5M", Description = "Outward supplies on which tax is not to be paid (taxable value)", TaxableValue = req.OutwardExemptedSupplies },
+            new() { Gstr9ReturnId = returnId, TableSection = Gstr9TableSection.Table5, RowCode = "5N", Description = "Total turnover including advances (4N + 5M - 4G)", TaxableValue = totalTurnover },
         };
 
         return list;

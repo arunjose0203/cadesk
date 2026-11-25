@@ -12,7 +12,7 @@ public static class AntiProfiteeringEndpoints
 {
     public static IEndpointRouteBuilder MapAntiProfiteeringEndpoints(this IEndpointRouteBuilder app)
     {
-        var g = app.MapGroup("/api/anti-profiteering").WithTags("GST Anti-Profiteering & Rate Notification Engine (Section 171 / Rule 122)");
+        var g = app.MapGroup("/api/anti-profiteering").RequirePlanDesk("antiprofiteering").WithTags("GST Anti-Profiteering & Rate Notification Engine (Section 171 / Rule 122)");
 
         // 1. Summary
         g.MapGet("/summary", async (Guid? clientId, string? financialYear, AntiProfiteeringService svc, CancellationToken ct) =>

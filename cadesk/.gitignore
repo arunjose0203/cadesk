@@ -10,3 +10,10 @@ web/dist/
 appsettings.*.local.json
 # document files saved by the API in Development
 src/CaDesk.Api/data/
+
+# Playwright (Sprint 72)
+test-results/
+playwright-report/
+blob-report/
+# load test output
+deploy/load/summary.json

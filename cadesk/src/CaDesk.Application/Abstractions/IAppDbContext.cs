@@ -203,6 +203,8 @@ public interface IAppDbContext
     DbSet<CaDesk.Domain.TrialBalance.TrialBalanceLedger> TrialBalanceLedgers { get; }
     DbSet<CaDesk.Domain.TrialBalance.ClientLedgerMapping> ClientLedgerMappings { get; }
     DbSet<CaDesk.Domain.Subscriptions.FirmSubscription> FirmSubscriptions { get; }
+    DbSet<CaDesk.Domain.Legal.LegalAcceptance> LegalAcceptances { get; }
+    DbSet<CaDesk.Domain.Support.ProblemReport> ProblemReports { get; }
     DbSet<CaDesk.Domain.Subscriptions.SubscriptionInvoice> SubscriptionInvoices { get; }
     DbSet<CaDesk.Domain.Aqmm.AqmmAssessment> AqmmAssessments { get; }
     DbSet<CaDesk.Domain.Aqmm.AqmmResponse> AqmmResponses { get; }

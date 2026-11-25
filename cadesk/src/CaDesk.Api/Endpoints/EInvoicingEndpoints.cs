@@ -9,7 +9,7 @@ public static class EInvoicingEndpoints
 {
     public static IEndpointRouteBuilder MapEInvoicingEndpoints(this IEndpointRouteBuilder app)
     {
-        var g = app.MapGroup("/api/einvoicing")
+        var g = app.MapGroup("/api/einvoicing").RequirePlanDesk("einvoicing")
             .WithTags("Automated E-Invoicing & E-Way Bill Integration Desk")
             .RequireFeature(CaDesk.Domain.Features.FeatureKeys.EInvoicing);
 

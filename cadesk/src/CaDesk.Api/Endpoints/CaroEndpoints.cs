@@ -13,7 +13,7 @@ public static class CaroEndpoints
 {
     public static IEndpointRouteBuilder MapCaroEndpoints(this IEndpointRouteBuilder app)
     {
-        var g = app.MapGroup("/api/caro").WithTags("CARO 2020 Automated Audit Checklist & Disclosures Generator");
+        var g = app.MapGroup("/api/caro").RequirePlanDesk("caro").WithTags("CARO 2020 Automated Audit Checklist & Disclosures Generator");
 
         // KPI Summary
         g.MapGet("/summary", async (CaroService svc, CancellationToken ct) =>

@@ -10,6 +10,9 @@ namespace CaDesk.Api.Endpoints;
 public sealed record LinkDocumentRequest(Guid DocumentId);
 public sealed record HoldRequest(bool Hold);
 public sealed record PurgeRequest(List<Guid> Ids);
+/// <summary>A file the web app generated (GST return JSON or CSV working), sent as text.</summary>
+public sealed record SaveGeneratedDocumentRequest(string FileName, string Content, string? Folder = null, string? TypeCode = null,
+    string? Fy = null, string? Name = null, string? Notes = null, string? ContentBase64 = null);
 
 public static class DocumentEndpoints
 {
@@ -45,6 +48,30 @@ public static class DocumentEndpoints
             })
             .RequirePermission(Perms.DocumentsUpload)
             .DisableAntiforgery()   // bearer-token API: no cookies to forge
+            .WithMetadata(new RequestSizeLimitAttribute(MaxUploadRequestBytes));
+
+        // a file the app generated (Sprint 66: GSTR-1 JSON, GSTR-3B / GSTR-9 working); .json or .csv only
+        c.MapPost("/documents/generated", async (Guid clientId, SaveGeneratedDocumentRequest r, DocumentService svc, CancellationToken ct) =>
+            {
+                if (string.IsNullOrWhiteSpace(r.FileName)) throw new RequestValidationException("fileName", "A file name is required.");
+                // text files (json, csv) come as Content; binary ones (pdf) as ContentBase64
+                byte[] bytes;
+                if (!string.IsNullOrEmpty(r.ContentBase64))
+                {
+                    if (r.ContentBase64.Length > MaxUploadRequestBytes / 3 * 4 + 4) throw new RequestValidationException("contentBase64", "The file is too large.");
+                    try { bytes = Convert.FromBase64String(r.ContentBase64); }
+                    catch (FormatException) { throw new RequestValidationException("contentBase64", "The file content is not valid base64."); }
+                }
+                else if (!string.IsNullOrEmpty(r.Content)) bytes = System.Text.Encoding.UTF8.GetBytes(r.Content);
+                else throw new RequestValidationException("content", "The file is empty.");
+                if (bytes.Length == 0) throw new RequestValidationException("content", "The file is empty.");
+                if (bytes.LongLength > MaxUploadRequestBytes) throw new RequestValidationException("content", "The file is too large.");
+                var file = new UploadFile(r.FileName, bytes.LongLength, () => new MemoryStream(bytes, writable: false));
+                var req = new UploadRequest(r.Folder, r.TypeCode, r.Fy, r.Name, r.Notes, null);
+                return await svc.SaveGeneratedAsync(clientId, req, file, ct) is { } d
+                    ? Results.Created($"/api/documents/{d.Id}", d) : Results.NotFound();
+            })
+            .RequirePermission(Perms.DocumentsUpload)
             .WithMetadata(new RequestSizeLimitAttribute(MaxUploadRequestBytes));
 
         // ---- client upload links (made by staff)

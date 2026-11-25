@@ -13,7 +13,7 @@ public static class BranchAuditEndpoints
 {
     public static IEndpointRouteBuilder MapBranchAuditEndpoints(this IEndpointRouteBuilder app)
     {
-        var g = app.MapGroup("/api/branchaudit").WithTags("Multi-Firm Collaborative Audit & Branch Audit Consolidation (Sec 143(8) / SA 600)");
+        var g = app.MapGroup("/api/branchaudit").RequirePlanDesk("branchaudit").WithTags("Multi-Firm Collaborative Audit & Branch Audit Consolidation (Sec 143(8) / SA 600)");
 
         // 1. KPI Summary
         g.MapGet("/summary", async (BranchAuditService svc, CancellationToken ct) =>

@@ -33,7 +33,7 @@ public sealed class ClientValidationException(IReadOnlyDictionary<string, string
 /// Client use cases. Tenant filtering is done by the DbContext (and RLS), never here.
 /// Rules come from settings and platform data: entity types, required fields, code format, tax ID formats.
 /// </summary>
-public sealed class ClientService(IAppDbContext db, ISettings settings, TimeProvider clock)
+public sealed class ClientService(IAppDbContext db, ISettings settings, TimeProvider clock, CaDesk.Application.Subscriptions.PlanAccessService plans)
 {
     public const string NumberEntity = "client";
 
@@ -77,6 +77,7 @@ public sealed class ClientService(IAppDbContext db, ISettings settings, TimeProv
         var rules = await LoadRulesAsync(ct);
         var prepared = await PrepareAsync(r, existing: null, rules, ct);
         if (prepared.Errors.Count > 0) throw new ClientValidationException(prepared.Errors);
+        await plans.EnsureClientRoomAsync(1, ct);
 
         var c = new Client();
         prepared.ApplyTo(c);

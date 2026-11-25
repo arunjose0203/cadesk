@@ -44,14 +44,24 @@ public sealed class ApiExceptionHandler(ILogger<ApiExceptionHandler> log, IHostE
 
         if (result is null)
         {
-            log.LogError(ex, "Unhandled {Exception} on {Method} {Path}", ex.GetType().Name, ctx.Request.Method, ctx.Request.Path);
+            // a reference the user can quote; the same id is in the log line
+            var errorId = ErrorReference(ctx);
+            log.LogError(ex, "Unhandled {Exception} on {Method} {Path} [error {ErrorId}]", ex.GetType().Name, ctx.Request.Method, ctx.Request.Path, errorId);
             result = Results.Problem(statusCode: StatusCodes.Status500InternalServerError,
-                title: "Something went wrong", detail: showDetail ? ex.ToString() : null);
+                title: "Something went wrong", detail: showDetail ? ex.ToString() : null,
+                extensions: new Dictionary<string, object?> { ["errorId"] = errorId });
         }
         else log.LogInformation("Handled {Exception}: {Message}", ex.GetType().Name, ex.Message);
 
         await result.ExecuteAsync(ctx);
         return true;
+    }
+
+    /// <summary>"E-" plus the last 10 characters of the request id: short enough to read out on a call.</summary>
+    public static string ErrorReference(HttpContext ctx)
+    {
+        var id = ctx.TraceIdentifier.Replace(":", "");
+        return "E-" + (id.Length > 10 ? id[^10..] : id).ToUpperInvariant();
     }
 
     /// <summary>True when our own code threw it, not EF Core or the framework (those are real bugs and stay 500).</summary>

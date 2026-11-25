@@ -11,10 +11,13 @@ export function onSessionEnded(handler: () => void) { onSignedOut = handler }
 export class ApiError extends Error {
   status: number
   errors?: Record<string, string[]>
-  constructor(status: number, message: string, errors?: Record<string, string[]>) {
+  /** Server error reference (5xx), e.g. "E-0000ABCD12", also written in the server log. */
+  errorId?: string
+  constructor(status: number, message: string, errors?: Record<string, string[]>, errorId?: string) {
     super(message)
     this.status = status
     this.errors = errors
+    this.errorId = errorId
   }
 }
 
@@ -53,7 +56,15 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   }
   if (res.status === 204) return undefined as T
   const body = await res.json().catch(() => null)
-  if (!res.ok) throw new ApiError(res.status, body?.title ?? res.statusText, body?.errors)
+  if (!res.ok) {
+    const errorId: string | undefined = typeof body?.errorId === 'string' ? body.errorId : undefined
+    const title: string = body?.title ?? res.statusText
+    if (res.status >= 500) {
+      // the error monitor (shell/monitor.ts) keeps these for crash and problem reports
+      window.dispatchEvent(new CustomEvent('cadesk:api-error', { detail: { status: res.status, path, title, errorId } }))
+    }
+    throw new ApiError(res.status, errorId ? `${title} (reference ${errorId})` : title, body?.errors, errorId)
+  }
   return body as T
 }
 

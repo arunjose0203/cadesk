@@ -99,6 +99,13 @@ else
 builder.Services.AddScoped<CaDesk.Application.Documents.DocumentService>();
 builder.Services.AddScoped<CaDesk.Application.Documents.PortalService>();
 builder.Services.AddScoped<CaDesk.Application.Billing.BillingService>();
+// ---- online payments (Sprint 69): each firm's own Razorpay keys, from Settings + Secrets
+builder.Services.AddHttpClient<CaDesk.Application.Billing.IRazorpayClient, CaDesk.Api.Payments.RazorpayHttpClient>(c =>
+{
+    c.BaseAddress = new Uri("https://api.razorpay.com/");
+    c.Timeout = TimeSpan.FromSeconds(20);
+});
+builder.Services.AddScoped<CaDesk.Application.Billing.OnlinePaymentService>();
 builder.Services.AddScoped<CaDesk.Application.Billing.TimesheetService>();
 builder.Services.AddScoped<CaDesk.Application.Dsc.DscService>();
 builder.Services.AddScoped<CaDesk.Application.Portal.ClientPortalService>();
@@ -132,6 +139,9 @@ builder.Services.AddScoped<CaDesk.Application.CostAudit.CostAuditService>();
 builder.Services.AddScoped<CaDesk.Application.TrialBalance.TrialBalanceSyncEngine>();
 builder.Services.AddScoped<CaDesk.Application.TrialBalance.TrialBalanceService>();
 builder.Services.AddScoped<CaDesk.Application.Subscriptions.SubscriptionService>();
+builder.Services.AddScoped<CaDesk.Application.Subscriptions.PlanAccessService>();
+builder.Services.AddScoped<CaDesk.Application.Legal.LegalService>();
+builder.Services.AddScoped<CaDesk.Application.Support.ProblemReportService>();
 builder.Services.AddScoped<CaDesk.Application.Aqmm.AqmmService>();
 builder.Services.AddScoped<CaDesk.Application.Notifications.CommunicationGatewayService>();
 builder.Services.AddScoped<CaDesk.Application.SecurityCompliance.SecurityComplianceService>();
@@ -148,7 +158,19 @@ builder.Services.AddScoped<CaDesk.Application.Features.IFeatureFlagService, CaDe
 builder.Services.AddScoped<CaDesk.Application.Office.OfficeService>();
 var docOptions = config.GetSection("Documents").Get<CaDesk.Api.Documents.DocumentOptions>() ?? new();
 var storagePath = docOptions.StoragePath;
-if (storagePath.Length == 0)
+var useS3 = docOptions.Storage.Equals("S3", StringComparison.OrdinalIgnoreCase);
+if (useS3)
+{
+    // Sprint 70: documents in an S3-compatible bucket (Documents:Storage = S3, Documents:S3:*)
+    docOptions.S3.Validate();
+    var s3Http = new HttpClient(new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(10) })
+    {
+        Timeout = TimeSpan.FromMinutes(2),
+    };
+    builder.Services.AddSingleton<CaDesk.Application.Documents.IFileStore>(
+        new CaDesk.Infrastructure.Documents.S3FileStore(s3Http, docOptions.S3));
+}
+else if (storagePath.Length == 0)
 {
     if (builder.Environment.IsEnvironment("Testing"))
         storagePath = Path.Combine(Path.GetTempPath(), "cadesk-test-documents");
@@ -157,7 +179,8 @@ if (storagePath.Length == 0)
     else
         throw new InvalidOperationException("Documents:StoragePath must be set outside Development (a folder that is backed up).");
 }
-builder.Services.AddSingleton<CaDesk.Application.Documents.IFileStore>(new CaDesk.Infrastructure.Documents.LocalFileStore(storagePath));
+if (!useS3)
+    builder.Services.AddSingleton<CaDesk.Application.Documents.IFileStore>(new CaDesk.Infrastructure.Documents.LocalFileStore(storagePath));
 if (docOptions.Scan.Mode.Equals("ClamAv", StringComparison.OrdinalIgnoreCase))
 {
     builder.Services.AddSingleton(docOptions.Scan);
@@ -239,6 +262,10 @@ builder.Services.AddRateLimiter(o =>
     o.AddPolicy(DocumentEndpoints.PortalRateLimit, ctx => RateLimitPartition.GetFixedWindowLimiter(
         ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
         _ => new FixedWindowRateLimiterOptions { PermitLimit = portalPerMinute, Window = TimeSpan.FromMinutes(1) }));
+    // crash reports and "Report a problem": per signed-in user, so a crash loop can't flood the table
+    o.AddPolicy(ProblemReportEndpoints.RateLimitPolicy, ctx => RateLimitPartition.GetFixedWindowLimiter(
+        ctx.User.FindFirst(AppClaims.Subject)?.Value ?? ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 30, Window = TimeSpan.FromMinutes(10) }));
 });
 
 // ---- behind Caddy: trust X-Forwarded-For / -Proto ONLY from the proxy networks listed in config
@@ -310,6 +337,9 @@ app.MapTaskEndpoints();
 app.MapNotificationEndpoints();
 app.MapDocumentEndpoints();
 app.MapBillingEndpoints();
+app.MapOnlinePaymentEndpoints();
+app.MapLegalEndpoints();
+app.MapProblemReportEndpoints();
 app.MapTimesheetEndpoints();
 app.MapDscEndpoints();
 app.MapClientPortalEndpoints();

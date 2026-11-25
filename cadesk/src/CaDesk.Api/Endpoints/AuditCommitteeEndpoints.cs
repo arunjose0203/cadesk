@@ -13,7 +13,7 @@ public static class AuditCommitteeEndpoints
 {
     public static IEndpointRouteBuilder MapAuditCommitteeEndpoints(this IEndpointRouteBuilder app)
     {
-        var g = app.MapGroup("/api/auditcommittee").WithTags("Audit Committee & Board Governance Desk (ICAI SA 260 / SA 265 / Companies Act Sec 177)");
+        var g = app.MapGroup("/api/auditcommittee").RequirePlanDesk("auditcommittee").WithTags("Audit Committee & Board Governance Desk (ICAI SA 260 / SA 265 / Companies Act Sec 177)");
 
         // 1. Summary
         g.MapGet("/summary", async (AuditCommitteeService svc, CancellationToken ct) =>

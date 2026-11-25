@@ -9,7 +9,7 @@ public static class GstReconciliationEndpoints
 {
     public static IEndpointRouteBuilder MapGstReconciliationEndpoints(this IEndpointRouteBuilder app)
     {
-        var g = app.MapGroup("/api/gst").WithTags("GST 2A/2B Reconciliation");
+        var g = app.MapGroup("/api/gst").RequirePlanDesk("gst-reconcile").WithTags("GST 2A/2B Reconciliation");
 
         // KPI Summary
         g.MapGet("/summary", async (GstReconciliationService svc, CancellationToken ct) =>

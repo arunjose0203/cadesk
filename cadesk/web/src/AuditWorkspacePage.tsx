@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { PdfActions } from './pdf/PdfActions'
 import {
   type AuditEngagementDto,
   type AuditWorkingPaperDto,
@@ -40,6 +41,8 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
   const [workingPapers, setWorkingPapers] = useState<AuditWorkingPaperDto[]>([])
   const [leadSchedules, setLeadSchedules] = useState<LeadScheduleDto[]>([])
   const [dossier, setDossier] = useState<AuditDossierDto | null>(null)
+  const reportRef = useRef<HTMLDivElement>(null)
+  const canSaveDocs = !!me?.permissions.includes('documents.upload')
   const [eqrReview, setEqrReview] = useState<AuditEqrReviewDto | null>(null)
   const [reviewNotes, setReviewNotes] = useState<AuditReviewNoteDto[]>([])
   const [loadingWps, setLoadingWps] = useState(false)
@@ -1441,6 +1444,14 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                         >
                           🖨️ Export / Print Dossier
                         </button>
+                        <PdfActions
+                          title={`Audit dossier - ${selectedEng.clientName ?? 'Client'} - FY ${selectedEng.financialYear}`}
+                          options={{ author: me?.firmName, header: `${selectedEng.clientName ?? ''}  FY ${selectedEng.financialYear}`, footer: `${me?.firmName ?? ''}  SHA-256 ${dossier.integritySha256.slice(0, 16)}…` }}
+                          source={async () => (await auditApi.exportDossierHtml(selectedEng.id)).htmlContent}
+                          clientId={selectedEng.clientId}
+                          fy={selectedEng.financialYear}
+                          canSave={canSaveDocs}
+                        />
                         {dossier.status !== 'sealed_sqc1' && !selectedEng.isArchived && (
                           <button
                             onClick={() => setShowSealModal(true)}
@@ -2069,8 +2080,16 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                         </div>
                       )}
 
+                      <PdfActions
+                        title={`Independent auditor's report - ${selectedEng.clientName ?? 'Client'} - FY ${selectedEng.financialYear}`}
+                        options={{ author: me?.firmName, footer: me?.firmName }}
+                        source={() => reportRef.current?.innerHTML ?? ''}
+                        clientId={selectedEng.clientId}
+                        fy={selectedEng.financialYear}
+                        canSave={canSaveDocs}
+                      />
                       {/* Formal Report Text Preview */}
-                      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '24px' }}>
+                      <div ref={reportRef} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '24px' }}>
                         <div style={{ borderBottom: '2px solid #1e3a8a', paddingBottom: '12px', marginBottom: '16px' }}>
                           <h3 style={{ margin: 0, color: '#1e3a8a', fontSize: '18px', textAlign: 'center' }}>{auditorReport.reportTitle}</h3>
                           <div style={{ textAlign: 'center', fontSize: '13px', color: '#64748b', marginTop: '4px' }}>

@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { api, type Client, type Invoice, type TimeEntry, type BillingSummary, type TimesheetSummary } from './api'
 import { fmtDate } from './format'
+import { PaymentLinkButton } from './billing/PaymentLinkButton'
 
 export default function BillingPage({ can, meId }: { can: (p: string) => boolean; meId: string }) {
   const canManageBilling = can('billing.manage')
@@ -403,6 +404,9 @@ export default function BillingPage({ can, meId }: { can: (p: string) => boolean
                             >
                               ₹ Pay
                             </button>
+                          )}
+                          {canManageBilling && inv.balanceDue >= 1 && (inv.status === 'sent' || inv.status === 'partially_paid') && (
+                            <PaymentLinkButton invoiceId={inv.id} clientName={inv.clientName} />
                           )}
                           {inv.status === 'draft' && (
                             <button

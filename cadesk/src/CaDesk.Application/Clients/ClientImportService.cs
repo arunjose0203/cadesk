@@ -19,7 +19,7 @@ public sealed record ImportResult(int Created, int Skipped, ImportPreview Previe
 /// Bulk client import. Preview checks every row with the same rules as the client form and saves nothing.
 /// Commit saves all valid rows in one transaction (all or nothing), creating missing groups by name.
 /// </summary>
-public sealed class ClientImportService(IAppDbContext db, ClientService clients)
+public sealed class ClientImportService(IAppDbContext db, ClientService clients, CaDesk.Application.Subscriptions.PlanAccessService plans)
 {
     public const int MaxRows = 2000;
 
@@ -59,6 +59,7 @@ public sealed class ClientImportService(IAppDbContext db, ClientService clients)
             return new ImportResult(0, check.Preview.TotalRows, check.Preview);
         var valid = check.Rows.Where(r => r.Prepared.Errors.Count == 0).ToList();
         if (valid.Count == 0) return new ImportResult(0, check.Preview.TotalRows, check.Preview);
+        await plans.EnsureClientRoomAsync(valid.Count, ct);   // the plan's client limit, before anything is saved
 
         await using var tx = await db.Database.BeginTransactionAsync(ct);
 

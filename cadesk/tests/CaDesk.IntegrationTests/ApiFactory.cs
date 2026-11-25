@@ -81,13 +81,26 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         return WithToken(token);
     }
 
-    public async Task<SignedUp> SignUpAsync(string firmName, string? email = null)
+    /// <summary>
+    /// Signs up a firm. Test firms get every desk (plan INTERNAL) unless <paramref name="plan"/> says otherwise,
+    /// so desk tests are not stopped by plan gating; PlanAndLegalTests checks the gating itself.
+    /// </summary>
+    public async Task<SignedUp> SignUpAsync(string firmName, string? email = null, string plan = "INTERNAL")
     {
         email ??= $"{Guid.NewGuid():N}@test.example";
         var res = await Raw().PostAsJsonAsync("/api/auth/signup",
             new SignUpRequest($"{firmName} {Guid.NewGuid():N}"[..20], "IN", "Test Partner", email, Password));
         res.EnsureSuccessStatusCode();
         var body = (await res.Content.ReadFromJsonAsync<AuthResult>())!;
+        if (plan != "STARTER")
+        {
+            await using var conn = new Npgsql.NpgsqlConnection(OwnerCs);
+            await conn.OpenAsync();
+            await using var cmd = new Npgsql.NpgsqlCommand("update firms set plan_code = @plan where id = @id", conn);
+            cmd.Parameters.AddWithValue("plan", plan);
+            cmd.Parameters.AddWithValue("id", body.User!.FirmId);
+            await cmd.ExecuteNonQueryAsync();
+        }
         return new SignedUp(body.User!.FirmId, body.User.Id, email, body.AccessToken!, TestData.RefreshCookie(res)!);
     }
 

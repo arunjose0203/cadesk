@@ -1,3 +1,4 @@
+import { SIGNUP_ACCEPTED_KEY } from './legal/legal'
 import { useState, type FormEvent } from 'react'
 import { api, ApiError, type AuthResult } from './api'
 
@@ -90,15 +91,19 @@ function Login({ onSignedIn }: Props) {
 
 function SignUp({ onSignedIn }: Props) {
   const [f, setF] = useState({ firmName: '', name: '', email: '', password: '' })
+  const [agreed, setAgreed] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
   const submit = async (e: FormEvent) => {
     e.preventDefault(); setBusy(true); setError(null)
     try {
-      onSignedIn(await api<AuthResult>('/api/auth/signup', {
+      const result = await api<AuthResult>('/api/auth/signup', {
         method: 'POST', body: JSON.stringify({ ...f, countryCode: 'IN' }),
-      }))
+      })
+      // the checkbox below is the partner's acceptance; the app records it once signed in
+      try { sessionStorage.setItem(SIGNUP_ACCEPTED_KEY, '1') } catch { /* storage off: the app asks again */ }
+      onSignedIn(result)
     } catch (err) { setError(messageOf(err)) } finally { setBusy(false) }
   }
 
@@ -122,7 +127,15 @@ function SignUp({ onSignedIn }: Props) {
         <input type="password" autoComplete="new-password" placeholder="Min. 10 characters" value={f.password}
           onChange={e => setF({ ...f, password: e.target.value })} required />
       </div>
-      <button style={{ marginTop: '8px' }} disabled={busy}>Create Firm Account</button>
+      <label className="legal-signup-check">
+        <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} required />
+        <span>
+          I accept the <a href="/legal/terms.html" target="_blank" rel="noopener noreferrer">Terms of Service</a>,
+          the <a href="/legal/privacy.html" target="_blank" rel="noopener noreferrer">Privacy Notice</a> and,
+          for my firm, the <a href="/legal/dpa.html" target="_blank" rel="noopener noreferrer">Data Processing Terms</a>.
+        </span>
+      </label>
+      <button style={{ marginTop: '8px' }} disabled={busy || !agreed}>Create Firm Account</button>
       <p className="muted small" style={{ textAlign: 'center', margin: '4px 0 0' }}>
         Configured for India (GST/ITR/TDS). You become the firm's initial Partner.
       </p>
