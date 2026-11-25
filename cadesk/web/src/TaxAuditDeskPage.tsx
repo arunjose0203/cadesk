@@ -4,10 +4,13 @@ import {
   type Form3CdSummaryDto,
   type Form3CdClauseResponseDto,
   type Form3CdApplicabilityEvaluation,
+  type IncomeTaxJsonExportResult,
+  type ExportForm3CdJsonRequest,
   type Client,
   taxAuditApi,
   api
 } from './api'
+import { JsonExportPanel } from './components/JsonExportPanel'
 
 const fmtInr = (n: number) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n || 0)
@@ -25,7 +28,7 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
   const [error, setError] = useState<string | null>(null)
 
   // Filters
-  const [filterFy, setFilterFy] = useState('2024-25')
+  const [filterFy, setFilterFy] = useState('2025-26')
   const [filterStatus, setFilterStatus] = useState('all')
 
   // Selected assessment workbench
@@ -33,6 +36,16 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
   const [activeTab, setActiveTab] = useState<'applicability' | 'clauses' | 'report'>('clauses')
   const [clauseCategoryFilter, setClauseCategoryFilter] = useState('all')
   const [editingClause, setEditingClause] = useState<Form3CdClauseResponseDto | null>(null)
+  const [form3CdExport, setForm3CdExport] = useState<IncomeTaxJsonExportResult | null>(null)
+  const [exporting3Cd, setExporting3Cd] = useState(false)
+  const [form3CdOpts, setForm3CdOpts] = useState<ExportForm3CdJsonRequest>({
+    auditorName: 'Statutory Tax Auditor',
+    auditorMembershipNo: '234567',
+    caFirmName: 'CA Firm & Associates',
+    firmRegNum: '004321S',
+    auditorCity: 'Kochi',
+    auditorPinCode: '682031',
+  })
 
   // Modals
   const [showNewModal, setShowNewModal] = useState(false)
@@ -390,6 +403,8 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                 onChange={e => setFilterFy(e.target.value)}
                 style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '12px' }}
               >
+                <option value="2026-27">TY 2026-27</option>
+                <option value="2025-26">FY 2025-26</option>
                 <option value="2024-25">FY 2024-25</option>
                 <option value="2023-24">FY 2023-24</option>
                 <option value="2022-23">FY 2022-23</option>
@@ -853,6 +868,76 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                     resize: 'vertical'
                   }}
                 />
+
+                <JsonExportPanel
+                  title={`Official CBDT ${selectedAssessment.auditType} + 3CD JSON Export (V2.5)`}
+                  subtitle="Builds schema-validated Form 3CA-3CD / 3CB-3CD V2.5 JSON with Part A, disallowances, and Clause 44."
+                  clientId={selectedAssessment.clientId}
+                  fy={selectedAssessment.financialYear}
+                  vaultTypeCode="TAX_AUDIT"
+                  generating={exporting3Cd}
+                  result={form3CdExport}
+                  onGenerate={async () => {
+                    try {
+                      setExporting3Cd(true)
+                      setError(null)
+                      const res = await taxAuditApi.exportJson(selectedAssessment.id, form3CdOpts)
+                      setForm3CdExport(res)
+                    } catch (err: unknown) {
+                      setError(err instanceof Error ? err.message : 'Form 3CD JSON export failed.')
+                    } finally {
+                      setExporting3Cd(false)
+                    }
+                  }}
+                >
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '8px' }}>
+                    <input
+                      type="text"
+                      placeholder="CA Name"
+                      value={form3CdOpts.auditorName || ''}
+                      onChange={e => setForm3CdOpts(p => ({ ...p, auditorName: e.target.value }))}
+                      style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '12px' }}
+                    />
+                    <input
+                      type="text"
+                      maxLength={6}
+                      placeholder="Membership No. (6 digits)"
+                      value={form3CdOpts.auditorMembershipNo || ''}
+                      onChange={e => setForm3CdOpts(p => ({ ...p, auditorMembershipNo: e.target.value }))}
+                      style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '12px' }}
+                    />
+                    <input
+                      type="text"
+                      maxLength={8}
+                      placeholder="FRN (e.g. 004321S)"
+                      value={form3CdOpts.firmRegNum || ''}
+                      onChange={e => setForm3CdOpts(p => ({ ...p, firmRegNum: e.target.value.toUpperCase() }))}
+                      style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '12px' }}
+                    />
+                    <input
+                      type="text"
+                      placeholder="CA Firm Name"
+                      value={form3CdOpts.caFirmName || ''}
+                      onChange={e => setForm3CdOpts(p => ({ ...p, caFirmName: e.target.value }))}
+                      style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '12px' }}
+                    />
+                    <input
+                      type="text"
+                      placeholder="Place / City"
+                      value={form3CdOpts.auditorCity || ''}
+                      onChange={e => setForm3CdOpts(p => ({ ...p, auditorCity: e.target.value }))}
+                      style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '12px' }}
+                    />
+                    <input
+                      type="text"
+                      maxLength={6}
+                      placeholder="Auditor PIN Code"
+                      value={form3CdOpts.auditorPinCode || ''}
+                      onChange={e => setForm3CdOpts(p => ({ ...p, auditorPinCode: e.target.value }))}
+                      style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '12px' }}
+                    />
+                  </div>
+                </JsonExportPanel>
               </div>
             )}
           </div>

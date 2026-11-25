@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using CaDesk.Application.Abstractions;
+using CaDesk.Application.Tax;
 using CaDesk.Domain.TaxAudit;
 using Microsoft.EntityFrameworkCore;
 
@@ -301,6 +302,21 @@ public class Form3CdService
 
         await _db.SaveChangesAsync(ct);
         return await GetAssessmentByIdAsync(id, ct);
+    }
+
+    public async Task<IncomeTaxJsonExportResult> ExportJsonAsync(Guid id, ExportForm3CdJsonRequest? req = null, CancellationToken ct = default)
+    {
+        var assessment = await _db.Form3CdAssessments
+            .Include(a => a.Client)
+            .Include(a => a.ClauseResponses)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(a => a.Id == id, ct);
+
+        if (assessment is null)
+            throw new BusinessRuleException("Form 3CD assessment not found.", 404);
+
+        var client = assessment.Client ?? await _db.Clients.AsNoTracking().FirstOrDefaultAsync(c => c.Id == assessment.ClientId, ct);
+        return Form3CdJsonBuilder.Build(assessment, assessment.ClauseResponses.OrderBy(c => c.ClauseNumber).ToList(), client, req);
     }
 
     private static Form3CdAssessmentDto ToDto(Form3CdAssessment a)

@@ -2,6 +2,7 @@ using System;
 using System.Security.Claims;
 using CaDesk.Api.Auth;
 using CaDesk.Application.Presumptive;
+using CaDesk.Application.Tax;
 using CaDesk.Domain.Users;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -113,6 +114,13 @@ public static class PresumptiveTaxEndpoints
         {
             var stmt = await svc.GetMinimalFinancialsStatementAsync(id, ct);
             return Results.Ok(stmt);
+        }).RequirePermission(Perms.PresumptiveRead);
+
+        // Export ITR-4 (Sugam) Official Schema JSON (Sprint 67)
+        g.MapPost("/computations/{id:guid}/export-itr4", async (Guid id, ExportItrJsonRequest? req, PresumptiveTaxService svc, CancellationToken ct) =>
+        {
+            var result = await svc.ExportItr4JsonAsync(id, req, ct);
+            return Results.Ok(result);
         }).RequirePermission(Perms.PresumptiveRead);
 
         return app;

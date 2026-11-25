@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using CaDesk.Application.Abstractions;
+using CaDesk.Application.Tax;
 using CaDesk.Domain.Clients;
 using CaDesk.Domain.Presumptive;
 using Microsoft.EntityFrameworkCore;
@@ -404,6 +405,21 @@ public class PresumptiveTaxService(IAppDbContext db, ITenantContext tenant)
             comp.IsLockoutActive = false;
             comp.LockoutExpiryAy = null;
         }
+    }
+
+    public async Task<IncomeTaxJsonExportResult> ExportItr4JsonAsync(Guid id, ExportItrJsonRequest? req = null, CancellationToken ct = default)
+    {
+        var comp = await db.PresumptiveTaxComputations
+            .Include(x => x.Client)
+            .Include(x => x.Vehicles)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == id, ct);
+        if (comp is null) throw new BusinessRuleException("Presumptive tax computation not found.", 404);
+
+        var client = comp.Client ?? await db.Clients.AsNoTracking().FirstOrDefaultAsync(c => c.Id == comp.ClientId, ct)
+            ?? throw new BusinessRuleException("Client not found.", 404);
+
+        return Itr4JsonBuilder.Build(comp, client, req);
     }
 
     private static PresumptiveTaxComputationDto ToComputationDto(PresumptiveTaxComputation c)

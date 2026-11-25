@@ -3,10 +3,13 @@ import {
   type PresumptiveTaxComputationDto,
   type PresumptiveSummaryDto,
   type MinimalFinancialsStatementDto,
+  type IncomeTaxJsonExportResult,
+  type ExportItrJsonRequest,
   type Client,
   presumptiveApi,
   api
 } from './api'
+import { JsonExportPanel } from './components/JsonExportPanel'
 
 const fmtInr = (n: number) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n || 0)
@@ -24,7 +27,7 @@ export function PresumptiveTaxPage({ can }: { can: (p: string) => boolean }) {
   const [error, setError] = useState<string | null>(null)
 
   // Filters
-  const [filterFy, setFilterFy] = useState('2024-25')
+  const [filterFy, setFilterFy] = useState('2025-26')
   const [filterSection, setFilterSection] = useState('all')
   const [filterStatus, setFilterStatus] = useState('all')
 
@@ -32,6 +35,14 @@ export function PresumptiveTaxPage({ can }: { can: (p: string) => boolean }) {
   const [selectedComp, setSelectedComp] = useState<PresumptiveTaxComputationDto | null>(null)
   const [activeTab, setActiveTab] = useState<'computation' | 'minimal_financials' | 'statement'>('computation')
   const [statement, setStatement] = useState<MinimalFinancialsStatementDto | null>(null)
+  const [itr4Export, setItr4Export] = useState<IncomeTaxJsonExportResult | null>(null)
+  const [exportingItr4, setExportingItr4] = useState(false)
+  const [itr4Opts, setItr4Opts] = useState<ExportItrJsonRequest>({
+    fatherName: '',
+    city: 'Kochi',
+    pinCode: '682001',
+    optOutNewRegime: false,
+  })
 
   // Modals
   const [showNewModal, setShowNewModal] = useState(false)
@@ -40,7 +51,7 @@ export function PresumptiveTaxPage({ can }: { can: (p: string) => boolean }) {
   // New Computation Form
   const [form, setForm] = useState({
     clientId: '',
-    financialYear: '2024-25',
+    financialYear: '2025-26',
     section: '44AD',
     entityType: 'Individual',
     businessNatureCode: '01001',
@@ -318,9 +329,9 @@ export function PresumptiveTaxPage({ can }: { can: (p: string) => boolean }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <label style={{ fontSize: '13px', fontWeight: 600, color: '#475569' }}>FY:</label>
           <select value={filterFy} onChange={e => setFilterFy(e.target.value)} style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
+            <option value="2025-26">2025-26 (AY 2026-27)</option>
             <option value="2024-25">2024-25 (AY 2025-26)</option>
             <option value="2023-24">2023-24 (AY 2024-25)</option>
-            <option value="2025-26">2025-26 (AY 2026-27)</option>
             <option value="all">All Financial Years</option>
           </select>
         </div>
@@ -942,6 +953,61 @@ export function PresumptiveTaxPage({ can }: { can: (p: string) => boolean }) {
                     <div>Prepared by: {selectedComp.createdByName || 'Staff'} • Status: {selectedComp.status.toUpperCase()}</div>
                     <div>Authorized Signatory / Assessee Signature: _________________________</div>
                   </div>
+
+                  <JsonExportPanel
+                    title="Official ITR-4 (Sugam) JSON Export (AY 2026-27 V1.1)"
+                    subtitle="Exports Presumptive 44AD/ADA/AE + Sec 44AA Minimal Balance Sheet validated against official CBDT schema."
+                    clientId={selectedComp.clientId}
+                    fy={selectedComp.financialYear}
+                    vaultTypeCode="ITR_BUS"
+                    generating={exportingItr4}
+                    result={itr4Export}
+                    onGenerate={async () => {
+                      try {
+                        setExportingItr4(true)
+                        setError(null)
+                        const res = await presumptiveApi.exportItr4(selectedComp.id, itr4Opts)
+                        setItr4Export(res)
+                      } catch (err: unknown) {
+                        setError(err instanceof Error ? err.message : 'ITR-4 JSON export failed.')
+                      } finally {
+                        setExportingItr4(false)
+                      }
+                    }}
+                  >
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '8px', alignItems: 'center' }}>
+                      <input
+                        type="text"
+                        placeholder="Father's Name"
+                        value={itr4Opts.fatherName || ''}
+                        onChange={e => setItr4Opts(p => ({ ...p, fatherName: e.target.value }))}
+                        style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '12px' }}
+                      />
+                      <input
+                        type="text"
+                        placeholder="City (e.g. Kochi)"
+                        value={itr4Opts.city || ''}
+                        onChange={e => setItr4Opts(p => ({ ...p, city: e.target.value }))}
+                        style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '12px' }}
+                      />
+                      <input
+                        type="text"
+                        maxLength={6}
+                        placeholder="PIN Code"
+                        value={itr4Opts.pinCode || ''}
+                        onChange={e => setItr4Opts(p => ({ ...p, pinCode: e.target.value }))}
+                        style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '12px' }}
+                      />
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#334155', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={!!itr4Opts.optOutNewRegime}
+                          onChange={e => setItr4Opts(p => ({ ...p, optOutNewRegime: e.target.checked }))}
+                        />
+                        <span>Opt Out New Regime (10-IEA)</span>
+                      </label>
+                    </div>
+                  </JsonExportPanel>
                 </div>
               )}
             </div>

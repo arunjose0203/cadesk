@@ -3,11 +3,14 @@ import {
   type CalculateTaxRequest,
   type RegimeComparisonDto,
   type TaxComputationDto,
+  type IncomeTaxJsonExportResult,
+  type ExportItrJsonRequest,
   type Client,
   type ClientPage,
   taxApi,
   api
 } from './api'
+import { JsonExportPanel } from './components/JsonExportPanel'
 
 const fmtInr = (n: number) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n)
@@ -22,9 +25,18 @@ export function TaxPage() {
   const [error, setError] = useState<string | null>(null)
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
   const [selectedComputation, setSelectedComputation] = useState<TaxComputationDto | null>(null)
+  const [itr1Export, setItr1Export] = useState<IncomeTaxJsonExportResult | null>(null)
+  const [exportingItr1, setExportingItr1] = useState(false)
+  const [itr1Opts, setItr1Opts] = useState<ExportItrJsonRequest>({
+    fatherName: '',
+    pinCode: '682001',
+    city: 'Kochi',
+    ifscCode: '',
+    bankAccountNo: '',
+  })
 
   // Filter state
-  const [filterAy, setFilterAy] = useState('2025-26')
+  const [filterAy, setFilterAy] = useState('2026-27')
 
   // AIS Import State
   const [showAisModal, setShowAisModal] = useState(false)
@@ -35,8 +47,8 @@ export function TaxPage() {
   // Calculator Form State
   const [form, setForm] = useState<CalculateTaxRequest>({
     clientId: '',
-    assessmentYear: '2025-26',
-    financialYear: '2024-25',
+    assessmentYear: '2026-27',
+    financialYear: '2025-26',
     taxpayerCategory: 'individual',
     optedRegime: null,
     grossSalary: 1200000,
@@ -323,11 +335,12 @@ export function TaxPage() {
                   value={form.assessmentYear}
                   onChange={e => {
                     const ay = e.target.value
-                    const fy = ay === '2025-26' ? '2024-25' : '2023-24'
+                    const fy = ay === '2026-27' ? '2025-26' : ay === '2025-26' ? '2024-25' : '2023-24'
                     setForm({ ...form, assessmentYear: ay, financialYear: fy })
                   }}
                   style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
                 >
+                  <option value="2026-27">AY 2026-27 (FY 2025-26)</option>
                   <option value="2025-26">AY 2025-26 (FY 2024-25)</option>
                   <option value="2024-25">AY 2024-25 (FY 2023-24)</option>
                 </select>
@@ -728,6 +741,7 @@ export function TaxPage() {
                 style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
               >
                 <option value="all">All AYs</option>
+                <option value="2026-27">AY 2026-27</option>
                 <option value="2025-26">AY 2025-26</option>
                 <option value="2024-25">AY 2024-25</option>
               </select>
@@ -818,10 +832,13 @@ export function TaxPage() {
                           </button>
                         )}
                         <button
-                          onClick={() => setSelectedComputation(c)}
+                          onClick={() => {
+                            setItr1Export(null)
+                            setSelectedComputation(c)
+                          }}
                           style={{ padding: '4px 8px', fontSize: '11px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer' }}
                         >
-                          View
+                          View / Export JSON
                         </button>
                         <button
                           onClick={() => handleDeleteComputation(c.id)}
@@ -875,6 +892,69 @@ export function TaxPage() {
                     Net Payable / (Refund): {fmtInr(selectedComputation.netTaxPayableOrRefund)}
                   </p>
                 </div>
+
+                <JsonExportPanel
+                  title="Official ITR-1 (Sahaj) JSON Export (AY 2026-27 V1.1)"
+                  subtitle="Generates schema-validated Income Tax e-Filing JSON from this computation."
+                  clientId={selectedComputation.clientId}
+                  fy={selectedComputation.financialYear}
+                  vaultTypeCode="ITR"
+                  generating={exportingItr1}
+                  result={itr1Export}
+                  onGenerate={async () => {
+                    try {
+                      setExportingItr1(true)
+                      setError(null)
+                      const res = await taxApi.exportItr1(selectedComputation.id, itr1Opts)
+                      setItr1Export(res)
+                    } catch (err: unknown) {
+                      setError(err instanceof Error ? err.message : 'ITR-1 JSON export failed.')
+                    } finally {
+                      setExportingItr1(false)
+                    }
+                  }}
+                >
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '8px' }}>
+                    <input
+                      type="text"
+                      placeholder="Father's Name"
+                      value={itr1Opts.fatherName || ''}
+                      onChange={e => setItr1Opts(p => ({ ...p, fatherName: e.target.value }))}
+                      style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '12px' }}
+                    />
+                    <input
+                      type="text"
+                      placeholder="City (e.g. Kochi)"
+                      value={itr1Opts.city || ''}
+                      onChange={e => setItr1Opts(p => ({ ...p, city: e.target.value }))}
+                      style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '12px' }}
+                    />
+                    <input
+                      type="text"
+                      maxLength={6}
+                      placeholder="PIN Code (e.g. 682001)"
+                      value={itr1Opts.pinCode || ''}
+                      onChange={e => setItr1Opts(p => ({ ...p, pinCode: e.target.value }))}
+                      style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '12px' }}
+                    />
+                    <input
+                      type="text"
+                      maxLength={11}
+                      placeholder="Refund IFSC (optional)"
+                      value={itr1Opts.ifscCode || ''}
+                      onChange={e => setItr1Opts(p => ({ ...p, ifscCode: e.target.value.toUpperCase() }))}
+                      style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '12px' }}
+                    />
+                    <input
+                      type="text"
+                      placeholder="Bank A/c No. (optional)"
+                      value={itr1Opts.bankAccountNo || ''}
+                      onChange={e => setItr1Opts(p => ({ ...p, bankAccountNo: e.target.value }))}
+                      style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '12px' }}
+                    />
+                  </div>
+                </JsonExportPanel>
+
                 <div style={{ marginTop: '20px', textAlign: 'right' }}>
                   <button
                     onClick={() => setSelectedComputation(null)}

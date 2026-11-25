@@ -1,6 +1,7 @@
 using System;
 using System.Security.Claims;
 using CaDesk.Api.Auth;
+using CaDesk.Application.Tax;
 using CaDesk.Application.TaxAudit;
 using CaDesk.Domain.Users;
 using Microsoft.AspNetCore.Builder;
@@ -108,6 +109,17 @@ public static class Form3CdEndpoints
             var finalized = await svc.FinalizeAssessmentAsync(id, req?.AuditorObservations, ct);
             return Results.Ok(finalized);
         }).RequirePermission(Perms.TaxAuditFinalize);
+
+        // Export Form 3CA-3CD / 3CB-3CD Official V2.5 Schema JSON (Sprint 67)
+        g.MapPost("/assessments/{id:guid}/export-json", async (
+            Guid id,
+            ExportForm3CdJsonRequest? req,
+            Form3CdService svc,
+            CancellationToken ct) =>
+        {
+            var result = await svc.ExportJsonAsync(id, req, ct);
+            return Results.Ok(result);
+        }).RequirePermission(Perms.TaxAuditRead);
 
         return app;
     }

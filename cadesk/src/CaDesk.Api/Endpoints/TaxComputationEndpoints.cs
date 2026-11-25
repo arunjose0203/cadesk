@@ -63,6 +63,13 @@ public static class TaxComputationEndpoints
             return Results.Ok(updated);
         }).RequirePermission(Perms.ComputationsApprove);
 
+        // Export ITR-1 (Sahaj) Official Schema JSON (Sprint 67)
+        g.MapPost("/computations/{id:guid}/export-itr1", async (Guid id, ExportItrJsonRequest? req, TaxComputationService svc, CancellationToken ct) =>
+        {
+            var result = await svc.ExportItr1JsonAsync(id, req, ct);
+            return Results.Ok(result);
+        }).RequirePermission(Perms.ComputationsRun);
+
         // Delete computation
         g.MapDelete("/computations/{id:guid}", async (Guid id, TaxComputationService svc, CancellationToken ct) =>
         {

@@ -709,6 +709,70 @@ export type TaxComputationDto = {
   updatedAt?: string | null
 }
 
+export type IncomeTaxJsonExportIssue = {
+  severity: 'error' | 'warning'
+  path: string
+  code: string
+  message: string
+}
+
+export type IncomeTaxJsonExportResult = {
+  formType: string
+  schemaVersion: string
+  assessmentYear: string
+  financialYear: string
+  fileName: string
+  validAgainstSchema: boolean
+  schemaErrorCount: number
+  jsonContent: string
+  issues: IncomeTaxJsonExportIssue[]
+}
+
+export type ExportItrJsonRequest = {
+  fatherName?: string | null
+  dob?: string | null
+  residenceNo?: string | null
+  localityOrArea?: string | null
+  city?: string | null
+  stateCode?: string | null
+  pinCode?: string | null
+  mobileNo?: string | null
+  emailAddress?: string | null
+  employerCategory?: string | null
+  returnFileSec?: number | null
+  place?: string | null
+  ifscCode?: string | null
+  bankName?: string | null
+  bankAccountNo?: string | null
+  bankAccountType?: string | null
+  intermediaryCity?: string | null
+  optOutNewRegime?: boolean | null
+  salaryIncome?: number | null
+  otherSourcesIncome?: number | null
+  chapterVia80C?: number | null
+  tdsPaid?: number | null
+  advanceTaxPaid?: number | null
+}
+
+export type ExportForm3CdJsonRequest = {
+  auditorName?: string | null
+  auditorMembershipNo?: string | null
+  caFirmName?: string | null
+  firmRegNum?: string | null
+  auditorAddress?: string | null
+  auditorCity?: string | null
+  auditorStateCode?: string | null
+  auditorPinCode?: string | null
+  place?: string | null
+  signingDate?: string | null
+  auditReportDate?: string | null
+  otherLawActCode?: string | null
+  assesseeCity?: string | null
+  assesseeStateCode?: string | null
+  assesseePinCode?: string | null
+  numberOfBranches?: number | null
+}
+
 export const taxApi = {
   preview: (req: CalculateTaxRequest) => api<RegimeComparisonDto>('/api/tax/preview', { method: 'POST', body: JSON.stringify(req) }),
   save: (req: CalculateTaxRequest) => api<TaxComputationDto>('/api/tax/computations', { method: 'POST', body: JSON.stringify(req) }),
@@ -724,6 +788,8 @@ export const taxApi = {
   delete: (id: string) => api<void>(`/api/tax/computations/${id}`, { method: 'DELETE' }),
   importAis: (req: { clientId: string; aisJson: string }) =>
     api<TaxComputationDto>('/api/tax/computations/import-ais', { method: 'POST', body: JSON.stringify(req) }),
+  exportItr1: (id: string, req: ExportItrJsonRequest = {}) =>
+    api<IncomeTaxJsonExportResult>(`/api/tax/computations/${id}/export-itr1`, { method: 'POST', body: JSON.stringify(req) }),
 }
 
 // -------------------------------------------------------------
@@ -4306,6 +4372,8 @@ export const presumptiveApi = {
     api<PresumptiveTaxComputationDto>(`/api/presumptive/computations/${id}/approve`, { method: 'POST' }),
   getStatement: (id: string) =>
     api<MinimalFinancialsStatementDto>(`/api/presumptive/computations/${id}/statement`),
+  exportItr4: (id: string, req: ExportItrJsonRequest = {}) =>
+    api<IncomeTaxJsonExportResult>(`/api/presumptive/computations/${id}/export-itr4`, { method: 'POST', body: JSON.stringify(req) }),
   getSummary: () =>
     api<PresumptiveSummaryDto>('/api/presumptive/summary')
 }
@@ -4590,7 +4658,9 @@ export const taxAuditApi = {
   generateReport: (id: string) =>
     api<{ reportText: string }>(`/api/taxaudit/assessments/${id}/generate-report`, { method: 'POST' }),
   finalizeAssessment: (id: string, auditorObservations?: string) =>
-    api<Form3CdAssessmentDto>(`/api/taxaudit/assessments/${id}/finalize`, { method: 'POST', body: JSON.stringify({ auditorObservations }) })
+    api<Form3CdAssessmentDto>(`/api/taxaudit/assessments/${id}/finalize`, { method: 'POST', body: JSON.stringify({ auditorObservations }) }),
+  exportJson: (id: string, req: ExportForm3CdJsonRequest = {}) =>
+    api<IncomeTaxJsonExportResult>(`/api/taxaudit/assessments/${id}/export-json`, { method: 'POST', body: JSON.stringify(req) }),
 }
 
 // -------------------------------------------------------------

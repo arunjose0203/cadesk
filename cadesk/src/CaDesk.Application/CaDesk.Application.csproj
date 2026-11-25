@@ -8,4 +8,7 @@
     <!-- FromSql / SqlQuery for jsonb tax-ID lookups and next_number(); still no provider here. -->
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
   </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Schemas\*.json" />
+  </ItemGroup>
 </Project>
