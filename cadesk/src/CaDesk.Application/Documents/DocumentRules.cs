@@ -23,8 +23,9 @@ public static class FileTypes
         ["xls"] = ("xls", "application/vnd.ms-excel"),
         ["csv"] = ("csv", "text/csv"),
         ["docx"] = ("docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"),
-        // Only for files CaDesk generates (GST return JSON); staff uploads still follow doc.allowed_types.
+        // Only for files CaDesk generates (GST return JSON, TDS NSDL RPU .txt); staff uploads still follow doc.allowed_types.
         ["json"] = ("json", "application/json"),
+        ["txt"] = ("txt", "text/plain"),
     };
 
     private static ReadOnlySpan<byte> Jpeg => [0xFF, 0xD8, 0xFF];
@@ -63,9 +64,10 @@ public static class FileTypes
             case "xls":
                 return h.StartsWith(Ole) ? null : "This is not an Excel 97-2003 file.";
             case "csv":
-                if (h.IndexOf((byte)0) >= 0) return "This is not a text (CSV) file.";
+            case "txt":
+                if (h.IndexOf((byte)0) >= 0) return $"This is not a plain text ({extension.ToUpperInvariant()}) file.";
                 var text = Encoding.UTF8.GetString(h).TrimStart('﻿', ' ', '\t', '\r', '\n');
-                return text.StartsWith('<') ? "This looks like a web page, not a CSV file." : null;
+                return text.StartsWith('<') ? $"This looks like a web page, not a {extension.ToUpperInvariant()} file." : null;
             case "json":
                 if (h.IndexOf((byte)0) >= 0) return "This is not a JSON file.";
                 var json = Encoding.UTF8.GetString(h).TrimStart('\uFEFF', ' ', '\t', '\r', '\n');

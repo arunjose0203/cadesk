@@ -6,15 +6,19 @@ namespace CaDesk.Domain.Tds;
 
 public static class TdsFormType
 {
+    public const string Form24Q = "24Q";
     public const string Form26Q = "26Q";
     public const string Form27Q = "27Q";
     public const string Form27Eq = "27EQ";
 
-    public static readonly string[] All = [Form26Q, Form27Q, Form27Eq];
+    public static readonly string[] All = [Form24Q, Form26Q, Form27Q, Form27Eq];
 }
 
 public static class TdsSection
 {
+    public const string Sec192Salary = "192_salary";
+    public const string Sec192Govt = "192_govt";
+    public const string Sec192GovtUnion = "192_govt_union";
     public const string Sec194CCompany = "194C_company";
     public const string Sec194COther = "194C_other";
     public const string Sec194JTech = "194J_tech";
@@ -24,12 +28,21 @@ public static class TdsSection
     public const string Sec194Q = "194Q";
     public const string Sec194A = "194A";
     public const string Sec194H = "194H";
+    public const string Sec194D = "194D";
+    public const string Sec194DA = "194DA";
+    public const string Sec194B = "194B";
+    public const string Sec194N = "194N";
+    public const string Sec194R = "194R";
+    public const string Sec194S = "194S";
+    public const string Sec194T = "194T";
     public const string Sec195 = "195";
 
     public static readonly string[] All =
     [
+        Sec192Salary, Sec192Govt, Sec192GovtUnion,
         Sec194CCompany, Sec194COther, Sec194JTech, Sec194JFees,
-        Sec194ILand, Sec194IPlant, Sec194Q, Sec194A, Sec194H, Sec195
+        Sec194ILand, Sec194IPlant, Sec194Q, Sec194A, Sec194H,
+        Sec194D, Sec194DA, Sec194B, Sec194N, Sec194R, Sec194S, Sec194T, Sec195
     ];
 }
 
@@ -104,6 +117,8 @@ public class TdsChallan : ITenantOwned
     public decimal LateFee234E { get; set; }
     public decimal TotalChallanAmount { get; set; }
     public decimal AllocatedAmount { get; set; }
+    public bool IsBookEntry { get; set; }
+    public bool IsNil { get; set; }
 
     public string? Notes { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -141,6 +156,13 @@ public class TdsDeduction : ITenantOwned
     public Guid? CertificateId { get; set; }
     public string HigherRateReason { get; set; } = Domain.Tds.HigherRateReason.None;
     public string BookingStatus { get; set; } = TdsBookingStatus.PendingDeposit;
+    public string? DeducteeCode { get; set; }
+    public string? RemarkCode { get; set; }
+    public string? RemittanceCode { get; set; }
+    public string? CountryCode { get; set; }
+    public string? TaxRateSource { get; set; }
+    public string? AckNumber { get; set; }
+    public bool? OptedOutNewRegime { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public Guid? CreatedBy { get; set; }
@@ -151,4 +173,60 @@ public class TdsDeduction : ITenantOwned
     public Client? Client { get; set; }
     public TdsChallan? Challan { get; set; }
     public TdsLowerDeductionCertificate? Certificate { get; set; }
+}
+
+/// <summary>Deductor and responsible-person metadata required by Protean/NSDL e-TDS FH and BH records.</summary>
+public class TdsDeductorProfile : ITenantOwned
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid FirmId { get; set; }
+    public Guid ClientId { get; set; }
+
+    public string Tan { get; set; } = "";
+    public string Pan { get; set; } = "";
+    public string DeductorType { get; set; } = "K";
+    public string DeductorName { get; set; } = "";
+    public string BranchDivision { get; set; } = "NA";
+    public string? Gstin { get; set; }
+
+    public string FlatBlock { get; set; } = "";
+    public string? PremisesName { get; set; }
+    public string? StreetRoad { get; set; }
+    public string? AreaLocality { get; set; }
+    public string? CityDistrict { get; set; }
+    public string StateCode { get; set; } = "16";
+    public string Pincode { get; set; } = "";
+    public string CountryName { get; set; } = "INDIA";
+
+    public string Email { get; set; } = "";
+    public string? StdCode { get; set; }
+    public string Phone { get; set; } = "";
+    public string Mobile { get; set; } = "";
+    public string CountryCallingCode { get; set; } = "91";
+
+    public string RespName { get; set; } = "";
+    public string RespDesignation { get; set; } = "";
+    public string RespPan { get; set; } = "";
+    public string RespFlatBlock { get; set; } = "";
+    public string? RespPremisesName { get; set; }
+    public string? RespStreetRoad { get; set; }
+    public string? RespAreaLocality { get; set; }
+    public string? RespCityDistrict { get; set; }
+    public string RespStateCode { get; set; } = "16";
+    public string RespPincode { get; set; } = "";
+    public string RespCountryName { get; set; } = "INDIA";
+    public string RespEmail { get; set; } = "";
+    public string RespMobile { get; set; } = "";
+    public string RespCountryCallingCode { get; set; } = "91";
+
+    public bool FiledPreviousRegular { get; set; }
+    public string? PreviousTokenNo { get; set; }
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public Guid? CreatedBy { get; set; }
+    public DateTime? UpdatedAt { get; set; }
+    public Guid? UpdatedBy { get; set; }
+
+    public Firm? Firm { get; set; }
+    public Client? Client { get; set; }
 }

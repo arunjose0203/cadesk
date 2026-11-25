@@ -102,6 +102,7 @@ public interface IAppDbContext
     DbSet<TdsLowerDeductionCertificate> TdsLowerDeductionCertificates { get; }
     DbSet<TdsChallan> TdsChallans { get; }
     DbSet<TdsDeduction> TdsDeductions { get; }
+    DbSet<TdsDeductorProfile> TdsDeductorProfiles { get; }
     DbSet<CompanyMaster> Companies { get; }
     DbSet<DirectorDinRecord> DirectorDins { get; }
     DbSet<McaAnnualFiling> McaFilings { get; }

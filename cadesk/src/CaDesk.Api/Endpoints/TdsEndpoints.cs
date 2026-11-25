@@ -75,6 +75,32 @@ public static class TdsEndpoints
             return Results.Ok(result);
         }).RequirePermission(Perms.TdsRead);
 
+        // Sprint 68: Deductor Profiles (BH/FH metadata), NSDL RPU .txt Export/Validate, FVU .err Parser, Form 16/16A Import
+        g.MapGet("/profiles/{clientId:guid}", async (Guid clientId, TdsService svc, CancellationToken ct) =>
+            Results.Ok(await svc.GetDeductorProfileAsync(clientId, ct)))
+            .RequirePermission(Perms.TdsRead);
+
+        g.MapPut("/profiles/{clientId:guid}", async (Guid clientId, SaveTdsDeductorProfileRequest req, ClaimsPrincipal user, TdsService svc, CancellationToken ct) =>
+        {
+            var userId = Guid.Parse(user.FindFirstValue("sub") ?? user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            return Results.Ok(await svc.SaveDeductorProfileAsync(clientId, req, userId, ct));
+        }).RequirePermission(Perms.TdsManage);
+
+        g.MapPost("/returns/export", async (ExportTdsReturnRequest req, TdsService svc, CancellationToken ct) =>
+            Results.Ok(await svc.ExportReturnAsync(req, ct)))
+            .RequirePermission(Perms.TdsRead);
+
+        g.MapPost("/returns/parse-err", (ParseFvuErrRequest req) =>
+            Results.Ok(NsdlRpuBuilder.ParseFvuErrFile(req.ErrContent)))
+            .RequirePermission(Perms.TdsRead);
+
+        g.MapPost("/import/form16", async (ImportForm16Request req, ClaimsPrincipal user, TdsService svc, CancellationToken ct) =>
+        {
+            var userId = Guid.Parse(user.FindFirstValue("sub") ?? user.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var res = await svc.ImportForm16Async(req, userId, ct);
+            return Results.Ok(res);
+        }).RequirePermission(Perms.TdsManage);
+
         return app;
     }
 }

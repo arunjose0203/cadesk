@@ -118,6 +118,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
     public DbSet<TdsLowerDeductionCertificate> TdsLowerDeductionCertificates => Set<TdsLowerDeductionCertificate>();
     public DbSet<TdsChallan> TdsChallans => Set<TdsChallan>();
     public DbSet<TdsDeduction> TdsDeductions => Set<TdsDeduction>();
+    public DbSet<TdsDeductorProfile> TdsDeductorProfiles => Set<TdsDeductorProfile>();
     public DbSet<CompanyMaster> Companies => Set<CompanyMaster>();
     public DbSet<DirectorDinRecord> DirectorDins => Set<DirectorDinRecord>();
     public DbSet<McaAnnualFiling> McaFilings => Set<McaAnnualFiling>();
@@ -632,6 +633,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
             e.ToTable("tds_deductions");
             e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(x => x.Certificate).WithMany().HasForeignKey(x => x.CertificateId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        b.Entity<TdsDeductorProfile>(e =>
+        {
+            e.ToTable("tds_deductor_profiles");
+            e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.Cascade);
         });
 
         b.Entity<CompanyMaster>(e =>

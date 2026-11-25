@@ -10,15 +10,30 @@ public static class TdsTaxCalculator
     public static decimal GetStandardSectionRate(string section)
     {
         var s = section.Trim();
+        if (string.Equals(s, TdsSection.Sec192Salary, StringComparison.OrdinalIgnoreCase)) return 10.0m;
+        if (string.Equals(s, TdsSection.Sec192Govt, StringComparison.OrdinalIgnoreCase)) return 10.0m;
+        if (string.Equals(s, TdsSection.Sec192GovtUnion, StringComparison.OrdinalIgnoreCase)) return 10.0m;
         if (string.Equals(s, TdsSection.Sec194CCompany, StringComparison.OrdinalIgnoreCase)) return 1.0m;
+        if (string.Equals(s, "194C_individual", StringComparison.OrdinalIgnoreCase)) return 1.0m;
         if (string.Equals(s, TdsSection.Sec194COther, StringComparison.OrdinalIgnoreCase)) return 2.0m;
         if (string.Equals(s, TdsSection.Sec194JTech, StringComparison.OrdinalIgnoreCase)) return 2.0m;
+        if (string.Equals(s, "194J_technical", StringComparison.OrdinalIgnoreCase)) return 2.0m;
         if (string.Equals(s, TdsSection.Sec194JFees, StringComparison.OrdinalIgnoreCase)) return 10.0m;
+        if (string.Equals(s, "194J_professional", StringComparison.OrdinalIgnoreCase)) return 10.0m;
         if (string.Equals(s, TdsSection.Sec194ILand, StringComparison.OrdinalIgnoreCase)) return 10.0m;
+        if (string.Equals(s, "194I_rent_land", StringComparison.OrdinalIgnoreCase)) return 10.0m;
         if (string.Equals(s, TdsSection.Sec194IPlant, StringComparison.OrdinalIgnoreCase)) return 2.0m;
+        if (string.Equals(s, "194I_rent_plant", StringComparison.OrdinalIgnoreCase)) return 2.0m;
         if (string.Equals(s, TdsSection.Sec194Q, StringComparison.OrdinalIgnoreCase)) return 0.1m;
         if (string.Equals(s, TdsSection.Sec194A, StringComparison.OrdinalIgnoreCase)) return 10.0m;
         if (string.Equals(s, TdsSection.Sec194H, StringComparison.OrdinalIgnoreCase)) return 5.0m;
+        if (string.Equals(s, TdsSection.Sec194D, StringComparison.OrdinalIgnoreCase)) return 5.0m;
+        if (string.Equals(s, TdsSection.Sec194DA, StringComparison.OrdinalIgnoreCase)) return 2.0m;
+        if (string.Equals(s, TdsSection.Sec194B, StringComparison.OrdinalIgnoreCase)) return 30.0m;
+        if (string.Equals(s, TdsSection.Sec194N, StringComparison.OrdinalIgnoreCase)) return 2.0m;
+        if (string.Equals(s, TdsSection.Sec194R, StringComparison.OrdinalIgnoreCase)) return 10.0m;
+        if (string.Equals(s, TdsSection.Sec194S, StringComparison.OrdinalIgnoreCase)) return 1.0m;
+        if (string.Equals(s, TdsSection.Sec194T, StringComparison.OrdinalIgnoreCase)) return 10.0m;
         if (string.Equals(s, TdsSection.Sec195, StringComparison.OrdinalIgnoreCase)) return 20.0m;
         return 10.0m;
     }

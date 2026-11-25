@@ -251,7 +251,7 @@ public sealed class DocumentService(IAppDbContext db, ISettings settings, ITenan
     private async Task<string> CheckFileAsync(Guid clientId, string safeName, UploadFile file, CancellationToken ct, bool generated = false)
     {
         var allowed = generated
-            ? new[] { "json", "csv", "pdf" }
+            ? new[] { "json", "csv", "pdf", "txt" }
             : await settings.GetAsync(Keys.DocAllowedTypes, clientId, ct: ct);
         var maxMb = await settings.GetAsync(Keys.DocMaxSizeMb, clientId, ct: ct);
         var ext = FileTypes.ExtensionOf(safeName);

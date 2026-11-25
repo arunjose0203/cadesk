@@ -1589,6 +1589,8 @@ export type TdsChallanDto = {
   deductionsCount: number
   notes?: string | null
   createdAt: string
+  isBookEntry?: boolean
+  isNil?: boolean
 }
 
 export type CreateTdsChallanRequest = {
@@ -1606,6 +1608,8 @@ export type CreateTdsChallanRequest = {
   interest: number
   lateFee234E: number
   notes?: string | null
+  isBookEntry?: boolean
+  isNil?: boolean
 }
 
 export type TdsDeductionDto = {
@@ -1635,6 +1639,13 @@ export type TdsDeductionDto = {
   higherRateReason: string
   bookingStatus: string
   createdAt: string
+  deducteeCode?: string | null
+  remarkCode?: string | null
+  remittanceCode?: string | null
+  countryCode?: string | null
+  taxRateSource?: string | null
+  ackNumber?: string | null
+  optedOutNewRegime?: boolean | null
 }
 
 export type RecordTdsDeductionRequest = {
@@ -1650,6 +1661,14 @@ export type RecordTdsDeductionRequest = {
   deductionDate?: string | null
   certificateId?: string | null
   forceHigherRate206Ab?: boolean | null
+  customRate?: number | null
+  deducteeCode?: string | null
+  remarkCode?: string | null
+  remittanceCode?: string | null
+  countryCode?: string | null
+  taxRateSource?: string | null
+  ackNumber?: string | null
+  optedOutNewRegime?: boolean | null
 }
 
 export type MapDeductionsToChallanRequest = {
@@ -1679,6 +1698,184 @@ export type TdsSummaryDto = {
   totalPendingDeposit: number
   activeLdcCount: number
   totalChallansCount: number
+}
+
+export type TdsDeductorProfileDto = {
+  clientId: string
+  tan: string
+  pan: string
+  deductorType: string
+  deductorName: string
+  branchDivision: string
+  gstin?: string | null
+  flatBlock: string
+  premisesName?: string | null
+  streetRoad?: string | null
+  areaLocality?: string | null
+  cityDistrict?: string | null
+  stateCode: string
+  pincode: string
+  countryName: string
+  email: string
+  stdCode?: string | null
+  phone: string
+  mobile: string
+  countryCallingCode: string
+  respName: string
+  respDesignation: string
+  respPan: string
+  respFlatBlock: string
+  respPremisesName?: string | null
+  respStreetRoad?: string | null
+  respAreaLocality?: string | null
+  respCityDistrict?: string | null
+  respStateCode: string
+  respPincode: string
+  respCountryName: string
+  respEmail: string
+  respMobile: string
+  respCountryCallingCode: string
+  filedPreviousRegular: boolean
+  previousTokenNo?: string | null
+}
+
+export type SaveTdsDeductorProfileRequest = {
+  tan: string
+  pan: string
+  deductorType: string
+  deductorName: string
+  branchDivision?: string | null
+  gstin?: string | null
+  flatBlock: string
+  premisesName?: string | null
+  streetRoad?: string | null
+  areaLocality?: string | null
+  cityDistrict?: string | null
+  stateCode: string
+  pincode: string
+  countryName?: string | null
+  email: string
+  stdCode?: string | null
+  phone?: string | null
+  mobile?: string | null
+  countryCallingCode?: string | null
+  respName: string
+  respDesignation: string
+  respPan: string
+  respFlatBlock: string
+  respPremisesName?: string | null
+  respStreetRoad?: string | null
+  respAreaLocality?: string | null
+  respCityDistrict?: string | null
+  respStateCode: string
+  respPincode: string
+  respCountryName?: string | null
+  respEmail: string
+  respMobile: string
+  respCountryCallingCode?: string | null
+  filedPreviousRegular?: boolean
+  previousTokenNo?: string | null
+}
+
+export type ExportTdsReturnRequest = {
+  clientId: string
+  formType: string
+  financialYear: string
+  quarter: string
+  fileCreationDate?: string | null
+  fileSequenceNo?: number
+}
+
+export type FvuValidationIssue = {
+  severity: 'error' | 'warning'
+  recordType: string
+  lineNumber?: number | null
+  code?: string | null
+  message: string
+}
+
+export type TdsReturnExportResult = {
+  fileName: string
+  formType: string
+  officialFormNumber: string
+  actLabel: string
+  financialYear: string
+  assessmentYear: string
+  quarter: string
+  validForFvu: boolean
+  lineCount: number
+  challanCount: number
+  deducteeCount: number
+  totalPaid: number
+  totalDeducted: number
+  totalDeposited: number
+  content: string
+  issues: FvuValidationIssue[]
+}
+
+export type ParsedFvuErrEntry = {
+  lineNumber?: number | null
+  recordType: string
+  challanNo?: number | null
+  deducteeNo?: number | null
+  errorCode: string
+  description: string
+}
+
+export type ImportForm16Request = {
+  clientId: string
+  content: string
+  formType?: string | null
+  financialYear?: string | null
+  quarter?: string | null
+  commit?: boolean
+}
+
+export type ImportedTdsChallanRow = {
+  bsrCode: string
+  challanSerialNumber: string
+  challanDate: string
+  minorHead: string
+  taxDeposited: number
+  interest: number
+  lateFee: number
+  totalAmount: number
+  isBookEntry: boolean
+  alreadyExists: boolean
+}
+
+export type ImportedTdsDeductionRow = {
+  formType: string
+  quarter: string
+  financialYear: string
+  deducteePan: string
+  deducteeName: string
+  section: string
+  paymentDate: string
+  deductionDate: string
+  amountPaid: number
+  rate: number
+  tdsAmount: number
+  certificateNo?: string | null
+  challanBsr?: string | null
+  challanSerial?: string | null
+  challanDate?: string | null
+}
+
+export type ImportForm16Result = {
+  detectedFormat: string
+  deductorTan?: string | null
+  deductorName?: string | null
+  financialYear?: string | null
+  quarter?: string | null
+  formType?: string | null
+  challans: ImportedTdsChallanRow[]
+  deductions: ImportedTdsDeductionRow[]
+  warnings: string[]
+  errors: string[]
+  importedChallansCount: number
+  importedDeductionsCount: number
+  committed: boolean
 }
 
 export const tdsApi = {
@@ -1717,6 +1914,12 @@ export const tdsApi = {
   mapToChallan: (req: MapDeductionsToChallanRequest) => api<TdsChallanDto>('/api/tds/challans/map', { method: 'POST', body: JSON.stringify(req) }),
 
   calculateInterest: (req: CalculateTdsInterestRequest) => api<TdsInterestResultDto>('/api/tds/interest/calculate', { method: 'POST', body: JSON.stringify(req) }),
+
+  getProfile: (clientId: string) => api<TdsDeductorProfileDto>(`/api/tds/profiles/${clientId}`),
+  saveProfile: (clientId: string, req: SaveTdsDeductorProfileRequest) => api<TdsDeductorProfileDto>(`/api/tds/profiles/${clientId}`, { method: 'PUT', body: JSON.stringify(req) }),
+  exportReturn: (req: ExportTdsReturnRequest) => api<TdsReturnExportResult>('/api/tds/returns/export', { method: 'POST', body: JSON.stringify(req) }),
+  parseErr: (errContent: string) => api<ParsedFvuErrEntry[]>('/api/tds/returns/parse-err', { method: 'POST', body: JSON.stringify({ errContent }) }),
+  importForm16: (req: ImportForm16Request) => api<ImportForm16Result>('/api/tds/import/form16', { method: 'POST', body: JSON.stringify(req) }),
 }
 
 // -------------------------------------------------------------

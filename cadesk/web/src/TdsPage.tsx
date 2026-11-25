@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import {
   api,
   tdsApi,
@@ -13,9 +13,17 @@ import {
   type CreateTdsChallanRequest,
   type CreateLdcRequest
 } from './api'
+import { TdsRpuExportTab } from './tds/TdsRpuExportTab'
+import { TdsForm16ImportTab } from './tds/TdsForm16ImportTab'
+import {
+  COUNTRY_27Q_CODES,
+  REMITTANCE_27Q_CODES,
+  TDS_FINANCIAL_YEARS,
+  TDS_SECTION_OPTIONS,
+} from './tds/tdsHelpers'
 
 export const TdsPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'deductions' | 'challans' | 'ldc' | 'calculator'>('deductions')
+  const [activeTab, setActiveTab] = useState<'deductions' | 'challans' | 'ldc' | 'calculator' | 'returns' | 'import'>('deductions')
   const [summary, setSummary] = useState<TdsSummaryDto | null>(null)
   const [clients, setClients] = useState<Client[]>([])
   const [deductions, setDeductions] = useState<TdsDeductionDto[]>([])
@@ -27,8 +35,8 @@ export const TdsPage: React.FC = () => {
 
   // Filters
   const [selectedClientId, setSelectedClientId] = useState<string>('')
-  const [selectedFy, setSelectedFy] = useState<string>('2024-25')
-  const [selectedQuarter, setSelectedQuarter] = useState<string>('Q4')
+  const [selectedFy, setSelectedFy] = useState<string>('2026-27')
+  const [selectedQuarter, setSelectedQuarter] = useState<string>('Q1')
 
   // Modals
   const [showDeductionModal, setShowDeductionModal] = useState<boolean>(false)
@@ -39,8 +47,8 @@ export const TdsPage: React.FC = () => {
   // Deduction Form State
   const [deductionForm, setDeductionForm] = useState<RecordTdsDeductionRequest>({
     clientId: '',
-    financialYear: '2024-25',
-    quarter: 'Q4',
+    financialYear: '2026-27',
+    quarter: 'Q1',
     formType: '26Q',
     section: '194C_company',
     deducteePan: '',
@@ -49,14 +57,21 @@ export const TdsPage: React.FC = () => {
     certificateId: undefined,
     paymentDate: new Date().toISOString().split('T')[0],
     deductionDate: new Date().toISOString().split('T')[0],
-    amountPaid: 100000
+    amountPaid: 100000,
+    customRate: null,
+    deducteeCode: '',
+    remittanceCode: '21',
+    countryCode: '267',
+    taxRateSource: 'A',
+    ackNumber: '',
+    optedOutNewRegime: false,
   })
 
   // Challan Form State
   const [challanForm, setChallanForm] = useState<CreateTdsChallanRequest>({
     clientId: '',
-    financialYear: '2024-25',
-    quarter: 'Q4',
+    financialYear: '2026-27',
+    quarter: 'Q1',
     bsrCode: '0210043',
     challanDate: new Date().toISOString().split('T')[0],
     challanSerialNumber: '00124',
@@ -67,17 +82,19 @@ export const TdsPage: React.FC = () => {
     cess: 0,
     interest: 0,
     lateFee234E: 0,
-    notes: 'TDS deposit ITNS 281'
+    notes: 'TDS deposit ITNS 281',
+    isBookEntry: false,
+    isNil: false,
   })
 
   // LDC Form State
   const [ldcForm, setLdcForm] = useState<CreateLdcRequest>({
     clientId: '',
-    certificateNumber: 'LDC/2024/098',
-    financialYear: '2024-25',
+    certificateNumber: 'LDC/2026/098',
+    financialYear: '2026-27',
     section: '194C',
-    validFrom: '2024-04-01',
-    validTo: '2025-03-31',
+    validFrom: '2026-04-01',
+    validTo: '2027-03-31',
     specifiedRate: 0.5,
     thresholdAmount: 5000000,
     deducteePan: 'AAACP1234D',
@@ -97,7 +114,7 @@ export const TdsPage: React.FC = () => {
   })
   const [calcResult, setCalcResult] = useState<TdsInterestResultDto | null>(null)
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -114,21 +131,22 @@ export const TdsPage: React.FC = () => {
       setDeductions(deds)
       setChallans(chs)
       setLdcs(certs)
-      if (clientList.length > 0 && !deductionForm.clientId) {
-        setDeductionForm(prev => ({ ...prev, clientId: clientList[0].id }))
-        setChallanForm(prev => ({ ...prev, clientId: clientList[0].id }))
-        setLdcForm(prev => ({ ...prev, clientId: clientList[0].id }))
+      const fallbackClientId = selectedClientId || clientList[0]?.id || ''
+      if (fallbackClientId) {
+        setDeductionForm(prev => ({ ...prev, clientId: prev.clientId || fallbackClientId, financialYear: selectedFy, quarter: selectedQuarter }))
+        setChallanForm(prev => ({ ...prev, clientId: prev.clientId || fallbackClientId, financialYear: selectedFy, quarter: selectedQuarter }))
+        setLdcForm(prev => ({ ...prev, clientId: prev.clientId || fallbackClientId, financialYear: selectedFy }))
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load TDS data')
     } finally {
       setLoading(false)
     }
-  }
+  }, [selectedClientId, selectedFy, selectedQuarter])
 
   useEffect(() => {
     loadData()
-  }, [selectedClientId, selectedFy, selectedQuarter])
+  }, [loadData])
 
   const handleRecordDeduction = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -217,15 +235,23 @@ export const TdsPage: React.FC = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div>
           <h1 style={{ fontSize: '24px', fontWeight: 700, margin: 0, color: '#1e293b' }}>
-            TDS / TCS Compliance & Form 26Q / 27Q Studio
+            TDS / TCS Compliance &amp; Form 24Q / 26Q / 27Q Studio
           </h1>
           <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: '14px' }}>
-            Statutory tax deduction accounting, Section 197 LDC tracking, ITNS 281 Challan mapping & Sec 201(1A) Interest
+            Deductee register, ITNS 281 Challans, Sec 197 LDC, NSDL RPU .txt Export &amp; Form 16/16A Import (Act 1961 &amp; Act 2025)
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <button
-            onClick={() => setShowDeductionModal(true)}
+            onClick={() => {
+              setDeductionForm(prev => ({
+                ...prev,
+                clientId: selectedClientId || prev.clientId || clients[0]?.id || '',
+                financialYear: selectedFy,
+                quarter: selectedQuarter,
+              }))
+              setShowDeductionModal(true)
+            }}
             style={{
               padding: '8px 16px',
               backgroundColor: '#2563eb',
@@ -239,7 +265,15 @@ export const TdsPage: React.FC = () => {
             + Record Deduction
           </button>
           <button
-            onClick={() => setShowChallanModal(true)}
+            onClick={() => {
+              setChallanForm(prev => ({
+                ...prev,
+                clientId: selectedClientId || prev.clientId || clients[0]?.id || '',
+                financialYear: selectedFy,
+                quarter: selectedQuarter,
+              }))
+              setShowChallanModal(true)
+            }}
             style={{
               padding: '8px 16px',
               backgroundColor: '#059669',
@@ -253,7 +287,14 @@ export const TdsPage: React.FC = () => {
             + New Challan (ITNS 281)
           </button>
           <button
-            onClick={() => setShowLdcModal(true)}
+            onClick={() => {
+              setLdcForm(prev => ({
+                ...prev,
+                clientId: selectedClientId || prev.clientId || clients[0]?.id || '',
+                financialYear: selectedFy,
+              }))
+              setShowLdcModal(true)
+            }}
             style={{
               padding: '8px 16px',
               backgroundColor: '#7c3aed',
@@ -329,8 +370,11 @@ export const TdsPage: React.FC = () => {
             onChange={(e) => setSelectedFy(e.target.value)}
             style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px' }}
           >
-            <option value="2024-25">FY 2024-25</option>
-            <option value="2023-24">FY 2023-24</option>
+            {TDS_FINANCIAL_YEARS.map(fy => (
+              <option key={fy} value={fy}>
+                {Number(fy.slice(0, 4)) >= 2026 ? `TY ${fy} (Act 2025)` : `FY ${fy}`}
+              </option>
+            ))}
           </select>
         </div>
         <div>
@@ -380,7 +424,7 @@ export const TdsPage: React.FC = () => {
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', borderBottom: '1px solid #e2e8f0', marginBottom: '20px' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', borderBottom: '1px solid #e2e8f0', marginBottom: '20px' }}>
         <button
           onClick={() => setActiveTab('deductions')}
           style={{
@@ -436,6 +480,34 @@ export const TdsPage: React.FC = () => {
           }}
         >
           Sec 201(1A) Interest Calculator
+        </button>
+        <button
+          onClick={() => setActiveTab('returns')}
+          style={{
+            padding: '10px 20px',
+            background: 'none',
+            border: 'none',
+            borderBottom: activeTab === 'returns' ? '2px solid #2563eb' : '2px solid transparent',
+            color: activeTab === 'returns' ? '#2563eb' : '#64748b',
+            fontWeight: activeTab === 'returns' ? 600 : 500,
+            cursor: 'pointer'
+          }}
+        >
+          RPU .txt Export &amp; FVU
+        </button>
+        <button
+          onClick={() => setActiveTab('import')}
+          style={{
+            padding: '10px 20px',
+            background: 'none',
+            border: 'none',
+            borderBottom: activeTab === 'import' ? '2px solid #2563eb' : '2px solid transparent',
+            color: activeTab === 'import' ? '#2563eb' : '#64748b',
+            fontWeight: activeTab === 'import' ? 600 : 500,
+            cursor: 'pointer'
+          }}
+        >
+          Form 16 / 16A Import
         </button>
       </div>
 
@@ -525,8 +597,8 @@ export const TdsPage: React.FC = () => {
                             borderRadius: '12px',
                             fontSize: '11px',
                             fontWeight: 600,
-                            backgroundColor: d.bookingStatus === 'Deposited' ? '#dcfce7' : '#fef3c7',
-                            color: d.bookingStatus === 'Deposited' ? '#15803d' : '#b45309'
+                            backgroundColor: ['deposited', 'mapped_to_challan'].includes(d.bookingStatus.toLowerCase()) ? '#dcfce7' : '#fef3c7',
+                            color: ['deposited', 'mapped_to_challan'].includes(d.bookingStatus.toLowerCase()) ? '#15803d' : '#b45309'
                           }}
                         >
                           {d.bookingStatus}
@@ -796,6 +868,37 @@ export const TdsPage: React.FC = () => {
         </div>
       )}
 
+      {/* Tab 5: NSDL RPU .txt Export & FVU */}
+      {activeTab === 'returns' && (
+        <TdsRpuExportTab
+          clients={clients}
+          selectedClientId={selectedClientId}
+          onSelectClient={setSelectedClientId}
+          financialYear={selectedFy}
+          quarter={selectedQuarter}
+          onNotify={({ error: err, success: ok }) => {
+            setError(err ?? null)
+            setSuccess(ok ?? null)
+          }}
+        />
+      )}
+
+      {/* Tab 6: Form 16 / 16A Import */}
+      {activeTab === 'import' && (
+        <TdsForm16ImportTab
+          clients={clients}
+          selectedClientId={selectedClientId}
+          onSelectClient={setSelectedClientId}
+          financialYear={selectedFy}
+          quarter={selectedQuarter}
+          onImported={loadData}
+          onNotify={({ error: err, success: ok }) => {
+            setError(err ?? null)
+            setSuccess(ok ?? null)
+          }}
+        />
+      )}
+
       {/* Modal: Record Deduction */}
       {showDeductionModal && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
@@ -819,11 +922,16 @@ export const TdsPage: React.FC = () => {
                   <label style={{ fontSize: '12px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>Return Form:</label>
                   <select
                     value={deductionForm.formType || '26Q'}
-                    onChange={(e) => setDeductionForm(prev => ({ ...prev, formType: e.target.value }))}
+                    onChange={(e) => {
+                      const nextForm = e.target.value as '24Q' | '26Q' | '27Q'
+                      const defaultSec = nextForm === '24Q' ? '192_salary' : nextForm === '27Q' ? '195' : '194C_company'
+                      setDeductionForm(prev => ({ ...prev, formType: nextForm, section: defaultSec }))
+                    }}
                     style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
                   >
-                    <option value="26Q">26Q (Domestic Resident)</option>
-                    <option value="27Q">27Q (Non-Resident / Foreign Entity)</option>
+                    <option value="24Q">24Q / 138 (Salary Employees)</option>
+                    <option value="26Q">26Q / 140 (Domestic Resident)</option>
+                    <option value="27Q">27Q / 144 (Non-Resident / Foreign Entity)</option>
                   </select>
                 </div>
                 <div>
@@ -833,19 +941,90 @@ export const TdsPage: React.FC = () => {
                     onChange={(e) => setDeductionForm(prev => ({ ...prev, section: e.target.value }))}
                     style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
                   >
-                    <option value="194C_company">194C (Contractor - Company / Firm) [2%]</option>
-                    <option value="194C_individual">194C (Contractor - Individual / HUF) [1%]</option>
-                    <option value="194J_technical">194J (Technical / Royalty / FTS) [2%]</option>
-                    <option value="194J_professional">194J (Professional Services / Director) [10%]</option>
-                    <option value="194I_rent_land">194I (Rent - Land / Building) [10%]</option>
-                    <option value="194I_rent_plant">194I (Rent - Plant / Machinery) [2%]</option>
-                    <option value="194Q">194Q (Purchase of Goods &gt; ₹50L) [0.1%]</option>
-                    <option value="194A">194A (Interest other than securities) [10%]</option>
-                    <option value="194H">194H (Commission or Brokerage) [5%]</option>
-                    <option value="195">195 (Payment to Non-Resident)</option>
+                    {TDS_SECTION_OPTIONS.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
                   </select>
                 </div>
               </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>Custom Rate % (Optional — overrides slab/24Q):</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="100"
+                    value={deductionForm.customRate ?? ''}
+                    placeholder="Auto from section / LDC"
+                    onChange={(e) => setDeductionForm(prev => ({
+                      ...prev,
+                      customRate: e.target.value === '' ? null : Number(e.target.value)
+                    }))}
+                    style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>Deductee Classification (FVU DD Col 8):</label>
+                  <select
+                    value={deductionForm.deducteeCode || ''}
+                    onChange={(e) => setDeductionForm(prev => ({ ...prev, deducteeCode: e.target.value || null }))}
+                    style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                  >
+                    <option value="">Auto (from 4th char of PAN)</option>
+                    <option value="1">1 - Company</option>
+                    <option value="2">2 - Non-Company</option>
+                  </select>
+                </div>
+              </div>
+
+              {deductionForm.formType === '27Q' && (
+                <div style={{ padding: '12px', borderRadius: '6px', backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ fontSize: '11px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>Nature of Remittance (27Q / 144):</label>
+                    <select
+                      value={deductionForm.remittanceCode || '21'}
+                      onChange={(e) => setDeductionForm(prev => ({ ...prev, remittanceCode: e.target.value }))}
+                      style={{ width: '100%', padding: '7px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12px' }}
+                    >
+                      {REMITTANCE_27Q_CODES.map(r => <option key={r.code} value={r.code}>{r.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '11px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>Country of Residence:</label>
+                    <select
+                      value={deductionForm.countryCode || '267'}
+                      onChange={(e) => setDeductionForm(prev => ({ ...prev, countryCode: e.target.value }))}
+                      style={{ width: '100%', padding: '7px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12px' }}
+                    >
+                      {COUNTRY_27Q_CODES.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '11px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>Tax Rate Source:</label>
+                    <select
+                      value={deductionForm.taxRateSource || 'A'}
+                      onChange={(e) => setDeductionForm(prev => ({ ...prev, taxRateSource: e.target.value }))}
+                      style={{ width: '100%', padding: '7px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12px' }}
+                    >
+                      <option value="A">A - As per Income-tax Act</option>
+                      <option value="B">B - As per DTAA Treaty</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '11px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>Form 15CA Acknowledgement No.:</label>
+                    <input
+                      type="text"
+                      maxLength={15}
+                      value={deductionForm.ackNumber || ''}
+                      placeholder="Optional 15CA Ack No."
+                      onChange={(e) => setDeductionForm(prev => ({ ...prev, ackNumber: e.target.value }))}
+                      style={{ width: '100%', padding: '7px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12px', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                </div>
+              )}
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
@@ -947,12 +1126,24 @@ export const TdsPage: React.FC = () => {
           <div style={{ backgroundColor: '#fff', borderRadius: '8px', width: '560px', maxWidth: '90%', padding: '24px' }}>
             <h3 style={{ fontSize: '18px', fontWeight: 700, margin: '0 0 16px 0', color: '#1e293b' }}>Register ITNS 281 Challan</h3>
             <form onSubmit={handleCreateChallan} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <label style={{ fontSize: '12px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>Client:</label>
+                <select
+                  required
+                  value={challanForm.clientId}
+                  onChange={(e) => setChallanForm(prev => ({ ...prev, clientId: e.target.value }))}
+                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                >
+                  {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
                   <label style={{ fontSize: '12px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>BSR Code (7 Digits):</label>
                   <input
                     type="text"
-                    required
+                    required={!challanForm.isNil}
+                    disabled={!!challanForm.isNil}
                     value={challanForm.bsrCode}
                     onChange={(e) => setChallanForm(prev => ({ ...prev, bsrCode: e.target.value }))}
                     style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
@@ -962,7 +1153,8 @@ export const TdsPage: React.FC = () => {
                   <label style={{ fontSize: '12px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>Challan Serial No (5 Digits):</label>
                   <input
                     type="text"
-                    required
+                    required={!challanForm.isNil}
+                    disabled={!!challanForm.isNil}
                     value={challanForm.challanSerialNumber}
                     onChange={(e) => setChallanForm(prev => ({ ...prev, challanSerialNumber: e.target.value }))}
                     style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
@@ -970,7 +1162,7 @@ export const TdsPage: React.FC = () => {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
                 <div>
                   <label style={{ fontSize: '12px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>Challan Date:</label>
                   <input
@@ -992,6 +1184,40 @@ export const TdsPage: React.FC = () => {
                     style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
                   />
                 </div>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>Minor Head:</label>
+                  <select
+                    value={challanForm.minorHead || '200'}
+                    onChange={(e) => setChallanForm(prev => ({ ...prev, minorHead: e.target.value }))}
+                    style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                  >
+                    <option value="200">200 - Regular TDS/TCS</option>
+                    <option value="400">400 - Assessment Demand</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#334155', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={!!challanForm.isBookEntry}
+                    onChange={(e) => setChallanForm(prev => ({ ...prev, isBookEntry: e.target.checked }))}
+                  />
+                  <span>Government Book Entry (BIN / Form 24G)</span>
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#334155', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={!!challanForm.isNil}
+                    onChange={(e) => setChallanForm(prev => ({
+                      ...prev,
+                      isNil: e.target.checked,
+                      tdsAmount: e.target.checked ? 0 : prev.tdsAmount,
+                    }))}
+                  />
+                  <span>NIL Challan Return</span>
+                </label>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
