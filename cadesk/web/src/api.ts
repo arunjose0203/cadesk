@@ -8,6 +8,14 @@ let onSignedOut: (() => void) | null = null
 export function setAccessToken(token: string | null) { accessToken = token }
 export function onSessionEnded(handler: () => void) { onSignedOut = handler }
 
+export function errorMessage(err: unknown, fallback = 'Something went wrong.'): string {
+  if (err instanceof Error && err.message) return err.message
+  if (err && typeof err === 'object' && 'message' in err && typeof (err as { message?: unknown }).message === 'string') {
+    return (err as { message: string }).message || fallback
+  }
+  return fallback
+}
+
 export class ApiError extends Error {
   status: number
   errors?: Record<string, string[]>
@@ -2922,6 +2930,19 @@ export type ApproveDefenseDraftRequest = {
   partnerNotes?: string
 }
 
+export type CreatePrecedentRequest = {
+  authority: TaxAuthority
+  category: PrecedentCategory
+  caseTitle: string
+  citation: string
+  courtBench: string
+  judgmentYear: number
+  applicableSections: string
+  keyRatioDecidendi: string
+  defenseGroundTemplate: string
+  keywords: string
+}
+
 export const taxCopilotApi = {
   parseNotice: (req: { rawText: string; clientId?: string }) =>
     api<ParsedNoticeResultDto>('/api/tax-copilot/parse', { method: 'POST', body: JSON.stringify(req) }),
@@ -2935,7 +2956,7 @@ export const taxCopilotApi = {
     return api<StatutoryPrecedentDto[]>(`/api/tax-copilot/precedents${qs ? `?${qs}` : ''}`)
   },
 
-  createCustomPrecedent: (req: any) =>
+  createCustomPrecedent: (req: CreatePrecedentRequest) =>
     api<StatutoryPrecedentDto>('/api/tax-copilot/precedents', { method: 'POST', body: JSON.stringify(req) }),
 
   createDefenseDraft: (req: CreateDefenseDraftRequest) =>

@@ -9,9 +9,10 @@ public static class TaxLitigationEndpoints
 {
     public static IEndpointRouteBuilder MapTaxLitigationEndpoints(this IEndpointRouteBuilder app)
     {
-        var g = app.MapGroup("/api/tax-litigation").RequirePlanDesk("tax-litigation")
+        var g = app.MapGroup("/api/tax-litigation")
             .WithTags("Tax Appeals & Paper Book Desk")
-            .RequireFeature(CaDesk.Domain.Features.FeatureKeys.TaxLitigation);
+            .RequireFeature(CaDesk.Domain.Features.FeatureKeys.TaxLitigation)
+            .RequirePlanDesk("tax-litigation");
 
         // 1. Tax Appeals Master Registry
         g.MapGet("/appeals", async ([FromQuery] Guid? clientId, ITaxLitigationService svc, CancellationToken ct) =>

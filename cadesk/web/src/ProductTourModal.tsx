@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 interface ProductTourModalProps {
   isOpen: boolean
@@ -8,6 +8,13 @@ interface ProductTourModalProps {
 
 export function ProductTourModal({ isOpen, onClose, onStartTrial }: ProductTourModalProps) {
   const [step, setStep] = useState<number>(0)
+
+  useEffect(() => {
+    if (!isOpen) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [isOpen, onClose])
 
   if (!isOpen) return null
 
@@ -136,16 +143,16 @@ export function ProductTourModal({ isOpen, onClose, onStartTrial }: ProductTourM
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.75)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
       <div style={{ background: '#fff', width: '100%', maxWidth: '680px', borderRadius: '12px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         {/* Header */}
-        <div style={{ padding: '20px 24px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <span style={{ fontSize: '11px', fontWeight: 700, color: '#0284c7', background: '#f0f9ff', padding: '3px 8px', borderRadius: '4px', textTransform: 'uppercase' }}>
+            <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--accent)', background: 'var(--accent-subtle)', padding: '3px 8px', borderRadius: '4px', textTransform: 'uppercase' }}>
               {current.tag} (Step {step + 1} of {tourSteps.length})
             </span>
             <h2 style={{ fontSize: '18px', fontWeight: 700, margin: '6px 0 0 0', color: '#0f172a' }}>
               {current.title}
             </h2>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#64748b' }}>✕</button>
+          <button onClick={onClose} aria-label="Close" style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#64748b' }}>✕</button>
         </div>
 
         {/* Body */}
@@ -164,7 +171,7 @@ export function ProductTourModal({ isOpen, onClose, onStartTrial }: ProductTourM
               <div
                 key={i}
                 onClick={() => setStep(i)}
-                style={{ width: i === step ? '24px' : '8px', height: '8px', borderRadius: '4px', background: i === step ? '#0284c7' : '#cbd5e1', cursor: 'pointer', transition: 'all 0.2s' }}
+                style={{ width: i === step ? '24px' : '8px', height: '8px', borderRadius: '4px', background: i === step ? 'var(--accent)' : '#cbd5e1', cursor: 'pointer', transition: 'all 0.2s' }}
               />
             ))}
           </div>
@@ -184,14 +191,14 @@ export function ProductTourModal({ isOpen, onClose, onStartTrial }: ProductTourM
             {step < tourSteps.length - 1 ? (
               <button
                 onClick={() => setStep(prev => Math.min(tourSteps.length - 1, prev + 1))}
-                style={{ padding: '8px 20px', background: '#0f172a', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
+                style={{ padding: '8px 20px', background: '#16191d', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
               >
                 Next Moat →
               </button>
             ) : (
               <button
                 onClick={() => { onClose(); onStartTrial(); }}
-                style={{ padding: '8px 20px', background: '#0284c7', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}
+                style={{ padding: '8px 20px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}
               >
                 🚀 Start 14-Day Free Trial
               </button>

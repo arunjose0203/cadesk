@@ -11,6 +11,7 @@ export default function UsersPage({ can, me }: Props) {
   const [invite, setInvite] = useState({ email: '', name: '', roleId: '' })
   const [link, setLink] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
   const manage = can('users.manage')
 
   const load = useCallback(async () => {
@@ -24,16 +25,16 @@ export default function UsersPage({ can, me }: Props) {
   useEffect(() => { load().catch(() => {}) }, [load])
 
   const act = async (fn: () => Promise<unknown>) => {
-    setError(null)
+    setBusy(true); setError(null)
     try { await fn(); await load() } catch (e) {
       setError(e instanceof ApiError ? (e.errors ? Object.values(e.errors).flat().join(' ') : e.message) : 'Failed')
-    }
+    } finally { setBusy(false) }
   }
 
   const sendInvite = () => act(async () => {
     const r = await api<InviteCreated>('/api/invitations', { method: 'POST', body: JSON.stringify(invite) })
     setLink(`${location.origin}/?invite=${r.inviteToken}`)
-    setInvite({ ...invite, email: '', name: '' })
+    setInvite(i => ({ ...i, email: '', name: '' }))
   })
 
   const setActive = (u: UserListItem, isActive: boolean) =>
@@ -80,12 +81,12 @@ export default function UsersPage({ can, me }: Props) {
         <section className="card">
           <h2>Invite a team member</h2>
           <div className="grid">
-            <input type="email" placeholder="Email" value={invite.email} onChange={e => setInvite({ ...invite, email: e.target.value })} />
-            <input placeholder="Name (optional)" value={invite.name} onChange={e => setInvite({ ...invite, name: e.target.value })} />
-            <select value={invite.roleId} onChange={e => setInvite({ ...invite, roleId: e.target.value })}>
+            <input type="email" placeholder="Email" disabled={busy} value={invite.email} onChange={e => setInvite({ ...invite, email: e.target.value })} />
+            <input placeholder="Name (optional)" disabled={busy} value={invite.name} onChange={e => setInvite({ ...invite, name: e.target.value })} />
+            <select disabled={busy} value={invite.roleId} onChange={e => setInvite({ ...invite, roleId: e.target.value })}>
               {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
             </select>
-            <button onClick={sendInvite}>Create invite</button>
+            <button disabled={busy} onClick={sendInvite}>{busy ? 'Creating…' : 'Create invite'}</button>
           </div>
           {link && (
             <p className="small">

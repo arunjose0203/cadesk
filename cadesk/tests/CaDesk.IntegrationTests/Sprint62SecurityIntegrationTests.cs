@@ -13,7 +13,8 @@ public class Sprint62SecurityIntegrationTests(ApiFactory api) : IClassFixture<Ap
     [Fact]
     public async Task DisabledDesks_Return404FromApi_ByDefault()
     {
-        var clientA = api.ClientFor(api.FirmA.FirmId);
+        var firmA = await api.SignUpAsync("SecDefault A", plan: "ENTERPRISE");
+        var clientA = api.ClientFor(firmA.FirmId);
 
         // All 9 unfinished desks must return 404 Not Found by default
         var desks = new[]
@@ -64,8 +65,10 @@ public class Sprint62SecurityIntegrationTests(ApiFactory api) : IClassFixture<Ap
     [Fact]
     public async Task FeatureFlags_EnablingForFirmA_DoesNotEnableForFirmB()
     {
-        var clientA = api.ClientFor(api.FirmA.FirmId);
-        var clientB = api.ClientFor(api.FirmB.FirmId);
+        var firmA = await api.SignUpAsync("SecFlag A", plan: "ENTERPRISE");
+        var firmB = await api.SignUpAsync("SecFlag B", plan: "ENTERPRISE");
+        var clientA = api.ClientFor(firmA.FirmId);
+        var clientB = api.ClientFor(firmB.FirmId);
 
         // Initially both get 404 for E-Invoicing
         var aInit = await clientA.GetAsync("/api/einvoicing/summary");

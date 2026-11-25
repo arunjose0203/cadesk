@@ -10,9 +10,10 @@ public static class ConnectedBankingEndpoints
 {
     public static IEndpointRouteBuilder MapConnectedBankingEndpoints(this IEndpointRouteBuilder app)
     {
-        var g = app.MapGroup("/api/connected-banking").RequirePlanDesk("banking")
+        var g = app.MapGroup("/api/connected-banking")
             .WithTags("ConnectedBanking")
-            .RequireFeature(CaDesk.Domain.Features.FeatureKeys.ConnectedBanking);
+            .RequireFeature(CaDesk.Domain.Features.FeatureKeys.ConnectedBanking)
+            .RequirePlanDesk("banking");
 
         // 1. List connected bank API feeds
         g.MapGet("/accounts", async ([FromQuery] Guid? clientId, ConnectedBankingService svc, CancellationToken ct) =>

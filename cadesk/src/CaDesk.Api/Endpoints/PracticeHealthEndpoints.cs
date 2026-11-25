@@ -9,9 +9,10 @@ public static class PracticeHealthEndpoints
 {
     public static IEndpointRouteBuilder MapPracticeHealthEndpoints(this IEndpointRouteBuilder app)
     {
-        var g = app.MapGroup("/api/practice-health").RequirePlanDesk("practice-health")
+        var g = app.MapGroup("/api/practice-health")
             .WithTags("Practice Health, Succession & Valuation Desk")
-            .RequireFeature(CaDesk.Domain.Features.FeatureKeys.PracticeHealth);
+            .RequireFeature(CaDesk.Domain.Features.FeatureKeys.PracticeHealth)
+            .RequirePlanDesk("practice-health");
 
         // 1. Live Practice Telemetry
         g.MapGet("/telemetry", async (IPracticeHealthService svc, CancellationToken ct) =>

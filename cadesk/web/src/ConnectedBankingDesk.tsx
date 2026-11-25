@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import {
   connectedBankingApi,
+  errorMessage,
   type ConnectedBankSummary,
   type ConnectBankRequest,
   type PayoutBatch,
@@ -92,8 +93,8 @@ export default function ConnectedBankingDesk({ accounts, onRefreshAccounts }: Co
       setConnectedList(accs)
       setPayouts(batches)
       setErrorMsg(null)
-    } catch (err: any) {
-      setErrorMsg(err?.message || 'Failed to load connected banking data.')
+    } catch (err: unknown) {
+      setErrorMsg(errorMessage(err, 'Failed to load connected banking data.'))
     } finally {
       setLoading(false)
     }
@@ -115,8 +116,8 @@ export default function ConnectedBankingDesk({ accounts, onRefreshAccounts }: Co
       showToast(`Successfully connected ${connectForm.provider} API!`)
       setShowConnectModal(false)
       loadData()
-    } catch (err: any) {
-      alert(err?.message || 'Failed to connect bank API.')
+    } catch (err: unknown) {
+      alert(errorMessage(err, 'Failed to connect bank API.'))
     }
   }
 
@@ -127,8 +128,8 @@ export default function ConnectedBankingDesk({ accounts, onRefreshAccounts }: Co
       showToast(res.message || `Synchronized live transactions for ${bankName}.`)
       loadData()
       if (onRefreshAccounts) onRefreshAccounts()
-    } catch (err: any) {
-      alert(err?.message || 'Live synchronization failed.')
+    } catch (err: unknown) {
+      alert(errorMessage(err, 'Live synchronization failed.'))
     }
   }
 
@@ -167,8 +168,8 @@ export default function ConnectedBankingDesk({ accounts, onRefreshAccounts }: Co
       showToast('Payout batch created successfully in Draft status.')
       setShowPayoutModal(false)
       loadData()
-    } catch (err: any) {
-      alert(err?.message || 'Failed to create payout batch.')
+    } catch (err: unknown) {
+      alert(errorMessage(err, 'Failed to create payout batch.'))
     }
   }
 
@@ -178,8 +179,8 @@ export default function ConnectedBankingDesk({ accounts, onRefreshAccounts }: Co
       await connectedBankingApi.submitPayoutBatch(batchId)
       showToast('Payout batch submitted for Managing Partner authorization.')
       loadData()
-    } catch (err: any) {
-      alert(err?.message || 'Failed to submit batch.')
+    } catch (err: unknown) {
+      alert(errorMessage(err, 'Failed to submit batch.'))
     }
   }
 
@@ -196,8 +197,8 @@ export default function ConnectedBankingDesk({ accounts, onRefreshAccounts }: Co
       setAuthorizingBatch(null)
       loadData()
       if (onRefreshAccounts) onRefreshAccounts()
-    } catch (err: any) {
-      alert(err?.message || 'Authorization failed.')
+    } catch (err: unknown) {
+      alert(errorMessage(err, 'Authorization failed.'))
     }
   }
 
@@ -214,8 +215,8 @@ export default function ConnectedBankingDesk({ accounts, onRefreshAccounts }: Co
       setRejectingBatch(null)
       setRejectReason('')
       loadData()
-    } catch (err: any) {
-      alert(err?.message || 'Rejection failed.')
+    } catch (err: unknown) {
+      alert(errorMessage(err, 'Rejection failed.'))
     }
   }
 
@@ -245,8 +246,8 @@ export default function ConnectedBankingDesk({ accounts, onRefreshAccounts }: Co
       showToast(`Statutory ${challanType} scheduled in Payout Batch #${res.batchNumber}! Ready for approval.`)
       setActiveTab('payouts')
       loadData()
-    } catch (err: any) {
-      alert(err?.message || 'Failed to schedule tax challan.')
+    } catch (err: unknown) {
+      alert(errorMessage(err, 'Failed to schedule tax challan.'))
     }
   }
 
@@ -702,7 +703,7 @@ export default function ConnectedBankingDesk({ accounts, onRefreshAccounts }: Co
                 <select
                   value={challanType}
                   onChange={e => {
-                    const ct = e.target.value as any
+                    const ct = e.target.value as 'AdvanceTax_ITNS280' | 'TDS_ITNS281' | 'GST_PMT06'
                     setChallanType(ct)
                     if (ct === 'AdvanceTax_ITNS280') {
                       setMinorHead('100')
@@ -1180,7 +1181,7 @@ export default function ConnectedBankingDesk({ accounts, onRefreshAccounts }: Co
                 <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Authorization Method</label>
                 <select
                   value={authMethod}
-                  onChange={e => setAuthMethod(e.target.value as any)}
+                  onChange={e => setAuthMethod(e.target.value as 'OTP' | 'DSC_SHA256' | 'Biometric')}
                   style={{ width: '100%', backgroundColor: '#1e293b', border: '1px solid #334155', color: '#ffffff', padding: '0.6rem', borderRadius: '8px' }}
                 >
                   <option value="OTP">Corporate Banking 6-Digit OTP</option>

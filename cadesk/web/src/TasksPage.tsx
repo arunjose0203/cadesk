@@ -14,20 +14,31 @@ export default function TasksPage({ can, meId }: { can: (p: string) => boolean; 
   const [open, setOpen] = useState<string | null>(null)
   const [adding, setAdding] = useState(false)
   const [assignee, setAssignee] = useState('all')
+  const [rev, setRev] = useState(0)
   const canSeeUsers = can('users.read')
 
   useEffect(() => { if (canSeeUsers) api<UserListItem[]>('/api/users').then(setUsers).catch(() => {}) }, [canSeeUsers])
 
-  const load = useCallback(async () => {
-    if (tab === 'workload') { setWorkload(await api<WorkloadRow[]>('/api/tasks/workload')); return }
-    const q = new URLSearchParams({ take: '300', status })
-    if (tab === 'mine') q.set('assignee', 'me')
-    if (tab === 'review') { q.set('toReview', 'true'); q.set('assignee', 'all'); q.set('status', 'in_review') }
-    if (tab === 'all') q.set('assignee', assignee)
-    if (search.trim()) q.set('search', search.trim())
-    setPage(await api<TaskPage>(`/api/tasks?${q}`))
-  }, [tab, status, search, assignee])
-  useEffect(() => { load().catch(() => {}) }, [load])
+  const refresh = useCallback(() => setRev(n => n + 1), [])
+  useEffect(() => {
+    let cancelled = false
+    const run = async () => {
+      if (tab === 'workload') {
+        const w = await api<WorkloadRow[]>('/api/tasks/workload')
+        if (!cancelled) setWorkload(w)
+        return
+      }
+      const q = new URLSearchParams({ take: '300', status })
+      if (tab === 'mine') q.set('assignee', 'me')
+      if (tab === 'review') { q.set('toReview', 'true'); q.set('assignee', 'all'); q.set('status', 'in_review') }
+      if (tab === 'all') q.set('assignee', assignee)
+      if (search.trim()) q.set('search', search.trim())
+      const p = await api<TaskPage>(`/api/tasks?${q}`)
+      if (!cancelled) setPage(p)
+    }
+    run().catch(() => {})
+    return () => { cancelled = true }
+  }, [tab, status, search, assignee, rev])
 
   return (
     <>
@@ -38,8 +49,8 @@ export default function TasksPage({ can, meId }: { can: (p: string) => boolean; 
         <button className={tab === 'workload' ? 'active' : ''} onClick={() => setTab('workload')}>Workload</button>
       </nav>
 
-      {open && <TaskPanel id={open} can={can} meId={meId} users={users} onClose={() => setOpen(null)} onChanged={() => load().catch(() => {})} />}
-      {adding && <NewTask users={users} onDone={id => { setAdding(false); load(); if (id) setOpen(id) }} />}
+      {open && <TaskPanel id={open} can={can} meId={meId} users={users} onClose={() => setOpen(null)} onChanged={refresh} />}
+      {adding && <NewTask users={users} onDone={id => { setAdding(false); refresh(); if (id) setOpen(id) }} />}
 
       {tab === 'workload' ? (
         <section className="card">
@@ -116,11 +127,12 @@ function Bar({ value, max, label }: { value: number; max: number; label?: string
 function NewTask({ users, onDone }: { users: UserListItem[]; onDone: (id?: string) => void }) {
   const [f, setF] = useState({ title: '', description: '', clientId: '', dueDate: '', priority: 'normal', assignedUserId: '', reviewRequired: false, steps: '' })
   const [clients, setClients] = useState<Client[]>([])
+  const [busy, setBusy] = useState(false)
   const [errors, setErrors] = useState<string[] | null>(null)
   useEffect(() => { api<ClientPage>('/api/clients?take=200').then(p => setClients(p.items)).catch(() => {}) }, [])
 
   const save = async () => {
-    setErrors(null)
+    setBusy(true); setErrors(null)
     try {
       const t = await api<{ task: { id: string } }>('/api/tasks', {
         method: 'POST',
@@ -131,7 +143,7 @@ function NewTask({ users, onDone }: { users: UserListItem[]; onDone: (id?: strin
         }),
       })
       onDone(t.task.id)
-    } catch (e) { setErrors(errorList(e)) }
+    } catch (e) { setErrors(errorList(e)) } finally { setBusy(false) }
   }
 
   return (
@@ -156,8 +168,8 @@ function NewTask({ users, onDone }: { users: UserListItem[]; onDone: (id?: strin
         <textarea rows={4} value={f.steps} onChange={e => setF({ ...f, steps: e.target.value })} /></label>
       <label className="row small" style={{ marginTop: 8 }}><input type="checkbox" checked={f.reviewRequired} onChange={e => setF({ ...f, reviewRequired: e.target.checked })} /> Needs review before it's done</label>
       <div className="row" style={{ marginTop: 8 }}>
-        <button onClick={save} disabled={!f.title.trim()}>Create task</button>
-        <button className="ghost" onClick={() => onDone()}>Cancel</button>
+        <button onClick={save} disabled={busy || !f.title.trim()}>{busy ? 'Creating…' : 'Create task'}</button>
+        <button className="ghost" disabled={busy} onClick={() => onDone()}>Cancel</button>
       </div>
       {errors && <ul className="error">{errors.map(m => <li key={m}>{m}</li>)}</ul>}
     </section>

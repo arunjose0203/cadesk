@@ -5,6 +5,7 @@ test('a partner creates a firm, signs out and signs in again', async ({ page }) 
   const id = uniq()
   const email = `e2e-${id}@example.test`
   await page.goto('/')
+  await page.getByRole('button', { name: 'Sign In', exact: true }).click()
   await page.getByRole('button', { name: 'Create a firm' }).click()
   await page.getByPlaceholder('e.g. Sharma & Associates').fill(`E2E ${id}`.slice(0, 20))
   await page.getByPlaceholder('e.g. Arun Sharma').fill('Test Partner')
@@ -30,6 +31,7 @@ test('a partner creates a firm, signs out and signs in again', async ({ page }) 
 
 test('a wrong password is refused', async ({ page }) => {
   await page.goto('/')
+  await page.getByRole('button', { name: 'Sign In', exact: true }).click()
   await page.getByPlaceholder('name@firm.com').fill(`nobody-${uniq()}@example.test`)
   await page.locator('input[type="password"]').fill('not-the-password-1')
   await page.getByRole('button', { name: 'Sign in to CA Desk' }).click()

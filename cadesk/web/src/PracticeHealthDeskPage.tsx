@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, type FormEvent } from 'react'
 import {
   practiceHealthApi,
+  errorMessage,
   api,
   type FirmTelemetryDto,
   type PracticeValuationDto,
@@ -30,7 +31,7 @@ type ClientPage = {
   total: number
 }
 
-export function PracticeHealthDeskPage({ can: _can }: { can?: (p: string) => boolean }) {
+export function PracticeHealthDeskPage() {
   const [activeTab, setActiveTab] = useState<'valuation' | 'succession' | 'benchmarks'>('valuation')
   const [loading, setLoading] = useState(true)
   const [notice, setNotice] = useState<string | null>(null)
@@ -158,8 +159,8 @@ export function PracticeHealthDeskPage({ can: _can }: { can?: (p: string) => boo
           ebitda: Math.round(tele.annualGrossBillings * 0.28)
         }))
       }
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to load practice health data.')
+    } catch (err: unknown) {
+      setErrorMsg(errorMessage(err, 'Failed to load practice health data.'))
     } finally {
       setLoading(false)
     }
@@ -177,7 +178,7 @@ export function PracticeHealthDeskPage({ can: _can }: { can?: (p: string) => boo
     try {
       const res = await practiceHealthApi.calculateValuation(calcForm)
       setLiveValuationResult(res)
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err)
     }
   }
@@ -214,8 +215,8 @@ export function PracticeHealthDeskPage({ can: _can }: { can?: (p: string) => boo
       const list = await practiceHealthApi.getValuations()
       setValuations(list)
       setSelectedValuation(saved)
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to save valuation scenario.')
+    } catch (err: unknown) {
+      setErrorMsg(errorMessage(err, 'Failed to save valuation scenario.'))
     }
   }
 
@@ -227,8 +228,8 @@ export function PracticeHealthDeskPage({ can: _can }: { can?: (p: string) => boo
       const list = await practiceHealthApi.getValuations()
       setValuations(list)
       setSelectedValuation(approved)
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Approval failed.')
+    } catch (err: unknown) {
+      setErrorMsg(errorMessage(err, 'Approval failed.'))
     }
   }
 
@@ -242,8 +243,8 @@ export function PracticeHealthDeskPage({ can: _can }: { can?: (p: string) => boo
       setShowEquityModal(false)
       const list = await practiceHealthApi.getEquities()
       setEquities(list)
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to save partner equity.')
+    } catch (err: unknown) {
+      setErrorMsg(errorMessage(err, 'Failed to save partner equity.'))
     }
   }
 
@@ -255,8 +256,8 @@ export function PracticeHealthDeskPage({ can: _can }: { can?: (p: string) => boo
       setNotice('Partner removed from equity register.')
       const list = await practiceHealthApi.getEquities()
       setEquities(list)
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Delete failed.')
+    } catch (err: unknown) {
+      setErrorMsg(errorMessage(err, 'Delete failed.'))
     }
   }
 
@@ -270,8 +271,8 @@ export function PracticeHealthDeskPage({ can: _can }: { can?: (p: string) => boo
       setShowRetirementModal(false)
       const list = await practiceHealthApi.getRetirementPlans()
       setRetirementPlans(list)
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to create retirement plan.')
+    } catch (err: unknown) {
+      setErrorMsg(errorMessage(err, 'Failed to create retirement plan.'))
     }
   }
 
@@ -285,8 +286,8 @@ export function PracticeHealthDeskPage({ can: _can }: { can?: (p: string) => boo
       setShowTransitionModal(false)
       const list = await practiceHealthApi.getTransitions()
       setTransitions(list)
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to save client transition.')
+    } catch (err: unknown) {
+      setErrorMsg(errorMessage(err, 'Failed to save client transition.'))
     }
   }
 
@@ -303,8 +304,8 @@ export function PracticeHealthDeskPage({ can: _can }: { can?: (p: string) => boo
       const list = await practiceHealthApi.getBenchmarks()
       setBenchmarks(list)
       setActiveBenchmark(bm)
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to generate benchmark.')
+    } catch (err: unknown) {
+      setErrorMsg(errorMessage(err, 'Failed to generate benchmark.'))
     }
   }
 

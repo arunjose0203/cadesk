@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, type FormEvent } from 'react'
 import {
   uaeTaxApi,
+  errorMessage,
   api,
   type UaeTaxProfileDto,
   type CreateOrUpdateTaxProfileRequest,
@@ -45,7 +46,7 @@ const FREE_ZONES = [
   'Fujairah Free Zone'
 ]
 
-export function UaeCorporateTaxDesk({ can: _can }: { can?: (p: string) => boolean }) {
+export function UaeCorporateTaxDesk() {
   const [activeTab, setActiveTab] = useState<'profiles' | 'calculator' | 'returns'>('profiles')
   const [profiles, setProfiles] = useState<UaeTaxProfileDto[]>([])
   const [clients, setClients] = useState<Client[]>([])
@@ -137,8 +138,8 @@ export function UaeCorporateTaxDesk({ can: _can }: { can?: (p: string) => boolea
       if (profilesData.length > 0 && !selectedProfileId) {
         setSelectedProfileId(profilesData[0].id)
       }
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to load UAE Tax data.')
+    } catch (err: unknown) {
+      setErrorMsg(errorMessage(err, 'Failed to load UAE Tax data.'))
     } finally {
       setLoading(false)
     }
@@ -168,7 +169,7 @@ export function UaeCorporateTaxDesk({ can: _can }: { can?: (p: string) => boolea
       } else {
         setSelectedReturn(null)
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err)
     }
   }
@@ -191,7 +192,7 @@ export function UaeCorporateTaxDesk({ can: _can }: { can?: (p: string) => boolea
       }
       const res = await uaeTaxApi.calculateTax(updatedReq)
       setLiveCalcResult(res)
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Calculation error', err)
     } finally {
       setCalculating(false)
@@ -216,8 +217,8 @@ export function UaeCorporateTaxDesk({ can: _can }: { can?: (p: string) => boolea
       setShowProfileModal(false)
       await loadData()
       setSelectedProfileId(created.id)
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to save UAE Tax Profile.')
+    } catch (err: unknown) {
+      setErrorMsg(errorMessage(err, 'Failed to save UAE Tax Profile.'))
     }
   }
 
@@ -260,8 +261,8 @@ export function UaeCorporateTaxDesk({ can: _can }: { can?: (p: string) => boolea
       await loadProfileReturns(selectedProfileId)
       setSelectedReturn(saved)
       setActiveTab('returns')
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to save Corporate Tax Return.')
+    } catch (err: unknown) {
+      setErrorMsg(errorMessage(err, 'Failed to save Corporate Tax Return.'))
     }
   }
 
@@ -277,8 +278,8 @@ export function UaeCorporateTaxDesk({ can: _can }: { can?: (p: string) => boolea
       setPartnerNotes('')
       await loadProfileReturns(selectedProfileId)
       setSelectedReturn(approved)
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Partner approval failed.')
+    } catch (err: unknown) {
+      setErrorMsg(errorMessage(err, 'Partner approval failed.'))
     }
   }
 
@@ -289,8 +290,8 @@ export function UaeCorporateTaxDesk({ can: _can }: { can?: (p: string) => boolea
       const pkg = await uaeTaxApi.exportEmaraTax(ret.id)
       setExportPackage(pkg)
       setShowExportModal(true)
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to generate EmaraTax submission package.')
+    } catch (err: unknown) {
+      setErrorMsg(errorMessage(err, 'Failed to generate EmaraTax submission package.'))
     }
   }
 

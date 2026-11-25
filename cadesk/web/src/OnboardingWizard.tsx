@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { api, type AuthResult, setAccessToken, subscriptionApi } from './api'
+import { SIGNUP_ACCEPTED_KEY } from './legal/legal'
 
 interface OnboardingWizardProps {
   onSignedIn: (r: AuthResult) => void
@@ -10,6 +11,7 @@ export function OnboardingWizard({ onSignedIn, onCancel }: OnboardingWizardProps
   const [step, setStep] = useState<1 | 2 | 3>(1)
   const [busy, setBusy] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
+  const [agreed, setAgreed] = useState<boolean>(false)
 
   // Step 1: Firm Info
   const [firmName, setFirmName] = useState<string>('')
@@ -54,6 +56,9 @@ export function OnboardingWizard({ onSignedIn, onCancel }: OnboardingWizardProps
 
       if (res.status === 'ok' && res.accessToken) {
         setAccessToken(res.accessToken)
+        if (agreed) {
+          try { sessionStorage.setItem(SIGNUP_ACCEPTED_KEY, '1') } catch { /* storage off */ }
+        }
 
         // 2. If user opted for demo firm pre-loader, seed realistic clients
         if (seedDemoData) {
@@ -76,21 +81,21 @@ export function OnboardingWizard({ onSignedIn, onCancel }: OnboardingWizardProps
   }
 
   return (
-    <div style={{ maxWidth: '640px', margin: '40px auto', background: '#fff', border: '1px solid #cbd5e1', borderRadius: '12px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', overflow: 'hidden' }}>
+    <div style={{ maxWidth: '640px', margin: '40px auto', background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '12px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.08)', overflow: 'hidden' }}>
       {/* Wizard Header */}
-      <div style={{ padding: '24px', background: '#0f172a', color: '#fff' }}>
+      <div style={{ padding: '24px', background: '#16191d', color: '#fff' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-          <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: '#38bdf8' }}>
+          <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: '#5eead4' }}>
             CA Desk • Firm Onboarding Wizard
           </div>
-          <button onClick={onCancel} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '18px', cursor: 'pointer' }}>✕</button>
+          <button onClick={onCancel} style={{ background: 'none', border: 'none', color: '#a0a6ae', fontSize: '18px', cursor: 'pointer' }}>✕</button>
         </div>
         <h2 style={{ fontSize: '20px', fontWeight: 700, margin: '0 0 6px 0' }}>
           {step === 1 && 'Step 1 of 3: Chartered Accountant Firm Profile'}
           {step === 2 && 'Step 2 of 3: Managing Partner & Signing Authority'}
           {step === 3 && 'Step 3 of 3: Practice Customization & Instant Demo Workspace'}
         </h2>
-        <p style={{ fontSize: '13px', color: '#94a3b8', margin: 0 }}>
+        <p style={{ fontSize: '13px', color: '#a0a6ae', margin: 0 }}>
           {step === 1 && 'Register your CA firm with ICAI Firm Registration details to establish two-lock isolated tenancy.'}
           {step === 2 && 'Set up your primary partner account for signing audit workpapers, UDIN reports, and tax filings.'}
           {step === 3 && 'Tailor your workspace modules and pre-load sample audit clients for an instant test drive.'}
@@ -98,9 +103,9 @@ export function OnboardingWizard({ onSignedIn, onCancel }: OnboardingWizardProps
 
         {/* Step Indicator Bar */}
         <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
-          <div style={{ flex: 1, height: '4px', borderRadius: '2px', background: step >= 1 ? '#38bdf8' : '#334155' }} />
-          <div style={{ flex: 1, height: '4px', borderRadius: '2px', background: step >= 2 ? '#38bdf8' : '#334155' }} />
-          <div style={{ flex: 1, height: '4px', borderRadius: '2px', background: step >= 3 ? '#38bdf8' : '#334155' }} />
+          <div style={{ flex: 1, height: '4px', borderRadius: '2px', background: step >= 1 ? 'var(--accent)' : '#2b3038' }} />
+          <div style={{ flex: 1, height: '4px', borderRadius: '2px', background: step >= 2 ? 'var(--accent)' : '#2b3038' }} />
+          <div style={{ flex: 1, height: '4px', borderRadius: '2px', background: step >= 3 ? 'var(--accent)' : '#2b3038' }} />
         </div>
       </div>
 
@@ -206,7 +211,7 @@ export function OnboardingWizard({ onSignedIn, onCancel }: OnboardingWizardProps
                   if (!firmName.trim()) { alert('Please enter your firm name.'); return; }
                   setStep(2)
                 }}
-                style={{ padding: '10px 24px', background: '#0f172a', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 700, fontSize: '13px', cursor: 'pointer' }}
+                style={{ padding: '10px 24px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 700, fontSize: '13px', cursor: 'pointer' }}
               >
                 Next: Partner Identity →
               </button>
@@ -320,7 +325,7 @@ export function OnboardingWizard({ onSignedIn, onCancel }: OnboardingWizardProps
                   }
                   setStep(3)
                 }}
-                style={{ padding: '10px 24px', background: '#0f172a', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 700, fontSize: '13px', cursor: 'pointer' }}
+                style={{ padding: '10px 24px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 700, fontSize: '13px', cursor: 'pointer' }}
               >
                 Next: Practice Customization →
               </button>
@@ -344,10 +349,10 @@ export function OnboardingWizard({ onSignedIn, onCancel }: OnboardingWizardProps
                   <div
                     key={opt.id}
                     onClick={() => setPracticeSize(opt.id)}
-                    style={{ padding: '12px', borderRadius: '6px', border: practiceSize === opt.id ? '2px solid #0284c7' : '1px solid #cbd5e1', background: practiceSize === opt.id ? '#f0f9ff' : '#fff', cursor: 'pointer' }}
+                    style={{ padding: '12px', borderRadius: '6px', border: practiceSize === opt.id ? '2px solid var(--accent)' : '1px solid var(--border-subtle)', background: practiceSize === opt.id ? 'var(--accent-subtle)' : 'var(--card)', cursor: 'pointer' }}
                   >
-                    <div style={{ fontWeight: 700, fontSize: '13px', color: '#0f172a' }}>{opt.label}</div>
-                    <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>{opt.desc}</div>
+                    <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text)' }}>{opt.label}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '2px' }}>{opt.desc}</div>
                   </div>
                 ))}
               </div>
@@ -389,18 +394,27 @@ export function OnboardingWizard({ onSignedIn, onCancel }: OnboardingWizardProps
               </label>
             </div>
 
+            <label className="legal-signup-check" style={{ marginBottom: '18px' }}>
+              <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} required />
+              <span>
+                I accept the <a href="/legal/terms.html" target="_blank" rel="noopener noreferrer">Terms of Service</a>,
+                the <a href="/legal/privacy.html" target="_blank" rel="noopener noreferrer">Privacy Notice</a> and,
+                for my firm, the <a href="/legal/dpa.html" target="_blank" rel="noopener noreferrer">Data Processing Terms</a>.
+              </span>
+            </label>
+
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <button
                 type="button"
                 onClick={() => setStep(2)}
-                style={{ padding: '8px 18px', background: 'none', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '13px', fontWeight: 600, color: '#475569', cursor: 'pointer' }}
+                style={{ padding: '8px 18px', background: 'none', border: '1px solid var(--border-subtle)', borderRadius: '6px', fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', cursor: 'pointer' }}
               >
                 ← Back
               </button>
               <button
                 type="submit"
-                disabled={busy}
-                style={{ padding: '10px 28px', background: '#0284c7', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 700, fontSize: '14px', cursor: 'pointer' }}
+                disabled={busy || !agreed}
+                style={{ padding: '10px 28px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 700, fontSize: '14px', cursor: 'pointer', opacity: busy || !agreed ? 0.6 : 1 }}
               >
                 {busy ? 'Creating Your CA Workspace...' : '🚀 Launch My 14-Day Free Trial'}
               </button>

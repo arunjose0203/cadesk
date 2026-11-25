@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, type FormEvent } from 'react'
 import {
   esgCsrApi,
+  errorMessage,
   api,
   type CsrAssessmentDto,
   type CsrAssessmentDetailDto,
@@ -37,7 +38,7 @@ const SCHEDULE_VII_CATEGORIES: { key: ScheduleViiCategory; label: string }[] = [
   { key: 'DisasterManagementAndRelief', label: 'Disaster Management, Relief & Rehabilitation' }
 ]
 
-export function EsgCsrDeskPage({ can: _can }: { can?: (p: string) => boolean }) {
+export function EsgCsrDeskPage() {
   const [activeTab, setActiveTab] = useState<'csr-assessments' | 'projects' | 'caro-clause-xx' | 'brsr-core'>('csr-assessments')
   const [loading, setLoading] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
@@ -156,7 +157,7 @@ export function EsgCsrDeskPage({ can: _can }: { can?: (p: string) => boolean }) 
         setFormAssessmentClient(res.items[0].id)
         setBrsrClient(res.items[0].id)
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error loading clients:', err)
     }
   }
@@ -169,8 +170,8 @@ export function EsgCsrDeskPage({ can: _can }: { can?: (p: string) => boolean }) 
       if (res.length > 0 && !selectedAssessmentId) {
         setSelectedAssessmentId(res[0].id)
       }
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to load CSR assessments')
+    } catch (err: unknown) {
+      setErrorMsg(errorMessage(err, 'Failed to load CSR assessments'))
     } finally {
       setLoading(false)
     }
@@ -181,8 +182,8 @@ export function EsgCsrDeskPage({ can: _can }: { can?: (p: string) => boolean }) 
     try {
       const res = await esgCsrApi.getAssessment(id)
       setCurrentAssessment(res)
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to load assessment details')
+    } catch (err: unknown) {
+      setErrorMsg(errorMessage(err, 'Failed to load assessment details'))
     } finally {
       setLoading(false)
     }
@@ -195,7 +196,7 @@ export function EsgCsrDeskPage({ can: _can }: { can?: (p: string) => boolean }) 
       if (res.length > 0 && !currentBrsrReport) {
         setCurrentBrsrReport(res[0])
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to load BRSR reports:', err)
     }
   }
@@ -218,8 +219,8 @@ export function EsgCsrDeskPage({ can: _can }: { can?: (p: string) => boolean }) 
       }
       const res = await esgCsrApi.calculateObligation(req)
       setCalcResult(res)
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Calculation error')
+    } catch (err: unknown) {
+      setErrorMsg(errorMessage(err, 'Calculation error'))
     }
   }
 
@@ -252,8 +253,8 @@ export function EsgCsrDeskPage({ can: _can }: { can?: (p: string) => boolean }) 
       loadAssessments()
       setSelectedAssessmentId(res.id)
       setCurrentAssessment(res)
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to save CSR assessment')
+    } catch (err: unknown) {
+      setErrorMsg(errorMessage(err, 'Failed to save CSR assessment'))
     } finally {
       setLoading(false)
     }
@@ -287,8 +288,8 @@ export function EsgCsrDeskPage({ can: _can }: { can?: (p: string) => boolean }) 
       setShowProjectModal(false)
       loadAssessmentDetail(selectedAssessmentId)
       loadAssessments()
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to save project')
+    } catch (err: unknown) {
+      setErrorMsg(errorMessage(err, 'Failed to save project'))
     } finally {
       setLoading(false)
     }
@@ -304,8 +305,8 @@ export function EsgCsrDeskPage({ can: _can }: { can?: (p: string) => boolean }) 
         loadAssessmentDetail(selectedAssessmentId)
         loadAssessments()
       }
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to remove project')
+    } catch (err: unknown) {
+      setErrorMsg(errorMessage(err, 'Failed to remove project'))
     } finally {
       setLoading(false)
     }
@@ -349,8 +350,8 @@ export function EsgCsrDeskPage({ can: _can }: { can?: (p: string) => boolean }) 
       setShowBrsrModal(false)
       loadBrsrReports()
       setCurrentBrsrReport(res)
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to save BRSR report')
+    } catch (err: unknown) {
+      setErrorMsg(errorMessage(err, 'Failed to save BRSR report'))
     } finally {
       setLoading(false)
     }
@@ -371,8 +372,8 @@ export function EsgCsrDeskPage({ can: _can }: { can?: (p: string) => boolean }) 
       setShowCertifyCsrModal(false)
       setCurrentAssessment(res)
       loadAssessments()
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to certify CSR assessment')
+    } catch (err: unknown) {
+      setErrorMsg(errorMessage(err, 'Failed to certify CSR assessment'))
     } finally {
       setLoading(false)
     }
@@ -394,8 +395,8 @@ export function EsgCsrDeskPage({ can: _can }: { can?: (p: string) => boolean }) 
       setShowCertifyBrsrModal(false)
       setCurrentBrsrReport(res)
       loadBrsrReports()
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to certify BRSR report')
+    } catch (err: unknown) {
+      setErrorMsg(errorMessage(err, 'Failed to certify BRSR report'))
     } finally {
       setLoading(false)
     }
@@ -408,8 +409,8 @@ export function EsgCsrDeskPage({ can: _can }: { can?: (p: string) => boolean }) 
       const html = await res.text()
       setDossierHtml(html)
       setShowDossierModal(true)
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to load assurance dossier')
+    } catch (err: unknown) {
+      setErrorMsg(errorMessage(err, 'Failed to load assurance dossier'))
     } finally {
       setLoading(false)
     }

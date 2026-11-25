@@ -1,10 +1,16 @@
 import { useState, useEffect } from 'react'
 import {
+  errorMessage,
   partnerCompanionApi,
   type PartnerActionCenterData,
   type PendingAuditItem,
   type ForensicAlertItem
 } from './api'
+
+type BeforeInstallPromptEvent = Event & {
+  prompt: () => Promise<void>
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
+}
 
 type TabKey = 'pulse' | 'audits' | 'timesheets' | 'invoices' | 'forensics' | 'deadlines'
 
@@ -16,7 +22,7 @@ export default function PartnerMobileDeskPage() {
   const [toast, setToast] = useState<string | null>(null)
 
   // PWA Install prompt state
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [isInstallable, setIsInstallable] = useState(false)
 
   // Lock screen & Quick PIN state
@@ -48,7 +54,7 @@ export default function PartnerMobileDeskPage() {
   useEffect(() => {
     const handler = (e: Event) => {
       e.preventDefault()
-      setDeferredPrompt(e)
+      setDeferredPrompt(e as BeforeInstallPromptEvent)
       setIsInstallable(true)
     }
     window.addEventListener('beforeinstallprompt', handler)
@@ -77,8 +83,8 @@ export default function PartnerMobileDeskPage() {
       if (res.security.hasQuickPin && sessionStorage.getItem('cadesk_pin_unlocked') !== 'true') {
         setIsLocked(true)
       }
-    } catch (err: any) {
-      setErrorMsg(err?.message || 'Failed to load Partner Action Center.')
+    } catch (err: unknown) {
+      setErrorMsg(errorMessage(err, 'Failed to load Partner Action Center.'))
     } finally {
       setLoading(false)
     }
@@ -158,8 +164,8 @@ export default function PartnerMobileDeskPage() {
       setNewPin('')
       setConfirmPin('')
       loadData()
-    } catch (err: any) {
-      alert(err?.message || 'Failed to set Quick PIN.')
+    } catch (err: unknown) {
+      alert(errorMessage(err, 'Failed to set Quick PIN.'))
     }
   }
 
@@ -182,8 +188,8 @@ export default function PartnerMobileDeskPage() {
       showToastMsg(`SA 230 Audit signed & UDIN recorded for ${signingAudit.clientName}`)
       setSigningAudit(null)
       loadData()
-    } catch (err: any) {
-      alert(err?.message || 'Failed to sign audit engagement.')
+    } catch (err: unknown) {
+      alert(errorMessage(err, 'Failed to sign audit engagement.'))
     }
   }
 
@@ -193,8 +199,8 @@ export default function PartnerMobileDeskPage() {
       const res = await partnerCompanionApi.quickApproveTimesheets(ids)
       showToastMsg(`Approved ${res.approvedCount} timesheet record(s) for client billing.`)
       loadData()
-    } catch (err: any) {
-      alert(err?.message || 'Failed to approve timesheets.')
+    } catch (err: unknown) {
+      alert(errorMessage(err, 'Failed to approve timesheets.'))
     }
   }
 
@@ -204,8 +210,8 @@ export default function PartnerMobileDeskPage() {
       await partnerCompanionApi.quickApproveInvoice(invoiceId)
       showToastMsg(`Invoice #${invoiceNum} approved and marked as Sent.`)
       loadData()
-    } catch (err: any) {
-      alert(err?.message || 'Failed to approve invoice.')
+    } catch (err: unknown) {
+      alert(errorMessage(err, 'Failed to approve invoice.'))
     }
   }
 
@@ -221,8 +227,8 @@ export default function PartnerMobileDeskPage() {
       setTriagingAlert(null)
       setTriageNotes('')
       loadData()
-    } catch (err: any) {
-      alert(err?.message || 'Failed to triage forensic anomaly.')
+    } catch (err: unknown) {
+      alert(errorMessage(err, 'Failed to triage forensic anomaly.'))
     }
   }
 
@@ -1547,7 +1553,7 @@ export default function PartnerMobileDeskPage() {
                 </label>
                 <select
                   value={triageStatus}
-                  onChange={e => setTriageStatus(e.target.value as any)}
+                  onChange={e => setTriageStatus(e.target.value as 'Reviewed' | 'DisallowedIn3CD' | 'Dismissed')}
                   style={{
                     width: '100%',
                     backgroundColor: '#1e293b',

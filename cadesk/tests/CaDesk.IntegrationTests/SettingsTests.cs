@@ -80,7 +80,7 @@ public class SettingsTests(ApiFactory api) : IClassFixture<ApiFactory>
     [Fact]
     public async Task Plan_ceiling_caps_the_ai_quota()
     {
-        var u = await api.SignUpAsync("Quota Co"); // Starter plan: 200 pages
+        var u = await api.SignUpAsync("Quota Co", plan: "STARTER"); // Starter plan: 200 pages
         var c = api.WithToken(u.AccessToken);
         Assert.Equal(HttpStatusCode.NoContent, (await Put(c, "ai.monthly_page_quota", "5000")).StatusCode);
         var q = await Item(c, "ai.monthly_page_quota");

@@ -9,9 +9,10 @@ public static class IbcCirpEndpoints
 {
     public static IEndpointRouteBuilder MapIbcCirpEndpoints(this IEndpointRouteBuilder app)
     {
-        var g = app.MapGroup("/api/ibc-cirp").RequirePlanDesk("ibc-cirp")
+        var g = app.MapGroup("/api/ibc-cirp")
             .WithTags("IBC 2016 Insolvency & CIRP Desk")
-            .RequireFeature(CaDesk.Domain.Features.FeatureKeys.IbcCirp);
+            .RequireFeature(CaDesk.Domain.Features.FeatureKeys.IbcCirp)
+            .RequirePlanDesk("ibc-cirp");
 
         // 1. CIRP Case Master Registry
         g.MapGet("/cases", async ([FromQuery] Guid? clientId, IIbcCirpService svc, CancellationToken ct) =>

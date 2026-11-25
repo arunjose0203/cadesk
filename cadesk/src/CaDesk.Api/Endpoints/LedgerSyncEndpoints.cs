@@ -9,9 +9,10 @@ public static class LedgerSyncEndpoints
 {
     public static IEndpointRouteBuilder MapLedgerSyncEndpoints(this IEndpointRouteBuilder app)
     {
-        var g = app.MapGroup("/api/ledger-sync").RequirePlanDesk("ledger-sync")
+        var g = app.MapGroup("/api/ledger-sync")
             .WithTags("Ledger Sync & Auto-Reconciliation")
-            .RequireFeature(CaDesk.Domain.Features.FeatureKeys.LedgerSync);
+            .RequireFeature(CaDesk.Domain.Features.FeatureKeys.LedgerSync)
+            .RequirePlanDesk("ledger-sync");
 
         // 1. Agent Configurations (Firm management)
         g.MapGet("/agents", async ([FromQuery] Guid? clientId, ILedgerSyncService svc, CancellationToken ct) =>

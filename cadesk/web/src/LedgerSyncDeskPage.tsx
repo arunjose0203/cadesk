@@ -31,7 +31,7 @@ function formatINR(val: number): string {
   }).format(val)
 }
 
-export function LedgerSyncDeskPage({ can: _can }: { can?: (p: string) => boolean }) {
+export function LedgerSyncDeskPage() {
   const [activeTab, setActiveTab] = useState<'agents' | 'reconciliation' | 'outgoing'>('reconciliation')
   const [loading, setLoading] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)

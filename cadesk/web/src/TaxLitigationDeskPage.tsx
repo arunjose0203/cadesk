@@ -30,7 +30,7 @@ function formatINR(val: number): string {
   }).format(val)
 }
 
-export function TaxLitigationDeskPage({ can: _can }: { can?: (p: string) => boolean }) {
+export function TaxLitigationDeskPage() {
   const [activeTab, setActiveTab] = useState<'appeals' | 'grounds' | 'paperbook' | 'citations'>('appeals')
   const [loading, setLoading] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)

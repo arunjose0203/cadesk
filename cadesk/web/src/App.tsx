@@ -109,6 +109,13 @@ export default function App() {
   return isConfirmLink ? <PublicConfirmationPortal /> : <Workspace />
 }
 
+function initialPublicView(): 'landing' | 'auth' | 'wizard' {
+  const q = new URLSearchParams(window.location.search)
+  if (q.has('invite') || q.get('auth') === 'signin' || q.get('auth') === 'signup') return 'auth'
+  if (q.get('trial') === '1') return 'wizard'
+  return 'landing'
+}
+
 function Workspace() {
   const [user, setUser] = useState<UserProfile | null>(null)
   const [features, setFeatures] = useState<Record<string, boolean>>({})
@@ -117,7 +124,7 @@ function Workspace() {
   const [checking, setChecking] = useState(true)
   const [page, setPageState] = useState<Page>(pageFromUrl)
   const [notice, setNotice] = useState<string | null>(null)
-  const [publicView, setPublicView] = useState<'landing' | 'auth' | 'wizard'>('landing')
+  const [publicView, setPublicView] = useState<'landing' | 'auth' | 'wizard'>(initialPublicView)
   const [showTour, setShowTour] = useState<boolean>(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
@@ -502,12 +509,12 @@ function Workspace() {
             {page === 'mca' && can('mca.read') && <McaCompliancePage />}
             {page === 'engagement' && can('engagement.read') && <EngagementKycPage />}
             {page === 'banking' && can('bank.read') && <BankFeedsPage isFeatureEnabled={isFeatureEnabled} />}
-            {page === 'ledger-sync' && (can('ledgersync.read') || can('bank.read')) && (isFeatureEnabled('ledger-sync') ? <LedgerSyncDeskPage can={can} /> : <FeatureDisabledNotice featureName="Ledger Sync & Auto-Reconciliation" />)}
+            {page === 'ledger-sync' && (can('ledgersync.read') || can('bank.read')) && (isFeatureEnabled('ledger-sync') ? <LedgerSyncDeskPage /> : <FeatureDisabledNotice featureName="Ledger Sync & Auto-Reconciliation" />)}
             {page === 'reports' && can('reports.read') && <ReportsPage can={can} />}
-            {page === 'practice-health' && can('practicehealth.read') && (isFeatureEnabled('practice-health') ? <PracticeHealthDeskPage can={can} /> : <FeatureDisabledNotice featureName="Practice Health & Valuation" />)}
+            {page === 'practice-health' && can('practicehealth.read') && (isFeatureEnabled('practice-health') ? <PracticeHealthDeskPage /> : <FeatureDisabledNotice featureName="Practice Health & Valuation" />)}
             {page === 'tax-notices' && can('notices.read') && <TaxNoticesPage can={can} isFeatureEnabled={isFeatureEnabled} />}
-            {page === 'tax-litigation' && (can('taxlitigation.read') || can('notices.read')) && (isFeatureEnabled('tax-litigation') ? <TaxLitigationDeskPage can={can} /> : <FeatureDisabledNotice featureName="ITAT & High Court Appeals" />)}
-            {page === 'esg-csr' && (can('esgcsr.read') || can('caro.read') || can('audit.read')) && (isFeatureEnabled('esg-csr') ? <EsgCsrDeskPage can={can} /> : <FeatureDisabledNotice featureName="SEBI BRSR & CSR Statutory Audit" />)}
+            {page === 'tax-litigation' && (can('taxlitigation.read') || can('notices.read')) && (isFeatureEnabled('tax-litigation') ? <TaxLitigationDeskPage /> : <FeatureDisabledNotice featureName="ITAT & High Court Appeals" />)}
+            {page === 'esg-csr' && (can('esgcsr.read') || can('caro.read') || can('audit.read')) && (isFeatureEnabled('esg-csr') ? <EsgCsrDeskPage /> : <FeatureDisabledNotice featureName="SEBI BRSR & CSR Statutory Audit" />)}
             {page === 'ibc-cirp' && (can('ibccirp.read') || can('audit.read')) && (isFeatureEnabled('ibc-cirp') ? <IbcCirpDeskPage can={can} /> : <FeatureDisabledNotice featureName="IBC 2016 Insolvency & CIRP Desk" />)}
             {page === 'payroll' && can('payroll.read') && <PayrollPage can={can} />}
             {page === 'einvoicing' && can('einvoice.read') && (isFeatureEnabled('einvoicing') ? <EInvoicingPage can={can} /> : <FeatureDisabledNotice featureName="E-Invoicing & E-Way Bill" />)}
@@ -527,7 +534,7 @@ function Workspace() {
             {page === 'antiprofiteering' && can('antiprofiteering.read') && <AntiProfiteeringPage />}
             {page === 'secretarialaudit' && can('secretarialaudit.read') && <SecretarialAuditPage />}
             {page === 'transferpricing' && can('transferpricing.read') && <TransferPricingPage />}
-            {page === 'uae-tax' && can('uaecorporatetax.read') && (isFeatureEnabled('uae-tax') ? <UaeCorporateTaxDesk can={can} /> : <FeatureDisabledNotice featureName="UAE Corporate Tax" />)}
+            {page === 'uae-tax' && can('uaecorporatetax.read') && (isFeatureEnabled('uae-tax') ? <UaeCorporateTaxDesk /> : <FeatureDisabledNotice featureName="UAE Corporate Tax" />)}
             {page === 'costaudit' && can('costaudit.read') && <CostAuditPage />}
             {page === 'dsc' && can('dsc.read') && <DscPage can={can} meId={user.id} />}
             {page === 'portal' && can('portal.read') && <PortalPage can={can} meId={user.id} />}

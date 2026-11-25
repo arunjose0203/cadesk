@@ -318,15 +318,17 @@ export function AqmmDeskPage() {
         <div>
           {/* Section Filter Pills */}
           <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-            {[
-              { id: 'all', label: 'All Criteria (21)' },
-              { id: 'PracticeManagement', label: 'Section A: Operations (190 pts)' },
-              { id: 'HumanResources', label: 'Section B: HR Management (110 pts)' },
-              { id: 'AuditExecution', label: 'Section C: Audit Execution (300 pts)' }
-            ].map(pill => (
+            {(
+              [
+                { id: 'all', label: 'All Criteria (21)' },
+                { id: 'PracticeManagement', label: 'Section A: Operations (190 pts)' },
+                { id: 'HumanResources', label: 'Section B: HR Management (110 pts)' },
+                { id: 'AuditExecution', label: 'Section C: Audit Execution (300 pts)' }
+              ] as const
+            ).map(pill => (
               <button
                 key={pill.id}
-                onClick={() => setSectionFilter(pill.id as any)}
+                onClick={() => setSectionFilter(pill.id)}
                 style={{ padding: '6px 14px', borderRadius: '20px', border: '1px solid #cbd5e1', background: sectionFilter === pill.id ? '#0f172a' : '#fff', color: sectionFilter === pill.id ? '#fff' : '#475569', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
               >
                 {pill.label}

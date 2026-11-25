@@ -8,9 +8,10 @@ public static class UaeCorporateTaxEndpoints
 {
     public static IEndpointRouteBuilder MapUaeCorporateTaxEndpoints(this IEndpointRouteBuilder app)
     {
-        var g = app.MapGroup("/api/uae-tax").RequirePlanDesk("uae-tax")
+        var g = app.MapGroup("/api/uae-tax")
             .WithTags("UAE Corporate Tax & EmaraTax Desk")
-            .RequireFeature(CaDesk.Domain.Features.FeatureKeys.UaeCorporateTax);
+            .RequireFeature(CaDesk.Domain.Features.FeatureKeys.UaeCorporateTax)
+            .RequirePlanDesk("uae-tax");
 
         // 1. Tax Profiles
         g.MapGet("/profiles", async (Guid? clientId, IUaeCorporateTaxService svc, CancellationToken ct) =>

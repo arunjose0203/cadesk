@@ -14,9 +14,11 @@ export function LegalGate({ onSignOut }: { onSignOut: () => void }) {
   useEffect(() => {
     let live = true
     legalApi.status().then(async s => {
+      if (!live) return
       let fromSignup = false
-      try { fromSignup = sessionStorage.getItem(SIGNUP_ACCEPTED_KEY) === '1'; sessionStorage.removeItem(SIGNUP_ACCEPTED_KEY) } catch { /* storage off */ }
+      try { fromSignup = sessionStorage.getItem(SIGNUP_ACCEPTED_KEY) === '1' } catch { /* storage off */ }
       if (fromSignup && s.pending.length > 0) s = await legalApi.accept(s.pending)
+      if (fromSignup) { try { sessionStorage.removeItem(SIGNUP_ACCEPTED_KEY) } catch { /* storage off */ } }
       if (live) setStatus(s)
     }).catch(() => { /* the server may predate Sprint 71: don't block the app */ })
     return () => { live = false }
