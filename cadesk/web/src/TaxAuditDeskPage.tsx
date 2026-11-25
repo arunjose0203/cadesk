@@ -457,14 +457,14 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                             a.assessmentStatus === 'finalized'
                               ? '#dcfce7'
                               : a.assessmentStatus === 'in_review'
-                              ? '#fef3c7'
-                              : '#e2e8f0',
+                                ? '#fef3c7'
+                                : '#e2e8f0',
                           color:
                             a.assessmentStatus === 'finalized'
                               ? '#166534'
                               : a.assessmentStatus === 'in_review'
-                              ? '#92400e'
-                              : '#475569'
+                                ? '#92400e'
+                                : '#475569'
                         }}
                       >
                         {a.assessmentStatus.toUpperCase()}
@@ -720,18 +720,18 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                                     c.status === 'Clean'
                                       ? '#dcfce7'
                                       : c.status === 'Disallowed'
-                                      ? '#fee2e2'
-                                      : c.status === 'Qualified'
-                                      ? '#fef3c7'
-                                      : '#f1f5f9',
+                                        ? '#fee2e2'
+                                        : c.status === 'Qualified'
+                                          ? '#fef3c7'
+                                          : '#f1f5f9',
                                   color:
                                     c.status === 'Clean'
                                       ? '#166534'
                                       : c.status === 'Disallowed'
-                                      ? '#991b1b'
-                                      : c.status === 'Qualified'
-                                      ? '#92400e'
-                                      : '#475569'
+                                        ? '#991b1b'
+                                        : c.status === 'Qualified'
+                                          ? '#92400e'
+                                          : '#475569'
                                 }}
                               >
                                 {c.status}
