@@ -24,11 +24,11 @@ update firms set plan_code = 'GROWTH' where name in ('[firm 1]', '[firm 2]', '[f
 
 ## Before the first firm signs up
 
-- [ ] `dotnet test` and `npm test` green; `npm run e2e` green against staging
+- [ ] `dotnet test`, `npm test`, and `npm run e2e` green against staging (local verified 25 Nov 2026: 896 unit, 173 integration, 54 web tests + Vite build, 15 Playwright E2E)
 - [ ] Load test passed on the production-size server (`deploy/load/README.md`)
 - [ ] Legal pages: [brackets] filled, lawyer has read them
 - [ ] Help centre: support email and number filled in `/help/report-a-problem.html`
-- [ ] Backups run nightly and **one restore has been tested** on a spare machine
+- [ ] Backups run nightly and **one restore has been tested** on a spare machine (local encrypted `backup-db.ps1` → `restore-db.ps1` drill verified with migration `0070`; repeat on production/spare host)
 - [ ] Uptime check on `https://<site>/health/ready` every minute, alerting your phone
 - [ ] Someone watches problem reports daily (query below)
 - [ ] One GSTR-1 JSON from CaDesk imported into the GST offline tool without errors

@@ -9,6 +9,8 @@ test('Income-tax Sprint 67: ITR-1, ITR-4 & Form 3CA-3CD official JSON export, sc
   // 1. ITR-1 (Sahaj) JSON export from Income Tax & Regime Desk
   await openDesk(page, 'tax')
   await page.locator('label', { hasText: 'Gross Salary' }).locator('..').locator('input').fill('1250000')
+  await page.locator('label', { hasText: 'STCG 111A' }).locator('..').locator('input').fill('0')
+  await page.locator('label', { hasText: 'LTCG 112A' }).locator('..').locator('input').fill('0')
   await page.getByRole('button', { name: 'Calculate & Compare Regimes' }).click()
   await page.getByRole('button', { name: 'Save Record' }).click()
 
@@ -45,7 +47,7 @@ test('Income-tax Sprint 67: ITR-1, ITR-4 & Form 3CA-3CD official JSON export, sc
   await page.locator('label', { hasText: 'Declared Net Profit' }).locator('..').locator('input').fill('400000')
   await page.getByRole('button', { name: 'Create Computation' }).click()
 
-  await page.getByRole('button', { name: 'Open Desk' }).first().click()
+  // Create Computation automatically opens the Desk modal cleanly
   await page.getByRole('button', { name: '3. Statement & Disclosures' }).click()
   await expect(page.getByText('Official ITR-4 (Sugam) JSON Export (AY 2026-27 V1.1)')).toBeVisible()
 
@@ -64,6 +66,9 @@ test('Income-tax Sprint 67: ITR-1, ITR-4 & Form 3CA-3CD official JSON export, sc
 
   await page.getByRole('button', { name: 'Save JSON to Vault' }).click()
   await expect(page.getByText(/to client document vault\./i)).toBeVisible()
+
+  // Close Presumptive Desk modal before navigating via sidebar
+  await page.getByRole('button', { name: '✕' }).click()
 
   // 3. Form 3CA-3CD JSON export from Tax Audit Desk
   await openDesk(page, 'taxaudit')
@@ -87,7 +92,7 @@ test('Income-tax Sprint 67: ITR-1, ITR-4 & Form 3CA-3CD official JSON export, sc
   await page.getByRole('button', { name: 'Generate & Validate Official JSON' }).click()
 
   await expect(page.getByText('CBDT Schema Validated (0 errors)')).toBeVisible()
-  await expect(page.locator('pre')).toContainText('"Form_3CA"')
+  await expect(page.locator('pre')).toContainText('"FORM3CA"')
 
   const form3CdDownloadPromise = page.waitForEvent('download')
   await page.getByRole('button', { name: /Download .*_FORM3CA_202627\.json/ }).click()
