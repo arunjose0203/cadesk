@@ -244,7 +244,7 @@ public static class TaxEngine
         );
     }
 
-    private static (decimal TotalTax, List<TaxSlabBreakdown> Slabs) ComputeNewRegimeSlabs(decimal income, NewRegimeRules rules)
+    public static (decimal TotalTax, List<TaxSlabBreakdown> Slabs) ComputeNewRegimeSlabs(decimal income, NewRegimeRules rules)
     {
         var slabs = new List<TaxSlabBreakdown>();
         decimal tax = 0;
@@ -298,7 +298,7 @@ public static class TaxEngine
             year is { Length: >= 4 } && int.TryParse(year[..4], out var y) ? y : null;
     }
 
-    private static (decimal TotalTax, List<TaxSlabBreakdown> Slabs) ComputeOldRegimeSlabs(decimal income, string category)
+    public static (decimal TotalTax, List<TaxSlabBreakdown> Slabs) ComputeOldRegimeSlabs(decimal income, string category)
     {
         // Old Regime Slabs:
         // Exemption limit:

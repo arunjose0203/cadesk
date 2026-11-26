@@ -206,4 +206,165 @@ public class ItrAndForm3CdExportTests(ApiFactory api) : IClassFixture<ApiFactory
         Assert.Equal(0, itr5.SchemaErrorCount);
         Assert.Equal("ITR-5", JsonNode.Parse(itr5.JsonContent)!["ITR"]!["ITR5"]!["Form_ITR5"]!["FormName"]!.GetValue<string>());
     }
+
+    [Fact]
+    public async Task Itr2_CapGainsVdaForeignAssets_And_Itr3_ProprietorPrefill_ValidateAgainstAy2026Schemas()
+    {
+        var auth = await api.SignUpAsync("Malabar Tax & Advisory LLP");
+        var http = api.WithToken(auth.AccessToken);
+
+        // 1. ITR-2 Client: Individual with Multiple Employers, Multi-HP, STCG 111A, LTCG 112A/112, VDA 115BBH, ScheduleFA & ScheduleAL
+        var hniRes = await http.PostAsJsonAsync("/api/clients", new SaveClientRequest(
+            null, "Vikram Menon", null, null, "Individual",
+            new Dictionary<string, string> { ["PAN"] = "ABCPV2222K" },
+            "vikram@menon.test", "9847011223", null, null));
+        hniRes.EnsureSuccessStatusCode();
+        var hniClient = (await hniRes.Content.ReadFromJsonAsync<ClientDto>())!;
+
+        var itr2Req = new CalculatePersonalExtendedTaxRequest(
+            ClientId: hniClient.Id,
+            AssessmentYear: "2026-27",
+            FinancialYear: "2025-26",
+            ReturnFormType: "ITR-2",
+            TaxpayerCategory: "individual",
+            StatusType: "I",
+            OptedRegime: "auto",
+            GrossSalary: 4_800_000m,
+            ProfessionalTax: 2_500m,
+            Employers:
+            [
+                new SalaryEmployerInput("Infosys Ltd", "BLRI01234A", "OTH", 2_800_000m, 420_000m),
+                new SalaryEmployerInput("Zoho Corp Pvt Ltd", "CHEZ09876B", "OTH", 2_000_000m, 310_000m),
+            ],
+            HouseProperties:
+            [
+                new HousePropertyInput("Flat 101 Panampilly Nagar, Kochi", "Kochi", "16", "682036", "S", 0m, 0m, 180_000m),
+                new HousePropertyInput("Villa 12 Kakkanad, Kochi", "Kochi", "16", "682030", "L", 360_000m, 15_000m, 90_000m),
+            ],
+            Stcg111ASaleValue: 600_000m,
+            Stcg111ACost: 380_000m,
+            Stcg111A: 220_000m,
+            Ltcg112ASaleValue: 1_250_000m,
+            Ltcg112ACost: 750_000m,
+            Ltcg112A: 500_000m,
+            Ltcg112SaleValue: 1_500_000m,
+            Ltcg112Cost: 1_100_000m,
+            Ltcg112: 400_000m,
+            VdaConsideration: 450_000m,
+            VdaCostOfAcquisition: 250_000m,
+            VdaIncome115BBH: 200_000m,
+            SavingsInterest: 24_000m,
+            FdInterest: 65_000m,
+            Section80C: 150_000m,
+            Section80D: 50_000m,
+            Section80Tta: 10_000m,
+            TdsSalary: 730_000m,
+            AdvanceTaxPaid: 150_000m,
+            ForeignAssets:
+            [
+                new ForeignAssetInput("United States", "2", "Charles Schwab", "San Francisco CA", "94105", "CS99881", "2022-04-10", 2_100_000m, 1_850_000m, 0m),
+            ],
+            ScheduleAl: new ScheduleAlInput(12_000_000m, "Panampilly Nagar Residence", 1_500_000m, 4_500_000m, 500_000m, 0m, 75_000m, 400_000m, 1_200_000m, 2_400_000m));
+
+        var itr2Save = await http.PostAsJsonAsync("/api/tax/personal/computations", itr2Req);
+        Assert.Equal(HttpStatusCode.Created, itr2Save.StatusCode);
+        var itr2Comp = (await itr2Save.Content.ReadFromJsonAsync<TaxComputationDto>())!;
+        Assert.NotNull(itr2Comp.ExtendedPersonalComputation);
+        Assert.Equal("ITR-2", itr2Comp.ExtendedPersonalComputation!.ReturnFormType);
+        Assert.True(itr2Comp.ExtendedPersonalComputation.ActiveSummary.TaxOnVda115BBH >= 60_000m);
+
+        var itr2Http = await http.PostAsJsonAsync($"/api/tax/computations/{itr2Comp.Id}/export-itr2",
+            new ExportItrJsonRequest(VerificationName: "Vikram Menon", VerificationPan: "ABCPV2222K", Capacity: "S", City: "Kochi", PinCode: "682036"));
+        Assert.Equal(HttpStatusCode.OK, itr2Http.StatusCode);
+        var itr2 = (await itr2Http.Content.ReadFromJsonAsync<IncomeTaxJsonExportResult>())!;
+        Assert.Equal("ITR-2", itr2.FormType);
+        Assert.True(itr2.ValidAgainstSchema, string.Join("; ", itr2.Issues.Select(i => $"{i.Path}: {i.Message}")));
+        Assert.Equal(0, itr2.SchemaErrorCount);
+        var itr2Node = JsonNode.Parse(itr2.JsonContent)!["ITR"]!["ITR2"]!;
+        Assert.Equal("ITR-2", itr2Node["Form_ITR2"]!["FormName"]!.GetValue<string>());
+        Assert.NotNull(itr2Node["ScheduleVDA"]);
+        Assert.NotNull(itr2Node["ScheduleFA"]);
+        Assert.NotNull(itr2Node["ScheduleAL"]);
+
+        var vaultItr2 = await http.PostAsJsonAsync($"/api/clients/{hniClient.Id}/documents/generated", new
+        {
+            fileName = itr2.FileName,
+            content = itr2.JsonContent,
+            typeCode = "ITR",
+            fy = "2025-26",
+            name = "ITR-2 AY 2026-27 Official JSON"
+        });
+        Assert.Equal(HttpStatusCode.Created, vaultItr2.StatusCode);
+
+        // 2. ITR-3 Proprietor Client: Form 3CD prefill -> save -> export-itr3 (schema validated)
+        var propRes = await http.PostAsJsonAsync("/api/clients", new SaveClientRequest(
+            null, "Nair Hardware HUF", null, null, "HUF",
+            new Dictionary<string, string> { ["PAN"] = "AAAHN7777L" },
+            "anoop@nairtrading.test", "9847033445", null, null));
+        propRes.EnsureSuccessStatusCode();
+        var propClient = (await propRes.Content.ReadFromJsonAsync<ClientDto>())!;
+
+        var f3PropRes = await http.PostAsJsonAsync("/api/taxaudit/assessments", new SaveForm3CdAssessmentRequest
+        {
+            ClientId = propClient.Id,
+            FinancialYear = "2025-26",
+            AssessmentYear = "2026-27",
+            AuditType = "Form3CB",
+            Section44AbClause = "44AB(a)",
+            TotalTurnoverOrGrossReceipts = 22_000_000m,
+            AssesseeName = "Nair Hardware Trading",
+            Pan = "ABCPN7777L",
+            Address = "MG Road, Kochi",
+        });
+        Assert.Equal(HttpStatusCode.Created, f3PropRes.StatusCode);
+
+        var prefillItr3Http = await http.PostAsJsonAsync("/api/tax/personal/prefill?returnFormType=ITR-3",
+            new BusinessPrefillRequest(propClient.Id, "2025-26", "2026-27", "firm"));
+        Assert.Equal(HttpStatusCode.OK, prefillItr3Http.StatusCode);
+        var prefillItr3 = (await prefillItr3Http.Content.ReadFromJsonAsync<PersonalPrefillResponseDto>())!;
+        Assert.Contains(prefillItr3.Sources, s => s.Module == "TaxAudit3CD" && s.Found);
+
+        var itr3Req = prefillItr3.PrefilledRequest with
+        {
+            BusinessName = "Nair Hardware Trading",
+            IsTaxAuditApplicable = true,
+            PropCapital = 3_200_000m,
+            ReservesAndSurplus = 800_000m,
+            TradePayables = 950_000m,
+            FixedAssetsNetBlock = 1_800_000m,
+            Inventories = 1_650_000m,
+            TradeReceivables = 900_000m,
+            CashAndBankBalances = 600_000m,
+            RevenueFromOperations = 22_000_000m,
+            PurchasesAndDirectCost = 16_800_000m,
+            EmployeeBenefitExpense = 1_450_000m,
+            DepreciationPerBooks = 220_000m,
+            OtherBusinessExpenses = 980_000m,
+            IncomeTaxDepreciationSec32 = 270_000m,
+            DisallowSec43BhMsme = 120_000m,
+            DepreciationBlocks =
+            [
+                new DepreciationBlockInput("PM15", "Shop Equipment 15%", 15m, 1_800_000m, 0m, 0m, 0m, 0m, 270_000m),
+            ],
+            AdvanceTaxPaid = 400_000m,
+        };
+
+        var itr3Save = await http.PostAsJsonAsync("/api/tax/personal/computations", itr3Req);
+        Assert.Equal(HttpStatusCode.Created, itr3Save.StatusCode);
+        var itr3Comp = (await itr3Save.Content.ReadFromJsonAsync<TaxComputationDto>())!;
+        Assert.NotNull(itr3Comp.ExtendedPersonalComputation);
+        Assert.Equal("ITR-3", itr3Comp.ExtendedPersonalComputation!.ReturnFormType);
+
+        var itr3Http = await http.PostAsJsonAsync($"/api/tax/computations/{itr3Comp.Id}/export-itr3",
+            new ExportItrJsonRequest(VerificationName: "Anoop Nair", VerificationPan: "ABCPN7777L", Capacity: "K", City: "Kochi", PinCode: "682016"));
+        Assert.Equal(HttpStatusCode.OK, itr3Http.StatusCode);
+        var itr3 = (await itr3Http.Content.ReadFromJsonAsync<IncomeTaxJsonExportResult>())!;
+        Assert.Equal("ITR-3", itr3.FormType);
+        Assert.True(itr3.ValidAgainstSchema, string.Join("; ", itr3.Issues.Select(i => $"{i.Path}: {i.Message}")));
+        Assert.Equal(0, itr3.SchemaErrorCount);
+        var itr3Node = JsonNode.Parse(itr3.JsonContent)!["ITR"]!["ITR3"]!;
+        Assert.Equal("ITR-3", itr3Node["Form_ITR3"]!["FormName"]!.GetValue<string>());
+        Assert.NotNull(itr3Node["ITR3ScheduleBP"]);
+        Assert.NotNull(itr3Node["ScheduleDPM"]);
+    }
 }

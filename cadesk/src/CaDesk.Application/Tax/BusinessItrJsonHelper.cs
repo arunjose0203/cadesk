@@ -463,7 +463,10 @@ internal static partial class BusinessItrJsonHelper
         };
     }
 
-    public static (JsonObject Dpm, JsonObject Doa, JsonObject Dep) BuildDepreciationSchedules(CalculateBusinessTaxRequest input, BusinessTaxComputationResultDto biz)
+    public static (JsonObject Dpm, JsonObject Doa, JsonObject Dep) BuildDepreciationSchedules(
+        CalculateBusinessTaxRequest input,
+        BusinessTaxComputationResultDto biz,
+        bool isItr3 = false)
     {
         var blocks = input.DepreciationBlocks ?? [];
         long r15 = 0, r30 = 0, r40 = 0, r45 = 0;
@@ -495,7 +498,7 @@ internal static partial class BusinessItrJsonHelper
             if (!isRate45)
             {
                 detail["AdditionsLessThan180Days"] = addLt;
-                detail["RealizationPeriodDuringYear"] = 0;
+                detail[isItr3 ? "RealizationPeriodLessThan180days" : "RealizationPeriodDuringYear"] = 0;
                 detail["HalfRateDeprAmt"] = addLt;
             }
             detail["DepreciationAtFullRate"] = fullDep;
@@ -503,8 +506,16 @@ internal static partial class BusinessItrJsonHelper
             if (!isRate45 && !isDoa)
             {
                 detail["AddlnDeprOnGT180DayAdditions"] = addln;
-                detail["AddlnDeprDuringYearAdditions"] = 0;
-                detail["AddlnDeprOnLessThan180DayAdditions"] = 0;
+                if (isItr3)
+                {
+                    detail["AddlnDeprOnLessThan180DayAdditions"] = 0;
+                    detail["AddlnDeprOnAssetLessThan180Days"] = 0;
+                }
+                else
+                {
+                    detail["AddlnDeprDuringYearAdditions"] = 0;
+                    detail["AddlnDeprOnLessThan180DayAdditions"] = 0;
+                }
             }
             detail["TotalDepreciation"] = totDep;
             detail["DepDisAllowUs38_2"] = 0;

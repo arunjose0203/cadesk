@@ -215,11 +215,18 @@ public partial class TaxComputationService(IAppDbContext db, ITenantContext tena
     private static TaxComputationDto ToDto(TaxComputation x, RegimeComparisonDto comp)
     {
         BusinessTaxComputationResultDto? business = null;
-        if ((x.TaxpayerCategory == TaxpayerCategory.Firm || x.TaxpayerCategory == TaxpayerCategory.Company)
-            && !string.IsNullOrWhiteSpace(x.ComputationBreakdown)
-            && x.ComputationBreakdown.Contains("\"selectedRegimeCode\"", StringComparison.OrdinalIgnoreCase))
+        PersonalExtendedTaxResultDto? extendedPersonal = null;
+        if (!string.IsNullOrWhiteSpace(x.ComputationBreakdown))
         {
-            business = JsonSerializer.Deserialize<BusinessTaxComputationResultDto>(x.ComputationBreakdown, JsonOpts);
+            if ((x.TaxpayerCategory == TaxpayerCategory.Firm || x.TaxpayerCategory == TaxpayerCategory.Company)
+                && x.ComputationBreakdown.Contains("\"selectedRegimeCode\"", StringComparison.OrdinalIgnoreCase))
+            {
+                business = JsonSerializer.Deserialize<BusinessTaxComputationResultDto>(x.ComputationBreakdown, JsonOpts);
+            }
+            else if (x.ComputationBreakdown.Contains("\"returnFormType\"", StringComparison.OrdinalIgnoreCase))
+            {
+                extendedPersonal = JsonSerializer.Deserialize<PersonalExtendedTaxResultDto>(x.ComputationBreakdown, JsonOpts);
+            }
         }
 
         return new(
@@ -255,7 +262,8 @@ public partial class TaxComputationService(IAppDbContext db, ITenantContext tena
             x.Notes,
             x.CreatedAt,
             x.UpdatedAt,
-            business
+            business,
+            extendedPersonal
         );
     }
 }

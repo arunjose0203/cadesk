@@ -11,13 +11,16 @@ import {
   api
 } from './api'
 import { JsonExportPanel } from './components/JsonExportPanel'
+import { PdfActions } from './pdf/PdfActions'
 import { BusinessTaxDeskTab } from './tax/BusinessTaxDeskTab'
+import { PersonalExtendedTaxTab } from './tax/PersonalExtendedTaxTab'
+import { buildTaxComputationPdfBlocks, buildTaxComputationPreviewPdfBlocks } from './tax/taxComputationPdf'
 
 const fmtInr = (n: number) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n)
 
 export function TaxPage() {
-  const [activeTab, setActiveTab] = useState<'calculator' | 'business' | 'history'>('calculator')
+  const [activeTab, setActiveTab] = useState<'calculator' | 'extended' | 'business' | 'history'>('calculator')
   const [clients, setClients] = useState<Client[]>([])
   const [computations, setComputations] = useState<TaxComputationDto[]>([])
   const [loading, setLoading] = useState(false)
@@ -276,6 +279,20 @@ export function TaxPage() {
             }}
           >
             Individual / HUF (ITR-1)
+          </button>
+          <button
+            onClick={() => setActiveTab('extended')}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '6px',
+              background: activeTab === 'extended' ? 'var(--accent)' : 'var(--card-subtle)',
+              color: activeTab === 'extended' ? '#fff' : 'var(--text-secondary)',
+              fontWeight: 500,
+              border: activeTab === 'extended' ? '1px solid var(--accent)' : '1px solid var(--border)',
+              cursor: 'pointer'
+            }}
+          >
+            CG (ITR-2) &amp; Proprietor (ITR-3)
           </button>
           <button
             onClick={() => setActiveTab('business')}
@@ -632,6 +649,33 @@ export function TaxPage() {
                   <div style={{ fontSize: '13px', marginTop: '6px', color: 'var(--text)' }}>
                     {preview.recommendationReason}
                   </div>
+                  <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'flex-end' }}>
+                    <PdfActions
+                      title={`Tax Computation - ${clients.find(c => c.id === form.clientId)?.name ?? 'Assessee'} - AY ${form.assessmentYear}`}
+                      options={{
+                        author: 'CaDesk Practice Suite',
+                        header: `${clients.find(c => c.id === form.clientId)?.name ?? 'Assessee'} • AY ${form.assessmentYear} (FY ${form.financialYear})`,
+                        footer: `CaDesk Statement of Total Income • Recommended: ${preview.recommendedRegime.toUpperCase()}`,
+                      }}
+                      source={() =>
+                        buildTaxComputationPreviewPdfBlocks({
+                          clientName: clients.find(c => c.id === form.clientId)?.name ?? 'Assessee',
+                          clientPan: clients.find(c => c.id === form.clientId)?.taxIds?.['PAN'] ?? null,
+                          assessmentYear: form.assessmentYear,
+                          financialYear: form.financialYear,
+                          taxpayerCategory: form.taxpayerCategory || 'individual',
+                          optedRegime: form.optedRegime || preview.recommendedRegime,
+                          comparison: preview,
+                          tdsTcsCredit: form.tdsPaid + form.tcsPaid,
+                          advanceTaxPaid: form.advanceTaxPaid,
+                          selfAssessmentTax: form.selfAssessmentTaxPaid,
+                        })
+                      }
+                      clientId={form.clientId || null}
+                      fy={form.financialYear}
+                      canSave={Boolean(form.clientId)}
+                    />
+                  </div>
                 </div>
 
                 {/* Side by side comparison table */}
@@ -748,7 +792,17 @@ export function TaxPage() {
         </div>
       )}
 
-      {/* Tab 2: Corporate (ITR-6) & Firm / LLP (ITR-5) */}
+      {/* Tab 2: CG (ITR-2) & Proprietor Books (ITR-3) */}
+      {activeTab === 'extended' && (
+        <PersonalExtendedTaxTab
+          clients={clients}
+          onSaved={loadComputations}
+          onError={setError}
+          onSuccess={setSuccessMsg}
+        />
+      )}
+
+      {/* Tab 3: Corporate (ITR-6) & Firm / LLP (ITR-5) */}
       {activeTab === 'business' && (
         <BusinessTaxDeskTab
           clients={clients}
@@ -922,13 +976,39 @@ export function TaxPage() {
                   </p>
                 </div>
 
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', padding: '10px 12px', borderRadius: '8px', background: 'var(--card-subtle)', border: '1px solid var(--border)', marginBottom: '12px' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text)' }}>
+                    Printable Statement of Total Income (PDF)
+                  </span>
+                  <PdfActions
+                    title={`Tax Computation - ${selectedComputation.clientName ?? 'Assessee'} - AY ${selectedComputation.assessmentYear}`}
+                    options={{
+                      author: 'CaDesk Practice Suite',
+                      header: `${selectedComputation.clientName ?? 'Assessee'} • AY ${selectedComputation.assessmentYear} (FY ${selectedComputation.financialYear})`,
+                      footer: `CaDesk Official Computation • ${selectedComputation.extendedPersonalComputation?.returnFormType ?? (selectedComputation.taxpayerCategory === 'company' ? 'ITR-6' : selectedComputation.taxpayerCategory === 'firm' ? 'ITR-5' : 'ITR-1')}`,
+                    }}
+                    source={() =>
+                      buildTaxComputationPdfBlocks(selectedComputation, {
+                        clientPan: clients.find(c => c.id === selectedComputation.clientId)?.taxIds?.['PAN'] ?? null,
+                      })
+                    }
+                    clientId={selectedComputation.clientId}
+                    fy={selectedComputation.financialYear}
+                    canSave={true}
+                  />
+                </div>
+
                 <JsonExportPanel
                   title={
                     selectedComputation.taxpayerCategory === 'firm'
                       ? 'Official ITR-5 (Firm/LLP) JSON Export (AY 2026-27 V1.1)'
                       : selectedComputation.taxpayerCategory === 'company'
                         ? 'Official ITR-6 (Company) JSON Export (AY 2026-27 V1.0)'
-                        : 'Official ITR-1 (Sahaj) JSON Export (AY 2026-27 V1.1)'
+                        : selectedComputation.extendedPersonalComputation?.returnFormType === 'ITR-3'
+                          ? 'Official ITR-3 (Proprietor / 44AB) JSON Export (AY 2026-27 V1.1)'
+                          : selectedComputation.extendedPersonalComputation?.returnFormType === 'ITR-2'
+                            ? 'Official ITR-2 (Cap Gains / VDA / Multi-HP) JSON Export (AY 2026-27 V1.2)'
+                            : 'Official ITR-1 (Sahaj) JSON Export (AY 2026-27 V1.1)'
                   }
                   subtitle="Generates schema-validated Income Tax e-Filing JSON from this computation."
                   clientId={selectedComputation.clientId}
@@ -945,7 +1025,11 @@ export function TaxPage() {
                           ? await taxApi.exportItr5(selectedComputation.id, itr1Opts)
                           : selectedComputation.taxpayerCategory === 'company'
                             ? await taxApi.exportItr6(selectedComputation.id, itr1Opts)
-                            : await taxApi.exportItr1(selectedComputation.id, itr1Opts)
+                            : selectedComputation.extendedPersonalComputation?.returnFormType === 'ITR-3'
+                              ? await taxApi.exportItr3(selectedComputation.id, itr1Opts)
+                              : selectedComputation.extendedPersonalComputation?.returnFormType === 'ITR-2'
+                                ? await taxApi.exportItr2(selectedComputation.id, itr1Opts)
+                                : await taxApi.exportItr1(selectedComputation.id, itr1Opts)
                       setItr1Export(res)
                     } catch (err: unknown) {
                       setError(err instanceof Error ? err.message : 'ITR JSON export failed.')
@@ -955,7 +1039,7 @@ export function TaxPage() {
                   }}
                 >
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '8px' }}>
-                    {(selectedComputation.taxpayerCategory === 'firm' || selectedComputation.taxpayerCategory === 'company') ? (
+                    {(selectedComputation.taxpayerCategory === 'firm' || selectedComputation.taxpayerCategory === 'company' || selectedComputation.extendedPersonalComputation) ? (
                       <>
                         <input
                           type="text"

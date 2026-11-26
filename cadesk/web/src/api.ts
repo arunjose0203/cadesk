@@ -708,6 +708,211 @@ export type TaxComputationDto = {
   createdAt: string
   updatedAt?: string | null
   businessComputation?: BusinessTaxComputationResultDto | null
+  extendedPersonalComputation?: PersonalExtendedTaxResultDto | null
+}
+
+export type SalaryEmployerInput = {
+  employerName: string
+  tanOfEmployer?: string | null
+  natureOfEmployment: string
+  grossSalary: number
+  tdsDeducted: number
+  address?: string | null
+  city?: string | null
+  stateCode?: string | null
+  pinCode?: string | null
+}
+
+export type HousePropertyInput = {
+  address: string
+  city?: string | null
+  stateCode?: string | null
+  pinCode?: string | null
+  usageType: 'S' | 'L' | 'D'
+  annualRent: number
+  municipalTaxes: number
+  loanInterest: number
+  isCoOwned: boolean
+  assesseeSharePercent: number
+}
+
+export type ForeignAssetInput = {
+  countryName: string
+  countryCode: string
+  institutionName: string
+  address: string
+  zipCode: string
+  accountNumber: string
+  openDate: string
+  peakBalanceInr: number
+  closingBalanceInr: number
+  incomeAccruedInr: number
+}
+
+export type ScheduleAlInput = {
+  immovablePropertyValue: number
+  immovableDescription: string
+  bankDeposits: number
+  sharesAndSecurities: number
+  insurancePolicies: number
+  loansAndAdvancesGiven: number
+  cashInHand: number
+  jewelleryAndBullion: number
+  vehiclesAndOther: number
+  liabilitiesIncurred: number
+}
+
+export type CalculatePersonalExtendedTaxRequest = {
+  clientId: string
+  assessmentYear: string
+  financialYear: string
+  returnFormType: 'ITR-2' | 'ITR-3'
+  taxpayerCategory: string
+  statusType: 'I' | 'H'
+  optedRegime: 'auto' | 'new' | 'old'
+  notes?: string | null
+  grossSalary: number
+  hraReceived: number
+  rentPaid: number
+  isMetro: boolean
+  professionalTax: number
+  employers?: SalaryEmployerInput[] | null
+  annualRentReceived: number
+  municipalTaxesPaid: number
+  housingLoanInterest: number
+  isSelfOccupied: boolean
+  houseProperties?: HousePropertyInput[] | null
+  stcg111ASaleValue: number
+  stcg111ACost: number
+  stcg111A: number
+  stcgNormal: number
+  ltcg112ASaleValue: number
+  ltcg112ACost: number
+  ltcg112A: number
+  ltcg112SaleValue: number
+  ltcg112Cost: number
+  ltcg112: number
+  vdaConsideration: number
+  vdaCostOfAcquisition: number
+  vdaIncome115BBH: number
+  savingsInterest: number
+  fdInterest: number
+  dividendIncome: number
+  otherSourcesIncome: number
+  section80C: number
+  section80Ccd1B: number
+  section80D: number
+  section80E: number
+  section80G: number
+  section80Tta: number
+  deduction10AA: number
+  deduction35AD: number
+  businessName: string
+  natureOfBusinessCode: string
+  isTaxAuditApplicable: boolean
+  propCapital: number
+  reservesAndSurplus: number
+  securedLoans: number
+  unsecuredLoans: number
+  tradePayables: number
+  otherCurrentLiabilities: number
+  fixedAssetsGrossBlock: number
+  fixedAssetsAccumulatedDep: number
+  fixedAssetsNetBlock: number
+  inventories: number
+  tradeReceivables: number
+  cashAndBankBalances: number
+  loansAndAdvancesAsset: number
+  revenueFromOperations: number
+  otherBusinessIncome: number
+  purchasesAndDirectCost: number
+  changesInInventories: number
+  employeeBenefitExpense: number
+  financeCost: number
+  depreciationPerBooks: number
+  auditFee: number
+  otherBusinessExpenses: number
+  disallowSec36: number
+  disallowSec37: number
+  disallowSec40a: number
+  disallowSec40A3: number
+  disallowSec43B: number
+  disallowSec43BhMsme: number
+  incomeTaxDepreciationSec32: number
+  broughtForwardBusinessLoss: number
+  depreciationBlocks?: DepreciationBlockInput[] | null
+  tdsSalary: number
+  tdsOtherThanSalary: number
+  tcsPaid: number
+  advanceTaxPaid: number
+  selfAssessmentTaxPaid: number
+  interest234A: number
+  interest234B: number
+  interest234C: number
+  lateFee234F: number
+  advanceTaxChallans?: ChallanTaxPaymentInput[] | null
+  tdsCreditEntries?: TdsCreditLineInput[] | null
+  foreignAssets?: ForeignAssetInput[] | null
+  scheduleAl?: ScheduleAlInput | null
+}
+
+export type PersonalRegimeBreakdownDto = {
+  regime: 'new' | 'old'
+  grossSalary: number
+  salaryDeductions: number
+  netSalary: number
+  housePropertyIncome: number
+  businessBookProfit: number
+  businessDisallowances: number
+  depreciationBooks: number
+  depreciationIncomeTax32: number
+  businessIncomeNetPgbp: number
+  stcg111A: number
+  stcgNormal: number
+  ltcg112A: number
+  ltcg112: number
+  vdaIncome115BBH: number
+  totalCapitalGainsAndVda: number
+  otherSourcesIncome: number
+  grossTotalIncome: number
+  chapterViaDeductions: number
+  taxableIncome: number
+  slabTaxOnNormalIncome: number
+  taxOnStcg111A: number
+  taxOnLtcg112A: number
+  taxOnLtcg112: number
+  taxOnVda115BBH: number
+  specialRateTax: number
+  rebate87A: number
+  surcharge: number
+  cess: number
+  amtTotalTax115JC: number
+  isAmtApplied: boolean
+  interestAndFee: number
+  totalTaxLiability: number
+  prepaidTaxes: number
+  netPayableOrRefund: number
+  slabBreakdown: TaxSlabBreakdown[]
+}
+
+export type PersonalExtendedTaxResultDto = {
+  returnFormType: 'ITR-2' | 'ITR-3'
+  statusType: 'I' | 'H'
+  assessmentYear: string
+  financialYear: string
+  oldRegime: PersonalRegimeBreakdownDto
+  newRegime: PersonalRegimeBreakdownDto
+  selectedRegime: 'new' | 'old'
+  recommendedRegime: string
+  taxSavings: number
+  recommendationReason: string
+  activeSummary: PersonalRegimeBreakdownDto
+  normalizedInput: CalculatePersonalExtendedTaxRequest
+}
+
+export type PersonalPrefillResponseDto = {
+  prefilledRequest: CalculatePersonalExtendedTaxRequest
+  sources: { module: string; found: boolean; summary: string }[]
 }
 
 export type PartnerShareInput = {
@@ -928,9 +1133,11 @@ export type BusinessTaxComputationResultDto = {
   normalizedInput: CalculateBusinessTaxRequest
 }
 
+export type BusinessPrefillSourceNote = { module: string; found: boolean; summary: string }
+
 export type BusinessPrefillResponseDto = {
   prefilledRequest: CalculateBusinessTaxRequest
-  sources: { module: string; found: boolean; summary: string }[]
+  sources: BusinessPrefillSourceNote[]
 }
 
 export type IncomeTaxJsonExportIssue = {
@@ -1030,6 +1237,19 @@ export const taxApi = {
     api<IncomeTaxJsonExportResult>(`/api/tax/computations/${id}/export-itr5`, { method: 'POST', body: JSON.stringify(req) }),
   exportItr6: (id: string, req: ExportItrJsonRequest = {}) =>
     api<IncomeTaxJsonExportResult>(`/api/tax/computations/${id}/export-itr6`, { method: 'POST', body: JSON.stringify(req) }),
+  prefillPersonal: (req: { clientId: string; financialYear?: string; assessmentYear?: string; entityType?: string }, returnFormType: 'ITR-2' | 'ITR-3' = 'ITR-3') =>
+    api<PersonalPrefillResponseDto>(`/api/tax/personal/prefill?returnFormType=${encodeURIComponent(returnFormType)}`, {
+      method: 'POST',
+      body: JSON.stringify(req),
+    }),
+  previewPersonal: (req: CalculatePersonalExtendedTaxRequest) =>
+    api<PersonalExtendedTaxResultDto>('/api/tax/personal/preview', { method: 'POST', body: JSON.stringify(req) }),
+  savePersonal: (req: CalculatePersonalExtendedTaxRequest) =>
+    api<TaxComputationDto>('/api/tax/personal/computations', { method: 'POST', body: JSON.stringify(req) }),
+  exportItr2: (id: string, req: ExportItrJsonRequest = {}) =>
+    api<IncomeTaxJsonExportResult>(`/api/tax/computations/${id}/export-itr2`, { method: 'POST', body: JSON.stringify(req) }),
+  exportItr3: (id: string, req: ExportItrJsonRequest = {}) =>
+    api<IncomeTaxJsonExportResult>(`/api/tax/computations/${id}/export-itr3`, { method: 'POST', body: JSON.stringify(req) }),
 }
 
 // -------------------------------------------------------------

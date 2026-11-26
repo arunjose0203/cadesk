@@ -11,6 +11,8 @@ import {
   taxApi,
 } from '../api'
 import { JsonExportPanel } from '../components/JsonExportPanel'
+import { PdfActions } from '../pdf/PdfActions'
+import { buildTaxComputationPreviewPdfBlocks } from './taxComputationPdf'
 
 type Props = {
   clients: Client[]
@@ -679,6 +681,30 @@ export function BusinessTaxDeskTab({ clients, onSaved, onError, onSuccess }: Pro
               </div>
               <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
                 {preview.activeSummary.ineligibilityOrNotes}
+              </div>
+              <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'flex-end' }}>
+                <PdfActions
+                  title={`Tax Computation - ${clients.find(c => c.id === form.clientId)?.name ?? 'Assessee'} - AY ${preview.assessmentYear}`}
+                  options={{
+                    author: 'CaDesk Practice Suite',
+                    header: `${clients.find(c => c.id === form.clientId)?.name ?? 'Assessee'} • ${isFirm ? 'ITR-5' : 'ITR-6'} • AY ${preview.assessmentYear}`,
+                    footer: `CaDesk Statement of Total Income • ${preview.activeSummary.regimeLabel}`,
+                  }}
+                  source={() =>
+                    buildTaxComputationPreviewPdfBlocks({
+                      clientName: clients.find(c => c.id === form.clientId)?.name ?? 'Assessee',
+                      clientPan: clients.find(c => c.id === form.clientId)?.taxIds?.['PAN'] ?? null,
+                      assessmentYear: preview.assessmentYear,
+                      financialYear: preview.financialYear,
+                      taxpayerCategory: isFirm ? 'firm' : 'company',
+                      optedRegime: preview.selectedRegimeCode,
+                      business: preview,
+                    })
+                  }
+                  clientId={form.clientId || null}
+                  fy={preview.financialYear}
+                  canSave={Boolean(form.clientId)}
+                />
               </div>
             </div>
 

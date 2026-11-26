@@ -435,4 +435,149 @@ public class ItrAndForm3CdJsonUnitTests
                 Assert.True(itr6["ScheduleMAT"]!["BookProfUs115JB"]!.GetValue<long>() > 0);
         }
     }
+
+    [Fact]
+    public void Itr2JsonBuilder_Build_ValidatesCapGainsVdaForeignAssetsAndAlAgainstAy2026Schema()
+    {
+        var client = SampleClient("Individual", "AAAPV7777P", null);
+        var req = new CalculatePersonalExtendedTaxRequest(
+            ClientId: client.Id,
+            AssessmentYear: "2026-27",
+            FinancialYear: "2025-26",
+            ReturnFormType: "ITR-2",
+            TaxpayerCategory: TaxpayerCategory.Individual,
+            OptedRegime: "old",
+            Employers:
+            [
+                new SalaryEmployerInput("Infosys Ltd", "BLRI01234A", "OTH", 3_500_000m, 650_000m, "Electronic City", "Bengaluru", "15", "560100"),
+                new SalaryEmployerInput("Zoho Corp", "CHEZ05678B", "OTH", 2_000_000m, 350_000m, "Estancia IT Park", "Chennai", "29", "603202"),
+            ],
+            HraReceived: 400_000m,
+            RentPaid: 480_000m,
+            IsMetro: true,
+            ProfessionalTax: 2_500m,
+            HouseProperties:
+            [
+                new HousePropertyInput("Self House, Panampilly Nagar", "Kochi", "16", "682036", "S", 0m, 0m, 200_000m),
+                new HousePropertyInput("Flat B2, Marine Drive", "Kochi", "16", "682031", "L", 600_000m, 20_000m, 150_000m),
+            ],
+            Stcg111ASaleValue: 900_000m,
+            Stcg111ACost: 500_000m,
+            Ltcg112ASaleValue: 1_500_000m,
+            Ltcg112ACost: 1_000_000m,
+            Ltcg112SaleValue: 800_000m,
+            Ltcg112Cost: 600_000m,
+            VdaConsideration: 450_000m,
+            VdaCostOfAcquisition: 250_000m,
+            SavingsInterest: 24_000m,
+            FdInterest: 80_000m,
+            DividendIncome: 45_000m,
+            Section80C: 150_000m,
+            Section80Ccd1B: 50_000m,
+            Section80D: 50_000m,
+            Section80Tta: 10_000m,
+            AdvanceTaxPaid: 800_000m,
+            AdvanceTaxChallans: [new ChallanTaxPaymentInput("0210045", "2026-03-14", "99123", 800_000m)],
+            ForeignAssets: [new ForeignAssetInput("United States", "2", "Interactive Brokers LLC", "Greenwich CT", "06830", "U9988776", "2022-05-10", 2_500_000m, 2_200_000m, 0m)],
+            ScheduleAl: new ScheduleAlInput(12_000_000m, "Kochi Residential Flat", 1_500_000m, 4_000_000m, 500_000m, 0m, 50_000m, 400_000m, 1_200_000m, 3_000_000m)
+        );
+
+        var ext = PersonalTaxExtendedEngine.Compute(req);
+        Assert.Equal("ITR-2", ext.ReturnFormType);
+        Assert.Equal(60_000m, ext.OldRegime.TaxOnVda115BBH); // 30% of 2,00,000 VDA gain
+
+        var comp = new TaxComputation
+        {
+            ClientId = client.Id,
+            AssessmentYear = "2026-27",
+            FinancialYear = "2025-26",
+            TaxpayerCategory = TaxpayerCategory.Individual,
+            OptedRegime = ext.SelectedRegime,
+        };
+
+        var res = Itr2JsonBuilder.Build(comp, client, ext, new ExportItrJsonRequest(
+            FatherName: "Narayanan Varma", City: "Kochi", PinCode: "682036", IfscCode: "SBIN0008615", BankAccountNo: "10293847561"));
+
+        Assert.Equal("ITR-2", res.FormType);
+        Assert.True(res.SchemaErrorCount == 0, string.Join("\n", res.Issues.Select(i => $"{i.Path}: [{i.Code}] {i.Message}")));
+        Assert.True(res.ValidAgainstSchema);
+
+        var itr2 = JsonNode.Parse(res.JsonContent)!["ITR"]!["ITR2"]!;
+        Assert.Equal("ITR-2", itr2["Form_ITR2"]!["FormName"]!.GetValue<string>());
+        Assert.Equal(2, itr2["ScheduleS"]!["Salaries"]!.AsArray().Count);
+        Assert.Equal(2, itr2["ScheduleHP"]!["PropertyDetails"]!.AsArray().Count);
+        Assert.Equal(200_000L, itr2["ScheduleVDA"]!["TotIncCapGain"]!.GetValue<long>());
+        Assert.Single(itr2["ScheduleFA"]!["DetailsForiegnBank"]!.AsArray());
+        Assert.NotNull(itr2["ScheduleAL"]);
+    }
+
+    [Fact]
+    public void Itr3JsonBuilder_Build_ValidatesProprietorBooksAndBpAgainstAy2026Schema()
+    {
+        var client = SampleClient("Individual", "AAAPR4444L", null);
+        var req = new CalculatePersonalExtendedTaxRequest(
+            ClientId: client.Id,
+            AssessmentYear: "2026-27",
+            FinancialYear: "2025-26",
+            ReturnFormType: "ITR-3",
+            TaxpayerCategory: TaxpayerCategory.Individual,
+            OptedRegime: "new",
+            BusinessName: "Malabar Medical Systems",
+            NatureOfBusinessCode: "09027",
+            IsTaxAuditApplicable: true,
+            PropCapital: 3_500_000m,
+            ReservesAndSurplus: 1_200_000m,
+            SecuredLoans: 1_000_000m,
+            TradePayables: 450_000m,
+            FixedAssetsGrossBlock: 2_800_000m,
+            FixedAssetsAccumulatedDep: 600_000m,
+            FixedAssetsNetBlock: 2_200_000m,
+            Inventories: 1_500_000m,
+            TradeReceivables: 1_600_000m,
+            CashAndBankBalances: 850_000m,
+            RevenueFromOperations: 28_000_000m,
+            PurchasesAndDirectCost: 20_000_000m,
+            EmployeeBenefitExpense: 3_000_000m,
+            DepreciationPerBooks: 350_000m,
+            IncomeTaxDepreciationSec32: 420_000m,
+            OtherBusinessExpenses: 1_800_000m,
+            DisallowSec43BhMsme: 120_000m,
+            DisallowSec40a: 30_000m,
+            Stcg111A: 150_000m,
+            AdvanceTaxPaid: 500_000m,
+            TdsOtherThanSalary: 60_000m,
+            DepreciationBlocks:
+            [
+                new DepreciationBlockInput("PM15", "Medical Equipment 15%", 15m, 2_000_000m, 200_000m, 0m, 0m, 0m, 330_000m),
+                new DepreciationBlockInput("PM40", "Computers 40%", 40m, 225_000m, 0m, 0m, 0m, 0m, 90_000m),
+            ]
+        );
+
+        var ext = PersonalTaxExtendedEngine.Compute(req);
+        // Book PBT = 28M - 20M - 3M - 0.35M - 1.8M = 28,50,000
+        // Net PGBP = 28,50,000 + 3,50,000 + 1,50,000 (43Bh+40a) - 4,20,000 = 29,30,000
+        Assert.Equal(2_850_000m, ext.NewRegime.BusinessBookProfit);
+        Assert.Equal(2_930_000m, ext.NewRegime.BusinessIncomeNetPgbp);
+
+        var comp = new TaxComputation
+        {
+            ClientId = client.Id,
+            AssessmentYear = "2026-27",
+            FinancialYear = "2025-26",
+            TaxpayerCategory = TaxpayerCategory.Individual,
+            OptedRegime = "new",
+        };
+
+        var res = Itr3JsonBuilder.Build(comp, client, ext, new ExportItrJsonRequest(
+            FatherName: "Raghavan Menon", City: "Kochi", PinCode: "682031"));
+
+        Assert.Equal("ITR-3", res.FormType);
+        Assert.True(res.SchemaErrorCount == 0, string.Join("\n", res.Issues.Select(i => $"{i.Path}: [{i.Code}] {i.Message}")));
+        Assert.True(res.ValidAgainstSchema);
+
+        var itr3 = JsonNode.Parse(res.JsonContent)!["ITR"]!["ITR3"]!;
+        Assert.Equal("ITR-3", itr3["Form_ITR3"]!["FormName"]!.GetValue<string>());
+        Assert.Equal(2_930_000L, itr3["ITR3ScheduleBP"]!["IncChrgUnHdProftGain"]!.GetValue<long>());
+        Assert.Equal(420_000L, itr3["ScheduleDEP"]!["SummaryFromDeprSch"]!["TotalDepreciation"]!.GetValue<long>());
+    }
 }

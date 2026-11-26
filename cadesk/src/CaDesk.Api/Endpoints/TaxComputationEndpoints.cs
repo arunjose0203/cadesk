@@ -102,6 +102,41 @@ public static class TaxComputationEndpoints
             return Results.Ok(result);
         }).RequirePermission(Perms.ComputationsRun);
 
+        // Extended Individual / HUF (ITR-2 Capital Gains / Foreign Assets & ITR-3 Proprietor Books)
+        g.MapPost("/personal/prefill", async (BusinessPrefillRequest req, string? returnFormType, TaxComputationService svc, CancellationToken ct) =>
+        {
+            string resolvedForm = string.Equals(returnFormType ?? req.EntityType, "ITR-2", StringComparison.OrdinalIgnoreCase)
+                ? "ITR-2"
+                : "ITR-3";
+            var prefill = await svc.PrefillPersonalExtendedAsync(req.ClientId, req.FinancialYear, req.AssessmentYear, resolvedForm, ct);
+            return Results.Ok(prefill);
+        }).RequirePermission(Perms.ComputationsRun);
+
+        g.MapPost("/personal/preview", async (CalculatePersonalExtendedTaxRequest req, TaxComputationService svc) =>
+        {
+            var result = await svc.PreviewPersonalExtendedAsync(req);
+            return Results.Ok(result);
+        }).RequirePermission(Perms.ComputationsRun);
+
+        g.MapPost("/personal/computations", async (CalculatePersonalExtendedTaxRequest req, ClaimsPrincipal user, TaxComputationService svc, CancellationToken ct) =>
+        {
+            var userId = user.RequiredUserId();
+            var saved = await svc.SavePersonalExtendedComputationAsync(req, userId, ct);
+            return Results.Created($"/api/tax/computations/{saved.Id}", saved);
+        }).RequirePermission(Perms.ComputationsRun);
+
+        g.MapPost("/computations/{id:guid}/export-itr2", async (Guid id, ExportItrJsonRequest? req, TaxComputationService svc, CancellationToken ct) =>
+        {
+            var result = await svc.ExportItr2JsonAsync(id, req, ct);
+            return Results.Ok(result);
+        }).RequirePermission(Perms.ComputationsRun);
+
+        g.MapPost("/computations/{id:guid}/export-itr3", async (Guid id, ExportItrJsonRequest? req, TaxComputationService svc, CancellationToken ct) =>
+        {
+            var result = await svc.ExportItr3JsonAsync(id, req, ct);
+            return Results.Ok(result);
+        }).RequirePermission(Perms.ComputationsRun);
+
         // Delete computation
         g.MapDelete("/computations/{id:guid}", async (Guid id, TaxComputationService svc, CancellationToken ct) =>
         {
