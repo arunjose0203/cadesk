@@ -137,6 +137,26 @@ public static class TaxComputationEndpoints
             return Results.Ok(result);
         }).RequirePermission(Perms.ComputationsRun);
 
+        // Trust / NGO / Section 8 Entities (ITR-7 u/s 11, 12AB, 10(23C), 115BBC)
+        g.MapPost("/trust/preview", async (CalculateTrustTaxRequest req, TaxComputationService svc) =>
+        {
+            var preview = await svc.PreviewTrustAsync(req);
+            return Results.Ok(preview);
+        }).RequirePermission(Perms.ComputationsRun);
+
+        g.MapPost("/trust/computations", async (CalculateTrustTaxRequest req, ClaimsPrincipal user, TaxComputationService svc, CancellationToken ct) =>
+        {
+            var userId = user.UserId() ?? throw new UnauthorizedAccessException();
+            var saved = await svc.SaveTrustComputationAsync(req, userId, ct);
+            return Results.Created($"/api/tax/computations/{saved.Id}", saved);
+        }).RequirePermission(Perms.ComputationsRun);
+
+        g.MapPost("/computations/{id:guid}/export-itr7", async (Guid id, ExportItrJsonRequest? req, TaxComputationService svc, CancellationToken ct) =>
+        {
+            var result = await svc.ExportItr7JsonAsync(id, req, ct);
+            return Results.Ok(result);
+        }).RequirePermission(Perms.ComputationsRun);
+
         // Delete computation
         g.MapDelete("/computations/{id:guid}", async (Guid id, TaxComputationService svc, CancellationToken ct) =>
         {

@@ -154,7 +154,22 @@ public record CalculatePersonalExtendedTaxRequest(
     List<ChallanTaxPaymentInput>? AdvanceTaxChallans = null,
     List<TdsCreditLineInput>? TdsCreditEntries = null,
     List<ForeignAssetInput>? ForeignAssets = null,
-    ScheduleAlInput? ScheduleAl = null
+    ScheduleAlInput? ScheduleAl = null,
+    List<CapitalGainTradeEntry>? CapitalGainTrades = null
+);
+
+public record CapitalGainTradeEntry(
+    string BrokerSource = "Manual", // Zerodha | Groww | CAMS | KFintech | CoinDCX | Manual
+    string AssetCategory = "112A", // 111A | 112A | 112 | STCG_NORMAL | VDA
+    string? IsinCode = null,
+    string AssetName = "Listed Equity / Mutual Fund",
+    string? BuyDate = null,  // YYYY-MM-DD
+    string? SellDate = null, // YYYY-MM-DD
+    decimal Quantity = 0m,
+    decimal SaleValue = 0m,
+    decimal CostOfAcquisition = 0m,
+    decimal FairMarketValueJan2018 = 0m,
+    decimal TransferExpenses = 0m
 );
 
 public record PersonalRegimeBreakdownDto(

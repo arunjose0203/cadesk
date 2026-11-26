@@ -3,8 +3,10 @@ using System.Net.Http.Json;
 using System.Text.Json.Nodes;
 using CaDesk.Application.Clients;
 using CaDesk.Application.Presumptive;
+using CaDesk.Application.Schedule3;
 using CaDesk.Application.Tax;
 using CaDesk.Application.TaxAudit;
+using CaDesk.Application.TrialBalance;
 using CaDesk.Domain.Presumptive;
 using CaDesk.Domain.Tax;
 using Xunit;
@@ -366,5 +368,157 @@ public class ItrAndForm3CdExportTests(ApiFactory api) : IClassFixture<ApiFactory
         Assert.Equal("ITR-3", itr3Node["Form_ITR3"]!["FormName"]!.GetValue<string>());
         Assert.NotNull(itr3Node["ITR3ScheduleBP"]);
         Assert.NotNull(itr3Node["ScheduleDPM"]);
+    }
+
+    [Fact]
+    public async Task CompetitiveGap_GranularCg_Itr7Trust_And_Schedule3FinancialPack_WorkEndToEnd()
+    {
+        var auth = await api.SignUpAsync("Ernakulam Advisory LLP");
+        var http = api.WithToken(auth.AccessToken);
+
+        // 1. ITR-2 with granular CapitalGainTrades (BE grandfathering + quarterly STCG 111A + VDA 115BBH)
+        var investorRes = await http.PostAsJsonAsync("/api/clients", new SaveClientRequest(
+            null, "Meera Thomas", null, null, "Individual",
+            new Dictionary<string, string> { ["PAN"] = "ABCPM8888Q" },
+            "meera@investor.test", "9847055667", null, null));
+        investorRes.EnsureSuccessStatusCode();
+        var investor = (await investorRes.Content.ReadFromJsonAsync<ClientDto>())!;
+
+        var cgReq = new CalculatePersonalExtendedTaxRequest(
+            ClientId: investor.Id,
+            AssessmentYear: "2026-27",
+            FinancialYear: "2025-26",
+            ReturnFormType: "ITR-2",
+            TaxpayerCategory: "individual",
+            StatusType: "I",
+            OptedRegime: "new",
+            GrossSalary: 1_500_000m,
+            TdsSalary: 180_000m,
+            CapitalGainTrades:
+            [
+                new CapitalGainTradeEntry("Zerodha", "112A", "INE002A01018", "RELIANCE INDUSTRIES", "2016-05-10", "2025-11-15", 200m, 550_000m, 160_000m, 260_000m, 1_500m),
+                new CapitalGainTradeEntry("Groww", "111A", "INE467B01029", "TCS", "2025-01-10", "2025-05-20", 40m, 220_000m, 150_000m, 0m, 500m),
+                new CapitalGainTradeEntry("Zerodha", "VDA", "BTC", "Bitcoin", "2024-06-01", "2025-08-15", 0.2m, 400_000m, 250_000m, 0m, 0m),
+            ]);
+
+        var cgSave = await http.PostAsJsonAsync("/api/tax/personal/computations", cgReq);
+        Assert.Equal(HttpStatusCode.Created, cgSave.StatusCode);
+        var cgComp = (await cgSave.Content.ReadFromJsonAsync<TaxComputationDto>())!;
+        Assert.Equal(288_500m, cgComp.ExtendedPersonalComputation!.ActiveSummary.Ltcg112A);
+        Assert.Equal(150_000m, cgComp.ExtendedPersonalComputation.ActiveSummary.VdaIncome115BBH);
+
+        var itr2ExportHttp = await http.PostAsJsonAsync($"/api/tax/computations/{cgComp.Id}/export-itr2",
+            new ExportItrJsonRequest(VerificationName: "Meera Thomas", VerificationPan: "ABCPM8888Q", Capacity: "S", City: "Kochi", PinCode: "682011"));
+        Assert.Equal(HttpStatusCode.OK, itr2ExportHttp.StatusCode);
+        var itr2Export = (await itr2ExportHttp.Content.ReadFromJsonAsync<IncomeTaxJsonExportResult>())!;
+        Assert.True(itr2Export.ValidAgainstSchema, string.Join("; ", itr2Export.Issues.Select(i => $"{i.Path}: {i.Message}")));
+        Assert.Equal(0, itr2Export.SchemaErrorCount);
+        var itr2Root = JsonNode.Parse(itr2Export.JsonContent)!["ITR"]!["ITR2"]!;
+        Assert.Equal("BE", itr2Root["Schedule112A"]!["Schedule112ADtls"]![0]!["ShareOnOrBefore"]!.GetValue<string>());
+        Assert.Equal("INE002A01018", itr2Root["Schedule112A"]!["Schedule112ADtls"]![0]!["ISINCode"]!.GetValue<string>());
+        Assert.True(itr2Root["ScheduleCGFor23"]!["AccruOrRecOfCG"]!["ShortTermUnder20Per"]!["DateRange"]!["Upto15Of6"]!.GetValue<long>() > 0);
+        Assert.True(itr2Root["ScheduleCGFor23"]!["AccruOrRecOfCG"]!["LongTermUnder12_5Per"]!["DateRange"]!["Up16Of9To15Of12"]!.GetValue<long>() > 0);
+
+        // 2. ITR-7 Charitable Trust u/s 11, 12AB & 115BBC -> save -> export-itr7 (schema validated)
+        var trustRes = await http.PostAsJsonAsync("/api/clients", new SaveClientRequest(
+            null, "Cochin Benevolent Foundation", null, null, "Trust",
+            new Dictionary<string, string> { ["PAN"] = "AAATC4444E" },
+            "trust@cochinbenevolent.test", "9847066778", null, null));
+        trustRes.EnsureSuccessStatusCode();
+        var trustClient = (await trustRes.Content.ReadFromJsonAsync<ClientDto>())!;
+
+        var trustReq = new CalculateTrustTaxRequest(
+            ClientId: trustClient.Id,
+            AssessmentYear: "2026-27",
+            FinancialYear: "2025-26",
+            ReturnFurnishedSection: "139-4A",
+            SectionExemptionClaimed: "11",
+            StatusOrCompanyType: "5",
+            Registration12AbNo: "AAATC4444EE20221",
+            CorpusDonations80G: 500_000m,
+            GrantsReceivedGovt: 1_200_000m,
+            OtherSpecificAndGeneralDonations: 800_000m,
+            AnonymousDonationsReceived: 300_000m,
+            ReceiptsFromMainObjects: 1_500_000m,
+            RevenueApplicationCharitable: 2_800_000m,
+            CapitalApplicationCharitable: 400_000m,
+            SpecifiedViolationIncome115BBI: 50_000m,
+            CorpusFundClosing: 2_500_000m,
+            AccumulatedFundClosing: 1_000_000m,
+            FixedAssetsNetBlock: 2_000_000m,
+            InvestmentsSec11_5: 1_000_000m,
+            CashAndBankBalances: 500_000m,
+            AdvanceTaxPaid: 60_000m);
+
+        var trustSave = await http.PostAsJsonAsync("/api/tax/trust/computations", trustReq);
+        Assert.Equal(HttpStatusCode.Created, trustSave.StatusCode);
+        var trustComp = (await trustSave.Content.ReadFromJsonAsync<TaxComputationDto>())!;
+        Assert.NotNull(trustComp.TrustComputation);
+        Assert.True(trustComp.TrustComputation!.AnonymousDonationsTaxable115BBC > 0m);
+
+        var itr7Http = await http.PostAsJsonAsync($"/api/tax/computations/{trustComp.Id}/export-itr7",
+            new ExportItrJsonRequest(VerificationName: "Joseph Mathew", VerificationPan: "ABCPJ9999F", Capacity: "DR", City: "Kochi", PinCode: "682018"));
+        Assert.Equal(HttpStatusCode.OK, itr7Http.StatusCode);
+        var itr7 = (await itr7Http.Content.ReadFromJsonAsync<IncomeTaxJsonExportResult>())!;
+        Assert.Equal("ITR-7", itr7.FormType);
+        Assert.True(itr7.ValidAgainstSchema, string.Join("; ", itr7.Issues.Select(i => $"{i.Path}: {i.Message}")));
+        Assert.Equal(0, itr7.SchemaErrorCount);
+        var itr7Root = JsonNode.Parse(itr7.JsonContent)!["ITR"]!["ITR7"]!;
+        Assert.Equal("ITR-7", itr7Root["Form_ITR7"]!["FormName"]!.GetValue<string>());
+        Assert.True(itr7Root["ScheduleVC"]!["AnonymousDonations"]!["AnonymousDonations115BBC"]!.GetValue<long>() > 0);
+        Assert.Equal(50_000L, itr7Root["Schedule115BBI"]!["Total"]!.GetValue<long>());
+
+        // 3. Schedule III Statutory Financial Pack Data backed by comparative Trial Balances (2024-25 & 2025-26)
+        var coRes = await http.PostAsJsonAsync("/api/clients", new SaveClientRequest(
+            null, "Vembanad Foods Pvt Ltd", null, null, "Company",
+            new Dictionary<string, string> { ["PAN"] = "AAACV6666M", ["CIN"] = "U15400KL2019PTC058123" },
+            "accounts@vembanad.test", "9847077889", null, null));
+        coRes.EnsureSuccessStatusCode();
+        var coClient = (await coRes.Content.ReadFromJsonAsync<ClientDto>())!;
+
+        string prevTbCsv = "Ledger Name,Group,Opening Balance,Debit,Credit,Closing Balance\n" +
+                           "Equity Share Capital,Share Capital,0,0,1000000,-1000000\n" +
+                           "Cash at Bank,Bank Accounts,0,1000000,0,1000000\n" +
+                           "Domestic Sales,Sales Accounts,0,0,4200000,-4200000\n" +
+                           "Purchases of RM,Purchase Accounts,0,2800000,0,2800000\n";
+        string currTbCsv = "Ledger Name,Group,Opening Balance,Debit,Credit,Closing Balance\n" +
+                           "Equity Share Capital,Share Capital,0,0,1000000,-1000000\n" +
+                           "Reserves & Surplus,Reserves & Surplus,0,0,850000,-850000\n" +
+                           "Cash at Bank,Bank Accounts,0,1850000,0,1850000\n" +
+                           "Domestic Sales,Sales Accounts,0,0,5800000,-5800000\n" +
+                           "Purchases of RM,Purchase Accounts,0,3400000,0,3400000\n" +
+                           "Staff Salaries,Indirect Expenses,0,750000,0,750000\n";
+
+        var tbPrevHttp = await http.PostAsJsonAsync("/api/trial-balance/upload", new UploadTrialBalanceRequest(
+            coClient.Id, "2024-25", "TallyCsv", "tb_2024_25.csv", prevTbCsv));
+        Assert.Equal(HttpStatusCode.Created, tbPrevHttp.StatusCode);
+
+        var tbCurrHttp = await http.PostAsJsonAsync("/api/trial-balance/upload", new UploadTrialBalanceRequest(
+            coClient.Id, "2025-26", "TallyCsv", "tb_2025_26.csv", currTbCsv));
+        Assert.Equal(HttpStatusCode.Created, tbCurrHttp.StatusCode);
+
+        var s3Create = await http.PostAsJsonAsync("/api/schedule3/assessments", new SaveSchedule3AssessmentRequest
+        {
+            ClientId = coClient.Id,
+            FinancialYear = "2025-26",
+            PrecedingFinancialYear = "2024-25",
+            AccountingStandard = "Division I - AS (Non-Ind AS)",
+            RoundingUnit = "Actuals",
+            RevenueFromOperationsCurrent = 5_800_000m,
+            RevenueFromOperationsPreceding = 4_200_000m,
+            ShareholdersEquityCurrent = 1_850_000m,
+            ShareholdersEquityPreceding = 1_000_000m,
+        });
+        Assert.Equal(HttpStatusCode.Created, s3Create.StatusCode);
+        var s3Assm = (await s3Create.Content.ReadFromJsonAsync<Schedule3AssessmentDto>())!;
+
+        var packHttp = await http.GetAsync($"/api/schedule3/assessments/{s3Assm.Id}/financial-pack-data");
+        Assert.Equal(HttpStatusCode.OK, packHttp.StatusCode);
+        var pack = (await packHttp.Content.ReadFromJsonAsync<Schedule3FinancialPackDto>())!;
+        Assert.True(pack.DerivedFromTrialBalance);
+        Assert.Equal("U15400KL2019PTC058123", pack.Cin);
+        Assert.True(pack.CurrentYear.ShareCapital >= 1_000_000m);
+        Assert.True(pack.CurrentYear.RevenueFromOperations >= 5_800_000m);
+        Assert.True(pack.PrecedingYear.RevenueFromOperations >= 4_200_000m);
     }
 }

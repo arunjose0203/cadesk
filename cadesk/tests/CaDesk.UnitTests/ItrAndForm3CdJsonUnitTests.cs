@@ -580,4 +580,117 @@ public class ItrAndForm3CdJsonUnitTests
         Assert.Equal(2_930_000L, itr3["ITR3ScheduleBP"]!["IncChrgUnHdProftGain"]!.GetValue<long>());
         Assert.Equal(420_000L, itr3["ScheduleDEP"]!["SummaryFromDeprSch"]!["TotalDepreciation"]!.GetValue<long>());
     }
+
+    [Fact]
+    public void Itr2JsonBuilder_CapitalGainTrades_EmitsGranularIsin112A_QuarterlyBuckets_And_Vda()
+    {
+        var client = SampleClient("Individual", "ABCPZ9999K", null);
+        var req = new CalculatePersonalExtendedTaxRequest(
+            ClientId: client.Id,
+            AssessmentYear: "2026-27",
+            FinancialYear: "2025-26",
+            ReturnFormType: "ITR-2",
+            TaxpayerCategory: TaxpayerCategory.Individual,
+            OptedRegime: "new",
+            GrossSalary: 1_200_000m,
+            TdsSalary: 80_000m,
+            CapitalGainTrades:
+            [
+                new CapitalGainTradeEntry("Zerodha", "112A", "INE009A01021", "INFOSYS LTD", "2017-05-15", "2025-07-20", 100m, 290_000m, 90_000m, 160_000m, 0m),
+                new CapitalGainTradeEntry("Groww", "112A", "INE040A01034", "HDFC BANK LTD", "2021-03-10", "2025-10-20", 50m, 180_000m, 110_000m, 0m, 0m),
+                new CapitalGainTradeEntry("Zerodha", "111A", "INE467B01029", "TCS LTD", "2025-01-10", "2025-11-18", 40m, 220_000m, 175_000m, 0m, 0m),
+                new CapitalGainTradeEntry("CoinDCX", "VDA", null, "BTC", "2024-06-01", "2026-01-12", 0.2m, 400_000m, 240_000m, 0m, 0m),
+            ]
+        );
+
+        var ext = PersonalTaxExtendedEngine.Compute(req);
+        // INFY LTCG = 290k - max(90k, min(160k, 290k)) = 130k; HDFC = 180k - 110k = 70k => 112A = 200k
+        Assert.Equal(200_000m, ext.NewRegime.Ltcg112A);
+        Assert.Equal(45_000m, ext.NewRegime.Stcg111A);
+        Assert.Equal(160_000m, ext.NewRegime.VdaIncome115BBH);
+
+        var comp = new TaxComputation
+        {
+            ClientId = client.Id,
+            AssessmentYear = "2026-27",
+            FinancialYear = "2025-26",
+            TaxpayerCategory = TaxpayerCategory.Individual,
+            OptedRegime = "new",
+        };
+
+        var res = Itr2JsonBuilder.Build(comp, client, ext, new ExportItrJsonRequest(City: "Kochi", PinCode: "682031"));
+        Assert.True(res.SchemaErrorCount == 0, string.Join("\n", res.Issues.Select(i => $"{i.Path}: [{i.Code}] {i.Message}")));
+        Assert.True(res.ValidAgainstSchema);
+
+        var itr2 = JsonNode.Parse(res.JsonContent)!["ITR"]!["ITR2"]!;
+        var rows112a = itr2["Schedule112A"]!["Schedule112ADtls"]!.AsArray();
+        Assert.Equal(2, rows112a.Count);
+        Assert.Equal("BE", rows112a[0]!["ShareOnOrBefore"]!.GetValue<string>());
+        Assert.Equal("INE009A01021", rows112a[0]!["ISINCode"]!.GetValue<string>());
+        Assert.Equal(160_000L, rows112a[0]!["TotFairMktValueCapAst"]!.GetValue<long>());
+        Assert.Equal("AE", rows112a[1]!["ShareOnOrBefore"]!.GetValue<string>());
+        Assert.Equal("INE040A01034", rows112a[1]!["ISINCode"]!.GetValue<string>());
+
+        var accru = itr2["ScheduleCGFor23"]!["AccruOrRecOfCG"]!;
+        Assert.Equal(130_000L, accru["LongTermUnder12_5Per"]!["DateRange"]!["Upto15Of9"]!.GetValue<long>());
+        Assert.Equal(70_000L, accru["LongTermUnder12_5Per"]!["DateRange"]!["Up16Of9To15Of12"]!.GetValue<long>());
+        Assert.Equal(45_000L, accru["ShortTermUnder20Per"]!["DateRange"]!["Up16Of9To15Of12"]!.GetValue<long>());
+        Assert.Equal(160_000L, accru["VDATrnsfGainsUnder30Per"]!["DateRange"]!["Up16Of12To15Of3"]!.GetValue<long>());
+    }
+
+    [Fact]
+    public void Itr7JsonBuilder_Build_ValidatesTrust11_12AB_And_115BBC_AgainstAy2026Schema()
+    {
+        var client = SampleClient("Company", "AAABT8888E", null);
+        var req = new CalculateTrustTaxRequest(
+            ClientId: client.Id,
+            AssessmentYear: "2026-27",
+            FinancialYear: "2025-26",
+            ReturnFurnishedSection: "139-4A",
+            SectionExemptionClaimed: "11",
+            StatusOrCompanyType: "5",
+            CorpusDonations80G: 500_000m,
+            GrantsReceivedGovt: 1_200_000m,
+            OtherSpecificAndGeneralDonations: 2_800_000m,
+            AnonymousDonationsReceived: 400_000m,
+            ReceiptsFromMainObjects: 600_000m,
+            InterestIncome: 150_000m,
+            RevenueApplicationCharitable: 3_600_000m,
+            CapitalApplicationCharitable: 500_000m,
+            ActivityCategory: "Educational",
+            Form10AccumulationUs11_2: 0m,
+            CorpusFundClosing: 2_500_000m,
+            AccumulatedFundClosing: 1_500_000m,
+            FixedAssetsNetBlock: 1_800_000m,
+            InvestmentsSec11_5: 1_500_000m,
+            CashAndBankBalances: 700_000m,
+            TdsCredit: 15_000m,
+            AdvanceTaxPaid: 50_000m);
+
+        var trust = TrustTaxEngine.Compute(req);
+        // Total donations = 500k + 1200k + 2800k + 400k = 49,00,000 -> 5% = 2,45,000 -> anon taxable 115BBC = 400k - 245k = 1,55,000
+        Assert.Equal(155_000m, trust.AnonymousDonationsTaxable115BBC);
+        Assert.Equal(46_500m, trust.TaxOnAnonymous115BBC);
+        Assert.True(trust.TotalTaxLiability > 0m);
+
+        var comp = new TaxComputation
+        {
+            ClientId = client.Id,
+            AssessmentYear = "2026-27",
+            FinancialYear = "2025-26",
+            TaxpayerCategory = "trust",
+            OptedRegime = "old",
+        };
+
+        var res = Itr7JsonBuilder.Build(comp, client, trust, new ExportItrJsonRequest(
+            VerificationName: "K. Subramanian", VerificationPan: "ABCPS9999A", FatherName: "Krishnan", Capacity: "DR", City: "Kochi", PinCode: "682031"));
+
+        Assert.Equal("ITR-7", res.FormType);
+        Assert.True(res.SchemaErrorCount == 0, string.Join("\n", res.Issues.Select(i => $"{i.Path}: [{i.Code}] {i.Message}")));
+        Assert.True(res.ValidAgainstSchema);
+
+        var itr7 = JsonNode.Parse(res.JsonContent)!["ITR"]!["ITR7"]!;
+        Assert.Equal("ITR-7", itr7["Form_ITR7"]!["FormName"]!.GetValue<string>());
+        Assert.Equal(155_000L, itr7["PartB_TI"]!["DonationsUs115BBC"]!.GetValue<long>());
+    }
 }

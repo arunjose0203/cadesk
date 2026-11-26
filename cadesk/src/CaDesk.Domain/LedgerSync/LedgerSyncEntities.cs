@@ -299,6 +299,178 @@ public static class TallyXmlProtocol
             return (false, null, $"XML parsing error: {ex.Message}");
         }
     }
+
+    public static string GenerateExportTrialBalanceXml(string companyName, DateOnly fromDate, DateOnly toDate)
+    {
+        string safeCompany = System.Security.SecurityElement.Escape(companyName) ?? companyName;
+        string fromStr = fromDate.ToString("yyyyMMdd");
+        string toStr = toDate.ToString("yyyyMMdd");
+
+        return $@"<ENVELOPE>
+  <HEADER>
+    <TALLYREQUEST>Export Data</TALLYREQUEST>
+  </HEADER>
+  <BODY>
+    <EXPORTDATA>
+      <REQUESTDESC>
+        <REPORTNAME>Trial Balance</REPORTNAME>
+        <STATICVARIABLES>
+          <SVCURRENTCOMPANY>{safeCompany}</SVCURRENTCOMPANY>
+          <SVFROMDATE>{fromStr}</SVFROMDATE>
+          <SVTODATE>{toStr}</SVTODATE>
+          <EXPLODEFLAG>Yes</EXPLODEFLAG>
+          <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>
+        </STATICVARIABLES>
+      </REQUESTDESC>
+    </EXPORTDATA>
+  </BODY>
+</ENVELOPE>";
+    }
+
+    public record ParsedTallyVoucher(
+        string VoucherNumber,
+        string VoucherGuid,
+        ErpVoucherType VoucherType,
+        DateOnly VoucherDate,
+        DateOnly EffectiveDate,
+        decimal Amount,
+        string DebitLedger,
+        string CreditLedger,
+        string Narration,
+        string? ChequeNumber,
+        DateOnly? InstrumentDate,
+        string? BankPartyName
+    );
+
+    public static List<ParsedTallyVoucher> ParseExportVouchersXml(string responseXml)
+    {
+        var result = new List<ParsedTallyVoucher>();
+        if (string.IsNullOrWhiteSpace(responseXml))
+            return result;
+
+        var doc = ParseSafeXml(responseXml);
+        foreach (var vch in doc.Descendants("VOUCHER"))
+        {
+            string? action = vch.Attribute("ACTION")?.Value;
+            if (string.Equals(action, "Cancel", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(vch.Element("ISCANCELLED")?.Value, "Yes", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            string vchNum = (vch.Element("VOUCHERNUMBER")?.Value
+                ?? vch.Element("REFERENCE")?.Value
+                ?? vch.Element("MASTERID")?.Value
+                ?? $"VCH-{result.Count + 1}").Trim();
+            string vchGuid = (vch.Element("GUID")?.Value ?? vch.Attribute("REMOTEID")?.Value ?? vchNum).Trim();
+            string vchTypeRaw = (vch.Element("VOUCHERTYPENAME")?.Value ?? vch.Attribute("VCHTYPE")?.Value ?? "Journal").Trim();
+            ErpVoucherType vchType = vchTypeRaw.ToLowerInvariant() switch
+            {
+                var s when s.Contains("payment") => ErpVoucherType.Payment,
+                var s when s.Contains("receipt") => ErpVoucherType.Receipt,
+                var s when s.Contains("contra") => ErpVoucherType.Contra,
+                var s when s.Contains("sales") || s.Contains("credit note") => ErpVoucherType.Sales,
+                var s when s.Contains("purchase") || s.Contains("debit note") => ErpVoucherType.Purchase,
+                _ => ErpVoucherType.Journal,
+            };
+
+            DateOnly vchDate = ParseTallyDate(vch.Element("DATE")?.Value) ?? DateOnly.FromDateTime(DateTime.UtcNow);
+            DateOnly effDate = ParseTallyDate(vch.Element("EFFECTIVEDATE")?.Value) ?? vchDate;
+            string narration = (vch.Element("NARRATION")?.Value ?? "").Trim();
+            string? party = vch.Element("PARTYLEDGERNAME")?.Value?.Trim();
+
+            var ledgerEntries = vch.Elements("ALLLEDGERENTRIES.LIST")
+                .Concat(vch.Elements("LEDGERENTRIES.LIST"))
+                .ToList();
+
+            string debitLedger = "";
+            string creditLedger = "";
+            decimal totalDebit = 0m;
+            decimal totalCredit = 0m;
+            string? chequeNo = null;
+            DateOnly? instrDate = null;
+
+            foreach (var le in ledgerEntries)
+            {
+                string lName = (le.Element("LEDGERNAME")?.Value ?? "").Trim();
+                if (string.IsNullOrWhiteSpace(lName)) continue;
+
+                decimal amt = 0m;
+                string? rawAmt = le.Element("AMOUNT")?.Value;
+                if (!string.IsNullOrWhiteSpace(rawAmt))
+                    decimal.TryParse(rawAmt, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out amt);
+
+                bool isDeemedPositive = string.Equals(le.Element("ISDEEMEDPOSITIVE")?.Value, "Yes", StringComparison.OrdinalIgnoreCase)
+                    || amt < 0m;
+                decimal absAmt = Math.Abs(amt);
+
+                if (isDeemedPositive)
+                {
+                    totalDebit += absAmt;
+                    if (string.IsNullOrEmpty(debitLedger)) debitLedger = lName;
+                }
+                else
+                {
+                    totalCredit += absAmt;
+                    if (string.IsNullOrEmpty(creditLedger)) creditLedger = lName;
+                }
+
+                if (chequeNo == null)
+                {
+                    var bankAlloc = le.Elements("BANKALLOCATIONS.LIST").FirstOrDefault();
+                    if (bankAlloc != null)
+                    {
+                        chequeNo = bankAlloc.Element("INSTRUMENTNUMBER")?.Value?.Trim();
+                        instrDate = ParseTallyDate(bankAlloc.Element("INSTRUMENTDATE")?.Value);
+                    }
+                }
+            }
+
+            decimal finalAmt = Math.Max(totalDebit, totalCredit);
+            if (finalAmt <= 0m) continue;
+            if (string.IsNullOrEmpty(debitLedger)) debitLedger = party ?? "Sundry Debtors";
+            if (string.IsNullOrEmpty(creditLedger)) creditLedger = party ?? "Sundry Creditors";
+
+            result.Add(new ParsedTallyVoucher(
+                VoucherNumber: vchNum,
+                VoucherGuid: vchGuid,
+                VoucherType: vchType,
+                VoucherDate: vchDate,
+                EffectiveDate: effDate,
+                Amount: finalAmt,
+                DebitLedger: debitLedger,
+                CreditLedger: creditLedger,
+                Narration: narration,
+                ChequeNumber: string.IsNullOrWhiteSpace(chequeNo) ? null : chequeNo,
+                InstrumentDate: instrDate,
+                BankPartyName: string.IsNullOrWhiteSpace(party) ? null : party
+            ));
+        }
+
+        return result;
+    }
+
+    private static XDocument ParseSafeXml(string xml)
+    {
+        using var reader = System.Xml.XmlReader.Create(new StringReader(xml), new System.Xml.XmlReaderSettings
+        {
+            DtdProcessing = System.Xml.DtdProcessing.Prohibit,
+            XmlResolver = null,
+            MaxCharactersInDocument = 100_000_000,
+        });
+        return XDocument.Load(reader);
+    }
+
+    private static DateOnly? ParseTallyDate(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return null;
+        string s = raw.Trim();
+        if (s.Length == 8 && DateOnly.TryParseExact(s, "yyyyMMdd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var d1))
+            return d1;
+        if (DateOnly.TryParse(s, out var d2))
+            return d2;
+        return null;
+    }
 }
 
 public static class AiBankLedgerReconciliationEngine

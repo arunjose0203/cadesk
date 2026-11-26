@@ -56,10 +56,57 @@ public static class PersonalTaxExtendedEngine
             if (tdsSal == 0m) tdsSal = req.Employers.Sum(e => Math.Max(0m, e.TdsDeducted));
         }
 
-        decimal stcg111a = req.Stcg111A > 0m ? req.Stcg111A : Math.Max(0m, req.Stcg111ASaleValue - req.Stcg111ACost);
-        decimal ltcg112a = req.Ltcg112A > 0m ? req.Ltcg112A : Math.Max(0m, req.Ltcg112ASaleValue - req.Ltcg112ACost);
-        decimal ltcg112 = req.Ltcg112 > 0m ? req.Ltcg112 : Math.Max(0m, req.Ltcg112SaleValue - req.Ltcg112Cost);
-        decimal vda = req.VdaIncome115BBH > 0m ? req.VdaIncome115BBH : Math.Max(0m, req.VdaConsideration - req.VdaCostOfAcquisition);
+        decimal stcg111aSale = req.Stcg111ASaleValue, stcg111aCost = req.Stcg111ACost, stcg111a = req.Stcg111A;
+        decimal stcgNorm = req.StcgNormal;
+        decimal ltcg112aSale = req.Ltcg112ASaleValue, ltcg112aCost = req.Ltcg112ACost, ltcg112a = req.Ltcg112A;
+        decimal ltcg112Sale = req.Ltcg112SaleValue, ltcg112Cost = req.Ltcg112Cost, ltcg112 = req.Ltcg112;
+        decimal vdaSale = req.VdaConsideration, vdaCost = req.VdaCostOfAcquisition, vda = req.VdaIncome115BBH;
+
+        if (req.CapitalGainTrades is { Count: > 0 })
+        {
+            decimal s111a = 0m, c111a = 0m, gNorm = 0m, s112a = 0m, c112a = 0m, s112 = 0m, c112 = 0m, svda = 0m, cvda = 0m;
+            foreach (var tr in req.CapitalGainTrades)
+            {
+                string cat = tr.AssetCategory?.Trim().ToUpperInvariant() ?? "112A";
+                decimal sale = Math.Max(0m, tr.SaleValue);
+                decimal cost = EffectiveAcquisitionCost(tr);
+                decimal exp = cat == "VDA" ? 0m : Math.Max(0m, tr.TransferExpenses);
+                switch (cat)
+                {
+                    case "111A":
+                        s111a += sale;
+                        c111a += cost + exp;
+                        break;
+                    case "STCG_NORMAL":
+                        gNorm += sale - cost - exp;
+                        break;
+                    case "112A":
+                        s112a += sale;
+                        c112a += cost + exp;
+                        break;
+                    case "112":
+                        s112 += sale;
+                        c112 += cost + exp;
+                        break;
+                    case "VDA":
+                        svda += sale;
+                        cvda += cost;
+                        break;
+                }
+            }
+            if (s111a > 0m) { stcg111aSale = s111a; stcg111aCost = c111a; stcg111a = Math.Max(0m, s111a - c111a); }
+            if (gNorm > 0m) { stcgNorm = gNorm; }
+            if (s112a > 0m) { ltcg112aSale = s112a; ltcg112aCost = c112a; ltcg112a = Math.Max(0m, s112a - c112a); }
+            if (s112 > 0m) { ltcg112Sale = s112; ltcg112Cost = c112; ltcg112 = Math.Max(0m, s112 - c112); }
+            if (svda > 0m) { vdaSale = svda; vdaCost = cvda; vda = Math.Max(0m, svda - cvda); }
+        }
+        else
+        {
+            stcg111a = req.Stcg111A > 0m ? req.Stcg111A : Math.Max(0m, req.Stcg111ASaleValue - req.Stcg111ACost);
+            ltcg112a = req.Ltcg112A > 0m ? req.Ltcg112A : Math.Max(0m, req.Ltcg112ASaleValue - req.Ltcg112ACost);
+            ltcg112 = req.Ltcg112 > 0m ? req.Ltcg112 : Math.Max(0m, req.Ltcg112SaleValue - req.Ltcg112Cost);
+            vda = req.VdaIncome115BBH > 0m ? req.VdaIncome115BBH : Math.Max(0m, req.VdaConsideration - req.VdaCostOfAcquisition);
+        }
 
         decimal itDep = req.IncomeTaxDepreciationSec32;
         if (req.DepreciationBlocks is { Count: > 0 } && itDep == 0m)
@@ -87,15 +134,40 @@ public static class PersonalTaxExtendedEngine
             StatusType = statusType,
             GrossSalary = salary,
             TdsSalary = tdsSal,
+            Stcg111ASaleValue = stcg111aSale,
+            Stcg111ACost = stcg111aCost,
             Stcg111A = stcg111a,
+            StcgNormal = stcgNorm,
+            Ltcg112ASaleValue = ltcg112aSale,
+            Ltcg112ACost = ltcg112aCost,
             Ltcg112A = ltcg112a,
+            Ltcg112SaleValue = ltcg112Sale,
+            Ltcg112Cost = ltcg112Cost,
             Ltcg112 = ltcg112,
+            VdaConsideration = vdaSale,
+            VdaCostOfAcquisition = vdaCost,
             VdaIncome115BBH = vda,
             IncomeTaxDepreciationSec32 = itDep,
             AdvanceTaxPaid = advTax,
             TdsOtherThanSalary = tdsOth,
         };
     }
+
+    public static decimal EffectiveAcquisitionCost(CapitalGainTradeEntry tr)
+    {
+        decimal baseCost = Math.Max(0m, tr.CostOfAcquisition);
+        if (string.Equals(tr.AssetCategory?.Trim(), "112A", StringComparison.OrdinalIgnoreCase)
+            && IsBeforeGrandfatheringCutoff(tr.BuyDate)
+            && tr.FairMarketValueJan2018 > 0m)
+        {
+            decimal lowerFmvOrSale = Math.Min(tr.FairMarketValueJan2018, Math.Max(0m, tr.SaleValue));
+            return Math.Max(baseCost, lowerFmvOrSale);
+        }
+        return baseCost;
+    }
+
+    public static bool IsBeforeGrandfatheringCutoff(string? buyDate)
+        => DateOnly.TryParse(buyDate, out var dt) && dt <= new DateOnly(2018, 1, 31);
 
     private static PersonalRegimeBreakdownDto ComputeRegime(CalculatePersonalExtendedTaxRequest req, bool isNewRegime)
     {

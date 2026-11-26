@@ -9,4 +9,7 @@
     <Project Path="tests/CaDesk.UnitTests/CaDesk.UnitTests.csproj" />
     <Project Path="tests/CaDesk.IntegrationTests/CaDesk.IntegrationTests.csproj" />
   </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/CaDesk.TallyBridge/CaDesk.TallyBridge.csproj" />
+  </Folder>
 </Solution>

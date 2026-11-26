@@ -161,3 +161,55 @@ public record Schedule3SummaryDto(
     int TotalMissingExplanations,
     int RoundingCompliantCount
 );
+
+public record Schedule3LineSnapshot(
+    decimal ShareCapital,
+    decimal ReservesAndSurplus,
+    decimal LongTermBorrowings,
+    decimal DeferredTaxLiabilities,
+    decimal OtherLongTermLiabilities,
+    decimal LongTermProvisions,
+    decimal ShortTermBorrowings,
+    decimal TradePayablesMsme,
+    decimal TradePayablesOthers,
+    decimal OtherCurrentLiabilities,
+    decimal ShortTermProvisions,
+    decimal PropertyPlantEquipment,
+    decimal CapitalWip,
+    decimal NonCurrentInvestments,
+    decimal DeferredTaxAssets,
+    decimal LongTermLoansAndAdvances,
+    decimal OtherNonCurrentAssets,
+    decimal CurrentInvestments,
+    decimal Inventories,
+    decimal TradeReceivables,
+    decimal CashAndBank,
+    decimal ShortTermLoansAndAdvances,
+    decimal OtherCurrentAssets,
+    decimal RevenueFromOperations,
+    decimal OtherIncome,
+    decimal CostOfMaterialsConsumed,
+    decimal PurchasesOfStockInTrade,
+    decimal ChangesInInventories,
+    decimal EmployeeBenefitsExpense,
+    decimal FinanceCosts,
+    decimal DepreciationAndAmortization,
+    decimal OtherExpenses,
+    decimal TaxExpense
+);
+
+public record Schedule3FinancialPackDto(
+    Guid AssessmentId,
+    Guid ClientId,
+    string ClientName,
+    string? Cin,
+    string? Pan,
+    string FinancialYear,
+    string PrecedingFinancialYear,
+    string AccountingStandard,
+    string RoundingUnit,
+    bool DerivedFromTrialBalance,
+    string SourceNote,
+    Schedule3LineSnapshot CurrentYear,
+    Schedule3LineSnapshot PrecedingYear
+);

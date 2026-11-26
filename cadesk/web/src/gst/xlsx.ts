@@ -97,43 +97,12 @@ function formatNumber(v: string): string {
   return String(Math.round(n * 1e8) / 1e8) // removes binary noise such as 0.30000000000000004
 }
 
-export async function readXlsxRows(data: ArrayBuffer): Promise<string[][]> {
-  const buf = new Uint8Array(data)
-  if (buf.length >= 8 && buf[0] === 0xd0 && buf[1] === 0xcf) {
-    throw new Error('This is an old Excel 97-2003 (.xls) file. Open it in Excel and save it as .xlsx, then upload that.')
-  }
-  const entries = readZipDirectory(buf)
-  const workbook = await readPart(buf, entries, 'xl/workbook.xml')
-  if (!workbook) throw new Error('This file is not an Excel workbook.')
-
-  // first sheet in tab order → its part
-  const first = /<sheet\b([^>]*?)\/?>/.exec(workbook)
-  const relId = first ? attr(first[1], 'r:id') : null
-  const rels = (await readPart(buf, entries, 'xl/_rels/workbook.xml.rels')) ?? ''
-  let target = 'worksheets/sheet1.xml'
-  for (const m of rels.matchAll(/<Relationship\b([^>]*?)\/?>/g)) {
-    if (attr(m[1], 'Id') === relId) target = attr(m[1], 'Target') ?? target
-  }
-  const sheetPath = target.startsWith('/') ? target.slice(1) : `xl/${target.replace(/^\.\//, '')}`
-  const sheet = await readPart(buf, entries, sheetPath)
-  if (!sheet) throw new Error('The first worksheet could not be read.')
-  const date1904 = /<workbookPr\b[^>]*date1904="(1|true)"/.test(workbook)
-
-  const sharedXml = (await readPart(buf, entries, 'xl/sharedStrings.xml')) ?? ''
-  const shared = [...sharedXml.matchAll(/<si\b[^>]*>([\s\S]*?)<\/si>|<si\b[^>]*\/>/g)].map(m => textOf(m[1] ?? ''))
-
-  const styles = (await readPart(buf, entries, 'xl/styles.xml')) ?? ''
-  const customFormats = new Map<number, string>()
-  for (const m of styles.matchAll(/<numFmt\b([^>]*?)\/?>/g)) {
-    const id = Number(attr(m[1], 'numFmtId')), code = attr(m[1], 'formatCode') ?? ''
-    customFormats.set(id, code)
-  }
-  const cellXfs = /<cellXfs\b[^>]*>([\s\S]*?)<\/cellXfs>/.exec(styles)?.[1] ?? ''
-  const styleIsDate = [...cellXfs.matchAll(/<xf\b([^>]*?)(?:\/>|>)/g)].map(m => {
-    const id = Number(attr(m[1], 'numFmtId') ?? 0)
-    return BUILTIN_DATE_FORMATS.has(id) || (customFormats.has(id) && isDateFormat(customFormats.get(id)!))
-  })
-
+function parseWorksheetRows(
+  sheet: string,
+  shared: string[],
+  styleIsDate: boolean[],
+  date1904: boolean,
+): string[][] {
   const rows: string[][] = []
   for (const rm of sheet.matchAll(/<row\b([^>]*?)(?:\/>|>([\s\S]*?)<\/row>)/g)) {
     const rowNo = Number(attr(rm[1], 'r') ?? rows.length + 1)
@@ -163,4 +132,62 @@ export async function readXlsxRows(data: ArrayBuffer): Promise<string[][]> {
   }
   // Keep positions so row numbers in messages match Excel's; empty rows are [].
   return Array.from(rows, r => r ?? [])
+}
+
+async function openWorkbookContext(data: ArrayBuffer) {
+  const buf = new Uint8Array(data)
+  if (buf.length >= 8 && buf[0] === 0xd0 && buf[1] === 0xcf) {
+    throw new Error('This is an old Excel 97-2003 (.xls) file. Open it in Excel and save it as .xlsx, then upload that.')
+  }
+  const entries = readZipDirectory(buf)
+  const workbook = await readPart(buf, entries, 'xl/workbook.xml')
+  if (!workbook) throw new Error('This file is not an Excel workbook.')
+  const rels = (await readPart(buf, entries, 'xl/_rels/workbook.xml.rels')) ?? ''
+  const relMap = new Map<string, string>()
+  for (const m of rels.matchAll(/<Relationship\b([^>]*?)\/?>/g)) {
+    const id = attr(m[1], 'Id'), tgt = attr(m[1], 'Target')
+    if (id && tgt) relMap.set(id, tgt)
+  }
+  const date1904 = /<workbookPr\b[^>]*date1904="(1|true)"/.test(workbook)
+  const sharedXml = (await readPart(buf, entries, 'xl/sharedStrings.xml')) ?? ''
+  const shared = [...sharedXml.matchAll(/<si\b[^>]*>([\s\S]*?)<\/si>|<si\b[^>]*\/>/g)].map(m => textOf(m[1] ?? ''))
+  const styles = (await readPart(buf, entries, 'xl/styles.xml')) ?? ''
+  const customFormats = new Map<number, string>()
+  for (const m of styles.matchAll(/<numFmt\b([^>]*?)\/?>/g)) {
+    const id = Number(attr(m[1], 'numFmtId')), code = attr(m[1], 'formatCode') ?? ''
+    customFormats.set(id, code)
+  }
+  const cellXfs = /<cellXfs\b[^>]*>([\s\S]*?)<\/cellXfs>/.exec(styles)?.[1] ?? ''
+  const styleIsDate = [...cellXfs.matchAll(/<xf\b([^>]*?)(?:\/>|>)/g)].map(m => {
+    const id = Number(attr(m[1], 'numFmtId') ?? 0)
+    return BUILTIN_DATE_FORMATS.has(id) || (customFormats.has(id) && isDateFormat(customFormats.get(id)!))
+  })
+  const sheets = [...workbook.matchAll(/<sheet\b([^>]*?)\/?>/g)].map(m => ({
+    name: attr(m[1], 'name') ?? 'Sheet',
+    target: relMap.get(attr(m[1], 'r:id') ?? '') ?? 'worksheets/sheet1.xml',
+  }))
+  return { buf, entries, sheets, shared, styleIsDate, date1904 }
+}
+
+export async function readXlsxRows(data: ArrayBuffer): Promise<string[][]> {
+  const ctx = await openWorkbookContext(data)
+  const firstTarget = ctx.sheets[0]?.target ?? 'worksheets/sheet1.xml'
+  const sheetPath = firstTarget.startsWith('/') ? firstTarget.slice(1) : `xl/${firstTarget.replace(/^\.\//, '')}`
+  const sheet = await readPart(ctx.buf, ctx.entries, sheetPath)
+  if (!sheet) throw new Error('The first worksheet could not be read.')
+  return parseWorksheetRows(sheet, ctx.shared, ctx.styleIsDate, ctx.date1904)
+}
+
+export async function readXlsxAllSheets(data: ArrayBuffer): Promise<{ name: string; rows: string[][] }[]> {
+  const ctx = await openWorkbookContext(data)
+  const result: { name: string; rows: string[][] }[] = []
+  for (const sh of ctx.sheets) {
+    const sheetPath = sh.target.startsWith('/') ? sh.target.slice(1) : `xl/${sh.target.replace(/^\.\//, '')}`
+    const sheetXml = await readPart(ctx.buf, ctx.entries, sheetPath)
+    if (sheetXml) {
+      result.push({ name: sh.name, rows: parseWorksheetRows(sheetXml, ctx.shared, ctx.styleIsDate, ctx.date1904) })
+    }
+  }
+  if (result.length === 0) throw new Error('No readable worksheets found in Excel workbook.')
+  return result
 }

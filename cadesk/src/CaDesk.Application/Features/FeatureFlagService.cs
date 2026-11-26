@@ -11,7 +11,7 @@ public sealed class FeatureFlagService(IAppDbContext db, ITenantContext tenant) 
         if (string.IsNullOrWhiteSpace(featureKey)) return false;
         var normalizedKey = NormalizeKey(featureKey);
 
-        if (tenant.FirmId == Guid.Empty)
+        if (!tenant.HasTenant || tenant.FirmId == Guid.Empty)
         {
             return !FeatureKeys.DisabledByDefault.Contains(normalizedKey, StringComparer.OrdinalIgnoreCase) &&
                    !FeatureKeys.DisabledByDefault.Contains(featureKey, StringComparer.OrdinalIgnoreCase);

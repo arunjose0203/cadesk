@@ -709,6 +709,95 @@ export type TaxComputationDto = {
   updatedAt?: string | null
   businessComputation?: BusinessTaxComputationResultDto | null
   extendedPersonalComputation?: PersonalExtendedTaxResultDto | null
+  trustComputation?: TrustTaxResultDto | null
+}
+
+export type CalculateTrustTaxRequest = {
+  clientId: string
+  assessmentYear: string
+  financialYear: string
+  returnFurnishedSection: '139-4A' | '139-4B' | '139-4C' | '139-4D'
+  sectionExemptionClaimed: string
+  statusOrCompanyType: '4' | '5' | '6' | '7'
+  projectOrInstitutionName?: string | null
+  registration12AbNo?: string | null
+  registration12AbDate?: string | null
+  incorporationDate?: string | null
+  notes?: string | null
+  corpusDonations80G: number
+  corpusDonationsOther: number
+  grantsReceivedGovt: number
+  grantsReceivedCorporate: number
+  otherSpecificAndGeneralDonations: number
+  foreignContributions: number
+  anonymousDonationsReceived: number
+  receiptsFromMainObjects: number
+  receiptsIncidental: number
+  rentIncome: number
+  dividendIncome: number
+  interestIncome: number
+  revenueApplicationCharitable: number
+  capitalApplicationCharitable: number
+  activityCategory: 'Educational' | 'MedicalRelief' | 'ReliefOfPoor' | 'Religious' | 'GeneralPublicUtility'
+  disallowedApplication40aOr40A3: number
+  form10AccumulationUs11_2: number
+  form10Furnished: boolean
+  form10FilingDate?: string | null
+  specifiedViolationIncome115BBI: number
+  corpusFundClosing: number
+  accumulatedFundClosing: number
+  securedLoans: number
+  unsecuredLoans: number
+  fixedAssetsGrossBlock: number
+  fixedAssetsDepreciation: number
+  fixedAssetsNetBlock: number
+  investmentsSec11_5: number
+  sundryDebtors: number
+  cashAndBankBalances: number
+  loansAndAdvances: number
+  sundryCreditors: number
+  provisions: number
+  tdsCredit: number
+  tcsCredit: number
+  advanceTaxPaid: number
+  selfAssessmentTaxPaid: number
+  interest234A: number
+  interest234B: number
+  interest234C: number
+  lateFee234F: number
+}
+
+export type TrustTaxResultDto = {
+  assessmentYear: string
+  financialYear: string
+  returnFurnishedSection: string
+  sectionExemptionClaimed: string
+  grossVoluntaryNonCorpus: number
+  corpusExempt11_1d: number
+  otherObjectAndInvestmentReceipts: number
+  totalEligibleIncome: number
+  statutoryAccumulation15Pct: number
+  required85PctApplication: number
+  totalApplicationClaimed: number
+  disallowedApplication: number
+  netAllowedApplication: number
+  form10Accumulation: number
+  anonymousDonationsTotal: number
+  anonymousDonationsTaxable115BBC: number
+  shortfallTaxableNormalIncome: number
+  specifiedIncome115BBI: number
+  totalTaxableIncome: number
+  taxOnNormalShortfall: number
+  taxOnAnonymous115BBC: number
+  taxOn115BBI: number
+  surcharge: number
+  cess: number
+  interestAndFee: number
+  totalTaxLiability: number
+  prepaidTaxes: number
+  netPayableOrRefund: number
+  summaryNote: string
+  normalizedInput: CalculateTrustTaxRequest
 }
 
 export type SalaryEmployerInput = {
@@ -760,6 +849,20 @@ export type ScheduleAlInput = {
   jewelleryAndBullion: number
   vehiclesAndOther: number
   liabilitiesIncurred: number
+}
+
+export type CapitalGainTradeEntry = {
+  brokerSource: string
+  assetCategory: '111A' | '112A' | '112' | 'STCG_NORMAL' | 'VDA'
+  isinCode?: string | null
+  assetName: string
+  buyDate?: string | null
+  sellDate?: string | null
+  quantity: number
+  saleValue: number
+  costOfAcquisition: number
+  fairMarketValueJan2018: number
+  transferExpenses: number
 }
 
 export type CalculatePersonalExtendedTaxRequest = {
@@ -854,6 +957,7 @@ export type CalculatePersonalExtendedTaxRequest = {
   tdsCreditEntries?: TdsCreditLineInput[] | null
   foreignAssets?: ForeignAssetInput[] | null
   scheduleAl?: ScheduleAlInput | null
+  capitalGainTrades?: CapitalGainTradeEntry[] | null
 }
 
 export type PersonalRegimeBreakdownDto = {
@@ -1250,6 +1354,12 @@ export const taxApi = {
     api<IncomeTaxJsonExportResult>(`/api/tax/computations/${id}/export-itr2`, { method: 'POST', body: JSON.stringify(req) }),
   exportItr3: (id: string, req: ExportItrJsonRequest = {}) =>
     api<IncomeTaxJsonExportResult>(`/api/tax/computations/${id}/export-itr3`, { method: 'POST', body: JSON.stringify(req) }),
+  previewTrust: (req: CalculateTrustTaxRequest) =>
+    api<TrustTaxResultDto>('/api/tax/trust/preview', { method: 'POST', body: JSON.stringify(req) }),
+  saveTrust: (req: CalculateTrustTaxRequest) =>
+    api<TaxComputationDto>('/api/tax/trust/computations', { method: 'POST', body: JSON.stringify(req) }),
+  exportItr7: (id: string, req: ExportItrJsonRequest = {}) =>
+    api<IncomeTaxJsonExportResult>(`/api/tax/computations/${id}/export-itr7`, { method: 'POST', body: JSON.stringify(req) }),
 }
 
 // -------------------------------------------------------------
@@ -5305,7 +5415,61 @@ export const schedule3Api = {
   generateNote: (id: string) =>
     api<{ disclosureNoteText: string }>(`/api/schedule3/assessments/${id}/generate-note`, { method: 'POST' }),
   finalizeAssessment: (id: string, auditorRemarks?: string) =>
-    api<Schedule3AssessmentDto>(`/api/schedule3/assessments/${id}/finalize`, { method: 'POST', body: JSON.stringify({ auditorRemarks }) })
+    api<Schedule3AssessmentDto>(`/api/schedule3/assessments/${id}/finalize`, { method: 'POST', body: JSON.stringify({ auditorRemarks }) }),
+  getFinancialPackData: (id: string) =>
+    api<Schedule3FinancialPackDto>(`/api/schedule3/assessments/${id}/financial-pack-data`),
+}
+
+export type Schedule3LineSnapshot = {
+  shareCapital: number
+  reservesAndSurplus: number
+  longTermBorrowings: number
+  deferredTaxLiabilities: number
+  otherLongTermLiabilities: number
+  longTermProvisions: number
+  shortTermBorrowings: number
+  tradePayablesMsme: number
+  tradePayablesOthers: number
+  otherCurrentLiabilities: number
+  shortTermProvisions: number
+  propertyPlantEquipment: number
+  capitalWip: number
+  nonCurrentInvestments: number
+  deferredTaxAssets: number
+  longTermLoansAndAdvances: number
+  otherNonCurrentAssets: number
+  currentInvestments: number
+  inventories: number
+  tradeReceivables: number
+  cashAndBank: number
+  shortTermLoansAndAdvances: number
+  otherCurrentAssets: number
+  revenueFromOperations: number
+  otherIncome: number
+  costOfMaterialsConsumed: number
+  purchasesOfStockInTrade: number
+  changesInInventories: number
+  employeeBenefitsExpense: number
+  financeCosts: number
+  depreciationAndAmortization: number
+  otherExpenses: number
+  taxExpense: number
+}
+
+export type Schedule3FinancialPackDto = {
+  assessmentId: string
+  clientId: string
+  clientName: string
+  cin?: string | null
+  pan?: string | null
+  financialYear: string
+  precedingFinancialYear: string
+  accountingStandard: string
+  roundingUnit: string
+  derivedFromTrialBalance: boolean
+  sourceNote: string
+  currentYear: Schedule3LineSnapshot
+  precedingYear: Schedule3LineSnapshot
 }
 
 export type BranchAuditOfficeDto = {

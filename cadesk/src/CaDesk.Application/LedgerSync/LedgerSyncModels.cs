@@ -186,3 +186,22 @@ public record ReconciliationSummaryDto(
     decimal ReconciledPercentage,
     int HighConfidenceSuggestionsCount
 );
+
+public record PushAgentTrialBalanceRequest(
+    string AgentToken,
+    string FinancialYear,
+    string XmlContent,
+    string? FileName = null
+);
+
+public record WindowsTallyBridgeBundleDto(
+    Guid AgentId,
+    string AgentName,
+    string CompanyName,
+    string HostUrl,
+    string ScriptFileName,
+    string ConfigFileName,
+    string PowerShellScript,
+    string AppSettingsJson,
+    string DotNetRunCommand
+);

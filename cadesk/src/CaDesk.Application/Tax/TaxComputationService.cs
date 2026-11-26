@@ -216,6 +216,7 @@ public partial class TaxComputationService(IAppDbContext db, ITenantContext tena
     {
         BusinessTaxComputationResultDto? business = null;
         PersonalExtendedTaxResultDto? extendedPersonal = null;
+        TrustTaxResultDto? trust = null;
         if (!string.IsNullOrWhiteSpace(x.ComputationBreakdown))
         {
             if ((x.TaxpayerCategory == TaxpayerCategory.Firm || x.TaxpayerCategory == TaxpayerCategory.Company)
@@ -226,6 +227,10 @@ public partial class TaxComputationService(IAppDbContext db, ITenantContext tena
             else if (x.ComputationBreakdown.Contains("\"returnFormType\"", StringComparison.OrdinalIgnoreCase))
             {
                 extendedPersonal = JsonSerializer.Deserialize<PersonalExtendedTaxResultDto>(x.ComputationBreakdown, JsonOpts);
+            }
+            else if (x.ComputationBreakdown.Contains("\"grossVoluntaryNonCorpus\"", StringComparison.OrdinalIgnoreCase))
+            {
+                trust = JsonSerializer.Deserialize<TrustTaxResultDto>(x.ComputationBreakdown, JsonOpts);
             }
         }
 
@@ -263,7 +268,8 @@ public partial class TaxComputationService(IAppDbContext db, ITenantContext tena
             x.CreatedAt,
             x.UpdatedAt,
             business,
-            extendedPersonal
+            extendedPersonal,
+            trust
         );
     }
 }

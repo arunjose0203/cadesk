@@ -4,6 +4,7 @@ import type {
   PersonalExtendedTaxResultDto,
   RegimeComparisonDto,
   TaxComputationDto,
+  TrustTaxResultDto,
 } from '../api.ts'
 
 const inr = (n: number): string => {
@@ -24,14 +25,17 @@ export type TaxPdfPreviewArgs = {
   comparison?: RegimeComparisonDto | null
   business?: BusinessTaxComputationResultDto | null
   extendedPersonal?: PersonalExtendedTaxResultDto | null
+  trust?: TrustTaxResultDto | null
   tdsTcsCredit?: number
   advanceTaxPaid?: number
   selfAssessmentTax?: number
 }
 
 function inferFormLabel(args: TaxPdfPreviewArgs): string {
+  if (args.trust) return 'ITR-7 (Trust / Institution / Sec 8 Co.)'
   if (args.business) return args.business.entityType === 'firm' ? 'ITR-5 (Firm / LLP / AOP)' : 'ITR-6 (Company)'
   if (args.extendedPersonal) return args.extendedPersonal.returnFormType === 'ITR-3' ? 'ITR-3 (Proprietor / Books u/s 44AB)' : 'ITR-2 (Capital Gains / Multi-HP / VDA / FA)'
+  if (args.taxpayerCategory === 'trust') return 'ITR-7 (Trust / NGO)'
   if (args.taxpayerCategory === 'company') return 'ITR-6 (Company)'
   if (args.taxpayerCategory === 'firm') return 'ITR-5 (Firm / LLP)'
   if (args.comparison && (args.comparison.oldRegime.businessIncome > 0 || args.comparison.newRegime.businessIncome > 0)) {
@@ -56,6 +60,7 @@ export function buildTaxComputationPdfBlocks(
     comparison: comp.comparison,
     business: comp.businessComputation,
     extendedPersonal: comp.extendedPersonalComputation,
+    trust: comp.trustComputation,
     tdsTcsCredit: comp.tdsTcsCredit,
     advanceTaxPaid: comp.advanceTaxPaid,
     selfAssessmentTax: comp.selfAssessmentTax,
@@ -80,12 +85,14 @@ export function buildTaxComputationPreviewPdfBlocks(args: TaxPdfPreviewArgs): Bl
     rows: [
       ['Assessee Name', args.clientName || 'Client Assessee', 'Applicable ITR Form', formLabel],
       ['PAN', args.clientPan || 'As per Client Master', 'Assessment Year / FY', `AY ${args.assessmentYear} / FY ${args.financialYear}`],
-      ['Assessee Status', args.taxpayerCategory.toUpperCase(), 'Opted / Selected Regime', args.optedRegime.toUpperCase()],
+      ['Assessee Status', (args.taxpayerCategory || 'Individual').toUpperCase(), 'Opted / Selected Regime', (args.optedRegime || 'AUTO').toUpperCase()],
       ['Prepared By', args.firmName || 'CaDesk Practice Suite', 'Generated On', preparedDate],
     ],
   })
 
-  if (args.business) {
+  if (args.trust) {
+    appendTrustSections(blocks, args.trust)
+  } else if (args.business) {
     appendBusinessSections(blocks, args.business)
   } else if (args.extendedPersonal) {
     appendPersonalExtendedSections(blocks, args.extendedPersonal)
@@ -362,5 +369,49 @@ function appendBasicPersonalSections(blocks: Block[], args: TaxPdfPreviewArgs): 
     text: `Advisory: Recommended ${cmp.recommendedRegime.toUpperCase()} Regime (Saves ${inr(cmp.taxSavings)}) — ${cmp.recommendationReason}`,
     bold: true,
     size: 9.5,
+  })
+}
+
+function appendTrustSections(blocks: Block[], trust: TrustTaxResultDto): void {
+  blocks.push({
+    kind: 'heading',
+    level: 2,
+    text: `A. Computation of Charitable Trust / Institution Income (u/s ${trust.returnFurnishedSection}, Exemption u/s ${trust.sectionExemptionClaimed})`,
+  })
+  blocks.push({
+    kind: 'table',
+    header: ['Particulars', 'Amount (Rs.)'],
+    align: ['left', 'right'],
+    rows: [
+      ['Corpus Donations Exempt u/s 11(1)(d) (Excluded from Eligible Receipts)', inr(trust.corpusExempt11_1d)],
+      ['Voluntary Contributions (Non-Corpus Govt/Corp/General + Foreign)', inr(trust.grossVoluntaryNonCorpus)],
+      ['Aggregate Income from Trust Objects / Interest / Rent (Schedule AI)', inr(trust.otherObjectAndInvestmentReceipts)],
+      ['Total Eligible Receipts u/s 11 / 12AB', inr(trust.totalEligibleIncome)],
+      ['Less: 15% Unconditional Statutory Accumulation u/s 11(1)(a)', inr(-trust.statutoryAccumulation15Pct)],
+      ['Minimum 85% Income Required to be Applied', inr(trust.required85PctApplication)],
+      ['Less: Revenue & Capital Charitable Application Allowed (Schedule A)', inr(-trust.netAllowedApplication)],
+      ['Less: Specific Accumulation u/s 11(2) (Form 10)', inr(-trust.form10Accumulation)],
+      ['Net Taxable Shortfall at Normal / Slab Rates', inr(trust.shortfallTaxableNormalIncome)],
+      ['Add: Taxable Anonymous Donations u/s 115BBC (@ 30%)', inr(trust.anonymousDonationsTaxable115BBC)],
+      ['Add: Specified Violations Income u/s 115BBI (@ 30%)', inr(trust.specifiedIncome115BBI)],
+      ['Total Taxable Income (ITR-7 Part B-TI)', inr(trust.totalTaxableIncome)],
+    ],
+  })
+
+  blocks.push({ kind: 'heading', level: 2, text: 'B. Tax Computation (Part B-TTI)' })
+  blocks.push({
+    kind: 'table',
+    header: ['Particulars', 'Amount (Rs.)'],
+    align: ['left', 'right'],
+    rows: [
+      ['Tax at Normal Rates on Application Shortfall', inr(trust.taxOnNormalShortfall)],
+      ['Tax @ 30% on Excess Anonymous Donations u/s 115BBC', inr(trust.taxOnAnonymous115BBC)],
+      ['Tax @ 30% on Specified Violations u/s 115BBI', inr(trust.taxOn115BBI)],
+      ['Surcharge + 4% Health & Education Cess', inr(trust.surcharge + trust.cess)],
+      ['Interest u/s 234A/B/C & Fee u/s 234F', inr(trust.interestAndFee)],
+      ['Total Tax & Interest Liability', inr(trust.totalTaxLiability)],
+      ['Less: Prepaid Taxes (TDS + TCS + Advance Tax)', inr(-trust.prepaidTaxes)],
+      [trust.netPayableOrRefund < 0 ? 'Net Refund Due' : 'Net Self-Assessment Tax Payable', inr(trust.netPayableOrRefund)],
+    ],
   })
 }

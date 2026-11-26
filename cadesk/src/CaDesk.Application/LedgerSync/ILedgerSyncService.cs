@@ -27,4 +27,7 @@ public interface ILedgerSyncService
     Task<List<BankLedgerReconciliationMatchDto>> GetReconciliationMatchesAsync(Guid? clientId = null, Guid? bankAccountId = null, CancellationToken ct = default);
     Task<BankLedgerReconciliationMatchDto> ProcessReconciliationActionAsync(Guid matchId, ReconcileMatchActionRequest req, CancellationToken ct = default);
     Task<ReconciliationSummaryDto> GetReconciliationSummaryAsync(Guid clientId, Guid bankAccountId, CancellationToken ct = default);
+    // Agent Trial Balance Push & Windows Tally XML Bridge Generator
+    Task<TrialBalance.TrialBalanceImportDto> PushAgentTrialBalanceAsync(PushAgentTrialBalanceRequest req, CancellationToken ct = default);
+    Task<WindowsTallyBridgeBundleDto?> BuildWindowsBridgeBundleAsync(Guid agentId, string apiBaseUrl, CancellationToken ct = default);
 }

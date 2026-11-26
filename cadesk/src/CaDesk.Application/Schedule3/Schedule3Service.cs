@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using CaDesk.Application.Abstractions;
 using CaDesk.Domain.Schedule3;
+using CaDesk.Domain.TrialBalance;
 using Microsoft.EntityFrameworkCore;
 
 namespace CaDesk.Application.Schedule3;
@@ -327,6 +328,172 @@ public class Schedule3Service
 
         await _db.SaveChangesAsync(ct);
         return await GetAssessmentByIdAsync(id, ct);
+    }
+
+    public async Task<Schedule3FinancialPackDto> GetFinancialPackDataAsync(Guid id, CancellationToken ct = default)
+    {
+        var assessment = await _db.Schedule3Assessments
+            .Include(a => a.Client)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(a => a.Id == id, ct)
+            ?? throw new KeyNotFoundException($"Schedule III assessment {id} not found.");
+
+        var company = await _db.Companies.AsNoTracking()
+            .FirstOrDefaultAsync(c => c.ClientId == assessment.ClientId, ct);
+
+        var imports = await _db.TrialBalanceImports
+            .Include(x => x.Ledgers)
+            .AsNoTracking()
+            .Where(x => x.ClientId == assessment.ClientId)
+            .OrderByDescending(x => x.CreatedAt)
+            .ToListAsync(ct);
+
+        var currTb = imports.FirstOrDefault(i => i.FinancialYear == assessment.FinancialYear) ?? imports.FirstOrDefault();
+        var prevTb = imports.FirstOrDefault(i => i.FinancialYear == assessment.PrecedingFinancialYear);
+
+        static Schedule3LineSnapshot FromLedgers(IReadOnlyCollection<TrialBalanceLedger> ledgers, bool useOpening)
+        {
+            decimal Nat(string group) => ledgers
+                .Where(l => l.Schedule3Group == group)
+                .Sum(l => TrialBalanceConstants.NaturalBalance(group, useOpening ? l.OpeningBalance : l.ClosingBalance));
+
+            return new Schedule3LineSnapshot(
+                ShareCapital: Nat(TrialBalanceConstants.S3ShareCapital),
+                ReservesAndSurplus: Nat(TrialBalanceConstants.S3ReservesAndSurplus),
+                LongTermBorrowings: Nat(TrialBalanceConstants.S3LongTermBorrowings),
+                DeferredTaxLiabilities: Nat(TrialBalanceConstants.S3DeferredTaxLiabilities),
+                OtherLongTermLiabilities: Nat(TrialBalanceConstants.S3OtherLongTermLiabilities),
+                LongTermProvisions: Nat(TrialBalanceConstants.S3LongTermProvisions),
+                ShortTermBorrowings: Nat(TrialBalanceConstants.S3ShortTermBorrowings),
+                TradePayablesMsme: Nat(TrialBalanceConstants.S3TradePayablesMsme),
+                TradePayablesOthers: Nat(TrialBalanceConstants.S3TradePayablesOthers),
+                OtherCurrentLiabilities: Nat(TrialBalanceConstants.S3OtherCurrentLiabilities),
+                ShortTermProvisions: Nat(TrialBalanceConstants.S3ShortTermProvisions),
+                PropertyPlantEquipment: Nat(TrialBalanceConstants.S3PropertyPlantEquipment),
+                CapitalWip: Nat(TrialBalanceConstants.S3CapitalWip),
+                NonCurrentInvestments: Nat(TrialBalanceConstants.S3NonCurrentInvestments),
+                DeferredTaxAssets: Nat(TrialBalanceConstants.S3DeferredTaxAssets),
+                LongTermLoansAndAdvances: Nat(TrialBalanceConstants.S3LongTermLoansAndAdvances),
+                OtherNonCurrentAssets: Nat(TrialBalanceConstants.S3OtherNonCurrentAssets),
+                CurrentInvestments: Nat(TrialBalanceConstants.S3CurrentInvestments),
+                Inventories: Nat(TrialBalanceConstants.S3Inventories),
+                TradeReceivables: Nat(TrialBalanceConstants.S3TradeReceivables),
+                CashAndBank: Nat(TrialBalanceConstants.S3CashAndBank),
+                ShortTermLoansAndAdvances: Nat(TrialBalanceConstants.S3ShortTermLoansAndAdvances),
+                OtherCurrentAssets: Nat(TrialBalanceConstants.S3OtherCurrentAssets),
+                RevenueFromOperations: useOpening ? 0m : Nat(TrialBalanceConstants.S3RevenueFromOperations),
+                OtherIncome: useOpening ? 0m : Nat(TrialBalanceConstants.S3OtherIncome),
+                CostOfMaterialsConsumed: useOpening ? 0m : Nat(TrialBalanceConstants.S3CostOfMaterialsConsumed),
+                PurchasesOfStockInTrade: useOpening ? 0m : Nat(TrialBalanceConstants.S3PurchasesOfStockInTrade),
+                ChangesInInventories: useOpening ? 0m : Nat(TrialBalanceConstants.S3ChangesInInventories),
+                EmployeeBenefitsExpense: useOpening ? 0m : Nat(TrialBalanceConstants.S3EmployeeBenefitsExpense),
+                FinanceCosts: useOpening ? 0m : Nat(TrialBalanceConstants.S3FinanceCosts),
+                DepreciationAndAmortization: useOpening ? 0m : Nat(TrialBalanceConstants.S3DepreciationAndAmortization),
+                OtherExpenses: useOpening ? 0m : Nat(TrialBalanceConstants.S3OtherExpenses),
+                TaxExpense: useOpening ? 0m : Nat(TrialBalanceConstants.S3TaxExpense)
+            );
+        }
+
+        static Schedule3LineSnapshot FromSummary(
+            decimal rev, decimal totInc, decimal cogs, decimal ebit, decimal pat,
+            decimal equity, decimal totDebt, decimal currLiab, decimal currAssets, decimal avgInv, decimal avgRec, decimal avgPay, decimal avgInvst, decimal capEmp, decimal debtSvc)
+        {
+            decimal ltDebt = Math.Max(0m, totDebt - Math.Min(totDebt, currLiab * 0.25m));
+            decimal stDebt = Math.Max(0m, totDebt - ltDebt);
+            decimal payables = Math.Min(avgPay, Math.Max(0m, currLiab - stDebt));
+            decimal othCurrLiab = Math.Max(0m, currLiab - stDebt - payables);
+            decimal shareCap = Math.Round(equity * 0.30m, 0);
+            decimal reserves = equity - shareCap;
+            decimal nonCurrAssets = Math.Max(0m, capEmp + currLiab - currAssets);
+            decimal cash = Math.Max(0m, currAssets - avgInv - avgRec - avgInvst);
+            decimal otherInc = Math.Max(0m, totInc - rev);
+            decimal finCost = Math.Max(0m, Math.Min(debtSvc, ebit * 0.35m));
+            decimal pbt = ebit - finCost;
+            decimal taxExp = Math.Max(0m, pbt - pat);
+            decimal opEx = Math.Max(0m, totInc - cogs - ebit);
+
+            return new Schedule3LineSnapshot(
+                ShareCapital: shareCap, ReservesAndSurplus: reserves,
+                LongTermBorrowings: ltDebt, DeferredTaxLiabilities: 0m, OtherLongTermLiabilities: 0m, LongTermProvisions: 0m,
+                ShortTermBorrowings: stDebt, TradePayablesMsme: 0m, TradePayablesOthers: payables, OtherCurrentLiabilities: othCurrLiab, ShortTermProvisions: 0m,
+                PropertyPlantEquipment: Math.Max(0m, nonCurrAssets - Math.Min(nonCurrAssets, avgInvst)), CapitalWip: 0m,
+                NonCurrentInvestments: Math.Min(nonCurrAssets, avgInvst), DeferredTaxAssets: 0m, LongTermLoansAndAdvances: 0m, OtherNonCurrentAssets: 0m,
+                CurrentInvestments: 0m, Inventories: avgInv, TradeReceivables: avgRec, CashAndBank: cash, ShortTermLoansAndAdvances: 0m, OtherCurrentAssets: 0m,
+                RevenueFromOperations: rev, OtherIncome: otherInc, CostOfMaterialsConsumed: cogs, PurchasesOfStockInTrade: 0m, ChangesInInventories: 0m,
+                EmployeeBenefitsExpense: Math.Round(opEx * 0.50m, 0), FinanceCosts: finCost, DepreciationAndAmortization: Math.Round(opEx * 0.15m, 0),
+                OtherExpenses: Math.Round(opEx * 0.35m, 0), TaxExpense: taxExp);
+        }
+
+        Schedule3LineSnapshot curr = currTb is { Ledgers.Count: > 0 }
+            ? FromLedgers(currTb.Ledgers, useOpening: false)
+            : FromSummary(
+                assessment.RevenueFromOperationsCurrent, assessment.TotalIncomeCurrent, assessment.CostOfGoodsSoldCurrent,
+                assessment.EbitCurrent, assessment.NetProfitAfterTaxesCurrent, assessment.ShareholdersEquityCurrent,
+                assessment.TotalDebtCurrent, assessment.CurrentLiabilitiesCurrent, assessment.CurrentAssetsCurrent,
+                assessment.AverageInventoryCurrent, assessment.AverageTradeReceivablesCurrent, assessment.AverageTradePayablesCurrent,
+                assessment.AverageInvestmentsCurrent, assessment.CapitalEmployedCurrent, assessment.DebtServiceCurrent);
+
+        Schedule3LineSnapshot prev;
+        if (prevTb is { Ledgers.Count: > 0 })
+        {
+            prev = FromLedgers(prevTb.Ledgers, useOpening: false);
+        }
+        else if (currTb is { Ledgers.Count: > 0 } && currTb.Ledgers.Any(l => l.OpeningBalance != 0m))
+        {
+            var openBs = FromLedgers(currTb.Ledgers, useOpening: true);
+            var sumPrev = FromSummary(
+                assessment.RevenueFromOperationsPreceding, assessment.TotalIncomePreceding, assessment.CostOfGoodsSoldPreceding,
+                assessment.EbitPreceding, assessment.NetProfitAfterTaxesPreceding, assessment.ShareholdersEquityPreceding,
+                assessment.TotalDebtPreceding, assessment.CurrentLiabilitiesPreceding, assessment.CurrentAssetsPreceding,
+                assessment.AverageInventoryPreceding, assessment.AverageTradeReceivablesPreceding, assessment.AverageTradePayablesPreceding,
+                assessment.AverageInvestmentsPreceding, assessment.CapitalEmployedPreceding, assessment.DebtServicePreceding);
+            prev = openBs with
+            {
+                RevenueFromOperations = sumPrev.RevenueFromOperations,
+                OtherIncome = sumPrev.OtherIncome,
+                CostOfMaterialsConsumed = sumPrev.CostOfMaterialsConsumed,
+                EmployeeBenefitsExpense = sumPrev.EmployeeBenefitsExpense,
+                FinanceCosts = sumPrev.FinanceCosts,
+                DepreciationAndAmortization = sumPrev.DepreciationAndAmortization,
+                OtherExpenses = sumPrev.OtherExpenses,
+                TaxExpense = sumPrev.TaxExpense,
+            };
+        }
+        else
+        {
+            prev = FromSummary(
+                assessment.RevenueFromOperationsPreceding, assessment.TotalIncomePreceding, assessment.CostOfGoodsSoldPreceding,
+                assessment.EbitPreceding, assessment.NetProfitAfterTaxesPreceding, assessment.ShareholdersEquityPreceding,
+                assessment.TotalDebtPreceding, assessment.CurrentLiabilitiesPreceding, assessment.CurrentAssetsPreceding,
+                assessment.AverageInventoryPreceding, assessment.AverageTradeReceivablesPreceding, assessment.AverageTradePayablesPreceding,
+                assessment.AverageInvestmentsPreceding, assessment.CapitalEmployedPreceding, assessment.DebtServicePreceding);
+        }
+
+        string? pan = assessment.Client?.TaxIds is not null
+            ? assessment.Client.TaxIds.FirstOrDefault(kv => string.Equals(kv.Key, "PAN", StringComparison.OrdinalIgnoreCase)).Value
+            : null;
+        string? cin = !string.IsNullOrWhiteSpace(company?.Cin)
+            ? company.Cin
+            : assessment.Client?.TaxIds?.FirstOrDefault(kv => string.Equals(kv.Key, "CIN", StringComparison.OrdinalIgnoreCase)).Value;
+        string note = currTb is not null
+            ? $"Derived from synced Trial Balance '{currTb.FileName}' (FY {currTb.FinancialYear}; {currTb.TotalLedgersCount} ledgers)."
+            : "Derived from Schedule III Assessment analytical summary figures (upload & sync Trial Balance for full ledger-level breakup).";
+
+        return new Schedule3FinancialPackDto(
+            AssessmentId: assessment.Id,
+            ClientId: assessment.ClientId,
+            ClientName: assessment.Client?.LegalName ?? assessment.Client?.Name ?? "Company Assessee",
+            Cin: cin,
+            Pan: pan,
+            FinancialYear: assessment.FinancialYear,
+            PrecedingFinancialYear: assessment.PrecedingFinancialYear,
+            AccountingStandard: assessment.AccountingStandard,
+            RoundingUnit: assessment.RoundingUnit,
+            DerivedFromTrialBalance: currTb is not null,
+            SourceNote: note,
+            CurrentYear: curr,
+            PrecedingYear: prev
+        );
     }
 
     private static Schedule3AssessmentDto ToDto(Schedule3Assessment a)

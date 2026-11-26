@@ -246,6 +246,28 @@ public static class UniversalTrialBalanceParser
                     ledgers.Add(new ParsedTallyLedger(name.Trim(), parent.Trim(), 0m, dr, cr, closing));
                 }
             }
+
+            if (ledgers.Count == 0)
+            {
+                // Native TallyPrime Trial Balance XML emits paired DSPACCNAME / DSPACCINFO sibling nodes
+                var dspNames = doc.Descendants("DSPACCNAME").ToList();
+                var dspInfos = doc.Descendants("DSPACCINFO").ToList();
+                int count = Math.Min(dspNames.Count, dspInfos.Count);
+                for (int idx = 0; idx < count; idx++)
+                {
+                    var name = dspNames[idx].Element("DSPDISPNAME")?.Value ?? dspNames[idx].Value;
+                    if (string.IsNullOrWhiteSpace(name)) continue;
+
+                    var clAmtEl = dspInfos[idx].Descendants("DSPCLAMTA").FirstOrDefault()
+                                  ?? dspInfos[idx].Descendants("DSPCLDR").FirstOrDefault();
+                    decimal closing = ParseAmount(clAmtEl?.Value ?? "0");
+                    decimal dr = closing > 0 ? closing : 0m;
+                    decimal cr = closing < 0 ? Math.Abs(closing) : 0m;
+                    if (dr == 0m && cr == 0m) continue;
+
+                    ledgers.Add(new ParsedTallyLedger(name.Trim(), "TallyPrime Trial Balance", 0m, dr, cr, closing));
+                }
+            }
         }
         catch (Exception ex)
         {

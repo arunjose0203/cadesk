@@ -363,3 +363,70 @@ test('builds printable Statement of Total Income PDF for ITR-5 Firm / LLP busine
   assert.equal(String.fromCharCode(...pdfBytes.slice(0, 8)), '%PDF-1.4')
   assert.ok(pdfBytes.length > 2500)
 })
+
+test('builds printable Statement of Total Income PDF for ITR-7 Trust / NGO u/s 11 & 115BBC', () => {
+  const trustComp: TaxComputationDto = {
+    id: '44444444-4444-4444-4444-444444444444',
+    clientId: '11111111-1111-1111-1111-111111111111',
+    clientName: 'Malabar Educational Trust',
+    assessmentYear: '2026-27',
+    financialYear: '2025-26',
+    taxpayerCategory: 'Individual',
+    optedRegime: 'ITR-7',
+    recommendedRegime: 'ITR-7',
+    taxSavings: 0,
+    grossSalary: 0,
+    housePropertyIncome: 0,
+    businessIncome: 0,
+    capitalGains: 0,
+    otherIncome: 3800000,
+    grossTotalIncome: 3800000,
+    totalDeductions: 3250000,
+    taxableIncome: 150000,
+    taxOnIncomeOld: 51000,
+    taxOnIncomeNew: 51000,
+    surcharge: 0,
+    cess: 2040,
+    totalTaxLiability: 53040,
+    tdsAndAdvanceTax: 25000,
+    netTaxPayable: 28040,
+    status: 'Computed',
+    createdAt: '2026-11-26T00:00:00Z',
+    trustComputation: {
+      assessmentYear: '2026-27',
+      financialYear: '2025-26',
+      returnFurnishedSection: '139-4A',
+      sectionExemptionClaimed: '11',
+      grossVoluntaryNonCorpus: 1800000,
+      corpusExempt11_1d: 500000,
+      otherObjectAndInvestmentReceipts: 2000000,
+      totalEligibleIncome: 3900000,
+      statutoryAccumulation15Pct: 585000,
+      required85PctApplication: 3315000,
+      totalApplicationClaimed: 3350000,
+      disallowedApplication: 25000,
+      netAllowedApplication: 3325000,
+      form10Accumulation: 0,
+      anonymousDonationsTotal: 350000,
+      anonymousDonationsTaxable115BBC: 150000,
+      shortfallTaxableNormalIncome: 0,
+      specifiedIncome115BBI: 0,
+      totalTaxableIncome: 150000,
+      taxOnNormalShortfall: 0,
+      taxOnAnonymous115BBC: 45000,
+      taxOn115BBI: 0,
+      surcharge: 0,
+      cess: 1800,
+      interestAndFee: 0,
+      totalTaxLiability: 46800,
+      prepaidTaxes: 25000,
+      netPayableOrRefund: 21800,
+      summaryNote: 'Sec 115BBC anonymous donation tax triggered above threshold.',
+      normalizedInput: {} as never,
+    },
+  }
+  const blocks = buildTaxComputationPdfBlocks(trustComp, { clientPan: 'AAATM1234E' })
+  const pdfBytes = renderPdf(blocks, { title: 'ITR-7 Computation - Malabar Educational Trust' })
+  assert.equal(String.fromCharCode(...pdfBytes.slice(0, 8)), '%PDF-1.4')
+  assert.ok(pdfBytes.length > 2500)
+})

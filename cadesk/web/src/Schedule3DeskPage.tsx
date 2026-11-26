@@ -8,6 +8,9 @@ import {
   schedule3Api,
   api
 } from './api'
+import { PdfActions } from './pdf/PdfActions'
+import { buildSchedule3FinancialPackBlocks } from './schedule3/schedule3FinancialPackPdf'
+import { CmaBuilderPanel } from './schedule3/CmaBuilderPanel'
 
 const fmtInr = (n: number) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n || 0)
@@ -30,7 +33,7 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
 
   // Selected assessment
   const [selectedAssessment, setSelectedAssessment] = useState<Schedule3AssessmentDto | null>(null)
-  const [activeTab, setActiveTab] = useState<'ratios' | 'ageing' | 'note'>('ratios')
+  const [activeTab, setActiveTab] = useState<'ratios' | 'ageing' | 'note' | 'cma'>('ratios')
   const [ageingSubTab, setAgeingSubTab] = useState<'TradeReceivables' | 'TradePayables' | 'CWIP'>('TradeReceivables')
 
   // Modals
@@ -489,7 +492,22 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                <PdfActions
+                  title={`Statutory Financial Pack - ${selectedAssessment.clientName ?? 'Company'} - FY ${selectedAssessment.financialYear}`}
+                  options={{
+                    author: 'CaDesk Practice Suite',
+                    header: `${selectedAssessment.clientName ?? 'Company'} • Schedule III Financial Statements • FY ${selectedAssessment.financialYear}`,
+                    footer: `CaDesk Companies Act 2013 Schedule III Pack • ${selectedAssessment.accountingStandard}`,
+                  }}
+                  source={async () => {
+                    const pack = await schedule3Api.getFinancialPackData(selectedAssessment.id)
+                    return buildSchedule3FinancialPackBlocks({ assessment: selectedAssessment, pack })
+                  }}
+                  clientId={selectedAssessment.clientId}
+                  fy={selectedAssessment.financialYear}
+                  canSave={true}
+                />
                 <button
                   onClick={handleRegenerateNote}
                   style={{
@@ -606,6 +624,21 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                 }}
               >
                 Schedule III Note Preview
+              </button>
+              <button
+                onClick={() => setActiveTab('cma')}
+                style={{
+                  padding: '10px 18px',
+                  border: 'none',
+                  borderBottom: activeTab === 'cma' ? '2px solid var(--accent)' : 'none',
+                  backgroundColor: 'transparent',
+                  color: activeTab === 'cma' ? 'var(--accent)' : 'var(--muted)',
+                  fontWeight: activeTab === 'cma' ? '700' : '500',
+                  cursor: 'pointer',
+                  fontSize: '14px'
+                }}
+              >
+                CMA Data &amp; Bank Projections
               </button>
             </div>
 
@@ -858,6 +891,11 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                   }}
                 />
               </div>
+            )}
+
+            {/* Tab 4: CMA Data & Bank Projections */}
+            {activeTab === 'cma' && (
+              <CmaBuilderPanel assessment={selectedAssessment} />
             )}
           </div>
         )}

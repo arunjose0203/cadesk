@@ -13,8 +13,9 @@ public static class TaxpayerCategory
     public const string Huf = "huf";
     public const string Firm = "firm";
     public const string Company = "company";
+    public const string Trust = "trust";
 
-    public static readonly string[] All = [Individual, SeniorCitizen, SuperSenior, Huf, Firm, Company];
+    public static readonly string[] All = [Individual, SeniorCitizen, SuperSenior, Huf, Firm, Company, Trust];
 }
 
 public static class TaxRegime

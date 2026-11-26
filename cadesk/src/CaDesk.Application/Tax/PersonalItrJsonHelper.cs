@@ -58,6 +58,76 @@ internal static class PersonalItrJsonHelper
         }
     };
 
+    public static JsonObject QuarterlyBucketDateRange(
+        IEnumerable<CapitalGainTradeEntry>? trades,
+        Func<CapitalGainTradeEntry, bool> predicate,
+        long targetTotal,
+        bool useUp16Of6Key = false)
+    {
+        if (targetTotal <= 0 || trades is null)
+            return SingleBucketDateRange(targetTotal, useUp16Of6Key);
+
+        long[] b = new long[5];
+        foreach (var tr in trades.Where(predicate))
+        {
+            decimal cost = PersonalTaxExtendedEngine.EffectiveAcquisitionCost(tr);
+            decimal exp = string.Equals(tr.AssetCategory, "VDA", StringComparison.OrdinalIgnoreCase) ? 0m : Math.Max(0m, tr.TransferExpenses);
+            long gain = ToRupees(Math.Max(0m, tr.SaleValue - cost - exp));
+            if (gain <= 0) continue;
+
+            int bucket = 4; // default Up16Of3To31Of3
+            if (DateOnly.TryParse(tr.SellDate, out var dt))
+            {
+                int m = dt.Month, d = dt.Day;
+                if (m is 4 or 5 || (m == 6 && d <= 15)) bucket = 0; // Apr 1 - Jun 15
+                else if (m is 6 or 7 or 8 || (m == 9 && d <= 15)) bucket = 1; // Jun 16 - Sep 15
+                else if (m is 9 or 10 or 11 || (m == 12 && d <= 15)) bucket = 2; // Sep 16 - Dec 15
+                else if (m is 12 or 1 or 2 || (m == 3 && d <= 15)) bucket = 3; // Dec 16 - Mar 15
+                else bucket = 4; // Mar 16 - Mar 31
+            }
+            b[bucket] += gain;
+        }
+
+        long sum = b[0] + b[1] + b[2] + b[3] + b[4];
+        if (sum == 0)
+            return SingleBucketDateRange(targetTotal, useUp16Of6Key);
+
+        if (sum != targetTotal)
+        {
+            long diff = targetTotal - sum;
+            for (int i = 4; i >= 0; i--)
+            {
+                if (b[i] + diff >= 0) { b[i] += diff; break; }
+            }
+        }
+
+        return new JsonObject
+        {
+            ["DateRange"] = new JsonObject
+            {
+                ["Upto15Of6"] = b[0],
+                [useUp16Of6Key ? "Up16Of6To15Of9" : "Upto15Of9"] = b[1],
+                ["Up16Of9To15Of12"] = b[2],
+                ["Up16Of12To15Of3"] = b[3],
+                ["Up16Of3To31Of3"] = b[4],
+            }
+        };
+    }
+
+    private static string NormalizeIsinCode(string? isin, bool isBeforeJan2018)
+    {
+        if (!string.IsNullOrWhiteSpace(isin))
+        {
+            var clean = isin.Trim().ToUpperInvariant();
+            if (System.Text.RegularExpressions.Regex.IsMatch(clean, @"^IN[0-9A-Z]{10}$"))
+                return clean;
+        }
+        return isBeforeJan2018 ? "INE000A01001" : "INNOTREQUIRD";
+    }
+
+    private static string NormalizeTradeDate(string? raw, string fallback) =>
+        DateOnly.TryParse(raw, out var d) ? d.ToString("yyyy-MM-dd") : fallback;
+
     public static JsonObject? BuildScheduleS(CalculatePersonalExtendedTaxRequest input, PersonalRegimeBreakdownDto active, Client client, ExportItrJsonRequest? req)
     {
         if (input.GrossSalary <= 0m && (input.Employers is null || input.Employers.Count == 0))
@@ -341,14 +411,15 @@ internal static class PersonalItrJsonHelper
 
         var accru = new JsonObject
         {
-            ["ShortTermUnder20Per"] = SingleBucketDateRange(st111a, useUp16Of6Key: false),
+            ["ShortTermUnder20Per"] = QuarterlyBucketDateRange(input.CapitalGainTrades, t => string.Equals(t.AssetCategory, "111A", StringComparison.OrdinalIgnoreCase), st111a, false),
             ["ShortTermUnder30Per"] = ZeroDateRange(false),
-            ["ShortTermUnderAppRate"] = SingleBucketDateRange(stNorm, useUp16Of6Key: false),
+            ["ShortTermUnderAppRate"] = QuarterlyBucketDateRange(input.CapitalGainTrades, t => string.Equals(t.AssetCategory, "STCG_NORMAL", StringComparison.OrdinalIgnoreCase), stNorm, false),
             ["ShortTermUnderDTAARate"] = ZeroDateRange(false),
-            ["LongTermUnder12_5Per"] = SingleBucketDateRange(totLt, useUp16Of6Key: false),
+            ["LongTermUnder12_5Per"] = QuarterlyBucketDateRange(input.CapitalGainTrades, t => string.Equals(t.AssetCategory, "112A", StringComparison.OrdinalIgnoreCase) || string.Equals(t.AssetCategory, "112", StringComparison.OrdinalIgnoreCase), totLt, false),
             ["LongTermUnderDTAARate"] = ZeroDateRange(false),
         };
-        if (isItr3 || vda > 0) accru["VDATrnsfGainsUnder30Per"] = SingleBucketDateRange(vda, useUp16Of6Key: false);
+        if (isItr3 || vda > 0)
+            accru["VDATrnsfGainsUnder30Per"] = QuarterlyBucketDateRange(input.CapitalGainTrades, t => string.Equals(t.AssetCategory, "VDA", StringComparison.OrdinalIgnoreCase), vda, false);
 
         var schedCg = new JsonObject
         {
@@ -363,62 +434,144 @@ internal static class PersonalItrJsonHelper
         schedCg["AccruOrRecOfCG"] = accru;
 
         JsonObject? sched112A = null;
-        if (lt112a > 0)
+        var ltcg112aTrades = input.CapitalGainTrades?.Where(t => string.Equals(t.AssetCategory, "112A", StringComparison.OrdinalIgnoreCase)).ToList() ?? [];
+        if (lt112a > 0 || ltcg112aTrades.Count > 0)
         {
-            long sale112 = input.Ltcg112ASaleValue > 0m ? ToRupees(input.Ltcg112ASaleValue) : lt112a;
-            long cost112 = Math.Max(0L, sale112 - lt112a);
+            var dtls112a = new JsonArray();
+            long totSale112 = 0, totOrigCost = 0, totAcqCost = 0, totLower = 0, totFmv = 0, totExp = 0, totDed112 = 0;
+            long totBal = 0;
+
+            if (ltcg112aTrades.Count > 0)
+            {
+                foreach (var tr in ltcg112aTrades)
+                {
+                    bool isBe = PersonalTaxExtendedEngine.IsBeforeGrandfatheringCutoff(tr.BuyDate);
+                    long saleRow = ToRupees(tr.SaleValue);
+                    long origCost = ToRupees(tr.CostOfAcquisition);
+                    long fmvTot = isBe && tr.FairMarketValueJan2018 > 0m ? ToRupees(tr.FairMarketValueJan2018) : 0L;
+                    decimal unitFmv = isBe && tr.FairMarketValueJan2018 > 0m && tr.Quantity > 0m
+                        ? Math.Round(tr.FairMarketValueJan2018 / tr.Quantity, 4)
+                        : (isBe ? fmvTot : 0m);
+                    long lowerB1B2 = isBe && fmvTot > 0 ? Math.Min(saleRow, fmvTot) : origCost;
+                    long effAcq = isBe && fmvTot > 0 ? Math.Max(origCost, lowerB1B2) : origCost;
+                    long expRow = ToRupees(tr.TransferExpenses);
+                    long dedRow = effAcq + expRow;
+                    long balRow = saleRow - dedRow;
+
+                    var rowObj = new JsonObject
+                    {
+                        ["ShareOnOrBefore"] = isBe ? "BE" : "AE",
+                        ["ISINCode"] = NormalizeIsinCode(tr.IsinCode, isBe),
+                        ["ShareUnitName"] = Trunc(tr.AssetName, 125, isBe ? "Listed Equity Share" : "CONSOLIDATED"),
+                    };
+                    if (tr.Quantity > 0m)
+                    {
+                        rowObj["NumSharesUnits"] = Math.Round(tr.Quantity, 4);
+                        rowObj["SalePricePerShareUnit"] = Math.Round(tr.SaleValue / tr.Quantity, 4);
+                    }
+                    rowObj["TotSaleValue"] = saleRow;
+                    rowObj["CostAcqWithoutIndx"] = origCost;
+                    rowObj["AcquisitionCost"] = effAcq;
+                    rowObj["LTCGBeforelowerB1B2"] = lowerB1B2;
+                    rowObj["FairMktValuePerShareunit"] = unitFmv;
+                    rowObj["TotFairMktValueCapAst"] = fmvTot;
+                    rowObj["ExpExclCnctTransfer"] = expRow;
+                    rowObj["TotalDeductions"] = dedRow;
+                    rowObj["Balance"] = balRow;
+                    dtls112a.Add(rowObj);
+
+                    totSale112 += saleRow;
+                    totOrigCost += origCost;
+                    totAcqCost += effAcq;
+                    totLower += lowerB1B2;
+                    totFmv += fmvTot;
+                    totExp += expRow;
+                    totDed112 += dedRow;
+                    totBal += balRow;
+                }
+            }
+            else
+            {
+                long sale112 = input.Ltcg112ASaleValue > 0m ? ToRupees(input.Ltcg112ASaleValue) : lt112a;
+                long cost112 = Math.Max(0L, sale112 - lt112a);
+                dtls112a.Add(new JsonObject
+                {
+                    ["ShareOnOrBefore"] = "AE",
+                    ["ISINCode"] = "INE000A01001",
+                    ["ShareUnitName"] = "Listed Equity Shares / Mutual Fund",
+                    ["TotSaleValue"] = sale112,
+                    ["CostAcqWithoutIndx"] = cost112,
+                    ["AcquisitionCost"] = cost112,
+                    ["LTCGBeforelowerB1B2"] = cost112,
+                    ["FairMktValuePerShareunit"] = 0,
+                    ["TotFairMktValueCapAst"] = 0,
+                    ["ExpExclCnctTransfer"] = 0,
+                    ["TotalDeductions"] = cost112,
+                    ["Balance"] = lt112a,
+                });
+                totSale112 = sale112; totOrigCost = cost112; totAcqCost = cost112; totLower = cost112; totDed112 = cost112; totBal = lt112a;
+            }
+
             sched112A = new JsonObject
             {
-                ["Schedule112ADtls"] = new JsonArray
-                {
-                    new JsonObject
-                    {
-                        ["ShareOnOrBefore"] = "AE",
-                        ["ISINCode"] = "INE000A01001",
-                        ["ShareUnitName"] = "Listed Equity Shares / Mutual Fund",
-                        ["TotSaleValue"] = sale112,
-                        ["CostAcqWithoutIndx"] = cost112,
-                        ["AcquisitionCost"] = cost112,
-                        ["LTCGBeforelowerB1B2"] = cost112,
-                        ["FairMktValuePerShareunit"] = 0,
-                        ["TotFairMktValueCapAst"] = 0,
-                        ["ExpExclCnctTransfer"] = 0,
-                        ["TotalDeductions"] = cost112,
-                        ["Balance"] = lt112a,
-                    }
-                },
-                ["SaleValue112A"] = sale112,
-                ["CostAcqWithoutIndx112A"] = cost112,
-                ["AcquisitionCost112A"] = cost112,
-                ["LTCGBeforelowerB1B2112A"] = cost112,
-                ["FairMktValueCapAst112A"] = 0,
-                ["ExpExclCnctTransfer112A"] = 0,
-                ["Deductions112A"] = cost112,
-                ["Balance112A"] = lt112a,
-                ["TotalBalance112A"] = lt112a,
+                ["Schedule112ADtls"] = dtls112a,
+                ["SaleValue112A"] = totSale112,
+                ["CostAcqWithoutIndx112A"] = totOrigCost,
+                ["AcquisitionCost112A"] = totAcqCost,
+                ["LTCGBeforelowerB1B2112A"] = totLower,
+                ["FairMktValueCapAst112A"] = totFmv,
+                ["ExpExclCnctTransfer112A"] = totExp,
+                ["Deductions112A"] = totDed112,
+                ["Balance112A"] = Math.Max(0L, totBal),
+                ["TotalBalance112A"] = Math.Max(0L, totBal),
             };
         }
 
         JsonObject? schedVda = null;
-        if (vda > 0)
+        var vdaTrades = input.CapitalGainTrades?.Where(t => string.Equals(t.AssetCategory, "VDA", StringComparison.OrdinalIgnoreCase)).ToList() ?? [];
+        if (vda > 0 || vdaTrades.Count > 0)
         {
-            long consid = input.VdaConsideration > 0m ? ToRupees(input.VdaConsideration) : vda;
-            long acq = Math.Max(0L, consid - vda);
-            schedVda = new JsonObject
+            var vdaDtls = new JsonArray();
+            long totVda = 0;
+            if (vdaTrades.Count > 0)
             {
-                ["ScheduleVDADtls"] = new JsonArray
+                foreach (var tr in vdaTrades)
                 {
-                    new JsonObject
+                    long consid = ToRupees(tr.SaleValue);
+                    long acq = ToRupees(tr.CostOfAcquisition);
+                    long inc = Math.Max(0L, consid - acq);
+                    totVda += inc;
+                    vdaDtls.Add(new JsonObject
                     {
-                        ["DateofAcquisition"] = "2024-06-15",
-                        ["DateofTransfer"] = "2026-02-15",
+                        ["DateofAcquisition"] = NormalizeTradeDate(tr.BuyDate, "2024-06-15"),
+                        ["DateofTransfer"] = NormalizeTradeDate(tr.SellDate, "2026-02-15"),
                         ["HeadUndIncTaxed"] = "CG",
                         ["AcquisitionCost"] = acq,
                         ["ConsidReceived"] = consid,
-                        ["IncomeFromVDA"] = vda,
-                    }
-                },
-                ["TotIncCapGain"] = vda,
+                        ["IncomeFromVDA"] = inc,
+                    });
+                }
+            }
+            else
+            {
+                long consid = input.VdaConsideration > 0m ? ToRupees(input.VdaConsideration) : vda;
+                long acq = Math.Max(0L, consid - vda);
+                totVda = vda;
+                vdaDtls.Add(new JsonObject
+                {
+                    ["DateofAcquisition"] = "2024-06-15",
+                    ["DateofTransfer"] = "2026-02-15",
+                    ["HeadUndIncTaxed"] = "CG",
+                    ["AcquisitionCost"] = acq,
+                    ["ConsidReceived"] = consid,
+                    ["IncomeFromVDA"] = vda,
+                });
+            }
+
+            schedVda = new JsonObject
+            {
+                ["ScheduleVDADtls"] = vdaDtls,
+                ["TotIncCapGain"] = totVda,
             };
         }
 
@@ -486,12 +639,44 @@ internal static class PersonalItrJsonHelper
         };
     }
 
+    public static (long HpPositive, long HpLossTotal, long HpSetOff, long HpCarryFwd, long SalAfter, long St20After, long StAppAfter, long LtAfter, long TotalPositiveTi, long BalanceAfterLoss) ComputeCurrentYearHpSetOff(PersonalRegimeBreakdownDto active)
+    {
+        long sal = ToRupees(active.NetSalary);
+        long hpSigned = ToSignedRupees(active.HousePropertyIncome);
+        long pgbp = Math.Max(0L, ToSignedRupees(active.BusinessIncomeNetPgbp));
+        long st20 = ToRupees(active.Stcg111A);
+        long stApp = ToRupees(active.StcgNormal);
+        long lt = ToRupees(active.Ltcg112A + active.Ltcg112);
+        long vda = ToRupees(active.VdaIncome115BBH);
+        long os = ToRupees(active.OtherSourcesIncome);
+
+        long hpPos = Math.Max(0L, hpSigned);
+        long hpLoss = hpSigned < 0 ? -hpSigned : 0L;
+        long rem = Math.Min(200_000L, hpLoss);
+
+        long takeSal = Math.Min(rem, sal); rem -= takeSal;
+        long takeStApp = Math.Min(rem, stApp); rem -= takeStApp;
+        long takeSt20 = Math.Min(rem, st20); rem -= takeSt20;
+        long takeLt = Math.Min(rem, lt); rem -= takeLt;
+        long takeOther = Math.Min(rem, pgbp + os); rem -= takeOther;
+
+        long setOff = takeSal + takeStApp + takeSt20 + takeLt + takeOther;
+        long carryFwd = Math.Max(0L, hpLoss - setOff);
+        long posTi = sal + hpPos + pgbp + st20 + stApp + lt + vda + os;
+        long balAfterLoss = Math.Max(0L, posTi - setOff);
+
+        return (hpPos, hpLoss, setOff, carryFwd, sal - takeSal, st20 - takeSt20, stApp - takeStApp, lt - takeLt, posTi, balAfterLoss);
+    }
+
     public static (JsonObject Cyla, JsonObject Bfla) BuildCylaAndBfla(PersonalRegimeBreakdownDto active, bool isItr3)
     {
-        JsonObject CylaRow(long amt) => new()
+        JsonObject CylaRow(long amt, long hpOff = 0L)
         {
-            ["IncCYLA"] = new JsonObject { ["IncOfCurYrUnderThatHead"] = amt, ["IncOfCurYrAfterSetOff"] = amt }
-        };
+            var inner = new JsonObject { ["IncOfCurYrUnderThatHead"] = amt };
+            if (hpOff > 0) inner["HPlossCurYrSetoff"] = hpOff;
+            inner["IncOfCurYrAfterSetOff"] = Math.Max(0L, amt - hpOff);
+            return new JsonObject { ["IncCYLA"] = inner };
+        }
         JsonObject SalaryBflaRow(long amt) => new()
         {
             ["IncBFLA"] = new JsonObject { ["IncOfCurYrUndHeadFromCYLA"] = amt, ["IncOfCurYrAfterSetOffBFLosses"] = amt }
@@ -517,31 +702,31 @@ internal static class PersonalItrJsonHelper
         long stApp = ToRupees(active.StcgNormal);
         long lt = ToRupees(active.Ltcg112A + active.Ltcg112);
         long afterAll = ToRupees(active.GrossTotalIncome);
+        var hpSplit = ComputeCurrentYearHpSetOff(active);
 
-        var totCur = new JsonObject { ["TotHPlossCurYr"] = 0 };
+        var totCur = new JsonObject { ["TotHPlossCurYr"] = hpSplit.HpLossTotal };
         if (isItr3) totCur["TotBusLoss"] = 0;
         totCur["TotOthSrcLossNoRaceHorse"] = 0;
 
-        var totSet = new JsonObject { ["TotHPlossCurYrSetoff"] = 0 };
+        var totSet = new JsonObject { ["TotHPlossCurYrSetoff"] = hpSplit.HpSetOff };
         if (isItr3) totSet["TotBusLossSetoff"] = 0;
         totSet["TotOthSrcLossNoRaceHorseSetoff"] = 0;
 
-        var lossRem = new JsonObject { ["BalHPlossCurYrAftSetoff"] = 0 };
+        var lossRem = new JsonObject { ["BalHPlossCurYrAftSetoff"] = hpSplit.HpCarryFwd };
         if (isItr3) lossRem["BalBusLossAftSetoff"] = 0;
         lossRem["BalOthSrcLossNoRaceHorseAftSetoff"] = 0;
 
-        var cyla = new JsonObject
-        {
-            ["STCG20Per"] = CylaRow(st20),
-            ["STCG30Per"] = CylaRow(0),
-            ["STCGAppRate"] = CylaRow(stApp),
-            ["STCGDTAARate"] = CylaRow(0),
-            ["LTCG12_5Per"] = CylaRow(lt),
-            ["LTCGDTAARate"] = CylaRow(0),
-            ["TotalCurYr"] = totCur,
-            ["TotalLossSetOff"] = totSet,
-            ["LossRemAftSetOff"] = lossRem,
-        };
+        var cyla = new JsonObject();
+        if (sal > 0) cyla["Salary"] = CylaRow(sal, sal - hpSplit.SalAfter);
+        cyla["STCG20Per"] = CylaRow(st20, st20 - hpSplit.St20After);
+        cyla["STCG30Per"] = CylaRow(0);
+        cyla["STCGAppRate"] = CylaRow(stApp, stApp - hpSplit.StAppAfter);
+        cyla["STCGDTAARate"] = CylaRow(0);
+        cyla["LTCG12_5Per"] = CylaRow(lt, lt - hpSplit.LtAfter);
+        cyla["LTCGDTAARate"] = CylaRow(0);
+        cyla["TotalCurYr"] = totCur;
+        cyla["TotalLossSetOff"] = totSet;
+        cyla["LossRemAftSetOff"] = lossRem;
 
         var bfTot = new JsonObject { ["TotBFLossSetoff"] = 0 };
         if (isItr3)
@@ -552,12 +737,12 @@ internal static class PersonalItrJsonHelper
 
         var bfla = new JsonObject
         {
-            ["Salary"] = SalaryBflaRow(sal),
-            ["STCG20Per"] = BflaRow(st20),
+            ["Salary"] = SalaryBflaRow(hpSplit.SalAfter),
+            ["STCG20Per"] = BflaRow(hpSplit.St20After),
             ["STCG30Per"] = BflaRow(0),
-            ["STCGAppRate"] = BflaRow(stApp),
+            ["STCGAppRate"] = BflaRow(hpSplit.StAppAfter),
             ["STCGDTAARate"] = BflaRow(0),
-            ["LTCG12_5Per"] = BflaRow(lt),
+            ["LTCG12_5Per"] = BflaRow(hpSplit.LtAfter),
             ["LTCGDTAARate"] = BflaRow(0),
             ["TotalBFLossSetOff"] = bfTot,
             ["IncomeOfCurrYrAftCYLABFLA"] = afterAll,

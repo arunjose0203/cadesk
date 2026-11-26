@@ -14,13 +14,14 @@ import { JsonExportPanel } from './components/JsonExportPanel'
 import { PdfActions } from './pdf/PdfActions'
 import { BusinessTaxDeskTab } from './tax/BusinessTaxDeskTab'
 import { PersonalExtendedTaxTab } from './tax/PersonalExtendedTaxTab'
+import { TrustTaxTab } from './tax/TrustTaxTab'
 import { buildTaxComputationPdfBlocks, buildTaxComputationPreviewPdfBlocks } from './tax/taxComputationPdf'
 
 const fmtInr = (n: number) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n)
 
 export function TaxPage() {
-  const [activeTab, setActiveTab] = useState<'calculator' | 'extended' | 'business' | 'history'>('calculator')
+  const [activeTab, setActiveTab] = useState<'calculator' | 'extended' | 'business' | 'trust' | 'history'>('calculator')
   const [clients, setClients] = useState<Client[]>([])
   const [computations, setComputations] = useState<TaxComputationDto[]>([])
   const [loading, setLoading] = useState(false)
@@ -242,7 +243,7 @@ export function TaxPage() {
             Direct Tax Computation Engine
           </h1>
           <p style={{ margin: 0, color: 'var(--muted)', fontSize: '14px' }}>
-            AY 2026-27 &amp; FY 2025-26 Direct Tax Suite — Individual (ITR-1), Firm / LLP (ITR-5) &amp; Company (ITR-6)
+            AY 2026-27 &amp; FY 2025-26 Direct Tax Suite — Individual / HUF (ITR-1/2/3), Firm / LLP (ITR-5) &amp; Company (ITR-6)
           </p>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
@@ -307,6 +308,20 @@ export function TaxPage() {
             }}
           >
             Firm (ITR-5) &amp; Company (ITR-6)
+          </button>
+          <button
+            onClick={() => setActiveTab('trust')}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '6px',
+              background: activeTab === 'trust' ? 'var(--accent)' : 'var(--card-subtle)',
+              color: activeTab === 'trust' ? '#fff' : 'var(--text-secondary)',
+              fontWeight: 500,
+              border: activeTab === 'trust' ? '1px solid var(--accent)' : '1px solid var(--border)',
+              cursor: 'pointer'
+            }}
+          >
+            Trust / NGO (ITR-7)
           </button>
           <button
             onClick={() => setActiveTab('history')}
@@ -812,6 +827,16 @@ export function TaxPage() {
         />
       )}
 
+      {/* Tab 4: Trust / NGO / Sec 8 (ITR-7) */}
+      {activeTab === 'trust' && (
+        <TrustTaxTab
+          clients={clients}
+          onSaved={loadComputations}
+          onError={setError}
+          onSuccess={setSuccessMsg}
+        />
+      )}
+
       {/* Tab 3: Saved Computations Records */}
       {activeTab === 'history' && (
         <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '20px' }}>
@@ -998,17 +1023,19 @@ export function TaxPage() {
                   />
                 </div>
 
-                <JsonExportPanel
+                  <JsonExportPanel
                   title={
-                    selectedComputation.taxpayerCategory === 'firm'
-                      ? 'Official ITR-5 (Firm/LLP) JSON Export (AY 2026-27 V1.1)'
-                      : selectedComputation.taxpayerCategory === 'company'
-                        ? 'Official ITR-6 (Company) JSON Export (AY 2026-27 V1.0)'
-                        : selectedComputation.extendedPersonalComputation?.returnFormType === 'ITR-3'
-                          ? 'Official ITR-3 (Proprietor / 44AB) JSON Export (AY 2026-27 V1.1)'
-                          : selectedComputation.extendedPersonalComputation?.returnFormType === 'ITR-2'
-                            ? 'Official ITR-2 (Cap Gains / VDA / Multi-HP) JSON Export (AY 2026-27 V1.2)'
-                            : 'Official ITR-1 (Sahaj) JSON Export (AY 2026-27 V1.1)'
+                    selectedComputation.taxpayerCategory === 'trust'
+                      ? 'Official ITR-7 (Trust / Institution) JSON Export (AY 2026-27 V0.1)'
+                      : selectedComputation.taxpayerCategory === 'firm'
+                        ? 'Official ITR-5 (Firm/LLP) JSON Export (AY 2026-27 V1.1)'
+                        : selectedComputation.taxpayerCategory === 'company'
+                          ? 'Official ITR-6 (Company) JSON Export (AY 2026-27 V1.0)'
+                          : selectedComputation.extendedPersonalComputation?.returnFormType === 'ITR-3'
+                            ? 'Official ITR-3 (Proprietor / 44AB) JSON Export (AY 2026-27 V1.1)'
+                            : selectedComputation.extendedPersonalComputation?.returnFormType === 'ITR-2'
+                              ? 'Official ITR-2 (Cap Gains / VDA / Multi-HP) JSON Export (AY 2026-27 V1.2)'
+                              : 'Official ITR-1 (Sahaj) JSON Export (AY 2026-27 V1.1)'
                   }
                   subtitle="Generates schema-validated Income Tax e-Filing JSON from this computation."
                   clientId={selectedComputation.clientId}
@@ -1021,15 +1048,17 @@ export function TaxPage() {
                       setExportingItr1(true)
                       setError(null)
                       const res =
-                        selectedComputation.taxpayerCategory === 'firm'
-                          ? await taxApi.exportItr5(selectedComputation.id, itr1Opts)
-                          : selectedComputation.taxpayerCategory === 'company'
-                            ? await taxApi.exportItr6(selectedComputation.id, itr1Opts)
-                            : selectedComputation.extendedPersonalComputation?.returnFormType === 'ITR-3'
-                              ? await taxApi.exportItr3(selectedComputation.id, itr1Opts)
-                              : selectedComputation.extendedPersonalComputation?.returnFormType === 'ITR-2'
-                                ? await taxApi.exportItr2(selectedComputation.id, itr1Opts)
-                                : await taxApi.exportItr1(selectedComputation.id, itr1Opts)
+                        selectedComputation.taxpayerCategory === 'trust'
+                          ? await taxApi.exportItr7(selectedComputation.id, itr1Opts)
+                          : selectedComputation.taxpayerCategory === 'firm'
+                            ? await taxApi.exportItr5(selectedComputation.id, itr1Opts)
+                            : selectedComputation.taxpayerCategory === 'company'
+                              ? await taxApi.exportItr6(selectedComputation.id, itr1Opts)
+                              : selectedComputation.extendedPersonalComputation?.returnFormType === 'ITR-3'
+                                ? await taxApi.exportItr3(selectedComputation.id, itr1Opts)
+                                : selectedComputation.extendedPersonalComputation?.returnFormType === 'ITR-2'
+                                  ? await taxApi.exportItr2(selectedComputation.id, itr1Opts)
+                                  : await taxApi.exportItr1(selectedComputation.id, itr1Opts)
                       setItr1Export(res)
                     } catch (err: unknown) {
                       setError(err instanceof Error ? err.message : 'ITR JSON export failed.')
@@ -1039,7 +1068,7 @@ export function TaxPage() {
                   }}
                 >
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '8px' }}>
-                    {(selectedComputation.taxpayerCategory === 'firm' || selectedComputation.taxpayerCategory === 'company' || selectedComputation.extendedPersonalComputation) ? (
+                    {(selectedComputation.taxpayerCategory === 'trust' || selectedComputation.taxpayerCategory === 'firm' || selectedComputation.taxpayerCategory === 'company' || selectedComputation.extendedPersonalComputation) ? (
                       <>
                         <input
                           type="text"

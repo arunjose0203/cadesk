@@ -125,7 +125,8 @@ public record TaxComputationDto(
     DateTime CreatedAt,
     DateTime? UpdatedAt,
     BusinessTaxComputationResultDto? BusinessComputation = null,
-    PersonalExtendedTaxResultDto? ExtendedPersonalComputation = null
+    PersonalExtendedTaxResultDto? ExtendedPersonalComputation = null,
+    TrustTaxResultDto? TrustComputation = null
 );
 
 public record ImportAisToComputationRequest(Guid ClientId, string AisJson);

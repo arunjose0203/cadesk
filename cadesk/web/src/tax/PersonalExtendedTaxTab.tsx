@@ -13,6 +13,7 @@ import {
 } from '../api'
 import { JsonExportPanel } from '../components/JsonExportPanel'
 import { PdfActions } from '../pdf/PdfActions'
+import { importCapitalGainsFile, type ImportedCapitalGainsSummary } from './capitalGainsImport'
 import { buildTaxComputationPreviewPdfBlocks } from './taxComputationPdf'
 
 const inr = (n: number) =>
@@ -171,6 +172,45 @@ export function PersonalExtendedTaxTab({ clients, firmName, onSaved, onError, on
   const [verifPan, setVerifPan] = useState('')
   const [city, setCity] = useState('Kochi')
   const [pinCode, setPinCode] = useState('682031')
+  const [cgImport, setCgImport] = useState<ImportedCapitalGainsSummary | null>(null)
+
+  const handleBrokerCgFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    try {
+      onError(null)
+      const buf = await file.arrayBuffer()
+      const res = await importCapitalGainsFile({ name: file.name, buffer: buf, text: () => file.text() })
+      if (res.trades.length === 0) {
+        onError(res.warnings[0] ?? 'No capital gains rows recognized in uploaded file.')
+        return
+      }
+      setCgImport(res)
+      setPreview(null)
+      setSavedComp(null)
+      setReq(prev => ({
+        ...prev,
+        stcg111ASaleValue: res.stcg111ASaleValue,
+        stcg111ACost: res.stcg111ACost,
+        stcg111A: res.stcg111A,
+        stcgNormal: res.stcgNormal,
+        ltcg112ASaleValue: res.ltcg112ASaleValue,
+        ltcg112ACost: res.ltcg112ACost,
+        ltcg112A: res.ltcg112A,
+        ltcg112SaleValue: res.ltcg112SaleValue,
+        ltcg112Cost: res.ltcg112Cost,
+        ltcg112: res.ltcg112,
+        vdaConsideration: res.vdaConsideration,
+        vdaCostOfAcquisition: res.vdaCostOfAcquisition,
+        vdaIncome115BBH: res.vdaIncome115BBH,
+        capitalGainTrades: res.trades,
+      }))
+      onSuccess?.(`Imported ${res.trades.length} trade(s) from ${res.detectedBroker} (${res.grandfatheredCount} grandfathered u/s 55(2)(ac)).`)
+    } catch (err: unknown) {
+      onError(err instanceof Error ? err.message : 'Failed to parse broker Capital Gains file.')
+    }
+  }
 
   const selectedClient = useMemo(
     () => clients.find(c => c.id === req.clientId) ?? null,
@@ -667,9 +707,76 @@ export function PersonalExtendedTaxTab({ clients, firmName, onSaved, onError, on
 
         {/* Capital Gains & VDA */}
         <div style={sectionCard}>
-          <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--accent)', marginBottom: '8px' }}>
-            {req.returnFormType === 'ITR-3' ? '4' : '3'}. Capital Gains (111A / 112A / 112) &amp; Crypto VDA (Sec 115BBH @ 30%)
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '8px' }}>
+            <span style={{ fontWeight: 700, fontSize: '13px', color: 'var(--accent)' }}>
+              {req.returnFormType === 'ITR-3' ? '4' : '3'}. Capital Gains (111A / 112A / 112) &amp; Crypto VDA (Sec 115BBH @ 30%)
+            </span>
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+              <label
+                style={{
+                  padding: '4px 10px',
+                  borderRadius: '4px',
+                  border: '1px solid var(--accent)',
+                  background: 'var(--card)',
+                  color: 'var(--accent)',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                Import Zerodha / Groww / CAMS (.xlsx/.csv)
+                <input type="file" accept=".xlsx,.csv,.tsv" onChange={handleBrokerCgFile} style={{ display: 'none' }} />
+              </label>
+              {(req.capitalGainTrades?.length ?? 0) > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCgImport(null)
+                    setReq({ ...req, capitalGainTrades: null })
+                  }}
+                  style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)', fontSize: '11px', cursor: 'pointer' }}
+                >
+                  Clear Trades ({req.capitalGainTrades?.length})
+                </button>
+              )}
+            </div>
           </div>
+          {cgImport && (
+            <div style={{ marginBottom: '10px', padding: '8px 10px', borderRadius: '6px', background: 'var(--card)', border: '1px solid var(--border)', fontSize: '11px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px', fontWeight: 600, color: 'var(--success)', marginBottom: '6px' }}>
+                <span>{cgImport.detectedBroker}: {cgImport.trades.length} ISIN/VDA rows ({cgImport.grandfatheredCount} Sec 112A grandfathered)</span>
+                <span style={{ color: 'var(--text-secondary)' }}>
+                  Quarterly Accrual: Q1 {inr(cgImport.quarterlyTotals.q1)} • Q2 {inr(cgImport.quarterlyTotals.q2)} • Q3 {inr(cgImport.quarterlyTotals.q3)} • Q4 {inr(cgImport.quarterlyTotals.q4)} • Q5 {inr(cgImport.quarterlyTotals.q5)}
+                </span>
+              </div>
+              <div style={{ maxHeight: '110px', overflowY: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+                  <thead>
+                    <tr style={{ color: 'var(--muted)', borderBottom: '1px solid var(--border)', textAlign: 'left' }}>
+                      <th style={{ padding: '2px 4px' }}>Asset / Scrip</th>
+                      <th style={{ padding: '2px 4px' }}>ISIN</th>
+                      <th style={{ padding: '2px 4px' }}>Sec</th>
+                      <th style={{ padding: '2px 4px' }}>Sell Date</th>
+                      <th style={{ padding: '2px 4px', textAlign: 'right' }}>Sale (Rs.)</th>
+                      <th style={{ padding: '2px 4px', textAlign: 'right' }}>Cost / FMV</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {cgImport.trades.slice(0, 20).map((t, idx) => (
+                      <tr key={idx} style={{ borderBottom: '1px solid var(--border)' }}>
+                        <td style={{ padding: '2px 4px', color: 'var(--text)' }}>{t.assetName}</td>
+                        <td style={{ padding: '2px 4px', fontFamily: 'monospace', color: 'var(--text-secondary)' }}>{t.isinCode || '-'}</td>
+                        <td style={{ padding: '2px 4px', color: 'var(--accent)', fontWeight: 600 }}>{t.assetCategory}</td>
+                        <td style={{ padding: '2px 4px', color: 'var(--text-secondary)' }}>{t.sellDate || '-'}</td>
+                        <td style={{ padding: '2px 4px', textAlign: 'right', color: 'var(--text)' }}>{inr(t.saleValue)}</td>
+                        <td style={{ padding: '2px 4px', textAlign: 'right', color: 'var(--text)' }}>{inr(Math.max(t.costOfAcquisition, t.fairMarketValueJan2018 || 0))}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
             <div>
               <label style={labelStyle}>STCG 111A (Equity @ 20%)</label>

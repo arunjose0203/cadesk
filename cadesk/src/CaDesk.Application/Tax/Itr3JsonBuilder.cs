@@ -299,10 +299,12 @@ public static class Itr3JsonBuilder
         long chapVia = ToRupees(active.ChapterViaDeductions);
         long taxable = ToRupees(active.TaxableIncome);
 
+        var hpSplit = ComputeCurrentYearHpSetOff(active);
+
         var partBTi = new JsonObject
         {
             ["Salaries"] = salNet,
-            ["IncomeFromHP"] = hpNet,
+            ["IncomeFromHP"] = hpSplit.HpPositive,
             ["ProfBusGain"] = new JsonObject
             {
                 ["ProfGainNoSpecBus"] = Math.Max(0L, pgbpNet),
@@ -320,9 +322,9 @@ public static class Itr3JsonBuilder
                 ["TotalCapGains"] = cgTot,
             },
             ["IncFromOS"] = new JsonObject { ["OtherSrcThanOwnRaceHorse"] = osNet, ["IncChargblSplRate"] = 0, ["FromOwnRaceHorse"] = 0, ["TotIncFromOS"] = osNet },
-            ["TotalTI"] = gti,
-            ["CurrentYearLoss"] = 0,
-            ["BalanceAfterSetoffLosses"] = gti,
+            ["TotalTI"] = hpSplit.TotalPositiveTi,
+            ["CurrentYearLoss"] = hpSplit.HpSetOff,
+            ["BalanceAfterSetoffLosses"] = hpSplit.BalanceAfterLoss,
             ["BroughtFwdLossesSetoff"] = ToRupees(input.BroughtForwardBusinessLoss),
             ["GrossTotalIncome"] = gti,
             ["IncChargeTaxSplRate111A112"] = st20 + ltTot,

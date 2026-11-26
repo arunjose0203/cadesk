@@ -96,6 +96,23 @@ public static class Schedule3Endpoints
             return Results.Ok(new { DisclosureNoteText = noteText });
         }).RequirePermission(Perms.Schedule3Manage);
 
+        // Statutory Financial Statements Pack data (Schedule III BS, P&L & Cash Flow AS-3)
+        g.MapGet("/assessments/{id:guid}/financial-pack-data", async (
+            Guid id,
+            Schedule3Service svc,
+            CancellationToken ct) =>
+        {
+            try
+            {
+                var pack = await svc.GetFinancialPackDataAsync(id, ct);
+                return Results.Ok(pack);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return Results.NotFound(new { error = ex.Message });
+            }
+        }).RequirePermission(Perms.Schedule3Read);
+
         // Finalize assessment
         g.MapPost("/assessments/{id:guid}/finalize", async (
             Guid id,

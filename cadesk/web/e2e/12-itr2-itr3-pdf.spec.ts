@@ -96,7 +96,7 @@ test('Income-tax ITR-2, ITR-3 & Official Computation Sheet PDF: Multi-HP, CG, VD
 
   // 3. History Modal also shows Computation PDF & ITR-3 JSON Export
   await page.getByRole('button', { name: /Computation Records/i }).click()
-  await page.getByRole('button', { name: /View \/ ITR/i }).first().click()
+  await page.getByRole('button', { name: 'View / Export JSON' }).first().click()
   await expect(page.getByText('Printable Statement of Total Income (PDF)')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Close' })).toBeVisible()
 })
