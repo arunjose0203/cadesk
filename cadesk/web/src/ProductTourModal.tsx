@@ -20,7 +20,7 @@ export function ProductTourModal({ isOpen, onClose, onStartTrial }: ProductTourM
 
   const tourSteps = [
     {
-      title: 'Moat 1: Universal Trial Balance Importer',
+      title: 'Workflow 1: Universal Trial Balance Importer',
       tag: '60-SECOND INGESTION',
       description: 'Ingest financial data directly from Tally Prime (XML/CSV), Busy, SAP, or copy-paste Excel sheets. Our fuzzy AI automatically maps accounts to Schedule III Division I/II, Form 3CD, and CARO 2020.',
       visual: (
@@ -50,7 +50,7 @@ export function ProductTourModal({ isOpen, onClose, onStartTrial }: ProductTourM
       )
     },
     {
-      title: 'Moat 2: Forensic Bank Analyzer & Fraud Detection Engine',
+      title: 'Workflow 2: Forensic Bank Analyzer & Fraud Detection Engine',
       tag: 'INDIAN BANK STATEMENTS',
       description: 'Ingest PDF, Excel, or CSV bank statements from SBI, HDFC, ICICI, Axis, PNB. The 7-rule statutory forensics engine cross-checks transactions against Trial Balance ledgers to catch fraud instantly.',
       visual: (
@@ -69,7 +69,7 @@ export function ProductTourModal({ isOpen, onClose, onStartTrial }: ProductTourM
       )
     },
     {
-      title: 'Moat 3: SA 505 Automated External Confirmations Desk',
+      title: 'Workflow 3: SA 505 Automated External Confirmations Desk',
       tag: 'THIRD-PARTY CIRCULARIZATION',
       description: 'Send tokenized, secure digital verification links to Debtors, Creditors, and Banks. Third parties click the link on mobile or desktop to confirm balances directly, with alternative procedures logged under SA 505.12.',
       visual: (
@@ -88,7 +88,7 @@ export function ProductTourModal({ isOpen, onClose, onStartTrial }: ProductTourM
       )
     },
     {
-      title: 'Moat 4: 1-Click ICAI Independent Auditor\'s Report (SA 700)',
+      title: 'Workflow 4: 1-Click ICAI Independent Auditor\'s Report (SA 700)',
       tag: 'RULE 11(g) + 18-CHAR UDIN',
       description: 'Generate complete ICAI compliant Independent Auditor\'s Reports (Unmodified, Qualified, Adverse, Disclaimer). Verifies Rule 11(g) software audit trail edit logs and binds the report with an 18-character UDIN.',
       visual: (
@@ -107,7 +107,7 @@ export function ProductTourModal({ isOpen, onClose, onStartTrial }: ProductTourM
       )
     },
     {
-      title: 'Moat 5: ICAI Audit Quality Maturity Model (AQMM v1.0) Desk',
+      title: 'Workflow 5: ICAI Audit Quality Maturity Model (AQMM v1.0) Desk',
       tag: '600-POINT CAQ MATURITY',
       description: 'Automated 600-point peer-review scoring across Practice Management (190 pts), Human Resources (110 pts), and Audit Execution / SQC 1 (300 pts). Auto-evaluates points from CA Desk live telemetry!',
       visual: (
@@ -193,7 +193,7 @@ export function ProductTourModal({ isOpen, onClose, onStartTrial }: ProductTourM
                 onClick={() => setStep(prev => Math.min(tourSteps.length - 1, prev + 1))}
                 style={{ padding: '8px 20px', background: '#16191d', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
               >
-                Next Moat →
+                Next Workflow →
               </button>
             ) : (
               <button

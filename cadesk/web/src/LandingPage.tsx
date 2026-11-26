@@ -21,13 +21,13 @@ export function LandingPage({ onStartTrial, onSignIn, onOpenTour }: LandingPageP
             <div>
               <span style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.5px' }}>CA Desk</span>
               <span style={{ fontSize: '10px', background: 'var(--accent-subtle)', color: 'var(--accent)', padding: '2px 6px', borderRadius: '4px', fontWeight: 700, marginLeft: '8px' }}>
-                ICAI &amp; NFRA READY
+                STATUTORY &amp; TAX PRACTICE
               </span>
             </div>
           </div>
 
           <nav style={{ display: 'flex', alignItems: 'center', gap: '28px' }}>
-            <a href="#moats" style={{ textDecoration: 'none', color: 'var(--muted)', fontSize: '14px', fontWeight: 600 }}>6 Core Moats</a>
+            <a href="#capabilities" style={{ textDecoration: 'none', color: 'var(--muted)', fontSize: '14px', fontWeight: 600 }}>Capabilities</a>
             <a href="#pricing" style={{ textDecoration: 'none', color: 'var(--muted)', fontSize: '14px', fontWeight: 600 }}>Pricing</a>
             <a href="#security" style={{ textDecoration: 'none', color: 'var(--muted)', fontSize: '14px', fontWeight: 600 }}>Two-Lock Security</a>
             <a href="#faq" style={{ textDecoration: 'none', color: 'var(--muted)', fontSize: '14px', fontWeight: 600 }}>FAQ</a>
@@ -107,14 +107,14 @@ export function LandingPage({ onStartTrial, onSignIn, onOpenTour }: LandingPageP
         </div>
       </section>
 
-      {/* The 6 Core Moats Section */}
-      <section id="moats" style={{ padding: '80px 24px', maxWidth: '1280px', margin: '0 auto' }}>
+      {/* Core Capabilities Section */}
+      <section id="capabilities" style={{ padding: '80px 24px', maxWidth: '1280px', margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: '56px' }}>
           <h2 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 10px 0' }}>
-            Unmatched Competitive Advantage
+            Purpose-Built for Indian Practices
           </h2>
           <h3 style={{ fontSize: '36px', fontWeight: 800, color: 'var(--text)', letterSpacing: '-1px', margin: 0 }}>
-            The 6 Core Audit &amp; Practice Moats
+            Core Audit &amp; Practice Workflows
           </h3>
           <p style={{ fontSize: '16px', color: 'var(--muted)', marginTop: '10px' }}>
             Built specifically to solve the real daily bottlenecks faced by Indian Chartered Accountants.
@@ -147,7 +147,7 @@ export function LandingPage({ onStartTrial, onSignIn, onOpenTour }: LandingPageP
             {
               icon: '📁',
               title: '4. SA 230 Digital Workpaper Dossier',
-              subtitle: 'ICAI & NFRA Inspection Vault',
+              subtitle: 'SA 230 Archival Workspace',
               desc: 'Complete audit file packager with 17 substantive analytical lead schedules (A to Q), immutable 60-day archival lock under SQC 1, and SHA-256 cryptographic tamper-evident seal.',
               points: ['Lead schedules A to Q', 'Immutable 60-day lock', 'SHA-256 seal & peer-review export']
             },
@@ -348,8 +348,8 @@ export function LandingPage({ onStartTrial, onSignIn, onOpenTour }: LandingPageP
                 a: 'You get full, unrestricted access to the platform for 14 days without entering credit card details. You can even check our "Pre-load Sample CA Firm" option during signup to immediately test with 3 realistic audit clients.'
               },
               {
-                q: 'Is CA Desk compliant with ICAI and NFRA standards?',
-                a: '100%. CA Desk strictly implements ICAI SQC 1 (60-day archival locks), SA 210, SA 230 (Lead schedules A-Q), SA 505 (External Confirmations), SA 700/701 (Independent Auditor Reports with UDIN validation), and the new ICAI AQMM v1.0 600-point maturity framework.'
+                q: 'Which ICAI and statutory standards does CA Desk support?',
+                a: 'CA Desk provides structured workflows designed for SQC 1 (60-day archival locks), SA 210, SA 230 (Lead schedules A-Q), SA 505 external confirmations, SA 700/701 Auditor Report drafts with UDIN fields, and the ICAI AQMM v1.0 evaluation framework. Your firm remains responsible for final review and professional sign-off.'
               },
               {
                 q: 'Will my firm get a GST tax invoice with input credit?',
