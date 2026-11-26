@@ -49,7 +49,7 @@ type ClientPage = {
   total: number
 }
 
-export function ForeignRemittancePage({ can: _can }: { can?: (p: string) => boolean }) {
+export function ForeignRemittancePage() {
   // Main Desk Tabs
   const [deskTab, setDeskTab] = useState<'remittances' | 'form15cb-vault' | 'dtaa-mfn-pe' | 'rbi-firms' | 'rbi-fla'>('remittances')
 
