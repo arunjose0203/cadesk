@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { toError,
+import {
+  toError,
   api,
   transferPricingApi,
   type Client,
@@ -511,11 +512,10 @@ export const TransferPricingPage: React.FC = () => {
 
           {currentStudy && (
             <div className="flex items-center gap-2">
-              <span className={`px-2.5 py-1 text-xs font-semibold rounded-full border ${
-                currentStudy.studyStatus === 'Certified'
-                  ? 'bg-green-100 text-green-800 border-green-300'
-                  : 'bg-amber-100 text-amber-800 border-amber-300'
-              }`}>
+              <span className={`px-2.5 py-1 text-xs font-semibold rounded-full border ${currentStudy.studyStatus === 'Certified'
+                ? 'bg-green-100 text-green-800 border-green-300'
+                : 'bg-amber-100 text-amber-800 border-amber-300'
+                }`}>
                 {currentStudy.studyStatus}
               </span>
               {currentStudy.totalAlpAdjustmentAmount > 0 ? (
@@ -611,41 +611,37 @@ export const TransferPricingPage: React.FC = () => {
             <nav className="flex space-x-8">
               <button
                 onClick={() => setActiveTab('transactions')}
-                className={`py-3 px-1 border-b-2 text-sm font-medium transition ${
-                  activeTab === 'transactions'
-                    ? 'border-emerald-600 text-emerald-600 font-semibold'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                className={`py-3 px-1 border-b-2 text-sm font-medium transition ${activeTab === 'transactions'
+                  ? 'border-emerald-600 text-emerald-600 font-semibold'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
               >
                 Transactions & Form 3CEB Clauses ({currentStudy.totalInternationalTransactionsCount + currentStudy.totalSdtTransactionsCount})
               </button>
               <button
                 onClick={() => setActiveTab('enterprises')}
-                className={`py-3 px-1 border-b-2 text-sm font-medium transition ${
-                  activeTab === 'enterprises'
-                    ? 'border-emerald-600 text-emerald-600 font-semibold'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                className={`py-3 px-1 border-b-2 text-sm font-medium transition ${activeTab === 'enterprises'
+                  ? 'border-emerald-600 text-emerald-600 font-semibold'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
               >
                 Associated Enterprises ({currentStudy.totalAssociatedEnterprisesCount})
               </button>
               <button
                 onClick={() => setActiveTab('comparables')}
-                className={`py-3 px-1 border-b-2 text-sm font-medium transition ${
-                  activeTab === 'comparables'
-                    ? 'border-emerald-600 text-emerald-600 font-semibold'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                className={`py-3 px-1 border-b-2 text-sm font-medium transition ${activeTab === 'comparables'
+                  ? 'border-emerald-600 text-emerald-600 font-semibold'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
               >
                 Comparable Benchmarks ({comparables.length})
               </button>
               <button
                 onClick={() => setActiveTab('report')}
-                className={`py-3 px-1 border-b-2 text-sm font-medium transition ${
-                  activeTab === 'report'
-                    ? 'border-emerald-600 text-emerald-600 font-semibold'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                className={`py-3 px-1 border-b-2 text-sm font-medium transition ${activeTab === 'report'
+                  ? 'border-emerald-600 text-emerald-600 font-semibold'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
               >
                 Form No. 3CEB Statutory Report
               </button>
@@ -727,11 +723,10 @@ export const TransferPricingPage: React.FC = () => {
                           </p>
                         </td>
                         <td className="py-3 px-3 align-top whitespace-nowrap">
-                          <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
-                            t.isWithinArmLength
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-red-100 text-red-800 font-bold'
-                          }`}>
+                          <span className={`px-2 py-0.5 rounded text-xs font-semibold ${t.isWithinArmLength
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-red-100 text-red-800 font-bold'
+                            }`}>
                             {t.isWithinArmLength ? 'At Arm\'s Length' : 'Adjustment Required'}
                           </span>
                         </td>
@@ -962,9 +957,8 @@ export const TransferPricingPage: React.FC = () => {
                           {c.calculatedMarginPercentage}%
                         </td>
                         <td className="py-3 px-3 whitespace-nowrap">
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-                            c.isAccepted ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                          }`}>
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${c.isAccepted ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                            }`}>
                             {c.isAccepted ? 'Accepted' : 'Rejected'}
                           </span>
                           {!c.isAccepted && c.rejectionReason && (

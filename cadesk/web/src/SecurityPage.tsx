@@ -120,7 +120,7 @@ function Preferences() {
   const [prefs, setPrefs] = useState<Pref[]>([])
   const [msg, setMsg] = useState<string | null>(null)
   const load = async () => setPrefs(await api<Pref[]>('/api/me/settings'))
-  useEffect(() => { load().catch(() => {}) }, [])
+  useEffect(() => { load().catch(() => { }) }, [])
 
   const save = async (p: Pref, value: Json) => {
     setMsg(null)

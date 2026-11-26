@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { toError,
+import {
+  toError,
   api,
   secretarialAuditApi,
   type Client,
@@ -533,11 +534,10 @@ export const SecretarialAuditPage: React.FC = () => {
 
           {currentEng && (
             <div className="flex items-center gap-2">
-              <span className={`px-2.5 py-1 text-xs font-semibold rounded-full border ${
-                currentEng.auditStatus === 'Certified'
-                  ? 'bg-green-100 text-green-800 border-green-300'
-                  : 'bg-amber-100 text-amber-800 border-amber-300'
-              }`}>
+              <span className={`px-2.5 py-1 text-xs font-semibold rounded-full border ${currentEng.auditStatus === 'Certified'
+                ? 'bg-green-100 text-green-800 border-green-300'
+                : 'bg-amber-100 text-amber-800 border-amber-300'
+                }`}>
                 {currentEng.auditStatus}
               </span>
               {currentEng.isApplicable ? (
@@ -637,21 +637,19 @@ export const SecretarialAuditPage: React.FC = () => {
             <nav className="flex space-x-8">
               <button
                 onClick={() => setActiveTab('checklist')}
-                className={`py-3 px-1 border-b-2 text-sm font-medium transition ${
-                  activeTab === 'checklist'
-                    ? 'border-indigo-600 text-indigo-600 font-semibold'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                className={`py-3 px-1 border-b-2 text-sm font-medium transition ${activeTab === 'checklist'
+                  ? 'border-indigo-600 text-indigo-600 font-semibold'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
               >
                 Multi-Statute Checklist ({currentEng.totalChecklistCount})
               </button>
               <button
                 onClick={() => setActiveTab('filings')}
-                className={`py-3 px-1 border-b-2 text-sm font-medium transition ${
-                  activeTab === 'filings'
-                    ? 'border-indigo-600 text-indigo-600 font-semibold'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                className={`py-3 px-1 border-b-2 text-sm font-medium transition ${activeTab === 'filings'
+                  ? 'border-indigo-600 text-indigo-600 font-semibold'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
               >
                 MCA E-Filings Audit ({currentEng.totalFilingsAudited})
                 {currentEng.filingsDelayedCount > 0 && (
@@ -662,11 +660,10 @@ export const SecretarialAuditPage: React.FC = () => {
               </button>
               <button
                 onClick={() => setActiveTab('meetings')}
-                className={`py-3 px-1 border-b-2 text-sm font-medium transition ${
-                  activeTab === 'meetings'
-                    ? 'border-indigo-600 text-indigo-600 font-semibold'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                className={`py-3 px-1 border-b-2 text-sm font-medium transition ${activeTab === 'meetings'
+                  ? 'border-indigo-600 text-indigo-600 font-semibold'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
               >
                 Board & Committee Meetings ({currentEng.totalMeetingsAudited})
                 {currentEng.meetingDeficienciesCount > 0 && (
@@ -677,11 +674,10 @@ export const SecretarialAuditPage: React.FC = () => {
               </button>
               <button
                 onClick={() => setActiveTab('report')}
-                className={`py-3 px-1 border-b-2 text-sm font-medium transition ${
-                  activeTab === 'report'
-                    ? 'border-indigo-600 text-indigo-600 font-semibold'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                className={`py-3 px-1 border-b-2 text-sm font-medium transition ${activeTab === 'report'
+                  ? 'border-indigo-600 text-indigo-600 font-semibold'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
               >
                 Form MR-3 Statutory Report
               </button>
@@ -698,11 +694,10 @@ export const SecretarialAuditPage: React.FC = () => {
                     <button
                       key={cat}
                       onClick={() => setStatuteFilter(cat)}
-                      className={`px-2.5 py-1 text-xs rounded-lg font-medium transition ${
-                        statuteFilter === cat
-                          ? 'bg-indigo-600 text-white shadow-sm'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
+                      className={`px-2.5 py-1 text-xs rounded-lg font-medium transition ${statuteFilter === cat
+                        ? 'bg-indigo-600 text-white shadow-sm'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
                     >
                       {cat === 'All' ? 'All Statutes' : cat.replace('2013', ' 2013').replace('1999', ' 1999').replace('1996', ' 1996').replace('2015', ' 2015')}
                     </button>
@@ -774,15 +769,14 @@ export const SecretarialAuditPage: React.FC = () => {
                           <select
                             value={item.complianceStatus}
                             onChange={(e) => handleChecklistStatusChange(item, e.target.value)}
-                            className={`px-2 py-1 rounded text-xs font-semibold border ${
-                              item.complianceStatus === 'Complied'
-                                ? 'bg-green-50 text-green-700 border-green-300'
-                                : item.complianceStatus === 'NotComplied'
+                            className={`px-2 py-1 rounded text-xs font-semibold border ${item.complianceStatus === 'Complied'
+                              ? 'bg-green-50 text-green-700 border-green-300'
+                              : item.complianceStatus === 'NotComplied'
                                 ? 'bg-red-50 text-red-700 border-red-300'
                                 : item.complianceStatus === 'PartiallyComplied'
-                                ? 'bg-amber-50 text-amber-700 border-amber-300'
-                                : 'bg-gray-100 text-gray-600 border-gray-300'
-                            }`}
+                                  ? 'bg-amber-50 text-amber-700 border-amber-300'
+                                  : 'bg-gray-100 text-gray-600 border-gray-300'
+                              }`}
                           >
                             <option value="Complied">Complied</option>
                             <option value="NotComplied">Not Complied</option>
@@ -793,23 +787,21 @@ export const SecretarialAuditPage: React.FC = () => {
                         <td className="py-3 px-3 align-top whitespace-nowrap">
                           <button
                             onClick={() => handleToggleQualification(item)}
-                            className={`px-2 py-0.5 rounded text-[11px] font-semibold border transition ${
-                              item.isQualification
-                                ? 'bg-amber-100 text-amber-800 border-amber-300'
-                                : 'bg-gray-50 text-gray-400 border-gray-200 hover:text-gray-700'
-                            }`}
+                            className={`px-2 py-0.5 rounded text-[11px] font-semibold border transition ${item.isQualification
+                              ? 'bg-amber-100 text-amber-800 border-amber-300'
+                              : 'bg-gray-50 text-gray-400 border-gray-200 hover:text-gray-700'
+                              }`}
                           >
                             {item.isQualification ? 'Qualification' : 'Clean'}
                           </button>
                         </td>
                         <td className="py-3 px-3 align-top whitespace-nowrap">
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-                            item.deviationRisk === 'Critical' || item.deviationRisk === 'High'
-                              ? 'bg-red-100 text-red-800'
-                              : item.deviationRisk === 'Medium'
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${item.deviationRisk === 'Critical' || item.deviationRisk === 'High'
+                            ? 'bg-red-100 text-red-800'
+                            : item.deviationRisk === 'Medium'
                               ? 'bg-amber-100 text-amber-800'
                               : 'bg-gray-100 text-gray-600'
-                          }`}>
+                            }`}>
                             {item.deviationRisk}
                           </span>
                         </td>
@@ -931,13 +923,12 @@ export const SecretarialAuditPage: React.FC = () => {
                           )}
                         </td>
                         <td className="py-3 px-3 whitespace-nowrap">
-                          <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
-                            f.filingStatus === 'FiledOnTime'
-                              ? 'bg-green-100 text-green-800'
-                              : f.filingStatus === 'FiledWithDelay'
+                          <span className={`px-2 py-0.5 rounded text-xs font-semibold ${f.filingStatus === 'FiledOnTime'
+                            ? 'bg-green-100 text-green-800'
+                            : f.filingStatus === 'FiledWithDelay'
                               ? 'bg-amber-100 text-amber-800'
                               : 'bg-red-100 text-red-800'
-                          }`}>
+                            }`}>
                             {f.filingStatus}
                           </span>
                           {f.delayDays > 0 && (
@@ -1051,9 +1042,8 @@ export const SecretarialAuditPage: React.FC = () => {
                         </td>
                         <td className="py-3 px-3 whitespace-nowrap">
                           {m.gapFromPreviousMeetingDays !== undefined && m.gapFromPreviousMeetingDays !== null ? (
-                            <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
-                              m.isGapCompliant ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800 font-bold'
-                            }`}>
+                            <span className={`px-2 py-0.5 rounded text-xs font-semibold ${m.isGapCompliant ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800 font-bold'
+                              }`}>
                               {m.gapFromPreviousMeetingDays} days
                               {!m.isGapCompliant && ' (Breach > 120d)'}
                             </span>
@@ -1063,9 +1053,8 @@ export const SecretarialAuditPage: React.FC = () => {
                         </td>
                         <td className="py-3 px-3 whitespace-nowrap">
                           {m.noticeDaysGiven !== undefined && m.noticeDaysGiven !== null ? (
-                            <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
-                              m.isNoticeCompliant ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'
-                            }`}>
+                            <span className={`px-2 py-0.5 rounded text-xs font-semibold ${m.isNoticeCompliant ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'
+                              }`}>
                               {m.noticeDaysGiven} days notice
                               {!m.isNoticeCompliant && ' (< 7d)'}
                             </span>
@@ -1074,9 +1063,8 @@ export const SecretarialAuditPage: React.FC = () => {
                           )}
                         </td>
                         <td className="py-3 px-3 whitespace-nowrap">
-                          <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
-                            m.isQuorumCompliant ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                          }`}>
+                          <span className={`px-2 py-0.5 rounded text-xs font-semibold ${m.isQuorumCompliant ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                            }`}>
                             {m.attendedMembersCount} / {m.totalMembersCount} attended (Req: {m.quorumRequiredCount})
                           </span>
                         </td>
@@ -1084,9 +1072,8 @@ export const SecretarialAuditPage: React.FC = () => {
                           {m.independentDirectorsAttended} Present
                         </td>
                         <td className="py-3 px-3 whitespace-nowrap">
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-                            m.secretarialStandardComplied ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800'
-                          }`}>
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${m.secretarialStandardComplied ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800'
+                            }`}>
                             {m.secretarialStandardComplied ? 'SS Compliant' : 'SS Non-Compliant'}
                           </span>
                         </td>
@@ -1250,9 +1237,8 @@ export const SecretarialAuditPage: React.FC = () => {
               </button>
 
               {appCalcResult && (
-                <div className={`p-4 rounded-lg border text-xs mt-3 ${
-                  appCalcResult.isApplicable ? 'bg-blue-50 border-blue-200 text-blue-900' : 'bg-gray-50 border-gray-200 text-gray-700'
-                }`}>
+                <div className={`p-4 rounded-lg border text-xs mt-3 ${appCalcResult.isApplicable ? 'bg-blue-50 border-blue-200 text-blue-900' : 'bg-gray-50 border-gray-200 text-gray-700'
+                  }`}>
                   <div className="flex items-center gap-2 font-bold text-sm">
                     <span>{appCalcResult.isApplicable ? 'MANDATORY SECRETARIAL AUDIT' : 'EXEMPT FROM MANDATORY AUDIT'}</span>
                   </div>
