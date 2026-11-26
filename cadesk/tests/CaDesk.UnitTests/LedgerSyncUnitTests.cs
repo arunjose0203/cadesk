@@ -337,4 +337,98 @@ public class LedgerSyncUnitTests
 
         Assert.Null(match);
     }
+
+    [Fact]
+    public void TallyXmlProtocol_GenerateExportTrialBalanceXml_ContainsExplodedXmlRequest()
+    {
+        string xml = TallyXmlProtocol.GenerateExportTrialBalanceXml(
+            "Malabar Spices & Co",
+            new DateOnly(2025, 4, 1),
+            new DateOnly(2026, 3, 31));
+
+        Assert.Contains("<REPORTNAME>Trial Balance</REPORTNAME>", xml);
+        Assert.Contains("<SVCURRENTCOMPANY>Malabar Spices &amp; Co</SVCURRENTCOMPANY>", xml);
+        Assert.Contains("<EXPLODEFLAG>Yes</EXPLODEFLAG>", xml);
+        Assert.Contains("<SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>", xml);
+        Assert.Contains("<SVFROMDATE>20250401</SVFROMDATE>", xml);
+        Assert.Contains("<SVTODATE>20260331</SVTODATE>", xml);
+    }
+
+    [Fact]
+    public void TallyXmlProtocol_ParseExportVouchersXml_ExtractsDebitCreditChequeAndSkipsCancelled()
+    {
+        string xml = """
+        <ENVELOPE>
+          <BODY>
+            <DATA>
+              <TALLYMESSAGE>
+                <VOUCHER VCHTYPE="Payment" ACTION="Create">
+                  <DATE>20250815</DATE>
+                  <EFFECTIVEDATE>20250815</EFFECTIVEDATE>
+                  <GUID>tally-guid-001</GUID>
+                  <VOUCHERTYPENAME>Payment</VOUCHERTYPENAME>
+                  <VOUCHERNUMBER>PMT/25-26/042</VOUCHERNUMBER>
+                  <PARTYLEDGERNAME>Southern Logistics</PARTYLEDGERNAME>
+                  <NARRATION>Freight settlement via HDFC NEFT</NARRATION>
+                  <ALLLEDGERENTRIES.LIST>
+                    <LEDGERNAME>Southern Logistics</LEDGERNAME>
+                    <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+                    <AMOUNT>-48500.00</AMOUNT>
+                  </ALLLEDGERENTRIES.LIST>
+                  <ALLLEDGERENTRIES.LIST>
+                    <LEDGERNAME>HDFC Bank Current A/c</LEDGERNAME>
+                    <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+                    <AMOUNT>48500.00</AMOUNT>
+                    <BANKALLOCATIONS.LIST>
+                      <INSTRUMENTNUMBER>CHQ881234</INSTRUMENTNUMBER>
+                      <INSTRUMENTDATE>20250815</INSTRUMENTDATE>
+                    </BANKALLOCATIONS.LIST>
+                  </ALLLEDGERENTRIES.LIST>
+                </VOUCHER>
+                <VOUCHER VCHTYPE="Journal" ACTION="Cancel">
+                  <DATE>20250816</DATE>
+                  <VOUCHERNUMBER>JRN/CANCELLED</VOUCHERNUMBER>
+                  <ALLLEDGERENTRIES.LIST>
+                    <LEDGERNAME>Misc</LEDGERNAME>
+                    <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+                    <AMOUNT>-100</AMOUNT>
+                  </ALLLEDGERENTRIES.LIST>
+                </VOUCHER>
+              </TALLYMESSAGE>
+            </DATA>
+          </BODY>
+        </ENVELOPE>
+        """;
+
+        var list = TallyXmlProtocol.ParseExportVouchersXml(xml);
+        Assert.Single(list);
+        Assert.Equal("PMT/25-26/042", list[0].VoucherNumber);
+        Assert.Equal("tally-guid-001", list[0].VoucherGuid);
+        Assert.Equal(ErpVoucherType.Payment, list[0].VoucherType);
+        Assert.Equal(48500.00m, list[0].Amount);
+        Assert.Equal("Southern Logistics", list[0].DebitLedger);
+        Assert.Equal("HDFC Bank Current A/c", list[0].CreditLedger);
+        Assert.Equal("CHQ881234", list[0].ChequeNumber);
+    }
+
+    [Fact]
+    public void UniversalTrialBalanceParser_ParseXml_SupportsNativeTallyDspAccNameNodes()
+    {
+        string nativeTallyTbXml = """
+        <ENVELOPE>
+          <DSPACCNAME><DSPDISPNAME>HDFC Bank Current Account</DSPDISPNAME></DSPACCNAME>
+          <DSPACCINFO><DSPCLAMT><DSPCLAMTA>1250000.00</DSPCLAMTA></DSPCLAMT></DSPACCINFO>
+          <DSPACCNAME><DSPDISPNAME>Domestic Sales</DSPDISPNAME></DSPACCNAME>
+          <DSPACCINFO><DSPCLAMT><DSPCLAMTA>-1250000.00</DSPCLAMTA></DSPCLAMT></DSPACCINFO>
+        </ENVELOPE>
+        """;
+
+        var parsed = CaDesk.Application.TrialBalance.UniversalTrialBalanceParser.ParseXml(nativeTallyTbXml);
+        Assert.Equal(2, parsed.Ledgers.Count);
+        Assert.Equal("HDFC Bank Current Account", parsed.Ledgers[0].Name);
+        Assert.Equal(1250000m, parsed.Ledgers[0].DebitAmount);
+        Assert.Equal("Domestic Sales", parsed.Ledgers[1].Name);
+        Assert.Equal(1250000m, parsed.Ledgers[1].CreditAmount);
+        Assert.True(parsed.IsBalanced);
+    }
 }

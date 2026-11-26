@@ -14,6 +14,10 @@ public static class LedgerSyncEndpoints
             .RequireFeature(CaDesk.Domain.Features.FeatureKeys.LedgerSync)
             .RequirePlanDesk("ledger-sync");
 
+        var agentGateway = app.MapGroup("/api/ledger-sync")
+            .WithTags("Ledger Sync Agent Gateway")
+            .AllowAnonymous();
+
         // 1. Agent Configurations (Firm management)
         g.MapGet("/agents", async ([FromQuery] Guid? clientId, ILedgerSyncService svc, CancellationToken ct) =>
         {
@@ -25,6 +29,13 @@ public static class LedgerSyncEndpoints
         {
             var res = await svc.GetAgentConfigByIdAsync(id, ct);
             return res is null ? Results.NotFound() : Results.Ok(res);
+        }).RequirePermission(Perms.LedgerSyncRead);
+
+        g.MapGet("/agents/{id:guid}/bridge-bundle", async (Guid id, HttpRequest httpReq, ILedgerSyncService svc, CancellationToken ct) =>
+        {
+            string baseUrl = $"{httpReq.Scheme}://{httpReq.Host}";
+            var bundle = await svc.BuildWindowsBridgeBundleAsync(id, baseUrl, ct);
+            return bundle is null ? Results.NotFound() : Results.Ok(bundle);
         }).RequirePermission(Perms.LedgerSyncRead);
 
         g.MapPost("/agents", async ([FromBody] CreateOrUpdateAgentConfigRequest req, ILedgerSyncService svc, CancellationToken ct) =>
@@ -47,18 +58,35 @@ public static class LedgerSyncEndpoints
         }).RequirePermission(Perms.LedgerSyncManage);
 
         // 2. Agent Heartbeat & Diagnostics (Called by local sync agent)
-        g.MapPost("/agents/heartbeat", async ([FromBody] AgentHeartbeatRequest req, ILedgerSyncService svc, CancellationToken ct) =>
+        agentGateway.MapPost("/agents/heartbeat", async ([FromBody] AgentHeartbeatRequest req, ILedgerSyncService svc, CancellationToken ct) =>
         {
             var ok = await svc.RecordAgentHeartbeatAsync(req, ct);
             return ok ? Results.Ok(new { success = true }) : Results.Unauthorized();
         }).AllowAnonymous();
 
-        // 3. Inbound Voucher Sync (Called by local sync agent)
-        g.MapPost("/vouchers/batch-sync", async ([FromBody] BatchSyncVouchersRequest req, ILedgerSyncService svc, CancellationToken ct) =>
+        // 3. Inbound Voucher Sync & Live Tally Trial Balance Push (Called by local sync agent)
+        agentGateway.MapPost("/vouchers/batch-sync", async ([FromBody] BatchSyncVouchersRequest req, ILedgerSyncService svc, CancellationToken ct) =>
         {
             try
             {
                 var res = await svc.BatchSyncVouchersAsync(req, ct);
+                return Results.Ok(res);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Results.Unauthorized();
+            }
+            catch (Exception ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        }).AllowAnonymous();
+
+        agentGateway.MapPost("/trial-balance/push", async ([FromBody] PushAgentTrialBalanceRequest req, ILedgerSyncService svc, CancellationToken ct) =>
+        {
+            try
+            {
+                var res = await svc.PushAgentTrialBalanceAsync(req, ct);
                 return Results.Ok(res);
             }
             catch (UnauthorizedAccessException)
@@ -111,7 +139,7 @@ public static class LedgerSyncEndpoints
         }).RequirePermission(Perms.LedgerSyncRead);
 
         // Agent polling for queued outgoing vouchers
-        g.MapGet("/outgoing-vouchers/pending-queue", async ([FromQuery] string agentToken, ILedgerSyncService svc, CancellationToken ct) =>
+        agentGateway.MapGet("/outgoing-vouchers/pending-queue", async ([FromQuery] string agentToken, ILedgerSyncService svc, CancellationToken ct) =>
         {
             try
             {
@@ -125,7 +153,7 @@ public static class LedgerSyncEndpoints
         }).AllowAnonymous();
 
         // Agent reports posted voucher status
-        g.MapPost("/outgoing-vouchers/report-status", async ([FromBody] ReportOutgoingVoucherStatusRequest req, ILedgerSyncService svc, CancellationToken ct) =>
+        agentGateway.MapPost("/outgoing-vouchers/report-status", async ([FromBody] ReportOutgoingVoucherStatusRequest req, ILedgerSyncService svc, CancellationToken ct) =>
         {
             try
             {

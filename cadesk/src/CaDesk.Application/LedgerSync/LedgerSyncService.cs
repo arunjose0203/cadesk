@@ -1,6 +1,11 @@
 using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 using CaDesk.Application.Abstractions;
+using CaDesk.Application.Features;
+using CaDesk.Application.TrialBalance;
 using CaDesk.Domain.BankFeeds;
+using CaDesk.Domain.Features;
 using CaDesk.Domain.LedgerSync;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,11 +15,19 @@ public class LedgerSyncService : ILedgerSyncService
 {
     private readonly IAppDbContext _db;
     private readonly ITenantContext _tenant;
+    private readonly TrialBalanceService? _trialBalance;
+    private readonly IFeatureFlagService? _featureFlags;
 
-    public LedgerSyncService(IAppDbContext db, ITenantContext tenant)
+    public LedgerSyncService(
+        IAppDbContext db,
+        ITenantContext tenant,
+        TrialBalanceService? trialBalance = null,
+        IFeatureFlagService? featureFlags = null)
     {
         _db = db;
         _tenant = tenant;
+        _trialBalance = trialBalance;
+        _featureFlags = featureFlags;
     }
 
     // 1. Agent Configuration & Diagnostics
@@ -87,7 +100,7 @@ public class LedgerSyncService : ILedgerSyncService
 
     public async Task<bool> RecordAgentHeartbeatAsync(AgentHeartbeatRequest req, CancellationToken ct = default)
     {
-        var agent = await _db.ErpSyncAgentConfigs.FirstOrDefaultAsync(x => x.AgentToken == req.AgentToken, ct);
+        var agent = await ResolveAgentByTokenOrNullAsync(req.AgentToken, ct);
         if (agent is null) return false;
 
         agent.SyncStatus = req.Status;
@@ -101,8 +114,7 @@ public class LedgerSyncService : ILedgerSyncService
     // 2. Inbound Voucher Sync
     public async Task<SyncVouchersResultDto> BatchSyncVouchersAsync(BatchSyncVouchersRequest req, CancellationToken ct = default)
     {
-        var agent = await _db.ErpSyncAgentConfigs.FirstOrDefaultAsync(x => x.AgentToken == req.AgentToken, ct)
-            ?? throw new UnauthorizedAccessException("Invalid ERP Sync Agent Token");
+        var agent = await ResolveAgentByTokenAsync(req.AgentToken, ct);
 
         int created = 0;
         int updated = 0;
@@ -277,8 +289,7 @@ public class LedgerSyncService : ILedgerSyncService
 
     public async Task<List<ErpOutgoingVoucherDto>> GetPendingOutgoingQueueForAgentAsync(string agentToken, CancellationToken ct = default)
     {
-        var agent = await _db.ErpSyncAgentConfigs.FirstOrDefaultAsync(x => x.AgentToken == agentToken, ct)
-            ?? throw new UnauthorizedAccessException("Invalid ERP Sync Agent Token");
+        var agent = await ResolveAgentByTokenAsync(agentToken, ct);
 
         var list = await _db.ErpOutgoingVouchers
             .Include(x => x.Client)
@@ -291,8 +302,7 @@ public class LedgerSyncService : ILedgerSyncService
 
     public async Task<bool> ReportOutgoingVoucherStatusAsync(ReportOutgoingVoucherStatusRequest req, CancellationToken ct = default)
     {
-        var agent = await _db.ErpSyncAgentConfigs.FirstOrDefaultAsync(x => x.AgentToken == req.AgentToken, ct)
-            ?? throw new UnauthorizedAccessException("Invalid ERP Sync Agent Token");
+        var agent = await ResolveAgentByTokenAsync(req.AgentToken, ct);
 
         var voucher = await _db.ErpOutgoingVouchers.FirstOrDefaultAsync(x => x.Id == req.VoucherId && x.AgentConfigId == agent.Id, ct);
         if (voucher is null) return false;
@@ -556,6 +566,241 @@ public class LedgerSyncService : ILedgerSyncService
             IsActive: c.IsActive,
             CreatedAt: c.CreatedAt
         );
+    }
+
+    public async Task<TrialBalanceImportDto> PushAgentTrialBalanceAsync(PushAgentTrialBalanceRequest req, CancellationToken ct = default)
+    {
+        if (_trialBalance is null)
+            throw new InvalidOperationException("TrialBalanceService is unavailable in this scope.");
+
+        var agent = await ResolveAgentByTokenAsync(req.AgentToken, ct);
+        string safeCompany = string.Concat(agent.CompanyName.Select(ch => char.IsLetterOrDigit(ch) ? ch : '_'));
+        string fileName = string.IsNullOrWhiteSpace(req.FileName)
+            ? $"tally_tb_{safeCompany}_{req.FinancialYear}.xml"
+            : req.FileName.Trim();
+
+        var importDto = await _trialBalance.UploadTrialBalanceAsync(new UploadTrialBalanceRequest(
+            ClientId: agent.ClientId,
+            FinancialYear: string.IsNullOrWhiteSpace(req.FinancialYear) ? "2025-26" : req.FinancialYear.Trim(),
+            SourceType: "TallyXml",
+            FileName: fileName,
+            ContentPayload: req.XmlContent
+        ), ct);
+
+        agent.TotalMastersSynced = importDto.TotalLedgersCount;
+        agent.LastSyncAt = DateTimeOffset.UtcNow;
+        agent.SyncStatus = AgentSyncStatus.Connected;
+        agent.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync(ct);
+
+        return importDto;
+    }
+
+    public async Task<WindowsTallyBridgeBundleDto?> BuildWindowsBridgeBundleAsync(Guid agentId, string apiBaseUrl, CancellationToken ct = default)
+    {
+        var agent = await _db.ErpSyncAgentConfigs.AsNoTracking().FirstOrDefaultAsync(x => x.Id == agentId, ct);
+        if (agent is null) return null;
+
+        string cleanApiUrl = apiBaseUrl.TrimEnd('/');
+        string cleanTallyUrl = string.IsNullOrWhiteSpace(agent.HostUrl) ? "http://localhost:9000" : agent.HostUrl.TrimEnd('/');
+        string safePrefix = string.Concat((agent.CompanyName.Length > 0 ? agent.CompanyName : agent.AgentName)
+            .Select(ch => char.IsLetterOrDigit(ch) ? ch : '_')).Trim('_');
+        if (string.IsNullOrWhiteSpace(safePrefix)) safePrefix = "TallyCompany";
+
+        string scriptFile = $"CaDesk_TallyBridge_{safePrefix}.ps1";
+        string configFile = $"appsettings.{safePrefix}.json";
+
+        var cfgObj = new
+        {
+            apiBaseUrl = cleanApiUrl,
+            agentToken = agent.AgentToken,
+            tallyHostUrl = cleanTallyUrl,
+            companyName = agent.CompanyName,
+            financialYear = "2025-26",
+            pollIntervalSeconds = Math.Max(30, agent.SyncFrequencyMinutes * 60),
+            syncVouchers = agent.SyncDaybook,
+            syncTrialBalance = agent.SyncMasters,
+            processOutgoingAdjustments = true
+        };
+        string appSettingsJson = JsonSerializer.Serialize(cfgObj, new JsonSerializerOptions { WriteIndented = true });
+
+        string escapedCompany = System.Security.SecurityElement.Escape(agent.CompanyName) ?? agent.CompanyName;
+        string psScript = $$"""
+<#
+.SYNOPSIS
+  CaDesk Lightweight Windows TallyPrime XML Bridge ({{agent.AgentName}})
+  Runs locally on Windows and connects TallyPrime XML Gateway ({{cleanTallyUrl}}) -> CaDesk API ({{cleanApiUrl}}).
+.NOTES
+  1. In TallyPrime: Press F1 -> Settings -> Connectivity -> Client/Server Configuration:
+     - TallyPrime acts as: Both (Server + Client)
+     - Enable ODBC Server: Yes | Port: 9000
+  2. Open your company "{{agent.CompanyName}}" in TallyPrime, then right-click this script -> Run with PowerShell (or run via Task Scheduler).
+#>
+param(
+  [string]$CaDeskUrl = "{{cleanApiUrl}}",
+  [string]$AgentToken = "{{agent.AgentToken}}",
+  [string]$TallyUrl = "{{cleanTallyUrl}}",
+  [string]$CompanyName = "{{agent.CompanyName.Replace("\"", "`\"")}}",
+  [string]$FinancialYear = "2025-26",
+  [int]$PollSeconds = {{Math.Max(60, agent.SyncFrequencyMinutes * 60)}},
+  [switch]$RunOnce
+)
+
+$ErrorActionPreference = "Stop"
+
+function Get-FyWindow([string]$fy) {
+  $parts = $fy.Split("-")
+  $yr = [int]$parts[0]
+  return @{ From = "$($yr)0401"; To = "$($yr + 1)0331" }
+}
+
+function Invoke-TallyXml([string]$xmlBody) {
+  $bytes = [System.Text.Encoding]::UTF8.GetBytes($xmlBody)
+  $resp = Invoke-WebRequest -Uri $TallyUrl -Method Post -Body $bytes -ContentType "application/xml" -UseBasicParsing -TimeoutSec 45
+  return $resp.Content
+}
+
+function Send-CaDeskHeartbeat([string]$status, [string]$errMsg = $null) {
+  $body = @{ agentToken = $AgentToken; status = $status; errorMessage = $errMsg } | ConvertTo-Json
+  Invoke-RestMethod -Uri "$CaDeskUrl/api/ledger-sync/agents/heartbeat" -Method Post -Body $body -ContentType "application/json" | Out-Null
+}
+
+function Parse-TallyVouchers([string]$xmlText) {
+  if ([string]::IsNullOrWhiteSpace($xmlText)) { return @() }
+  [xml]$x = $xmlText
+  $nodes = $x.SelectNodes("//VOUCHER")
+  $out = @()
+  foreach ($v in $nodes) {
+    if ($v.GetAttribute("ACTION") -eq "Cancel" -or $v.ISCANCELLED -eq "Yes") { continue }
+    $vNum = if ($v.VOUCHERNUMBER) { $v.VOUCHERNUMBER.Trim() } elseif ($v.REFERENCE) { $v.REFERENCE.Trim() } else { "VCH-$($out.Count + 1)" }
+    $guid = if ($v.GUID) { $v.GUID.Trim() } else { $vNum }
+    $rawType = if ($v.VOUCHERTYPENAME) { $v.VOUCHERTYPENAME.ToLowerInvariant() } else { "journal" }
+    $vType = if ($rawType -like "*payment*") { "Payment" } elseif ($rawType -like "*receipt*") { "Receipt" } elseif ($rawType -like "*contra*") { "Contra" } elseif ($rawType -like "*sales*") { "Sales" } elseif ($rawType -like "*purchase*") { "Purchase" } else { "Journal" }
+    $rawDt = if ($v.DATE) { $v.DATE.Trim() } else { (Get-Date).ToString("yyyyMMdd") }
+    $isoDt = if ($rawDt.Length -eq 8) { "$($rawDt.Substring(0,4))-$($rawDt.Substring(4,2))-$($rawDt.Substring(6,2))" } else { (Get-Date).ToString("yyyy-MM-dd") }
+
+    $drLedger = ""; $crLedger = ""; [decimal]$drSum = 0; [decimal]$crSum = 0
+    foreach ($le in $v.SelectNodes("ALLLEDGERENTRIES.LIST | LEDGERENTRIES.LIST")) {
+      $lName = [string]$le.LEDGERNAME
+      if ([string]::IsNullOrWhiteSpace($lName)) { continue }
+      [decimal]$amt = 0; [decimal]::TryParse(([string]$le.AMOUNT), [ref]$amt) | Out-Null
+      $isDr = ($le.ISDEEMEDPOSITIVE -eq "Yes") -or ($amt -lt 0)
+      $absAmt = [Math]::Abs($amt)
+      if ($isDr) { $drSum += $absAmt; if (-not $drLedger) { $drLedger = $lName.Trim() } }
+      else { $crSum += $absAmt; if (-not $crLedger) { $crLedger = $lName.Trim() } }
+    }
+    $finalAmt = [Math]::Max($drSum, $crSum)
+    if ($finalAmt -le 0) { continue }
+    $out += @{
+      voucherNumber = $vNum; voucherGuid = $guid; voucherType = $vType;
+      voucherDate = $isoDt; effectiveDate = $isoDt; amount = $finalAmt;
+      debitLedger = if ($drLedger) { $drLedger } else { "Sundry Debtors" };
+      creditLedger = if ($crLedger) { $crLedger } else { "Sundry Creditors" };
+      narration = ([string]$v.NARRATION).Trim(); chequeNumber = $null; instrumentDate = $null; bankPartyName = $null
+    }
+  }
+  return $out
+}
+
+Write-Host "[CaDesk Tally Bridge] Connecting $TallyUrl (Company: $CompanyName) -> $CaDeskUrl" -ForegroundColor Cyan
+
+do {
+  try {
+    $win = Get-FyWindow $FinancialYear
+    Send-CaDeskHeartbeat "Syncing"
+
+    # 1. Pull Daybook Vouchers
+    $vchReqXml = "<ENVELOPE><HEADER><TALLYREQUEST>Export Data</TALLYREQUEST></HEADER><BODY><EXPORTDATA><REQUESTDESC><REPORTNAME>Voucher Register</REPORTNAME><STATICVARIABLES><SVCURRENTCOMPANY>{{escapedCompany}}</SVCURRENTCOMPANY><SVFROMDATE>$($win.From)</SVFROMDATE><SVTODATE>$($win.To)</SVTODATE></STATICVARIABLES></REQUESTDESC></EXPORTDATA></BODY></ENVELOPE>"
+    $vchResp = Invoke-TallyXml $vchReqXml
+    $parsedVouchers = Parse-TallyVouchers $vchResp
+    if ($parsedVouchers.Count -gt 0) {
+      $batchBody = @{ agentToken = $AgentToken; vouchers = $parsedVouchers } | ConvertTo-Json -Depth 6
+      Invoke-RestMethod -Uri "$CaDeskUrl/api/ledger-sync/vouchers/batch-sync" -Method Post -Body $batchBody -ContentType "application/json" | Out-Null
+    }
+
+    # 2. Pull Trial Balance -> Schedule III / 3CD / Fixed Assets Sync
+    $tbReqXml = "<ENVELOPE><HEADER><TALLYREQUEST>Export Data</TALLYREQUEST></HEADER><BODY><EXPORTDATA><REQUESTDESC><REPORTNAME>Trial Balance</REPORTNAME><STATICVARIABLES><SVCURRENTCOMPANY>{{escapedCompany}}</SVCURRENTCOMPANY><SVFROMDATE>$($win.From)</SVFROMDATE><SVTODATE>$($win.To)</SVTODATE><EXPLODEFLAG>Yes</EXPLODEFLAG><SVEXPORTFORMAT>`$`$SysName:XML</SVEXPORTFORMAT></STATICVARIABLES></REQUESTDESC></EXPORTDATA></BODY></ENVELOPE>"
+    $tbResp = Invoke-TallyXml $tbReqXml
+    $tbBody = @{ agentToken = $AgentToken; financialYear = $FinancialYear; xmlContent = $tbResp; fileName = "tally_tb_$FinancialYear.xml" } | ConvertTo-Json
+    Invoke-RestMethod -Uri "$CaDeskUrl/api/ledger-sync/trial-balance/push" -Method Post -Body $tbBody -ContentType "application/json" | Out-Null
+
+    # 3. Post Pending Audit Adjustments back to Tally
+    $queue = Invoke-RestMethod -Uri "$CaDeskUrl/api/ledger-sync/outgoing-vouchers/pending-queue?agentToken=$([uri]::EscapeDataString($AgentToken))" -Method Get
+    foreach ($item in $queue) {
+      $tResp = Invoke-TallyXml $item.generatedXmlPayload
+      $createdOk = ($tResp -match "<CREATED>1</CREATED>") -and -not ($tResp -match "<ERRORS>[1-9]")
+      $rep = @{
+        voucherId = $item.id; agentToken = $AgentToken;
+        status = if ($createdOk) { "PostedSuccessfully" } else { "FailedInErp" };
+        erpVoucherNumber = $item.referenceNumber; erpResponseXml = $tResp;
+        errorMessage = if ($createdOk) { $null } else { "Tally import reported an error" }
+      } | ConvertTo-Json
+      Invoke-RestMethod -Uri "$CaDeskUrl/api/ledger-sync/outgoing-vouchers/report-status" -Method Post -Body $rep -ContentType "application/json" | Out-Null
+    }
+
+    Send-CaDeskHeartbeat "Connected"
+    Write-Host "[$(Get-Date -Format 'HH:mm:ss')] Sync OK: $($parsedVouchers.Count) vouchers + Trial Balance + $($queue.Count) outgoing adjustments." -ForegroundColor Green
+  } catch {
+    Write-Warning "[$(Get-Date -Format 'HH:mm:ss')] Sync cycle error: $($_.Exception.Message)"
+    try { Send-CaDeskHeartbeat "Error" $_.Exception.Message } catch {}
+  }
+
+  if (-not $RunOnce) { Start-Sleep -Seconds $PollSeconds }
+} while (-not $RunOnce)
+""";
+
+        string cliCmd = $"dotnet run --project tools/CaDesk.TallyBridge -- --url \"{cleanApiUrl}\" --token \"{agent.AgentToken}\" --tally \"{cleanTallyUrl}\" --company \"{agent.CompanyName}\"";
+
+        return new WindowsTallyBridgeBundleDto(
+            AgentId: agent.Id,
+            AgentName: agent.AgentName,
+            CompanyName: agent.CompanyName,
+            HostUrl: cleanTallyUrl,
+            ScriptFileName: scriptFile,
+            ConfigFileName: configFile,
+            PowerShellScript: psScript,
+            AppSettingsJson: appSettingsJson,
+            DotNetRunCommand: cliCmd
+        );
+    }
+
+    private async Task<ErpSyncAgentConfig> ResolveAgentByTokenAsync(string agentToken, CancellationToken ct) =>
+        await ResolveAgentByTokenOrNullAsync(agentToken, ct)
+        ?? throw new UnauthorizedAccessException("Invalid ERP Sync Agent Token");
+
+    private async Task<ErpSyncAgentConfig?> ResolveAgentByTokenOrNullAsync(string? agentToken, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(agentToken))
+            return null;
+
+        string token = agentToken.Trim();
+        if (!_tenant.HasTenant)
+        {
+            var found = (await _db.Database.SqlQuery<AgentTokenLookup>($"""
+                select id as "Id", firm_id as "FirmId", client_id as "ClientId"
+                from ledger_sync_find_agent_by_token({token})
+                """).ToListAsync(ct)).FirstOrDefault();
+
+            if (found is null)
+                return null;
+
+            if (_tenant is ITenantSetter setter)
+                setter.Set(found.FirmId, null, "ErpSyncAgent");
+            else
+                throw new InvalidOperationException("Tenant context cannot be initialized for ERP Sync Agent.");
+        }
+
+        if (_featureFlags is not null && !await _featureFlags.IsEnabledAsync(FeatureKeys.LedgerSync, ct))
+            throw new BusinessRuleException($"Feature module '{FeatureKeys.LedgerSync}' is not enabled for this firm.", 404);
+
+        return await _db.ErpSyncAgentConfigs.FirstOrDefaultAsync(x => x.AgentToken == token && x.IsActive, ct);
+    }
+
+    public sealed class AgentTokenLookup
+    {
+        public Guid Id { get; set; }
+        public Guid FirmId { get; set; }
+        public Guid ClientId { get; set; }
     }
 
     private static ErpOutgoingVoucherDto ToOutgoingVoucherDto(ErpOutgoingVoucher v, string clientName)

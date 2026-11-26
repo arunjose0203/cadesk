@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using CaDesk.Domain.BankFeeds;
@@ -6,12 +7,14 @@ using CaDesk.Domain.Common;
 
 namespace CaDesk.Domain.LedgerSync;
 
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum ErpType
 {
     TallyPrime = 0,
     BusyAccounting = 1
 }
 
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum AgentSyncStatus
 {
     Offline = 0,
@@ -20,6 +23,7 @@ public enum AgentSyncStatus
     Error = 3
 }
 
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum ErpVoucherType
 {
     Receipt = 0,
@@ -30,6 +34,7 @@ public enum ErpVoucherType
     Purchase = 5
 }
 
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum VoucherReconciliationStatus
 {
     Unreconciled = 0,
@@ -38,6 +43,7 @@ public enum VoucherReconciliationStatus
     Discrepancy = 3
 }
 
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum OutgoingVoucherStatus
 {
     PendingApproval = 0,
@@ -46,6 +52,7 @@ public enum OutgoingVoucherStatus
     FailedInErp = 3
 }
 
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum AuditReasonCategory
 {
     DepreciationEntrySec32 = 0,
@@ -56,6 +63,7 @@ public enum AuditReasonCategory
     ProvisionForBadDebts = 5
 }
 
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum ReconciliationMatchRule
 {
     ExactAmountAndDate = 0,
@@ -66,6 +74,7 @@ public enum ReconciliationMatchRule
     ManualMatch = 5
 }
 
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum ReconciliationMatchStatus
 {
     Suggested = 0,

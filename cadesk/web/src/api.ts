@@ -9734,7 +9734,21 @@ export const ledgerSyncApi = {
       body: JSON.stringify(req)
     }),
   getReconciliationSummary: (clientId: string, bankAccountId: string) =>
-    api<ReconciliationSummaryDto>(`/api/ledger-sync/reconciliation/summary?clientId=${clientId}&bankAccountId=${bankAccountId}`)
+    api<ReconciliationSummaryDto>(`/api/ledger-sync/reconciliation/summary?clientId=${clientId}&bankAccountId=${bankAccountId}`),
+  getBridgeBundle: (agentId: string) =>
+    api<WindowsTallyBridgeBundleDto>(`/api/ledger-sync/agents/${agentId}/bridge-bundle`),
+}
+
+export interface WindowsTallyBridgeBundleDto {
+  agentId: string
+  agentName: string
+  companyName: string
+  hostUrl: string
+  scriptFileName: string
+  configFileName: string
+  powerShellScript: string
+  appSettingsJson: string
+  dotNetRunCommand: string
 }
 
 // ==========================================

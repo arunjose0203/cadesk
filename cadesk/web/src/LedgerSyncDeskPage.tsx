@@ -61,6 +61,8 @@ export function LedgerSyncDeskPage() {
   const [showOutgoingModal, setShowOutgoingModal] = useState(false)
   const [selectedXmlPayload, setSelectedXmlPayload] = useState<string | null>(null)
   const [copiedToken, setCopiedToken] = useState<string | null>(null)
+  const [downloadingBridgeId, setDownloadingBridgeId] = useState<string | null>(null)
+  const [bridgePreview, setBridgePreview] = useState<import('./api').WindowsTallyBridgeBundleDto | null>(null)
 
   // Agent Form
   const [agentForm, setAgentForm] = useState<CreateOrUpdateAgentConfigRequest>({
@@ -277,6 +279,39 @@ export function LedgerSyncDeskPage() {
     setTimeout(() => setCopiedToken(null), 3000)
   }
 
+  const downloadTextFile = (filename: string, content: string, mime = 'text/plain;charset=utf-8') => {
+    const blob = new Blob([content], { type: mime })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+  }
+
+  const handleDownloadBridge = async (agentId: string, mode: 'ps1' | 'json' | 'preview') => {
+    setDownloadingBridgeId(agentId)
+    setErrorMsg(null)
+    try {
+      const bundle = await ledgerSyncApi.getBridgeBundle(agentId)
+      if (mode === 'ps1') {
+        downloadTextFile(bundle.scriptFileName, bundle.powerShellScript, 'text/plain;charset=utf-8')
+        setNotice(`Downloaded ${bundle.scriptFileName}. Right-click in Windows -> Run with PowerShell while TallyPrime is open on ${bundle.hostUrl}.`)
+      } else if (mode === 'json') {
+        downloadTextFile(bundle.configFileName, bundle.appSettingsJson, 'application/json;charset=utf-8')
+        setNotice(`Downloaded ${bundle.configFileName} for compiled .NET worker (tools/CaDesk.TallyBridge).`)
+      } else {
+        setBridgePreview(bundle)
+      }
+    } catch (err: unknown) {
+      setErrorMsg((err as Error).message || 'Failed to generate Windows Tally Bridge bundle')
+    } finally {
+      setDownloadingBridgeId(null)
+    }
+  }
+
   // Filtered Vouchers
   const filteredVouchers = useMemo(() => {
     return vouchers.filter(v => {
@@ -325,6 +360,7 @@ export function LedgerSyncDeskPage() {
       case 'Connected':
       case 'Approved':
       case 'PostedToErp':
+      case 'PostedSuccessfully':
       case 'AutoMatched':
         return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">● {status}</span>
       case 'Syncing':
@@ -688,21 +724,51 @@ export function LedgerSyncDeskPage() {
                 </div>
 
                 {/* Agent Secret Token & Actions */}
-                <div className="pt-2 border-t border-gray-100 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+                <div className="pt-2 border-t border-gray-100 space-y-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <button
-                      onClick={() => copyToClipboard(agent.agentToken)}
-                      className="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 font-medium"
+                      type="button"
+                      onClick={() => handleDownloadBridge(agent.id, 'ps1')}
+                      disabled={downloadingBridgeId === agent.id}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50"
                     >
-                      📋 {copiedToken === agent.agentToken ? 'Copied Token!' : 'Copy Agent Token'}
+                      ⬇ Windows Bridge (.ps1)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDownloadBridge(agent.id, 'json')}
+                      disabled={downloadingBridgeId === agent.id}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium border border-gray-300 bg-white text-gray-800 hover:bg-gray-50 disabled:opacity-50"
+                    >
+                      ⚙ Config (.json)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDownloadBridge(agent.id, 'preview')}
+                      disabled={downloadingBridgeId === agent.id}
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                    >
+                      💻 .NET CLI
                     </button>
                   </div>
-                  <button
-                    onClick={() => handleDeleteAgent(agent.id)}
-                    className="text-xs text-rose-600 hover:text-rose-800"
-                  >
-                    Delete
-                  </button>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => copyToClipboard(agent.agentToken)}
+                        className="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 font-medium"
+                      >
+                        📋 {copiedToken === agent.agentToken ? 'Copied Token!' : 'Copy Agent Token'}
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteAgent(agent.id)}
+                      className="text-xs text-rose-600 hover:text-rose-800"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -1205,8 +1271,56 @@ export function LedgerSyncDeskPage() {
                 Copy XML Payload
               </button>
               <button
+                type="button"
                 onClick={() => setSelectedXmlPayload(null)}
                 className="px-4 py-2 border rounded-lg text-sm text-gray-700 hover:bg-gray-50"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 4: Lightweight Windows Tally XML Bridge Setup */}
+      {bridgePreview && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-4 border border-gray-100">
+            <div className="flex justify-between items-center border-b pb-3">
+              <h3 className="text-lg font-bold text-gray-900">Windows Tally XML Bridge — {bridgePreview.companyName}</h3>
+              <button type="button" onClick={() => setBridgePreview(null)} className="text-gray-400 hover:text-gray-600 font-bold text-xl">&times;</button>
+            </div>
+            <div className="text-xs text-gray-700 space-y-2">
+              <p><strong>Option A (Zero-install PowerShell worker):</strong> Download the <code>.ps1</code> script, open <strong>{bridgePreview.companyName}</strong> in TallyPrime (ODBC Port <code>9000</code> enabled), right-click &rarr; <em>Run with PowerShell</em>.</p>
+              <p><strong>Option B (Compiled .NET worker):</strong> Run the command below or download <code>{bridgePreview.configFileName}</code> into <code>tools/CaDesk.TallyBridge</code>:</p>
+            </div>
+            <pre className="bg-gray-900 text-emerald-400 p-3 rounded-xl text-xs font-mono overflow-x-auto">{bridgePreview.dotNetRunCommand}</pre>
+            <div className="flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => downloadTextFile(bridgePreview.scriptFileName, bridgePreview.powerShellScript)}
+                className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-medium"
+              >
+                ⬇ Download {bridgePreview.scriptFileName}
+              </button>
+              <button
+                type="button"
+                onClick={() => downloadTextFile(bridgePreview.configFileName, bridgePreview.appSettingsJson, 'application/json')}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-xs font-medium text-gray-800 hover:bg-gray-50"
+              >
+                ⚙ Download {bridgePreview.configFileName}
+              </button>
+              <button
+                type="button"
+                onClick={() => copyToClipboard(bridgePreview.dotNetRunCommand)}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-xs font-medium text-gray-800 hover:bg-gray-50"
+              >
+                📋 Copy CLI
+              </button>
+              <button
+                type="button"
+                onClick={() => setBridgePreview(null)}
+                className="px-3 py-2 border rounded-lg text-xs text-gray-700 hover:bg-gray-50"
               >
                 Close
               </button>

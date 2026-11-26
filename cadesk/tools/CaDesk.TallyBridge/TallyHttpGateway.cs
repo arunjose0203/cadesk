@@ -129,7 +129,7 @@ public sealed class TallyHttpGateway(HttpClient http)
             {
                 voucherId = item.Id,
                 agentToken = cfg.AgentToken,
-                status = ok ? "PostedToErp" : "Failed",
+                status = ok ? "PostedSuccessfully" : "FailedInErp",
                 erpVoucherNumber = erpVchNo,
                 erpResponseXml = tallyResp,
                 errorMessage = err
