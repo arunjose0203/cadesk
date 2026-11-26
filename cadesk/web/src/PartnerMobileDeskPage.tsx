@@ -234,8 +234,8 @@ export default function PartnerMobileDeskPage() {
 
   if (loading && !data) {
     return (
-      <div style={{ padding: '2.5rem', textAlign: 'center', color: '#94a3b8' }}>
-        <div style={{ fontSize: '1.25rem', fontWeight: 600, color: '#f8fafc', marginBottom: '0.5rem' }}>
+      <div style={{ padding: '2.5rem', textAlign: 'center', color: 'var(--muted)' }}>
+        <div style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--text)', marginBottom: '0.5rem' }}>
           Initializing Partner Companion Desk...
         </div>
         <p>Syncing practice pulse, pending sign-offs, and bank forensic feeds...</p>
@@ -244,7 +244,7 @@ export default function PartnerMobileDeskPage() {
   }
 
   return (
-    <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '1rem', color: '#f8fafc', position: 'relative' }}>
+    <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '1rem', color: 'var(--text)', position: 'relative' }}>
       {/* Toast Notification */}
       {toast && (
         <div style={{
@@ -441,8 +441,8 @@ export default function PartnerMobileDeskPage() {
 
       {/* Top Header Card */}
       <div style={{
-        backgroundColor: '#0f172a',
-        border: '1px solid #1e293b',
+        backgroundColor: 'var(--card)',
+        border: '1px solid var(--border)',
         borderRadius: '16px',
         padding: '1.25rem',
         marginBottom: '1rem',
@@ -481,7 +481,7 @@ export default function PartnerMobileDeskPage() {
                 PWA Active
               </span>
             </div>
-            <p style={{ margin: '2px 0 0', color: '#94a3b8', fontSize: '0.8rem' }}>
+            <p style={{ margin: '2px 0 0', color: 'var(--muted)', fontSize: '0.8rem' }}>
               Managing Partner On-The-Go Action Center &amp; Regulatory Vault
             </p>
           </div>
@@ -512,9 +512,9 @@ export default function PartnerMobileDeskPage() {
           <button
             onClick={() => setShowPinSetup(true)}
             style={{
-              backgroundColor: '#1e293b',
-              color: '#38bdf8',
-              border: '1px solid #334155',
+              backgroundColor: 'var(--card-subtle)',
+              color: 'var(--accent)',
+              border: '1px solid var(--border-subtle)',
               padding: '0.5rem 0.9rem',
               borderRadius: '8px',
               fontSize: '0.8rem',
@@ -531,9 +531,9 @@ export default function PartnerMobileDeskPage() {
           <button
             onClick={lockNow}
             style={{
-              backgroundColor: '#1e293b',
-              color: '#f8fafc',
-              border: '1px solid #334155',
+              backgroundColor: 'var(--card-subtle)',
+              color: 'var(--text)',
+              border: '1px solid var(--border-subtle)',
               padding: '0.5rem 0.9rem',
               borderRadius: '8px',
               fontSize: '0.8rem',
@@ -548,9 +548,9 @@ export default function PartnerMobileDeskPage() {
           <button
             onClick={loadData}
             style={{
-              backgroundColor: '#1e293b',
-              color: '#f8fafc',
-              border: '1px solid #334155',
+              backgroundColor: 'var(--card-subtle)',
+              color: 'var(--text)',
+              border: '1px solid var(--border-subtle)',
               padding: '0.5rem 0.9rem',
               borderRadius: '8px',
               fontSize: '0.8rem',
@@ -608,8 +608,8 @@ export default function PartnerMobileDeskPage() {
           <span>📜 Audit Sign-offs</span>
           {(data?.pendingAudits.length ?? 0) > 0 && (
             <span style={{
-              backgroundColor: activeTab === 'audits' ? '#ffffff' : '#ef4444',
-              color: activeTab === 'audits' ? '#1d4ed8' : '#ffffff',
+              backgroundColor: activeTab === 'audits' ? 'var(--card)' : '#ef4444',
+              color: activeTab === 'audits' ? 'var(--accent)' : '#ffffff',
               padding: '2px 6px',
               borderRadius: '9999px',
               fontSize: '0.7rem'
@@ -639,8 +639,8 @@ export default function PartnerMobileDeskPage() {
           <span>⏱️ Timesheets</span>
           {(data?.pendingTimesheets.length ?? 0) > 0 && (
             <span style={{
-              backgroundColor: activeTab === 'timesheets' ? '#ffffff' : '#f59e0b',
-              color: activeTab === 'timesheets' ? '#b45309' : '#ffffff',
+              backgroundColor: activeTab === 'timesheets' ? 'var(--card)' : '#f59e0b',
+              color: activeTab === 'timesheets' ? 'var(--warning)' : 'var(--text)',
               padding: '2px 6px',
               borderRadius: '9999px',
               fontSize: '0.7rem'
@@ -670,8 +670,8 @@ export default function PartnerMobileDeskPage() {
           <span>🧾 Invoices</span>
           {(data?.pendingInvoices.length ?? 0) > 0 && (
             <span style={{
-              backgroundColor: activeTab === 'invoices' ? '#ffffff' : '#3b82f6',
-              color: activeTab === 'invoices' ? '#1d4ed8' : '#ffffff',
+              backgroundColor: activeTab === 'invoices' ? 'var(--card)' : '#3b82f6',
+              color: activeTab === 'invoices' ? 'var(--accent)' : '#ffffff',
               padding: '2px 6px',
               borderRadius: '9999px',
               fontSize: '0.7rem'
@@ -701,8 +701,8 @@ export default function PartnerMobileDeskPage() {
           <span>🔍 Forensics Feed</span>
           {(data?.forensicAlerts.length ?? 0) > 0 && (
             <span style={{
-              backgroundColor: activeTab === 'forensics' ? '#ffffff' : '#ef4444',
-              color: activeTab === 'forensics' ? '#b91c1c' : '#ffffff',
+              backgroundColor: activeTab === 'forensics' ? 'var(--card)' : '#ef4444',
+              color: activeTab === 'forensics' ? 'var(--error)' : '#ffffff',
               padding: '2px 6px',
               borderRadius: '9999px',
               fontSize: '0.7rem'
@@ -741,69 +741,69 @@ export default function PartnerMobileDeskPage() {
             marginBottom: '1.5rem'
           }}>
             <div style={{
-              backgroundColor: '#0f172a',
-              border: '1px solid #1e293b',
+              backgroundColor: 'var(--card)',
+              border: '1px solid var(--border)',
               borderRadius: '14px',
               padding: '1.25rem'
             }}>
-              <div style={{ color: '#94a3b8', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase' }}>
+              <div style={{ color: 'var(--muted)', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase' }}>
                 Today's Collections
               </div>
               <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#10b981', marginTop: '0.25rem' }}>
                 ₹{data.pulse.todayCollections.toLocaleString('en-IN')}
               </div>
-              <div style={{ color: '#64748b', fontSize: '0.75rem', marginTop: '0.25rem' }}>
+              <div style={{ color: 'var(--muted)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
                 Month: ₹{data.pulse.monthCollections.toLocaleString('en-IN')}
               </div>
             </div>
 
             <div style={{
-              backgroundColor: '#0f172a',
-              border: '1px solid #1e293b',
+              backgroundColor: 'var(--card)',
+              border: '1px solid var(--border)',
               borderRadius: '14px',
               padding: '1.25rem'
             }}>
-              <div style={{ color: '#94a3b8', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase' }}>
+              <div style={{ color: 'var(--muted)', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase' }}>
                 Unbilled WIP Balance
               </div>
-              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#38bdf8', marginTop: '0.25rem' }}>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--accent)', marginTop: '0.25rem' }}>
                 ₹{data.pulse.unbilledWipAmount.toLocaleString('en-IN')}
               </div>
-              <div style={{ color: '#64748b', fontSize: '0.75rem', marginTop: '0.25rem' }}>
+              <div style={{ color: 'var(--muted)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
                 {data.pulse.billableHoursThisWeek} billable hrs this week
               </div>
             </div>
 
             <div style={{
-              backgroundColor: '#0f172a',
-              border: '1px solid #1e293b',
+              backgroundColor: 'var(--card)',
+              border: '1px solid var(--border)',
               borderRadius: '14px',
               padding: '1.25rem'
             }}>
-              <div style={{ color: '#94a3b8', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase' }}>
+              <div style={{ color: 'var(--muted)', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase' }}>
                 Active Firm Staff
               </div>
-              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#f8fafc', marginTop: '0.25rem' }}>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text)', marginTop: '0.25rem' }}>
                 {data.pulse.activeStaffCount}
               </div>
-              <div style={{ color: '#64748b', fontSize: '0.75rem', marginTop: '0.25rem' }}>
+              <div style={{ color: 'var(--muted)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
                 Team active across audit &amp; tax
               </div>
             </div>
 
             <div style={{
-              backgroundColor: '#0f172a',
-              border: '1px solid #1e293b',
+              backgroundColor: 'var(--card)',
+              border: '1px solid var(--border)',
               borderRadius: '14px',
               padding: '1.25rem'
             }}>
-              <div style={{ color: '#94a3b8', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase' }}>
+              <div style={{ color: 'var(--muted)', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase' }}>
                 Critical Deadlines (&lt; 7 Days)
               </div>
               <div style={{ fontSize: '1.75rem', fontWeight: 800, color: data.pulse.criticalDeadlinesCount > 0 ? '#ef4444' : '#10b981', marginTop: '0.25rem' }}>
                 {data.pulse.criticalDeadlinesCount}
               </div>
-              <div style={{ color: '#64748b', fontSize: '0.75rem', marginTop: '0.25rem' }}>
+              <div style={{ color: 'var(--muted)', fontSize: '0.75rem', marginTop: '0.25rem' }}>
                 GST, Advance Tax, TDS filings
               </div>
             </div>
@@ -811,8 +811,8 @@ export default function PartnerMobileDeskPage() {
 
           {/* Urgent Action Center Card */}
           <div style={{
-            backgroundColor: '#0f172a',
-            border: '1px solid #1e293b',
+            backgroundColor: 'var(--card)',
+            border: '1px solid var(--border)',
             borderRadius: '16px',
             padding: '1.25rem'
           }}>
@@ -822,7 +822,7 @@ export default function PartnerMobileDeskPage() {
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
               <div style={{
-                backgroundColor: '#1e293b',
+                backgroundColor: 'var(--card-subtle)',
                 padding: '1rem',
                 borderRadius: '12px',
                 borderLeft: '4px solid #3b82f6'
@@ -840,7 +840,7 @@ export default function PartnerMobileDeskPage() {
                     {data.pulse.pendingAuditSignoffsCount}
                   </span>
                 </div>
-                <p style={{ color: '#94a3b8', fontSize: '0.8rem', margin: '0.5rem 0 0.75rem' }}>
+                <p style={{ color: 'var(--muted)', fontSize: '0.8rem', margin: '0.5rem 0 0.75rem' }}>
                   Statutory audit files completed by managers ready for partner attestation &amp; UDIN.
                 </p>
                 <button
@@ -861,7 +861,7 @@ export default function PartnerMobileDeskPage() {
               </div>
 
               <div style={{
-                backgroundColor: '#1e293b',
+                backgroundColor: 'var(--card-subtle)',
                 padding: '1rem',
                 borderRadius: '12px',
                 borderLeft: '4px solid #f59e0b'
@@ -870,7 +870,7 @@ export default function PartnerMobileDeskPage() {
                   <span style={{ fontWeight: 600 }}>Timesheet Approvals</span>
                   <span style={{
                     backgroundColor: '#f59e0b',
-                    color: '#ffffff',
+                    color: 'var(--text)',
                     padding: '2px 8px',
                     borderRadius: '9999px',
                     fontSize: '0.75rem',
@@ -879,14 +879,14 @@ export default function PartnerMobileDeskPage() {
                     {data.pulse.pendingTimesheetApprovalsCount}
                   </span>
                 </div>
-                <p style={{ color: '#94a3b8', fontSize: '0.8rem', margin: '0.5rem 0 0.75rem' }}>
+                <p style={{ color: 'var(--muted)', fontSize: '0.8rem', margin: '0.5rem 0 0.75rem' }}>
                   Staff time logs ready to be converted into client invoices.
                 </p>
                 <button
                   onClick={() => setActiveTab('timesheets')}
                   style={{
                     backgroundColor: '#f59e0b',
-                    color: '#000000',
+                    color: 'var(--text)',
                     border: 'none',
                     padding: '0.4rem 0.8rem',
                     borderRadius: '6px',
@@ -900,7 +900,7 @@ export default function PartnerMobileDeskPage() {
               </div>
 
               <div style={{
-                backgroundColor: '#1e293b',
+                backgroundColor: 'var(--card-subtle)',
                 padding: '1rem',
                 borderRadius: '12px',
                 borderLeft: '4px solid #ef4444'
@@ -918,7 +918,7 @@ export default function PartnerMobileDeskPage() {
                     {data.pulse.unresolvedForensicAlertsCount}
                   </span>
                 </div>
-                <p style={{ color: '#94a3b8', fontSize: '0.8rem', margin: '0.5rem 0 0.75rem' }}>
+                <p style={{ color: 'var(--muted)', fontSize: '0.8rem', margin: '0.5rem 0 0.75rem' }}>
                   Bank statement anomalies requiring Section 40A(3) or round-tripping review.
                 </p>
                 <button
@@ -939,10 +939,10 @@ export default function PartnerMobileDeskPage() {
               </div>
 
               <div style={{
-                backgroundColor: '#1e293b',
+                backgroundColor: 'var(--card-subtle)',
                 padding: '1rem',
                 borderRadius: '12px',
-                borderLeft: '4px solid #0284c7'
+                borderLeft: '4px solid var(--accent)'
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontWeight: 600 }}>Connected Banking &amp; Payouts</span>
@@ -957,7 +957,7 @@ export default function PartnerMobileDeskPage() {
                     Live API
                   </span>
                 </div>
-                <p style={{ color: '#94a3b8', fontSize: '0.8rem', margin: '0.5rem 0 0.75rem' }}>
+                <p style={{ color: 'var(--muted)', fontSize: '0.8rem', margin: '0.5rem 0 0.75rem' }}>
                   Maker-checker vendor disbursements, live ICICI/HDFC feeds &amp; 1-click tax challans.
                 </p>
                 <a
@@ -992,12 +992,12 @@ export default function PartnerMobileDeskPage() {
 
           {data.pendingAudits.length === 0 ? (
             <div style={{
-              backgroundColor: '#0f172a',
-              border: '1px solid #1e293b',
+              backgroundColor: 'var(--card)',
+              border: '1px solid var(--border)',
               borderRadius: '14px',
               padding: '2.5rem',
               textAlign: 'center',
-              color: '#94a3b8'
+              color: 'var(--muted)'
             }}>
               ✓ All audit engagements have been signed off or archived. No files pending partner review.
             </div>
@@ -1006,8 +1006,8 @@ export default function PartnerMobileDeskPage() {
               <div
                 key={audit.id}
                 style={{
-                  backgroundColor: '#0f172a',
-                  border: '1px solid #1e293b',
+                  backgroundColor: 'var(--card)',
+                  border: '1px solid var(--border)',
                   borderRadius: '14px',
                   padding: '1.25rem',
                   display: 'flex',
@@ -1018,11 +1018,11 @@ export default function PartnerMobileDeskPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
                   <div>
                     <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: '0 0 0.25rem' }}>{audit.clientName}</h3>
-                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', fontSize: '0.75rem', color: '#94a3b8' }}>
-                      <span style={{ backgroundColor: '#1e293b', padding: '2px 8px', borderRadius: '4px' }}>FY: {audit.financialYear}</span>
-                      <span style={{ backgroundColor: '#1e293b', padding: '2px 8px', borderRadius: '4px' }}>Type: {audit.auditType}</span>
-                      <span style={{ backgroundColor: '#1e293b', padding: '2px 8px', borderRadius: '4px' }}>Materiality: ₹{audit.overallMateriality.toLocaleString('en-IN')}</span>
-                      <span style={{ backgroundColor: '#1e293b', padding: '2px 8px', borderRadius: '4px' }}>Opinion: {audit.auditOpinion}</span>
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', fontSize: '0.75rem', color: 'var(--muted)' }}>
+                      <span style={{ backgroundColor: 'var(--card-subtle)', padding: '2px 8px', borderRadius: '4px' }}>FY: {audit.financialYear}</span>
+                      <span style={{ backgroundColor: 'var(--card-subtle)', padding: '2px 8px', borderRadius: '4px' }}>Type: {audit.auditType}</span>
+                      <span style={{ backgroundColor: 'var(--card-subtle)', padding: '2px 8px', borderRadius: '4px' }}>Materiality: ₹{audit.overallMateriality.toLocaleString('en-IN')}</span>
+                      <span style={{ backgroundColor: 'var(--card-subtle)', padding: '2px 8px', borderRadius: '4px' }}>Opinion: {audit.auditOpinion}</span>
                     </div>
                   </div>
 
@@ -1041,11 +1041,11 @@ export default function PartnerMobileDeskPage() {
 
                 {/* Progress bar of lead schedules */}
                 <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#94a3b8', marginBottom: '0.25rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--muted)', marginBottom: '0.25rem' }}>
                     <span>Lead Schedules Verified: {audit.completedSchedulesCount} / {Math.max(17, audit.totalSchedulesCount || 17)}</span>
                     <span>{Math.round((audit.completedSchedulesCount / Math.max(17, audit.totalSchedulesCount || 17)) * 100)}%</span>
                   </div>
-                  <div style={{ width: '100%', height: '6px', backgroundColor: '#1e293b', borderRadius: '3px', overflow: 'hidden' }}>
+                  <div style={{ width: '100%', height: '6px', backgroundColor: 'var(--card-subtle)', borderRadius: '3px', overflow: 'hidden' }}>
                     <div style={{
                       width: `${Math.min(100, Math.round((audit.completedSchedulesCount / Math.max(17, audit.totalSchedulesCount || 17)) * 100))}%`,
                       height: '100%',
@@ -1113,12 +1113,12 @@ export default function PartnerMobileDeskPage() {
 
           {data.pendingTimesheets.length === 0 ? (
             <div style={{
-              backgroundColor: '#0f172a',
-              border: '1px solid #1e293b',
+              backgroundColor: 'var(--card)',
+              border: '1px solid var(--border)',
               borderRadius: '14px',
               padding: '2.5rem',
               textAlign: 'center',
-              color: '#94a3b8'
+              color: 'var(--muted)'
             }}>
               ✓ All billable staff timesheets have been approved and billed.
             </div>
@@ -1127,8 +1127,8 @@ export default function PartnerMobileDeskPage() {
               <div
                 key={t.id}
                 style={{
-                  backgroundColor: '#0f172a',
-                  border: '1px solid #1e293b',
+                  backgroundColor: 'var(--card)',
+                  border: '1px solid var(--border)',
                   borderRadius: '12px',
                   padding: '1rem',
                   display: 'flex',
@@ -1140,20 +1140,20 @@ export default function PartnerMobileDeskPage() {
               >
                 <div>
                   <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>{t.clientName}</div>
-                  <div style={{ color: '#94a3b8', fontSize: '0.8rem', marginTop: '2px' }}>
-                    Staff: <strong style={{ color: '#f8fafc' }}>{t.staffName}</strong> • {t.date}
+                  <div style={{ color: 'var(--muted)', fontSize: '0.8rem', marginTop: '2px' }}>
+                    Staff: <strong style={{ color: 'var(--text)' }}>{t.staffName}</strong> • {t.date}
                   </div>
-                  <div style={{ color: '#cbd5e1', fontSize: '0.8rem', marginTop: '2px' }}>
+                  <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '2px' }}>
                     {t.description || 'Statutory compliance & audit work'}
                   </div>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '1rem', fontWeight: 700, color: '#38bdf8' }}>
+                    <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--accent)' }}>
                       ₹{t.amount.toLocaleString('en-IN')}
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
                       {t.hours} hrs @ ₹{t.hourlyRate}/hr
                     </div>
                   </div>
@@ -1161,9 +1161,9 @@ export default function PartnerMobileDeskPage() {
                   <button
                     onClick={() => handleQuickApproveTimesheets([t.id])}
                     style={{
-                      backgroundColor: '#1e293b',
+                      backgroundColor: 'var(--card-subtle)',
                       color: '#10b981',
-                      border: '1px solid #334155',
+                      border: '1px solid var(--border-subtle)',
                       padding: '0.4rem 0.8rem',
                       borderRadius: '6px',
                       fontSize: '0.8rem',
@@ -1189,12 +1189,12 @@ export default function PartnerMobileDeskPage() {
 
           {data.pendingInvoices.length === 0 ? (
             <div style={{
-              backgroundColor: '#0f172a',
-              border: '1px solid #1e293b',
+              backgroundColor: 'var(--card)',
+              border: '1px solid var(--border)',
               borderRadius: '14px',
               padding: '2.5rem',
               textAlign: 'center',
-              color: '#94a3b8'
+              color: 'var(--muted)'
             }}>
               ✓ No draft invoices waiting for dispatch.
             </div>
@@ -1203,8 +1203,8 @@ export default function PartnerMobileDeskPage() {
               <div
                 key={inv.id}
                 style={{
-                  backgroundColor: '#0f172a',
-                  border: '1px solid #1e293b',
+                  backgroundColor: 'var(--card)',
+                  border: '1px solid var(--border)',
                   borderRadius: '12px',
                   padding: '1rem',
                   display: 'flex',
@@ -1217,10 +1217,10 @@ export default function PartnerMobileDeskPage() {
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <span style={{ fontWeight: 700 }}>#{inv.invoiceNumber || 'DRAFT'}</span>
-                    <span style={{ color: '#94a3b8' }}>•</span>
+                    <span style={{ color: 'var(--muted)' }}>•</span>
                     <span style={{ fontWeight: 600 }}>{inv.clientName}</span>
                   </div>
-                  <div style={{ color: '#64748b', fontSize: '0.75rem', marginTop: '2px' }}>
+                  <div style={{ color: 'var(--muted)', fontSize: '0.75rem', marginTop: '2px' }}>
                     Issue Date: {inv.issueDate} • Due: {inv.dueDate}
                   </div>
                 </div>
@@ -1230,7 +1230,7 @@ export default function PartnerMobileDeskPage() {
                     <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#10b981' }}>
                       ₹{inv.totalAmount.toLocaleString('en-IN')}
                     </div>
-                    <div style={{ fontSize: '0.7rem', color: '#64748b' }}>Includes 18% GST</div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--muted)' }}>Includes 18% GST</div>
                   </div>
 
                   <button
@@ -1264,12 +1264,12 @@ export default function PartnerMobileDeskPage() {
 
           {data.forensicAlerts.length === 0 ? (
             <div style={{
-              backgroundColor: '#0f172a',
-              border: '1px solid #1e293b',
+              backgroundColor: 'var(--card)',
+              border: '1px solid var(--border)',
               borderRadius: '14px',
               padding: '2.5rem',
               textAlign: 'center',
-              color: '#94a3b8'
+              color: 'var(--muted)'
             }}>
               ✓ Zero unreviewed bank anomalies. All cash transactions and round-tripping verified.
             </div>
@@ -1278,8 +1278,8 @@ export default function PartnerMobileDeskPage() {
               <div
                 key={f.id}
                 style={{
-                  backgroundColor: '#0f172a',
-                  border: '1px solid #1e293b',
+                  backgroundColor: 'var(--card)',
+                  border: '1px solid var(--border)',
                   borderRadius: '12px',
                   padding: '1rem',
                   display: 'flex',
@@ -1303,7 +1303,7 @@ export default function PartnerMobileDeskPage() {
                         {f.riskLevel}
                       </span>
                     </div>
-                    <div style={{ color: '#cbd5e1', fontSize: '0.85rem', marginTop: '2px' }}>
+                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '2px' }}>
                       <strong>{f.anomalyType}</strong> — {f.statutorySection}
                     </div>
                   </div>
@@ -1312,13 +1312,13 @@ export default function PartnerMobileDeskPage() {
                     <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#f87171' }}>
                       ₹{f.exposureAmount.toLocaleString('en-IN')}
                     </div>
-                    <div style={{ fontSize: '0.7rem', color: '#64748b' }}>Txn Date: {f.transactionDate}</div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--muted)' }}>Txn Date: {f.transactionDate}</div>
                   </div>
                 </div>
 
-                <div style={{ backgroundColor: '#1e293b', padding: '0.5rem 0.75rem', borderRadius: '6px', fontSize: '0.8rem', color: '#94a3b8' }}>
-                  <div>Counterparty: <span style={{ color: '#f8fafc' }}>{f.counterparty || 'Self / Cash Withdrawal'}</span></div>
-                  <div>Narration: <span style={{ color: '#f8fafc' }}>{f.narration}</span></div>
+                <div style={{ backgroundColor: 'var(--card-subtle)', padding: '0.5rem 0.75rem', borderRadius: '6px', fontSize: '0.8rem', color: 'var(--muted)' }}>
+                  <div>Counterparty: <span style={{ color: 'var(--text)' }}>{f.counterparty || 'Self / Cash Withdrawal'}</span></div>
+                  <div>Narration: <span style={{ color: 'var(--text)' }}>{f.narration}</span></div>
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.25rem' }}>
@@ -1328,9 +1328,9 @@ export default function PartnerMobileDeskPage() {
                       setTriageStatus('Reviewed')
                     }}
                     style={{
-                      backgroundColor: '#1e293b',
-                      color: '#38bdf8',
-                      border: '1px solid #334155',
+                      backgroundColor: 'var(--card-subtle)',
+                      color: 'var(--accent)',
+                      border: '1px solid var(--border-subtle)',
                       padding: '0.35rem 0.75rem',
                       borderRadius: '6px',
                       fontSize: '0.75rem',
@@ -1358,8 +1358,8 @@ export default function PartnerMobileDeskPage() {
             <div
               key={d.id}
               style={{
-                backgroundColor: '#0f172a',
-                border: '1px solid #1e293b',
+                backgroundColor: 'var(--card)',
+                border: '1px solid var(--border)',
                 borderRadius: '12px',
                 padding: '1rem',
                 display: 'flex',
@@ -1369,7 +1369,7 @@ export default function PartnerMobileDeskPage() {
             >
               <div>
                 <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>{d.title}</div>
-                <div style={{ color: '#64748b', fontSize: '0.8rem', marginTop: '2px' }}>
+                <div style={{ color: 'var(--muted)', fontSize: '0.8rem', marginTop: '2px' }}>
                   Due: {d.dueDate} • Type: {d.category.toUpperCase()}
                 </div>
               </div>
@@ -1403,24 +1403,24 @@ export default function PartnerMobileDeskPage() {
           padding: '1rem'
         }}>
           <div style={{
-            backgroundColor: '#0f172a',
-            border: '1px solid #334155',
+            backgroundColor: 'var(--card)',
+            border: '1px solid var(--border-subtle)',
             borderRadius: '16px',
             maxWidth: '480px',
             width: '100%',
             padding: '1.5rem',
-            color: '#f8fafc'
+            color: 'var(--text)'
           }}>
             <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: '0 0 0.5rem' }}>
               1-Tap SA 230 Audit Sign-off
             </h3>
-            <p style={{ color: '#94a3b8', fontSize: '0.85rem', margin: '0 0 1rem' }}>
+            <p style={{ color: 'var(--muted)', fontSize: '0.85rem', margin: '0 0 1rem' }}>
               Sign off statutory audit file for <strong>{signingAudit.clientName}</strong> (FY {signingAudit.financialYear}).
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.25rem' }}>
               <div>
-                <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>
+                <label style={{ fontSize: '0.75rem', color: 'var(--muted)', display: 'block', marginBottom: '4px' }}>
                   ICAI Partner Membership Number
                 </label>
                 <input
@@ -1430,18 +1430,18 @@ export default function PartnerMobileDeskPage() {
                   placeholder="e.g. 058291"
                   style={{
                     width: '100%',
-                    backgroundColor: '#1e293b',
-                    border: '1px solid #334155',
+                    backgroundColor: 'var(--card-subtle)',
+                    border: '1px solid var(--border-subtle)',
                     borderRadius: '8px',
                     padding: '0.6rem',
-                    color: '#ffffff',
+                    color: 'var(--text)',
                     fontSize: '0.85rem'
                   }}
                 />
               </div>
 
               <div>
-                <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>
+                <label style={{ fontSize: '0.75rem', color: 'var(--muted)', display: 'block', marginBottom: '4px' }}>
                   Generated 18-Character ICAI UDIN
                 </label>
                 <input
@@ -1450,11 +1450,11 @@ export default function PartnerMobileDeskPage() {
                   onChange={e => setUdin(e.target.value)}
                   style={{
                     width: '100%',
-                    backgroundColor: '#1e293b',
-                    border: '1px solid #334155',
+                    backgroundColor: 'var(--card-subtle)',
+                    border: '1px solid var(--border-subtle)',
                     borderRadius: '8px',
                     padding: '0.6rem',
-                    color: '#38bdf8',
+                    color: 'var(--accent)',
                     fontFamily: 'monospace',
                     fontSize: '0.85rem'
                   }}
@@ -1462,7 +1462,7 @@ export default function PartnerMobileDeskPage() {
               </div>
 
               <div>
-                <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>
+                <label style={{ fontSize: '0.75rem', color: 'var(--muted)', display: 'block', marginBottom: '4px' }}>
                   Sign-off Remarks / Opinion
                 </label>
                 <textarea
@@ -1471,11 +1471,11 @@ export default function PartnerMobileDeskPage() {
                   rows={3}
                   style={{
                     width: '100%',
-                    backgroundColor: '#1e293b',
-                    border: '1px solid #334155',
+                    backgroundColor: 'var(--card-subtle)',
+                    border: '1px solid var(--border-subtle)',
                     borderRadius: '8px',
                     padding: '0.6rem',
-                    color: '#ffffff',
+                    color: 'var(--text)',
                     fontSize: '0.85rem'
                   }}
                 />
@@ -1487,8 +1487,8 @@ export default function PartnerMobileDeskPage() {
                 onClick={() => setSigningAudit(null)}
                 style={{
                   backgroundColor: 'transparent',
-                  color: '#94a3b8',
-                  border: '1px solid #334155',
+                  color: 'var(--muted)',
+                  border: '1px solid var(--border-subtle)',
                   padding: '0.6rem 1rem',
                   borderRadius: '8px',
                   fontSize: '0.85rem',
@@ -1531,24 +1531,24 @@ export default function PartnerMobileDeskPage() {
           padding: '1rem'
         }}>
           <div style={{
-            backgroundColor: '#0f172a',
-            border: '1px solid #334155',
+            backgroundColor: 'var(--card)',
+            border: '1px solid var(--border-subtle)',
             borderRadius: '16px',
             maxWidth: '480px',
             width: '100%',
             padding: '1.5rem',
-            color: '#f8fafc'
+            color: 'var(--text)'
           }}>
             <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: '0 0 0.5rem' }}>
               Triage Forensic Anomaly
             </h3>
-            <p style={{ color: '#94a3b8', fontSize: '0.85rem', margin: '0 0 1rem' }}>
+            <p style={{ color: 'var(--muted)', fontSize: '0.85rem', margin: '0 0 1rem' }}>
               {triagingAlert.anomalyType} — ₹{triagingAlert.exposureAmount.toLocaleString('en-IN')} ({triagingAlert.clientName})
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.25rem' }}>
               <div>
-                <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>
+                <label style={{ fontSize: '0.75rem', color: 'var(--muted)', display: 'block', marginBottom: '4px' }}>
                   Auditor Triage Decision
                 </label>
                 <select
@@ -1556,11 +1556,11 @@ export default function PartnerMobileDeskPage() {
                   onChange={e => setTriageStatus(e.target.value as 'Reviewed' | 'DisallowedIn3CD' | 'Dismissed')}
                   style={{
                     width: '100%',
-                    backgroundColor: '#1e293b',
-                    border: '1px solid #334155',
+                    backgroundColor: 'var(--card-subtle)',
+                    border: '1px solid var(--border-subtle)',
                     borderRadius: '8px',
                     padding: '0.6rem',
-                    color: '#ffffff',
+                    color: 'var(--text)',
                     fontSize: '0.85rem'
                   }}
                 >
@@ -1571,7 +1571,7 @@ export default function PartnerMobileDeskPage() {
               </div>
 
               <div>
-                <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>
+                <label style={{ fontSize: '0.75rem', color: 'var(--muted)', display: 'block', marginBottom: '4px' }}>
                   Auditor Remarks / Justification
                 </label>
                 <textarea
@@ -1581,11 +1581,11 @@ export default function PartnerMobileDeskPage() {
                   rows={3}
                   style={{
                     width: '100%',
-                    backgroundColor: '#1e293b',
-                    border: '1px solid #334155',
+                    backgroundColor: 'var(--card-subtle)',
+                    border: '1px solid var(--border-subtle)',
                     borderRadius: '8px',
                     padding: '0.6rem',
-                    color: '#ffffff',
+                    color: 'var(--text)',
                     fontSize: '0.85rem'
                   }}
                 />
@@ -1597,8 +1597,8 @@ export default function PartnerMobileDeskPage() {
                 onClick={() => setTriagingAlert(null)}
                 style={{
                   backgroundColor: 'transparent',
-                  color: '#94a3b8',
-                  border: '1px solid #334155',
+                  color: 'var(--muted)',
+                  border: '1px solid var(--border-subtle)',
                   padding: '0.6rem 1rem',
                   borderRadius: '8px',
                   fontSize: '0.85rem',
@@ -1641,24 +1641,24 @@ export default function PartnerMobileDeskPage() {
           padding: '1rem'
         }}>
           <div style={{
-            backgroundColor: '#0f172a',
-            border: '1px solid #334155',
+            backgroundColor: 'var(--card)',
+            border: '1px solid var(--border-subtle)',
             borderRadius: '16px',
             maxWidth: '420px',
             width: '100%',
             padding: '1.5rem',
-            color: '#f8fafc'
+            color: 'var(--text)'
           }}>
             <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: '0 0 0.5rem' }}>
               Configure Quick PIN &amp; Biometrics
             </h3>
-            <p style={{ color: '#94a3b8', fontSize: '0.85rem', margin: '0 0 1rem' }}>
+            <p style={{ color: 'var(--muted)', fontSize: '0.85rem', margin: '0 0 1rem' }}>
               Set up a 4 to 6-digit numeric PIN for instant unlock on your phone.
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.25rem' }}>
               <div>
-                <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>
+                <label style={{ fontSize: '0.75rem', color: 'var(--muted)', display: 'block', marginBottom: '4px' }}>
                   New Numeric PIN (4 to 6 Digits)
                 </label>
                 <input
@@ -1669,11 +1669,11 @@ export default function PartnerMobileDeskPage() {
                   placeholder="••••"
                   style={{
                     width: '100%',
-                    backgroundColor: '#1e293b',
-                    border: '1px solid #334155',
+                    backgroundColor: 'var(--card-subtle)',
+                    border: '1px solid var(--border-subtle)',
                     borderRadius: '8px',
                     padding: '0.6rem',
-                    color: '#ffffff',
+                    color: 'var(--text)',
                     fontSize: '1rem',
                     letterSpacing: '0.3rem'
                   }}
@@ -1681,7 +1681,7 @@ export default function PartnerMobileDeskPage() {
               </div>
 
               <div>
-                <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>
+                <label style={{ fontSize: '0.75rem', color: 'var(--muted)', display: 'block', marginBottom: '4px' }}>
                   Confirm PIN
                 </label>
                 <input
@@ -1692,11 +1692,11 @@ export default function PartnerMobileDeskPage() {
                   placeholder="••••"
                   style={{
                     width: '100%',
-                    backgroundColor: '#1e293b',
-                    border: '1px solid #334155',
+                    backgroundColor: 'var(--card-subtle)',
+                    border: '1px solid var(--border-subtle)',
                     borderRadius: '8px',
                     padding: '0.6rem',
-                    color: '#ffffff',
+                    color: 'var(--text)',
                     fontSize: '1rem',
                     letterSpacing: '0.3rem'
                   }}
@@ -1710,7 +1710,7 @@ export default function PartnerMobileDeskPage() {
                   checked={biometricToggle}
                   onChange={e => setBiometricToggle(e.target.checked)}
                 />
-                <label htmlFor="bio-toggle" style={{ fontSize: '0.85rem', color: '#cbd5e1', cursor: 'pointer' }}>
+                <label htmlFor="bio-toggle" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', cursor: 'pointer' }}>
                   Enable Biometric / Fingerprint Unlock
                 </label>
               </div>
@@ -1721,8 +1721,8 @@ export default function PartnerMobileDeskPage() {
                 onClick={() => setShowPinSetup(false)}
                 style={{
                   backgroundColor: 'transparent',
-                  color: '#94a3b8',
-                  border: '1px solid #334155',
+                  color: 'var(--muted)',
+                  border: '1px solid var(--border-subtle)',
                   padding: '0.6rem 1rem',
                   borderRadius: '8px',
                   fontSize: '0.85rem',

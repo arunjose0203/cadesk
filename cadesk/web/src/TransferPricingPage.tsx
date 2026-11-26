@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { toError,
   api,
   transferPricingApi,
@@ -123,19 +123,7 @@ export const TransferPricingPage: React.FC = () => {
   })
   const [editingCompId, setEditingCompId] = useState<string | null>(null)
 
-  // Initial Load
-  useEffect(() => {
-    loadData()
-  }, [])
-
-  // When selected study changes, reload its tabs
-  useEffect(() => {
-    if (selectedStudyId) {
-      loadStudyDetails(selectedStudyId)
-    }
-  }, [selectedStudyId, activeTab])
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -148,8 +136,8 @@ export const TransferPricingPage: React.FC = () => {
       setStudies(studiesData)
       setClients(clsData.items || [])
 
-      if (studiesData.length > 0 && !selectedStudyId) {
-        setSelectedStudyId(studiesData[0].id)
+      if (studiesData.length > 0) {
+        setSelectedStudyId(prev => prev || studiesData[0].id)
       }
     } catch (caught) {
       const err = toError(caught)
@@ -157,9 +145,9 @@ export const TransferPricingPage: React.FC = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  const loadStudyDetails = async (id: string) => {
+  const loadStudyDetails = useCallback(async (id: string) => {
     try {
       const study = await transferPricingApi.getStudy(id)
       setCurrentStudy(study)
@@ -182,7 +170,19 @@ export const TransferPricingPage: React.FC = () => {
       const err = toError(caught)
       setError(err?.message || 'Failed to load study details.')
     }
-  }
+  }, [activeTab])
+
+  // Initial Load
+  useEffect(() => {
+    loadData()
+  }, [loadData])
+
+  // When selected study changes, reload its tabs
+  useEffect(() => {
+    if (selectedStudyId) {
+      loadStudyDetails(selectedStudyId)
+    }
+  }, [selectedStudyId, loadStudyDetails])
 
   const handleComputeBenchmark = async () => {
     try {

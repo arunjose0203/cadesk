@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CaDesk.Application.EInvoicing;
 
-public sealed class EInvoicingService(IAppDbContext db, ITenantContext tenant) : IEInvoicingService
+public sealed class EInvoicingService(IAppDbContext db) : IEInvoicingService
 {
     public async Task<List<EInvoiceDto>> GetEInvoicesAsync(Guid? clientId, EInvoiceStatus? status, CancellationToken ct = default)
     {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { toError,
   reportsApi,
   type PracticeExecutiveSummaryDto,
@@ -39,11 +39,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ can }) => {
     targetComplianceSlaPct: 95
   })
 
-  useEffect(() => {
-    loadAllReports()
-  }, [financialYear])
-
-  const loadAllReports = async () => {
+  const loadAllReports = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -77,7 +73,11 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ can }) => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [financialYear])
+
+  useEffect(() => {
+    loadAllReports()
+  }, [loadAllReports])
 
   const handleSaveTargets = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -113,7 +113,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ can }) => {
           <h1 style={{ margin: '0 0 6px 0', fontSize: '24px', fontWeight: 700 }}>
             Practice MIS & Executive Reporting Desk
           </h1>
-          <p style={{ margin: 0, color: 'var(--muted, #666)', fontSize: '14px' }}>
+          <p style={{ margin: 0, color: 'var(--muted)', fontSize: '14px' }}>
             Firm Analytics, Client Margins, Staff Utilization, Receivables Aging & Statutory SLAs (Sprint 21)
           </p>
         </div>
@@ -143,18 +143,18 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ can }) => {
 
       {/* Notifications */}
       {error && (
-        <div style={{ padding: '12px', background: '#ffebee', color: '#c62828', borderRadius: '6px', marginBottom: '16px' }}>
+        <div style={{ padding: '12px', background: 'var(--error-bg)', color: 'var(--error)', borderRadius: '6px', marginBottom: '16px' }}>
           {error}
         </div>
       )}
       {success && (
-        <div style={{ padding: '12px', background: '#e8f5e9', color: '#2e7d32', borderRadius: '6px', marginBottom: '16px' }}>
+        <div style={{ padding: '12px', background: 'var(--success-bg)', color: 'var(--success)', borderRadius: '6px', marginBottom: '16px' }}>
           {success}
         </div>
       )}
 
       {/* Tabs */}
-      <div style={{ display: 'flex', borderBottom: '2px solid var(--border, #e0e0e0)', marginBottom: '20px' }}>
+      <div style={{ display: 'flex', borderBottom: '2px solid var(--border)', marginBottom: '20px' }}>
         <button
           onClick={() => setActiveTab('overview')}
           style={{
@@ -228,7 +228,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ can }) => {
       </div>
 
       {loading && !summary ? (
-        <div style={{ padding: '40px', textAlign: 'center', color: 'var(--muted, #666)' }}>Loading practice reports...</div>
+        <div style={{ padding: '40px', textAlign: 'center', color: 'var(--muted)' }}>Loading practice reports...</div>
       ) : null}
 
       {/* Tab 1: Executive Overview */}
@@ -236,82 +236,82 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ can }) => {
         <div>
           {/* Executive KPI Grid */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-            <div className="card" style={{ padding: '20px', borderRadius: '8px', border: '1px solid var(--border, #e0e0e0)' }}>
-              <div style={{ fontSize: '13px', color: 'var(--muted, #666)' }}>Total Billings (YTD)</div>
-              <div style={{ fontSize: '26px', fontWeight: 700, color: '#1976d2', marginTop: '4px' }}>
+            <div className="card" style={{ padding: '20px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: '13px', color: 'var(--muted)' }}>Total Billings (YTD)</div>
+              <div style={{ fontSize: '26px', fontWeight: 700, color: 'var(--accent)', marginTop: '4px' }}>
                 {formatCurrency(summary.totalBilledYtd)}
               </div>
               {summary.targets && summary.targets.targetAnnualRevenue > 0 && (
-                <div style={{ marginTop: '8px', fontSize: '12px', color: 'var(--muted, #666)' }}>
+                <div style={{ marginTop: '8px', fontSize: '12px', color: 'var(--muted)' }}>
                   Target: {formatCurrency(summary.targets.targetAnnualRevenue)} ({Math.min(100, Math.round((summary.totalBilledYtd / summary.targets.targetAnnualRevenue) * 100))}%)
                 </div>
               )}
             </div>
 
-            <div className="card" style={{ padding: '20px', borderRadius: '8px', border: '1px solid var(--border, #e0e0e0)' }}>
-              <div style={{ fontSize: '13px', color: 'var(--muted, #666)' }}>Collections & Recovery</div>
-              <div style={{ fontSize: '26px', fontWeight: 700, color: '#2e7d32', marginTop: '4px' }}>
+            <div className="card" style={{ padding: '20px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: '13px', color: 'var(--muted)' }}>Collections & Recovery</div>
+              <div style={{ fontSize: '26px', fontWeight: 700, color: 'var(--success)', marginTop: '4px' }}>
                 {formatCurrency(summary.totalCollectedYtd)}
               </div>
-              <div style={{ marginTop: '8px', fontSize: '12px', color: 'var(--muted, #666)' }}>
+              <div style={{ marginTop: '8px', fontSize: '12px', color: 'var(--muted)' }}>
                 Realization Rate: <strong>{summary.overallRealizationRatePct}%</strong> (Target: {summary.targets?.targetRecoveryPercentage || 85}%)
               </div>
             </div>
 
-            <div className="card" style={{ padding: '20px', borderRadius: '8px', border: '1px solid var(--border, #e0e0e0)' }}>
-              <div style={{ fontSize: '13px', color: 'var(--muted, #666)' }}>Outstanding Receivables</div>
-              <div style={{ fontSize: '26px', fontWeight: 700, color: summary.totalOutstandingReceivables > 0 ? '#d32f2f' : '#2e7d32', marginTop: '4px' }}>
+            <div className="card" style={{ padding: '20px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: '13px', color: 'var(--muted)' }}>Outstanding Receivables</div>
+              <div style={{ fontSize: '26px', fontWeight: 700, color: summary.totalOutstandingReceivables > 0 ? '#d32f2f' : 'var(--success)', marginTop: '4px' }}>
                 {formatCurrency(summary.totalOutstandingReceivables)}
               </div>
-              <div style={{ marginTop: '8px', fontSize: '12px', color: 'var(--muted, #666)' }}>
+              <div style={{ marginTop: '8px', fontSize: '12px', color: 'var(--muted)' }}>
                 Aged Debtors: {aging ? aging.agedInvoices.length : 0} open invoices
               </div>
             </div>
 
-            <div className="card" style={{ padding: '20px', borderRadius: '8px', border: '1px solid var(--border, #e0e0e0)' }}>
-              <div style={{ fontSize: '13px', color: 'var(--muted, #666)' }}>Staff Billable Utilization</div>
-              <div style={{ fontSize: '26px', fontWeight: 700, color: '#e65100', marginTop: '4px' }}>
+            <div className="card" style={{ padding: '20px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: '13px', color: 'var(--muted)' }}>Staff Billable Utilization</div>
+              <div style={{ fontSize: '26px', fontWeight: 700, color: 'var(--warning-text)', marginTop: '4px' }}>
                 {summary.staffUtilizationPct}%
               </div>
-              <div style={{ marginTop: '8px', fontSize: '12px', color: 'var(--muted, #666)' }}>
+              <div style={{ marginTop: '8px', fontSize: '12px', color: 'var(--muted)' }}>
                 {summary.totalBillableHoursLogged}h billable / {summary.totalNonBillableHoursLogged}h admin
               </div>
             </div>
 
-            <div className="card" style={{ padding: '20px', borderRadius: '8px', border: '1px solid var(--border, #e0e0e0)' }}>
-              <div style={{ fontSize: '13px', color: 'var(--muted, #666)' }}>Filing SLA Compliance</div>
-              <div style={{ fontSize: '26px', fontWeight: 700, color: summary.slaCompliancePct >= 90 ? '#2e7d32' : '#d32f2f', marginTop: '4px' }}>
+            <div className="card" style={{ padding: '20px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: '13px', color: 'var(--muted)' }}>Filing SLA Compliance</div>
+              <div style={{ fontSize: '26px', fontWeight: 700, color: summary.slaCompliancePct >= 90 ? 'var(--success)' : '#d32f2f', marginTop: '4px' }}>
                 {summary.slaCompliancePct}%
               </div>
-              <div style={{ marginTop: '8px', fontSize: '12px', color: 'var(--muted, #666)' }}>
+              <div style={{ marginTop: '8px', fontSize: '12px', color: 'var(--muted)' }}>
                 {summary.filedOnTimeCount} on time | {summary.overdueCount} overdue
               </div>
             </div>
 
-            <div className="card" style={{ padding: '20px', borderRadius: '8px', border: '1px solid var(--border, #e0e0e0)' }}>
-              <div style={{ fontSize: '13px', color: 'var(--muted, #666)' }}>Client Practice Base</div>
+            <div className="card" style={{ padding: '20px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: '13px', color: 'var(--muted)' }}>Client Practice Base</div>
               <div style={{ fontSize: '26px', fontWeight: 700, marginTop: '4px' }}>
                 {summary.activeClientsCount} Clients
               </div>
-              <div style={{ marginTop: '8px', fontSize: '12px', color: 'var(--muted, #666)' }}>
+              <div style={{ marginTop: '8px', fontSize: '12px', color: 'var(--muted)' }}>
                 Avg Revenue / Client: <strong>{formatCurrency(summary.averageRevenuePerClient)}</strong>
               </div>
             </div>
           </div>
 
           {/* Revenue by Practice Domain */}
-          <div className="card" style={{ padding: '24px', borderRadius: '8px', border: '1px solid var(--border, #e0e0e0)', marginBottom: '24px' }}>
+          <div className="card" style={{ padding: '24px', borderRadius: '8px', border: '1px solid var(--border)', marginBottom: '24px' }}>
             <h3 style={{ margin: '0 0 16px 0', fontSize: '18px' }}>Revenue Contribution by Practice Service Domain</h3>
             {revenueBreakdown.length === 0 ? (
-              <p style={{ color: 'var(--muted, #666)' }}>No service invoices recorded in {financialYear}.</p>
+              <p style={{ color: 'var(--muted)' }}>No service invoices recorded in {financialYear}.</p>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
                 {revenueBreakdown.map((rev, idx) => (
-                  <div key={idx} style={{ background: '#f8f9fa', padding: '16px', borderRadius: '6px', borderLeft: '4px solid #1976d2' }}>
+                  <div key={idx} style={{ background: 'var(--card-subtle)', padding: '16px', borderRadius: '6px', borderLeft: '4px solid #1976d2' }}>
                     <div style={{ fontWeight: 600, fontSize: '14px' }}>{rev.serviceCategory}</div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
                       <span style={{ fontSize: '18px', fontWeight: 700 }}>{formatCurrency(rev.amount)}</span>
-                      <span style={{ padding: '2px 8px', borderRadius: '12px', background: '#e3f2fd', color: '#1976d2', fontWeight: 600, fontSize: '12px' }}>
+                      <span style={{ padding: '2px 8px', borderRadius: '12px', background: 'var(--accent-subtle)', color: 'var(--accent)', fontWeight: 600, fontSize: '12px' }}>
                         {rev.percentageOfTotal}%
                       </span>
                     </div>
@@ -328,41 +328,41 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ can }) => {
         <div>
           {/* Aging Buckets Banner */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '20px' }}>
-            <div className="card" style={{ padding: '16px', borderRadius: '8px', border: '1px solid #c8e6c9', background: '#f1f8e9' }}>
-              <div style={{ fontSize: '13px', color: '#2e7d32', fontWeight: 600 }}>0 - 30 Days (Current)</div>
+            <div className="card" style={{ padding: '16px', borderRadius: '8px', border: '1px solid var(--success-border)', background: '#f1f8e9' }}>
+              <div style={{ fontSize: '13px', color: 'var(--success)', fontWeight: 600 }}>0 - 30 Days (Current)</div>
               <div style={{ fontSize: '22px', fontWeight: 700, color: '#1b5e20', marginTop: '4px' }}>
                 {formatCurrency(aging.current0To30Days)}
               </div>
             </div>
 
-            <div className="card" style={{ padding: '16px', borderRadius: '8px', border: '1px solid #bbdefb', background: '#e3f2fd' }}>
+            <div className="card" style={{ padding: '16px', borderRadius: '8px', border: '1px solid #bbdefb', background: 'var(--accent-subtle)' }}>
               <div style={{ fontSize: '13px', color: '#1565c0', fontWeight: 600 }}>31 - 60 Days</div>
               <div style={{ fontSize: '22px', fontWeight: 700, color: '#0d47a1', marginTop: '4px' }}>
                 {formatCurrency(aging.bucket31To60Days)}
               </div>
             </div>
 
-            <div className="card" style={{ padding: '16px', borderRadius: '8px', border: '1px solid #ffe0b2', background: '#fff3e0' }}>
-              <div style={{ fontSize: '13px', color: '#e65100', fontWeight: 600 }}>61 - 90 Days</div>
+            <div className="card" style={{ padding: '16px', borderRadius: '8px', border: '1px solid var(--warning-border)', background: 'var(--warning-bg)' }}>
+              <div style={{ fontSize: '13px', color: 'var(--warning-text)', fontWeight: 600 }}>61 - 90 Days</div>
               <div style={{ fontSize: '22px', fontWeight: 700, color: '#bf360c', marginTop: '4px' }}>
                 {formatCurrency(aging.bucket61To90Days)}
               </div>
             </div>
 
-            <div className="card" style={{ padding: '16px', borderRadius: '8px', border: '1px solid #ffcdd2', background: '#ffebee' }}>
-              <div style={{ fontSize: '13px', color: '#c62828', fontWeight: 600 }}>&gt; 90 Days (Overdue Alert)</div>
-              <div style={{ fontSize: '22px', fontWeight: 700, color: '#b71c1c', marginTop: '4px' }}>
+            <div className="card" style={{ padding: '16px', borderRadius: '8px', border: '1px solid var(--error-border)', background: 'var(--error-bg)' }}>
+              <div style={{ fontSize: '13px', color: 'var(--error)', fontWeight: 600 }}>&gt; 90 Days (Overdue Alert)</div>
+              <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--error-text)', marginTop: '4px' }}>
                 {formatCurrency(aging.bucketAbove90Days)}
               </div>
             </div>
           </div>
 
           {/* Aged Invoices Table */}
-          <div className="card" style={{ padding: '20px', borderRadius: '8px', border: '1px solid var(--border, #e0e0e0)' }}>
+          <div className="card" style={{ padding: '20px', borderRadius: '8px', border: '1px solid var(--border)' }}>
             <h3 style={{ margin: '0 0 16px 0', fontSize: '18px' }}>Open Receivables Schedule</h3>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
               <thead>
-                <tr style={{ background: '#f4f5f7', borderBottom: '2px solid #ddd' }}>
+                <tr style={{ background: '#f4f5f7', borderBottom: '2px solid var(--border-subtle)' }}>
                   <th style={{ padding: '10px' }}>Invoice #</th>
                   <th style={{ padding: '10px' }}>Client</th>
                   <th style={{ padding: '10px' }}>Issue Date</th>
@@ -376,13 +376,13 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ can }) => {
               <tbody>
                 {aging.agedInvoices.length === 0 ? (
                   <tr>
-                    <td colSpan={8} style={{ padding: '24px', textAlign: 'center', color: '#2e7d32', fontWeight: 600 }}>
+                    <td colSpan={8} style={{ padding: '24px', textAlign: 'center', color: 'var(--success)', fontWeight: 600 }}>
                       ✓ All client invoices are fully paid! No outstanding receivables.
                     </td>
                   </tr>
                 ) : (
                   aging.agedInvoices.map(inv => (
-                    <tr key={inv.invoiceId} style={{ borderBottom: '1px solid #eee' }}>
+                    <tr key={inv.invoiceId} style={{ borderBottom: '1px solid var(--border)' }}>
                       <td style={{ padding: '10px', fontWeight: 600 }}>{inv.invoiceNumber}</td>
                       <td style={{ padding: '10px' }}>{inv.clientName}</td>
                       <td style={{ padding: '10px' }}>{inv.issueDate}</td>
@@ -399,8 +399,8 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ can }) => {
                             borderRadius: '4px',
                             fontSize: '11px',
                             fontWeight: 600,
-                            background: inv.ageDays > 90 ? '#ffebee' : (inv.ageDays > 60 ? '#fff3e0' : (inv.ageDays > 30 ? '#e3f2fd' : '#e8f5e9')),
-                            color: inv.ageDays > 90 ? '#c62828' : (inv.ageDays > 60 ? '#e65100' : (inv.ageDays > 30 ? '#1565c0' : '#2e7d32'))
+                            background: inv.ageDays > 90 ? 'var(--error-bg)' : (inv.ageDays > 60 ? 'var(--warning-bg)' : (inv.ageDays > 30 ? 'var(--accent-subtle)' : 'var(--success-bg)')),
+                            color: inv.ageDays > 90 ? 'var(--error)' : (inv.ageDays > 60 ? 'var(--warning-text)' : (inv.ageDays > 30 ? '#1565c0' : 'var(--success)'))
                           }}
                         >
                           {inv.agingBucket}
@@ -417,11 +417,11 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ can }) => {
 
       {/* Tab 3: Client Profitability */}
       {activeTab === 'profitability' && (
-        <div className="card" style={{ padding: '20px', borderRadius: '8px', border: '1px solid var(--border, #e0e0e0)' }}>
+        <div className="card" style={{ padding: '20px', borderRadius: '8px', border: '1px solid var(--border)' }}>
           <h3 style={{ margin: '0 0 16px 0', fontSize: '18px' }}>Client Profitability & Effective Hourly Realization</h3>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
             <thead>
-              <tr style={{ background: '#f4f5f7', borderBottom: '2px solid #ddd' }}>
+              <tr style={{ background: '#f4f5f7', borderBottom: '2px solid var(--border-subtle)' }}>
                 <th style={{ padding: '10px' }}>Client Name</th>
                 <th style={{ padding: '10px' }}>Entity</th>
                 <th style={{ padding: '10px', textAlign: 'right' }}>Total Invoiced</th>
@@ -435,17 +435,17 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ can }) => {
             <tbody>
               {profitability.length === 0 ? (
                 <tr>
-                  <td colSpan={8} style={{ padding: '24px', textAlign: 'center', color: 'var(--muted, #666)' }}>
+                  <td colSpan={8} style={{ padding: '24px', textAlign: 'center', color: 'var(--muted)' }}>
                     No client billing records found for {financialYear}.
                   </td>
                 </tr>
               ) : (
                 profitability.map(c => (
-                  <tr key={c.clientId} style={{ borderBottom: '1px solid #eee' }}>
+                  <tr key={c.clientId} style={{ borderBottom: '1px solid var(--border)' }}>
                     <td style={{ padding: '10px', fontWeight: 600 }}>{c.clientName}</td>
                     <td style={{ padding: '10px' }}>{c.entityType || 'General'}</td>
                     <td style={{ padding: '10px', textAlign: 'right', fontWeight: 600 }}>{formatCurrency(c.totalInvoiced)}</td>
-                    <td style={{ padding: '10px', textAlign: 'right', color: '#2e7d32' }}>{formatCurrency(c.totalPaid)}</td>
+                    <td style={{ padding: '10px', textAlign: 'right', color: 'var(--success)' }}>{formatCurrency(c.totalPaid)}</td>
                     <td style={{ padding: '10px', textAlign: 'right', color: c.balanceDue > 0 ? '#d32f2f' : 'inherit' }}>
                       {formatCurrency(c.balanceDue)}
                     </td>
@@ -458,8 +458,8 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ can }) => {
                           borderRadius: '4px',
                           fontSize: '11px',
                           fontWeight: 600,
-                          background: c.profitabilityRating === 'HighMargin' ? '#e8f5e9' : (c.profitabilityRating === 'MediumMargin' ? '#e3f2fd' : '#ffebee'),
-                          color: c.profitabilityRating === 'HighMargin' ? '#2e7d32' : (c.profitabilityRating === 'MediumMargin' ? '#1565c0' : '#c62828')
+                          background: c.profitabilityRating === 'HighMargin' ? 'var(--success-bg)' : (c.profitabilityRating === 'MediumMargin' ? 'var(--accent-subtle)' : 'var(--error-bg)'),
+                          color: c.profitabilityRating === 'HighMargin' ? 'var(--success)' : (c.profitabilityRating === 'MediumMargin' ? '#1565c0' : 'var(--error)')
                         }}
                       >
                         {c.profitabilityRating === 'HighMargin' ? '★ High Margin' : (c.profitabilityRating === 'MediumMargin' ? 'Standard' : '⚠️ At Risk')}
@@ -475,11 +475,11 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ can }) => {
 
       {/* Tab 4: Team Utilization */}
       {activeTab === 'utilization' && (
-        <div className="card" style={{ padding: '20px', borderRadius: '8px', border: '1px solid var(--border, #e0e0e0)' }}>
+        <div className="card" style={{ padding: '20px', borderRadius: '8px', border: '1px solid var(--border)' }}>
           <h3 style={{ margin: '0 0 16px 0', fontSize: '18px' }}>Staff Utilization & Billable Productivity</h3>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
             <thead>
-              <tr style={{ background: '#f4f5f7', borderBottom: '2px solid #ddd' }}>
+              <tr style={{ background: '#f4f5f7', borderBottom: '2px solid var(--border-subtle)' }}>
                 <th style={{ padding: '10px' }}>Team Member</th>
                 <th style={{ padding: '10px' }}>Role</th>
                 <th style={{ padding: '10px', textAlign: 'center' }}>Billable Hours</th>
@@ -492,29 +492,29 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ can }) => {
             <tbody>
               {utilization.length === 0 ? (
                 <tr>
-                  <td colSpan={7} style={{ padding: '24px', textAlign: 'center', color: 'var(--muted, #666)' }}>
+                  <td colSpan={7} style={{ padding: '24px', textAlign: 'center', color: 'var(--muted)' }}>
                     No staff timesheet records found.
                   </td>
                 </tr>
               ) : (
                 utilization.map(u => (
-                  <tr key={u.userId} style={{ borderBottom: '1px solid #eee' }}>
+                  <tr key={u.userId} style={{ borderBottom: '1px solid var(--border)' }}>
                     <td style={{ padding: '10px', fontWeight: 600 }}>{u.staffName}</td>
                     <td style={{ padding: '10px' }}>
                       <span style={{ padding: '2px 8px', borderRadius: '4px', background: '#f0f4f8', fontSize: '11px' }}>
                         {u.roleName}
                       </span>
                     </td>
-                    <td style={{ padding: '10px', textAlign: 'center', fontWeight: 600, color: '#1976d2' }}>
+                    <td style={{ padding: '10px', textAlign: 'center', fontWeight: 600, color: 'var(--accent)' }}>
                       {u.billableHours} hrs
                     </td>
-                    <td style={{ padding: '10px', textAlign: 'center', color: 'var(--muted, #666)' }}>
+                    <td style={{ padding: '10px', textAlign: 'center', color: 'var(--muted)' }}>
                       {u.nonBillableHours} hrs
                     </td>
                     <td style={{ padding: '10px', textAlign: 'center' }}>{u.totalHours} hrs</td>
                     <td style={{ padding: '10px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <div style={{ flex: 1, background: '#eee', height: '8px', borderRadius: '4px', overflow: 'hidden' }}>
+                        <div style={{ flex: 1, background: 'var(--bg-subtle)', height: '8px', borderRadius: '4px', overflow: 'hidden' }}>
                           <div
                             style={{
                               width: `${Math.min(100, u.utilizationPct)}%`,
@@ -526,7 +526,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ can }) => {
                         <span style={{ fontWeight: 600, fontSize: '12px', minWidth: '40px' }}>{u.utilizationPct}%</span>
                       </div>
                     </td>
-                    <td style={{ padding: '10px', textAlign: 'right', fontWeight: 700, color: '#2e7d32' }}>
+                    <td style={{ padding: '10px', textAlign: 'right', fontWeight: 700, color: 'var(--success)' }}>
                       {formatCurrency(u.billedValueGenerated)}
                     </td>
                   </tr>
@@ -541,59 +541,59 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ can }) => {
       {activeTab === 'sla' && slaReport && (
         <div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '20px' }}>
-            <div className="card" style={{ padding: '16px', borderRadius: '8px', border: '1px solid #e0e0e0' }}>
-              <div style={{ fontSize: '13px', color: 'var(--muted, #666)' }}>Total Statutory Filings</div>
+            <div className="card" style={{ padding: '16px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: '13px', color: 'var(--muted)' }}>Total Statutory Filings</div>
               <div style={{ fontSize: '24px', fontWeight: 700, marginTop: '4px' }}>{slaReport.totalStatutoryFilings}</div>
             </div>
-            <div className="card" style={{ padding: '16px', borderRadius: '8px', border: '1px solid #e0e0e0' }}>
-              <div style={{ fontSize: '13px', color: '#2e7d32' }}>Filed on Time</div>
-              <div style={{ fontSize: '24px', fontWeight: 700, color: '#2e7d32', marginTop: '4px' }}>{slaReport.filedOnTime}</div>
+            <div className="card" style={{ padding: '16px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: '13px', color: 'var(--success)' }}>Filed on Time</div>
+              <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--success)', marginTop: '4px' }}>{slaReport.filedOnTime}</div>
             </div>
-            <div className="card" style={{ padding: '16px', borderRadius: '8px', border: '1px solid #e0e0e0' }}>
-              <div style={{ fontSize: '13px', color: '#e65100' }}>Filed Late (Delayed)</div>
-              <div style={{ fontSize: '24px', fontWeight: 700, color: '#e65100', marginTop: '4px' }}>{slaReport.filedLate}</div>
+            <div className="card" style={{ padding: '16px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: '13px', color: 'var(--warning-text)' }}>Filed Late (Delayed)</div>
+              <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--warning-text)', marginTop: '4px' }}>{slaReport.filedLate}</div>
             </div>
-            <div className="card" style={{ padding: '16px', borderRadius: '8px', border: '1px solid #e0e0e0' }}>
-              <div style={{ fontSize: '13px', color: '#c62828' }}>Currently Overdue</div>
-              <div style={{ fontSize: '24px', fontWeight: 700, color: '#c62828', marginTop: '4px' }}>{slaReport.currentlyOverdue}</div>
+            <div className="card" style={{ padding: '16px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: '13px', color: 'var(--error)' }}>Currently Overdue</div>
+              <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--error)', marginTop: '4px' }}>{slaReport.currentlyOverdue}</div>
             </div>
-            <div className="card" style={{ padding: '16px', borderRadius: '8px', border: '1px solid #e0e0e0' }}>
-              <div style={{ fontSize: '13px', color: '#1976d2' }}>Overall SLA Score</div>
-              <div style={{ fontSize: '24px', fontWeight: 700, color: '#1976d2', marginTop: '4px' }}>{slaReport.overallSlaPercentage}%</div>
+            <div className="card" style={{ padding: '16px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: '13px', color: 'var(--accent)' }}>Overall SLA Score</div>
+              <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--accent)', marginTop: '4px' }}>{slaReport.overallSlaPercentage}%</div>
             </div>
           </div>
 
-          <div className="card" style={{ padding: '20px', borderRadius: '8px', border: '1px solid var(--border, #e0e0e0)' }}>
+          <div className="card" style={{ padding: '20px', borderRadius: '8px', border: '1px solid var(--border)' }}>
             <h3 style={{ margin: '0 0 16px 0', fontSize: '18px' }}>Filing SLA Performance by Regulatory Stream</h3>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
               <thead>
-                <tr style={{ background: '#f4f5f7', borderBottom: '2px solid #ddd' }}>
+                <tr style={{ background: '#f4f5f7', borderBottom: '2px solid var(--border-subtle)' }}>
                   <th style={{ padding: '10px' }}>Regulatory Stream</th>
                   <th style={{ padding: '10px', textAlign: 'center' }}>Total Filings</th>
-                  <th style={{ padding: '10px', textAlign: 'center', color: '#2e7d32' }}>On Time</th>
-                  <th style={{ padding: '10px', textAlign: 'center', color: '#e65100' }}>Delayed</th>
-                  <th style={{ padding: '10px', textAlign: 'center', color: '#c62828' }}>Overdue</th>
+                  <th style={{ padding: '10px', textAlign: 'center', color: 'var(--success)' }}>On Time</th>
+                  <th style={{ padding: '10px', textAlign: 'center', color: 'var(--warning-text)' }}>Delayed</th>
+                  <th style={{ padding: '10px', textAlign: 'center', color: 'var(--error)' }}>Overdue</th>
                   <th style={{ padding: '10px', width: '220px' }}>SLA Performance (%)</th>
                 </tr>
               </thead>
               <tbody>
                 {slaReport.categoryBreakdown.length === 0 ? (
                   <tr>
-                    <td colSpan={6} style={{ padding: '24px', textAlign: 'center', color: 'var(--muted, #666)' }}>
+                    <td colSpan={6} style={{ padding: '24px', textAlign: 'center', color: 'var(--muted)' }}>
                       No statutory filings scheduled for {financialYear}.
                     </td>
                   </tr>
                 ) : (
                   slaReport.categoryBreakdown.map(cat => (
-                    <tr key={cat.category} style={{ borderBottom: '1px solid #eee' }}>
+                    <tr key={cat.category} style={{ borderBottom: '1px solid var(--border)' }}>
                       <td style={{ padding: '10px', fontWeight: 600 }}>{cat.category}</td>
                       <td style={{ padding: '10px', textAlign: 'center' }}>{cat.totalCount}</td>
-                      <td style={{ padding: '10px', textAlign: 'center', color: '#2e7d32', fontWeight: 600 }}>{cat.filedOnTime}</td>
-                      <td style={{ padding: '10px', textAlign: 'center', color: '#e65100' }}>{cat.filedLate}</td>
-                      <td style={{ padding: '10px', textAlign: 'center', color: '#c62828', fontWeight: 600 }}>{cat.overdue}</td>
+                      <td style={{ padding: '10px', textAlign: 'center', color: 'var(--success)', fontWeight: 600 }}>{cat.filedOnTime}</td>
+                      <td style={{ padding: '10px', textAlign: 'center', color: 'var(--warning-text)' }}>{cat.filedLate}</td>
+                      <td style={{ padding: '10px', textAlign: 'center', color: 'var(--error)', fontWeight: 600 }}>{cat.overdue}</td>
                       <td style={{ padding: '10px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <div style={{ flex: 1, background: '#eee', height: '8px', borderRadius: '4px', overflow: 'hidden' }}>
+                          <div style={{ flex: 1, background: 'var(--bg-subtle)', height: '8px', borderRadius: '4px', overflow: 'hidden' }}>
                             <div
                               style={{
                                 width: `${Math.min(100, cat.slaPercentage)}%`,
@@ -617,7 +617,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ can }) => {
       {/* Targets Modal */}
       {showTargetModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-          <div className="card" style={{ background: '#fff', padding: '24px', borderRadius: '8px', width: '480px', maxWidth: '90%' }}>
+          <div className="card" style={{ background: 'var(--card)', padding: '24px', borderRadius: '8px', width: '480px', maxWidth: '90%' }}>
             <h3 style={{ margin: '0 0 16px 0' }}>Configure Practice Annual Targets ({financialYear})</h3>
             <form onSubmit={handleSaveTargets}>
               <div style={{ marginBottom: '12px' }}>
@@ -627,7 +627,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ can }) => {
                   value={targetForm.targetAnnualRevenue}
                   onChange={e => setTargetForm({ ...targetForm, targetAnnualRevenue: parseFloat(e.target.value) || 0 })}
                   required
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
 
@@ -638,7 +638,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ can }) => {
                   value={targetForm.targetBillableHours}
                   onChange={e => setTargetForm({ ...targetForm, targetBillableHours: parseFloat(e.target.value) || 0 })}
                   required
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
 
@@ -651,7 +651,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ can }) => {
                     value={targetForm.targetRecoveryPercentage}
                     onChange={e => setTargetForm({ ...targetForm, targetRecoveryPercentage: parseFloat(e.target.value) || 0 })}
                     required
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
                 <div>
@@ -662,7 +662,7 @@ export const ReportsPage: React.FC<ReportsPageProps> = ({ can }) => {
                     value={targetForm.targetComplianceSlaPct}
                     onChange={e => setTargetForm({ ...targetForm, targetComplianceSlaPct: parseFloat(e.target.value) || 0 })}
                     required
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
               </div>

@@ -248,7 +248,7 @@ export default function BillingPage({ can, meId }: { can: (p: string) => boolean
       {/* Top Action Header */}
       <div className="row spread" style={{ alignItems: 'center', marginBottom: '1.25rem' }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700 }}>Billing, Invoices & Timesheets</h1>
+          <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, letterSpacing: '-0.02em' }}>Billing, Invoices & Timesheets</h1>
           <p className="muted small" style={{ margin: '0.25rem 0 0' }}>
             CA practice invoicing, GST billing, payment receipts, and staff billable time management
           </p>
@@ -259,17 +259,20 @@ export default function BillingPage({ can, meId }: { can: (p: string) => boolean
               <span>+</span> New Invoice
             </button>
           )}
-          <button className="secondary" onClick={() => setShowLogTime(true)} title={`User: ${meId}`}>
-            <span>⏱️</span> Log Time
+          <button className="secondary" onClick={() => setShowLogTime(true)} title={`User: ${meId}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+            </svg>
+            Log Time
           </button>
         </div>
       </div>
 
       {/* KPI Overview Tiles */}
       <div className="kpi-grid" style={{ marginBottom: '1.5rem' }}>
-        <div className="card kpi-card" style={{ borderTop: '4px solid #ef4444' }}>
+        <div className="card kpi-card" style={{ borderTop: '3px solid var(--error)' }}>
           <div className="kpi-label">Outstanding Receivables</div>
-          <div className="kpi-value" style={{ color: '#ef4444' }}>
+          <div className="kpi-value" style={{ color: 'var(--error)' }}>
             ₹{(billingSummary?.totalOutstanding ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
           </div>
           <div className="kpi-hint">
@@ -277,25 +280,25 @@ export default function BillingPage({ can, meId }: { can: (p: string) => boolean
           </div>
         </div>
 
-        <div className="card kpi-card" style={{ borderTop: '4px solid #2563eb' }}>
+        <div className="card kpi-card" style={{ borderTop: '3px solid var(--accent)' }}>
           <div className="kpi-label">Billed This Month</div>
-          <div className="kpi-value" style={{ color: '#2563eb' }}>
+          <div className="kpi-value" style={{ color: 'var(--accent)' }}>
             ₹{(billingSummary?.billedThisMonth ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
           </div>
           <div className="kpi-hint">{billingSummary?.openInvoicesCount ?? 0} active / draft invoices</div>
         </div>
 
-        <div className="card kpi-card" style={{ borderTop: '4px solid #10b981' }}>
+        <div className="card kpi-card" style={{ borderTop: '3px solid var(--success)' }}>
           <div className="kpi-label">Collections This Month</div>
-          <div className="kpi-value" style={{ color: '#10b981' }}>
+          <div className="kpi-value" style={{ color: 'var(--success)' }}>
             ₹{(billingSummary?.collectedThisMonth ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
           </div>
           <div className="kpi-hint">Payments cleared</div>
         </div>
 
-        <div className="card kpi-card" style={{ borderTop: '4px solid #f59e0b' }}>
+        <div className="card kpi-card" style={{ borderTop: '3px solid var(--warning)' }}>
           <div className="kpi-label">Unbilled Workload</div>
-          <div className="kpi-value" style={{ color: '#f59e0b' }}>
+          <div className="kpi-value" style={{ color: 'var(--warning)' }}>
             {(timesheetSummary?.unbilledHours ?? 0).toFixed(1)} hrs
           </div>
           <div className="kpi-hint">
@@ -309,19 +312,27 @@ export default function BillingPage({ can, meId }: { can: (p: string) => boolean
         <button
           className={subTab === 'invoices' ? 'active' : ''}
           onClick={() => setSubTab('invoices')}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
         >
-          📄 Invoices ({invoices.length})
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" />
+          </svg>
+          Invoices ({invoices.length})
         </button>
         <button
           className={subTab === 'timesheets' ? 'active' : ''}
           onClick={() => setSubTab('timesheets')}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
         >
-          ⏱️ Staff Timesheets ({timesheets.length})
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+          </svg>
+          Staff Timesheets ({timesheets.length})
         </button>
       </nav>
 
       {error && (
-        <div className="card" style={{ backgroundColor: '#fef2f2', borderColor: '#fca5a5', color: '#991b1b', marginBottom: '1rem', padding: '0.75rem 1rem' }}>
+        <div className="card" style={{ backgroundColor: 'rgba(220, 38, 38, 0.08)', borderColor: 'rgba(220, 38, 38, 0.35)', color: 'var(--error)', marginBottom: '1rem', padding: '0.75rem 1rem' }}>
           <strong>Error: </strong> {error}
           <button className="ghost small" onClick={() => setError(null)} style={{ float: 'right', marginTop: '-0.2rem' }}>Dismiss</button>
         </div>
@@ -374,14 +385,14 @@ export default function BillingPage({ can, meId }: { can: (p: string) => boolean
                       <td style={{ fontWeight: 600 }}>{inv.invoiceNumber}</td>
                       <td>{inv.clientName || '—'}</td>
                       <td>{fmtDate(inv.issueDate)}</td>
-                      <td style={{ color: isOverdue ? '#ef4444' : 'inherit', fontWeight: isOverdue ? 600 : 400 }}>
+                      <td style={{ color: isOverdue ? 'var(--error)' : 'inherit', fontWeight: isOverdue ? 600 : 400 }}>
                         {fmtDate(inv.dueDate)}
                         {isOverdue && <span className="tag delete small" style={{ marginLeft: '0.25rem' }}>Overdue</span>}
                       </td>
                       <td>₹{inv.subtotal.toFixed(2)}</td>
                       <td>₹{inv.taxAmount.toFixed(2)}</td>
                       <td style={{ fontWeight: 600 }}>₹{inv.totalAmount.toFixed(2)}</td>
-                      <td style={{ color: inv.balanceDue > 0 ? '#ef4444' : '#10b981', fontWeight: 600 }}>
+                      <td style={{ color: inv.balanceDue > 0 ? 'var(--error)' : 'var(--success)', fontWeight: 600 }}>
                         ₹{inv.balanceDue.toFixed(2)}
                       </td>
                       <td>
@@ -472,7 +483,7 @@ export default function BillingPage({ can, meId }: { can: (p: string) => boolean
               {timesheets.length === 0 ? (
                 <tr>
                   <td colSpan={9} style={{ textAlign: 'center', padding: '2rem' }} className="muted">
-                    No timesheet entries recorded. Click <strong>⏱️ Log Time</strong> to track billable work.
+                    No timesheet entries recorded. Click <strong>Log Time</strong> to track billable work.
                   </td>
                 </tr>
               ) : (
@@ -511,7 +522,7 @@ export default function BillingPage({ can, meId }: { can: (p: string) => boolean
           alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem'
         }}>
           <div className="card modal-content" style={{ maxWidth: '800px', width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
-            <div className="row spread" style={{ alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
+            <div className="row spread" style={{ alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
               <h2 style={{ margin: 0 }}>Create Client Fee Invoice</h2>
               <button className="ghost small" onClick={() => setShowNewInvoice(false)}>✕</button>
             </div>
@@ -541,9 +552,9 @@ export default function BillingPage({ can, meId }: { can: (p: string) => boolean
 
               {/* Unbilled timesheet importer */}
               {availableTimeEntries.length > 0 && (
-                <div style={{ backgroundColor: '#eff6ff', padding: '0.75rem 1rem', borderRadius: '8px', marginBottom: '1rem', border: '1px solid #bfdbfe' }}>
-                  <div style={{ fontWeight: 600, color: '#1e40af', marginBottom: '0.5rem', fontSize: '0.875rem' }}>
-                    💡 Unbilled Staff Timesheets Available for this Client:
+                <div style={{ backgroundColor: 'rgba(37, 99, 235, 0.08)', padding: '0.75rem 1rem', borderRadius: '8px', marginBottom: '1rem', border: '1px solid rgba(37, 99, 235, 0.25)' }}>
+                  <div style={{ fontWeight: 600, color: 'var(--accent)', marginBottom: '0.5rem', fontSize: '0.875rem' }}>
+                    Unbilled Staff Timesheets Available for this Client
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                     {availableTimeEntries.map(te => {
@@ -666,7 +677,7 @@ export default function BillingPage({ can, meId }: { can: (p: string) => boolean
                               <button
                                 type="button"
                                 className="ghost small"
-                                style={{ color: '#ef4444' }}
+                                style={{ color: 'var(--error)' }}
                                 onClick={() => setInvItems(prev => prev.filter((_, i) => i !== idx))}
                               >
                                 ✕
@@ -682,20 +693,20 @@ export default function BillingPage({ can, meId }: { can: (p: string) => boolean
 
               {/* Summary Calculation Box */}
               <div style={{
-                backgroundColor: '#f8fafc', padding: '1rem', borderRadius: '8px',
-                border: '1px solid #e2e8f0', marginBottom: '1rem', width: '280px', marginLeft: 'auto'
+                backgroundColor: 'var(--card-subtle)', padding: '1rem', borderRadius: '8px',
+                border: '1px solid var(--border)', marginBottom: '1rem', width: '280px', marginLeft: 'auto'
               }}>
                 <div className="row spread" style={{ marginBottom: '0.25rem', fontSize: '0.875rem' }}>
                   <span>Taxable Subtotal:</span>
                   <strong>₹{invSubtotal.toFixed(2)}</strong>
                 </div>
-                <div className="row spread" style={{ marginBottom: '0.25rem', fontSize: '0.875rem', color: '#64748b' }}>
+                <div className="row spread" style={{ marginBottom: '0.25rem', fontSize: '0.875rem', color: 'var(--muted)' }}>
                   <span>CGST (9%) + SGST (9%):</span>
                   <span>₹{invTaxTotal.toFixed(2)}</span>
                 </div>
-                <div className="row spread" style={{ borderTop: '2px solid #cbd5e1', paddingTop: '0.5rem', fontSize: '1.1rem', color: '#1e293b' }}>
+                <div className="row spread" style={{ borderTop: '1px solid var(--border)', paddingTop: '0.5rem', fontSize: '1.1rem', color: 'var(--text)' }}>
                   <span>Grand Total:</span>
-                  <strong style={{ color: '#2563eb' }}>₹{invGrandTotal.toFixed(2)}</strong>
+                  <strong style={{ color: 'var(--accent)' }}>₹{invGrandTotal.toFixed(2)}</strong>
                 </div>
               </div>
 
@@ -728,12 +739,12 @@ export default function BillingPage({ can, meId }: { can: (p: string) => boolean
           alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem'
         }}>
           <div className="card modal-content" style={{ maxWidth: '480px', width: '100%' }}>
-            <div className="row spread" style={{ alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
+            <div className="row spread" style={{ alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
               <h2 style={{ margin: 0 }}>Record Client Payment</h2>
               <button className="ghost small" onClick={() => setPayingInvoice(null)}>✕</button>
             </div>
 
-            <div style={{ backgroundColor: '#f1f5f9', padding: '0.75rem 1rem', borderRadius: '8px', marginBottom: '1rem' }}>
+            <div style={{ backgroundColor: 'var(--card-subtle)', border: '1px solid var(--border)', padding: '0.75rem 1rem', borderRadius: '8px', marginBottom: '1rem' }}>
               <div className="row spread" style={{ fontSize: '0.875rem', marginBottom: '0.25rem' }}>
                 <span>Invoice Number:</span>
                 <strong>{payingInvoice.invoiceNumber}</strong>
@@ -742,7 +753,7 @@ export default function BillingPage({ can, meId }: { can: (p: string) => boolean
                 <span>Client:</span>
                 <strong>{payingInvoice.clientName}</strong>
               </div>
-              <div className="row spread" style={{ fontSize: '0.875rem', color: '#ef4444', fontWeight: 600 }}>
+              <div className="row spread" style={{ fontSize: '0.875rem', color: 'var(--error)', fontWeight: 600 }}>
                 <span>Current Balance Due:</span>
                 <span>₹{payingInvoice.balanceDue.toFixed(2)}</span>
               </div>
@@ -815,7 +826,7 @@ export default function BillingPage({ can, meId }: { can: (p: string) => boolean
           alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem'
         }}>
           <div className="card modal-content" style={{ maxWidth: '500px', width: '100%' }}>
-            <div className="row spread" style={{ alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
+            <div className="row spread" style={{ alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
               <h2 style={{ margin: 0 }}>Log Billable Time</h2>
               <button className="ghost small" onClick={() => setShowLogTime(false)}>✕</button>
             </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { toError,
   api,
   bankFeedApi,
@@ -88,11 +88,89 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
     priority: 10
   })
 
+  const loadClients = useCallback(async () => {
+    try {
+      const res = await api<ClientPage>('/api/clients?take=100')
+      setClients(res.items || [])
+      if (res.items && res.items.length > 0) {
+        setAccountForm(prev => (prev.clientId ? prev : { ...prev, clientId: res.items[0].id }))
+      }
+    } catch (caught) {
+      const e = toError(caught)
+      console.error(e)
+    }
+  }, [])
+
+  const loadAccounts = useCallback(async () => {
+    setLoading(true)
+    try {
+      const list = await bankFeedApi.getAccounts()
+      setAccounts(list)
+      if (list.length > 0) {
+        setSelectedAccountId(prev => prev || list[0].id)
+      }
+    } catch (caught) {
+      const e = toError(caught)
+      setError(e.message || 'Failed to load bank accounts')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  const loadStatements = useCallback(async (accId: string) => {
+    try {
+      const list = await bankFeedApi.getStatements(accId)
+      setStatements(list)
+    } catch (caught) {
+      const e = toError(caught)
+      console.error(e)
+    }
+  }, [])
+
+  const loadTransactions = useCallback(async (accId: string) => {
+    try {
+      const list = await bankFeedApi.getTransactions(accId, undefined, selectedStatus || undefined)
+      setTransactions(list)
+    } catch (caught) {
+      const e = toError(caught)
+      console.error(e)
+    }
+  }, [selectedStatus])
+
+  const loadBrsSummary = useCallback(async (accId: string, targetDate: string) => {
+    try {
+      const summary = await bankFeedApi.getBrsSummary(accId, targetDate)
+      setBrsSummary(summary)
+    } catch (caught) {
+      const e = toError(caught)
+      console.error(e)
+    }
+  }, [])
+
+  const loadRules = useCallback(async () => {
+    try {
+      const list = await bankFeedApi.getRules()
+      setRules(list)
+    } catch (caught) {
+      const e = toError(caught)
+      console.error(e)
+    }
+  }, [])
+
+  const loadForensicReport = useCallback(async (accId: string) => {
+    try {
+      const res = await bankFeedApi.getForensicReport(accId)
+      setForensicSummary(res)
+    } catch {
+      setForensicSummary(null)
+    }
+  }, [])
+
   useEffect(() => {
     loadClients()
     loadAccounts()
     loadRules()
-  }, [])
+  }, [loadClients, loadAccounts, loadRules])
 
   useEffect(() => {
     if (selectedAccountId) {
@@ -101,85 +179,7 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
       loadBrsSummary(selectedAccountId, asOfDate)
       loadForensicReport(selectedAccountId)
     }
-  }, [selectedAccountId, selectedStatus, asOfDate])
-
-  const loadClients = async () => {
-    try {
-      const res = await api<ClientPage>('/api/clients?take=100')
-      setClients(res.items || [])
-      if (res.items && res.items.length > 0 && !accountForm.clientId) {
-        setAccountForm(prev => ({ ...prev, clientId: res.items[0].id }))
-      }
-    } catch (caught) {
-      const e = toError(caught)
-      console.error(e)
-    }
-  }
-
-  const loadAccounts = async () => {
-    setLoading(true)
-    try {
-      const list = await bankFeedApi.getAccounts()
-      setAccounts(list)
-      if (list.length > 0 && !selectedAccountId) {
-        setSelectedAccountId(list[0].id)
-      }
-    } catch (caught) {
-      const e = toError(caught)
-      setError(e.message || 'Failed to load bank accounts')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const loadStatements = async (accId: string) => {
-    try {
-      const list = await bankFeedApi.getStatements(accId)
-      setStatements(list)
-    } catch (caught) {
-      const e = toError(caught)
-      console.error(e)
-    }
-  }
-
-  const loadTransactions = async (accId: string) => {
-    try {
-      const list = await bankFeedApi.getTransactions(accId, undefined, selectedStatus || undefined)
-      setTransactions(list)
-    } catch (caught) {
-      const e = toError(caught)
-      console.error(e)
-    }
-  }
-
-  const loadBrsSummary = async (accId: string, targetDate: string) => {
-    try {
-      const summary = await bankFeedApi.getBrsSummary(accId, targetDate)
-      setBrsSummary(summary)
-    } catch (caught) {
-      const e = toError(caught)
-      console.error(e)
-    }
-  }
-
-  const loadRules = async () => {
-    try {
-      const list = await bankFeedApi.getRules()
-      setRules(list)
-    } catch (caught) {
-      const e = toError(caught)
-      console.error(e)
-    }
-  }
-
-  const loadForensicReport = async (accId: string) => {
-    try {
-      const res = await bankFeedApi.getForensicReport(accId)
-      setForensicSummary(res)
-    } catch {
-      setForensicSummary(null)
-    }
-  }
+  }, [selectedAccountId, asOfDate, loadStatements, loadTransactions, loadBrsSummary, loadForensicReport])
 
   const handleRunForensicScan = async () => {
     if (!selectedAccountId) return
@@ -365,7 +365,7 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
           <h1 style={{ margin: '0 0 6px 0', fontSize: '24px', fontWeight: 700 }}>
             Cash & Bank Feeds / BRS Auto-Matcher
           </h1>
-          <p style={{ margin: 0, color: 'var(--muted, #666)', fontSize: '14px' }}>
+          <p style={{ margin: 0, color: 'var(--muted)', fontSize: '14px' }}>
             Multi-Bank Statement Parser, Automated Reconciliation & Statutory BRS Generator (Sprint 20)
           </p>
         </div>
@@ -381,35 +381,35 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
 
       {/* Notifications */}
       {error && (
-        <div style={{ padding: '12px', background: '#ffebee', color: '#c62828', borderRadius: '6px', marginBottom: '16px' }}>
+        <div style={{ padding: '12px', background: 'var(--error-bg)', color: 'var(--error)', borderRadius: '6px', marginBottom: '16px' }}>
           {error}
         </div>
       )}
       {success && (
-        <div style={{ padding: '12px', background: '#e8f5e9', color: '#2e7d32', borderRadius: '6px', marginBottom: '16px' }}>
+        <div style={{ padding: '12px', background: 'var(--success-bg)', color: 'var(--success)', borderRadius: '6px', marginBottom: '16px' }}>
           {success}
         </div>
       )}
 
       {/* KPI Highlights */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '20px' }}>
-        <div className="card" style={{ padding: '16px', borderRadius: '8px', border: '1px solid var(--border, #e0e0e0)' }}>
-          <div style={{ fontSize: '13px', color: 'var(--muted, #666)' }}>Total Bank Accounts</div>
+        <div className="card" style={{ padding: '16px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+          <div style={{ fontSize: '13px', color: 'var(--muted)' }}>Total Bank Accounts</div>
           <div style={{ fontSize: '24px', fontWeight: 700, marginTop: '4px' }}>{accounts.length}</div>
         </div>
-        <div className="card" style={{ padding: '16px', borderRadius: '8px', border: '1px solid var(--border, #e0e0e0)' }}>
-          <div style={{ fontSize: '13px', color: 'var(--muted, #666)' }}>Total Live Bank Balance</div>
-          <div style={{ fontSize: '24px', fontWeight: 700, marginTop: '4px', color: '#2e7d32' }}>
+        <div className="card" style={{ padding: '16px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+          <div style={{ fontSize: '13px', color: 'var(--muted)' }}>Total Live Bank Balance</div>
+          <div style={{ fontSize: '24px', fontWeight: 700, marginTop: '4px', color: 'var(--success)' }}>
             {formatCurrency(accounts.reduce((sum, a) => sum + (a.currentBalance || a.openingBalance || 0), 0))}
           </div>
         </div>
-        <div className="card" style={{ padding: '16px', borderRadius: '8px', border: '1px solid var(--border, #e0e0e0)' }}>
-          <div style={{ fontSize: '13px', color: 'var(--muted, #666)' }}>Transactions in Active Account</div>
+        <div className="card" style={{ padding: '16px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+          <div style={{ fontSize: '13px', color: 'var(--muted)' }}>Transactions in Active Account</div>
           <div style={{ fontSize: '24px', fontWeight: 700, marginTop: '4px' }}>{transactions.length}</div>
         </div>
-        <div className="card" style={{ padding: '16px', borderRadius: '8px', border: '1px solid var(--border, #e0e0e0)' }}>
-          <div style={{ fontSize: '13px', color: 'var(--muted, #666)' }}>Unmatched BRS Items</div>
-          <div style={{ fontSize: '24px', fontWeight: 700, marginTop: '4px', color: '#e65100' }}>
+        <div className="card" style={{ padding: '16px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+          <div style={{ fontSize: '13px', color: 'var(--muted)' }}>Unmatched BRS Items</div>
+          <div style={{ fontSize: '24px', fontWeight: 700, marginTop: '4px', color: 'var(--warning-text)' }}>
             {brsSummary ? brsSummary.unmatchedCount : 0}
           </div>
         </div>
@@ -417,7 +417,7 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
 
       {/* Account Selector Bar */}
       {accounts.length > 0 && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'var(--bg-card, #f8f9fa)', padding: '12px 16px', borderRadius: '8px', marginBottom: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'var(--card-subtle)', padding: '12px 16px', borderRadius: '8px', marginBottom: '16px' }}>
           <span style={{ fontWeight: 600, fontSize: '14px' }}>Active Account:</span>
           <select
             value={selectedAccountId}
@@ -431,7 +431,7 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
             ))}
           </select>
           {selectedAccountId && (
-            <span style={{ fontSize: '14px', color: 'var(--muted, #666)' }}>
+            <span style={{ fontSize: '14px', color: 'var(--muted)' }}>
               Client: <strong>{accounts.find(a => a.id === selectedAccountId)?.clientName}</strong> | IFSC: <strong>{accounts.find(a => a.id === selectedAccountId)?.ifscCode}</strong>
             </span>
           )}
@@ -439,7 +439,7 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
       )}
 
       {/* Tabs */}
-      <div style={{ display: 'flex', borderBottom: '2px solid var(--border, #e0e0e0)', marginBottom: '20px' }}>
+      <div style={{ display: 'flex', borderBottom: '2px solid var(--border)', marginBottom: '20px' }}>
         <button
           onClick={() => setActiveTab('accounts')}
           style={{
@@ -508,7 +508,7 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
             cursor: 'pointer',
             fontWeight: activeTab === 'forensic' ? 700 : 400,
             borderBottom: activeTab === 'forensic' ? '3px solid #dc2626' : 'none',
-            color: activeTab === 'forensic' ? '#dc2626' : 'inherit',
+            color: activeTab === 'forensic' ? 'var(--error)' : 'inherit',
             display: 'flex',
             alignItems: 'center',
             gap: '8px'
@@ -516,7 +516,7 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
         >
           <span>🔍 Forensic &amp; Fraud Desk</span>
           {forensicSummary && forensicSummary.totalAnomaliesCount > 0 && (
-            <span style={{ padding: '2px 8px', borderRadius: '10px', fontSize: '11px', background: '#fee2e2', color: '#dc2626', fontWeight: 700 }}>
+            <span style={{ padding: '2px 8px', borderRadius: '10px', fontSize: '11px', background: 'var(--error-bg)', color: 'var(--error)', fontWeight: 700 }}>
               {forensicSummary.totalAnomaliesCount}
             </span>
           )}
@@ -530,8 +530,8 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
               background: 'none',
               cursor: 'pointer',
               fontWeight: activeTab === 'connected-banking' ? 700 : 400,
-              borderBottom: activeTab === 'connected-banking' ? '3px solid #0284c7' : 'none',
-              color: activeTab === 'connected-banking' ? '#0284c7' : 'inherit',
+              borderBottom: activeTab === 'connected-banking' ? '3px solid var(--accent)' : 'none',
+              color: activeTab === 'connected-banking' ? 'var(--accent)' : 'inherit',
               display: 'flex',
               alignItems: 'center',
               gap: '8px'
@@ -551,9 +551,9 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
       {activeTab === 'accounts' && (
         <div>
           {accounts.length === 0 ? (
-            <div style={{ padding: '40px', textAlign: 'center', background: 'var(--bg-card, #f9f9f9)', borderRadius: '8px' }}>
+            <div style={{ padding: '40px', textAlign: 'center', background: 'var(--card-subtle)', borderRadius: '8px' }}>
               <h3>No Bank Accounts Registered</h3>
-              <p style={{ color: 'var(--muted, #666)' }}>Register a client's Current or Savings account to begin automated statement imports and reconciliation.</p>
+              <p style={{ color: 'var(--muted)' }}>Register a client's Current or Savings account to begin automated statement imports and reconciliation.</p>
               <button className="primary" onClick={() => setShowAccountModal(true)} style={{ marginTop: '10px' }}>
                 + Add First Bank Account
               </button>
@@ -561,13 +561,13 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '20px' }}>
               {accounts.map(acc => (
-                <div key={acc.id} className="card" style={{ padding: '20px', borderRadius: '8px', border: '1px solid var(--border, #e0e0e0)' }}>
+                <div key={acc.id} className="card" style={{ padding: '20px', borderRadius: '8px', border: '1px solid var(--border)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
                     <div>
                       <h3 style={{ margin: '0 0 4px 0', fontSize: '18px' }}>{acc.accountName}</h3>
-                      <span style={{ fontSize: '13px', color: 'var(--muted, #666)' }}>{acc.bankName} - {acc.branchName || 'Main'}</span>
+                      <span style={{ fontSize: '13px', color: 'var(--muted)' }}>{acc.bankName} - {acc.branchName || 'Main'}</span>
                     </div>
-                    <span style={{ padding: '3px 8px', borderRadius: '4px', fontSize: '12px', background: '#e3f2fd', color: '#1976d2', fontWeight: 600 }}>
+                    <span style={{ padding: '3px 8px', borderRadius: '4px', fontSize: '12px', background: 'var(--accent-subtle)', color: 'var(--accent)', fontWeight: 600 }}>
                       {acc.accountType}
                     </span>
                   </div>
@@ -578,10 +578,10 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
                     <div>Client: <strong>{acc.clientName}</strong></div>
                   </div>
 
-                  <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid var(--border, #eee)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                      <span style={{ fontSize: '12px', color: 'var(--muted, #666)' }}>Current Balance</span>
-                      <div style={{ fontSize: '18px', fontWeight: 700, color: '#2e7d32' }}>
+                      <span style={{ fontSize: '12px', color: 'var(--muted)' }}>Current Balance</span>
+                      <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--success)' }}>
                         {formatCurrency(acc.currentBalance || acc.openingBalance)}
                       </div>
                     </div>
@@ -652,18 +652,18 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
             <tbody>
               {transactions.length === 0 ? (
                 <tr>
-                  <td colSpan={8} style={{ padding: '30px', textAlign: 'center', color: 'var(--muted, #666)' }}>
+                  <td colSpan={8} style={{ padding: '30px', textAlign: 'center', color: 'var(--muted)' }}>
                     No transactions found for this account. Upload a CSV or OFX bank statement to populate.
                   </td>
                 </tr>
               ) : (
                 transactions.map((tx) => (
-                  <tr key={tx.id} style={{ borderBottom: '1px solid var(--border, #eee)' }}>
+                  <tr key={tx.id} style={{ borderBottom: '1px solid var(--border)' }}>
                     <td style={{ padding: '10px' }}>{tx.transactionDate}</td>
                     <td style={{ padding: '10px', maxWidth: '300px', wordBreak: 'break-word' }}>
                       {tx.narration}
                     </td>
-                    <td style={{ padding: '10px', color: 'var(--muted, #666)' }}>
+                    <td style={{ padding: '10px', color: 'var(--muted)' }}>
                       {tx.referenceNumber || '-'}
                     </td>
                     <td style={{ padding: '10px' }}>
@@ -673,8 +673,8 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
                           borderRadius: '4px',
                           fontSize: '11px',
                           fontWeight: 700,
-                          background: (tx.transactionType) === 'Credit' ? '#e8f5e9' : '#ffebee',
-                          color: (tx.transactionType) === 'Credit' ? '#2e7d32' : '#c62828'
+                          background: (tx.transactionType) === 'Credit' ? 'var(--success-bg)' : 'var(--error-bg)',
+                          color: (tx.transactionType) === 'Credit' ? 'var(--success)' : 'var(--error)'
                         }}
                       >
                         {tx.transactionType}
@@ -695,8 +695,8 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
                           borderRadius: '4px',
                           fontSize: '11px',
                           fontWeight: 600,
-                          background: (tx.matchStatus) === 'Matched' ? '#e8f5e9' : '#fff3e0',
-                          color: (tx.matchStatus) === 'Matched' ? '#2e7d32' : '#e65100'
+                          background: (tx.matchStatus) === 'Matched' ? 'var(--success-bg)' : 'var(--warning-bg)',
+                          color: (tx.matchStatus) === 'Matched' ? 'var(--success)' : 'var(--warning-text)'
                         }}
                       >
                         {tx.matchStatus}
@@ -746,10 +746,10 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
           </div>
 
           {brsSummary && (
-            <div className="card" style={{ padding: '24px', borderRadius: '8px', border: '1px solid var(--border, #e0e0e0)' }}>
+            <div className="card" style={{ padding: '24px', borderRadius: '8px', border: '1px solid var(--border)' }}>
               <div style={{ textAlign: 'center', borderBottom: '2px solid #333', paddingBottom: '12px', marginBottom: '20px' }}>
                 <h2 style={{ margin: '0 0 6px 0', fontSize: '20px' }}>BANK RECONCILIATION STATEMENT</h2>
-                <div style={{ fontSize: '14px', color: 'var(--muted, #666)' }}>
+                <div style={{ fontSize: '14px', color: 'var(--muted)' }}>
                   {brsSummary.bankName} - A/C No: {brsSummary.accountNumber} ({brsSummary.accountName})
                 </div>
                 <div style={{ fontSize: '13px', marginTop: '4px' }}>As on: <strong>{brsSummary.asOfDate}</strong></div>
@@ -757,29 +757,29 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
 
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
                 <tbody>
-                  <tr style={{ borderBottom: '1px solid #ddd', fontWeight: 600 }}>
+                  <tr style={{ borderBottom: '1px solid var(--border-subtle)', fontWeight: 600 }}>
                     <td style={{ padding: '12px 8px' }}>Balance as per Bank Statement</td>
-                    <td style={{ padding: '12px 8px', textAlign: 'right', color: '#1976d2' }}>
+                    <td style={{ padding: '12px 8px', textAlign: 'right', color: 'var(--accent)' }}>
                       {formatCurrency(brsSummary.bankStatementBalance)}
                     </td>
                   </tr>
-                  <tr style={{ borderBottom: '1px solid #eee' }}>
-                    <td style={{ padding: '10px 8px', color: '#2e7d32' }}>
+                  <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td style={{ padding: '10px 8px', color: 'var(--success)' }}>
                       (+) Add: Cheques issued / Outward debits not yet presented in bank
                     </td>
                     <td style={{ padding: '10px 8px', textAlign: 'right' }}>
                       {formatCurrency(brsSummary.totalUnclearedDebits)}
                     </td>
                   </tr>
-                  <tr style={{ borderBottom: '1px solid #eee' }}>
-                    <td style={{ padding: '10px 8px', color: '#c62828' }}>
+                  <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td style={{ padding: '10px 8px', color: 'var(--error)' }}>
                       (-) Less: Cheques deposited / Inward credits not yet cleared by bank
                     </td>
                     <td style={{ padding: '10px 8px', textAlign: 'right' }}>
                       ({formatCurrency(brsSummary.totalUncreditedCredits)})
                     </td>
                   </tr>
-                  <tr style={{ borderBottom: '1px solid #eee', fontSize: '13px', color: 'var(--muted, #666)' }}>
+                  <tr style={{ borderBottom: '1px solid var(--border)', fontSize: '13px', color: 'var(--muted)' }}>
                     <td style={{ padding: '8px 8px', paddingLeft: '24px' }}>
                       • Direct bank charges/fees not yet booked in ledger
                     </td>
@@ -787,7 +787,7 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
                       {formatCurrency(brsSummary.directDebitsNotBooked)}
                     </td>
                   </tr>
-                  <tr style={{ borderBottom: '1px solid #eee', fontSize: '13px', color: 'var(--muted, #666)' }}>
+                  <tr style={{ borderBottom: '1px solid var(--border)', fontSize: '13px', color: 'var(--muted)' }}>
                     <td style={{ padding: '8px 8px', paddingLeft: '24px' }}>
                       • Direct bank interest/credits not yet booked in ledger
                     </td>
@@ -797,15 +797,15 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
                   </tr>
                   <tr style={{ borderTop: '2px solid #333', borderBottom: '2px solid #333', fontWeight: 700, fontSize: '16px' }}>
                     <td style={{ padding: '14px 8px' }}>Balance as per Books of Account (Adjusted Ledger Balance)</td>
-                    <td style={{ padding: '14px 8px', textAlign: 'right', color: '#2e7d32' }}>
+                    <td style={{ padding: '14px 8px', textAlign: 'right', color: 'var(--success)' }}>
                       {formatCurrency(brsSummary.balanceAsPerBooks)}
                     </td>
                   </tr>
                 </tbody>
               </table>
 
-              <div style={{ marginTop: '20px', padding: '12px', background: '#e8f5e9', borderRadius: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontWeight: 600, color: '#2e7d32' }}>
+              <div style={{ marginTop: '20px', padding: '12px', background: 'var(--success-bg)', borderRadius: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontWeight: 600, color: 'var(--success)' }}>
                   ✓ BRS Balanced & Reconciled (Difference: ₹0.00)
                 </span>
                 <span style={{ fontSize: '13px', color: 'var(--muted, #555)' }}>
@@ -821,7 +821,7 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
       {activeTab === 'rules' && (
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <p style={{ margin: 0, color: 'var(--muted, #666)' }}>
+            <p style={{ margin: 0, color: 'var(--muted)' }}>
               Configure automatic keyword rules to categorize bank transactions during statement parsing.
             </p>
             <button className="primary small" onClick={() => setShowRuleModal(true)}>
@@ -843,18 +843,18 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
             <tbody>
               {rules.length === 0 ? (
                 <tr>
-                  <td colSpan={6} style={{ padding: '24px', textAlign: 'center', color: 'var(--muted, #666)' }}>
+                  <td colSpan={6} style={{ padding: '24px', textAlign: 'center', color: 'var(--muted)' }}>
                     No custom rules defined. Default system heuristics (SALARY, GST, TDS, UPI, CHARGES) are currently active.
                   </td>
                 </tr>
               ) : (
                 rules.map(r => (
-                  <tr key={r.id} style={{ borderBottom: '1px solid var(--border, #eee)' }}>
+                  <tr key={r.id} style={{ borderBottom: '1px solid var(--border)' }}>
                     <td style={{ padding: '10px', fontWeight: 600 }}>{r.ruleName}</td>
                     <td style={{ padding: '10px' }}><code>{r.matchKeyword}</code></td>
                     <td style={{ padding: '10px' }}>{r.transactionType}</td>
                     <td style={{ padding: '10px' }}>
-                      <span style={{ background: '#e3f2fd', color: '#1976d2', padding: '2px 8px', borderRadius: '4px', fontSize: '12px' }}>
+                      <span style={{ background: 'var(--accent-subtle)', color: 'var(--accent)', padding: '2px 8px', borderRadius: '4px', fontSize: '12px' }}>
                         {r.assignCategory}
                       </span>
                     </td>
@@ -862,7 +862,7 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
                     <td style={{ padding: '10px', textAlign: 'center' }}>
                       <button
                         className="small ghost"
-                        style={{ color: '#c62828' }}
+                        style={{ color: 'var(--error)' }}
                         onClick={async () => {
                           if (confirm(`Delete rule '${r.ruleName}'?`)) {
                             await bankFeedApi.deleteRule(r.id)
@@ -889,11 +889,11 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
             <div>
               <h3 style={{ margin: '0 0 4px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span>🔍 Forensic Fraud Detection &amp; Statutory Cross-Verification</span>
-                <span style={{ fontSize: '12px', background: '#fee2e2', color: '#dc2626', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>
+                <span style={{ fontSize: '12px', background: 'var(--error-bg)', color: 'var(--error)', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>
                   Statutory Rule 6DD &amp; Sec 40A(3) / 269ST
                 </span>
               </h3>
-              <p style={{ margin: 0, color: 'var(--muted, #666)', fontSize: '13px' }}>
+              <p style={{ margin: 0, color: 'var(--muted)', fontSize: '13px' }}>
                 Scans bank feeds for illegal cash structuring, smurfing, circular round-trips, high-value round sums, and verifies against Trial Balance general ledger.
               </p>
             </div>
@@ -909,14 +909,14 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
               <button
                 onClick={handleReconcileTb}
                 disabled={!selectedAccountId}
-                style={{ padding: '8px 14px', borderRadius: '4px', border: '1px solid #1976d2', background: '#e3f2fd', color: '#1976d2', cursor: 'pointer', fontWeight: 600 }}
+                style={{ padding: '8px 14px', borderRadius: '4px', border: '1px solid #1976d2', background: 'var(--accent-subtle)', color: 'var(--accent)', cursor: 'pointer', fontWeight: 600 }}
               >
                 ⚖️ Reconcile with Trial Balance
               </button>
               <button
                 onClick={handleExportForensicHtml}
                 disabled={!selectedAccountId}
-                style={{ padding: '8px 14px', borderRadius: '4px', border: '1px solid #ccc', background: '#fff', cursor: 'pointer', fontWeight: 600 }}
+                style={{ padding: '8px 14px', borderRadius: '4px', border: '1px solid var(--border-subtle)', background: 'var(--card)', color: 'var(--text)', cursor: 'pointer', fontWeight: 600 }}
               >
                 📄 Export Forensic Dossier
               </button>
@@ -930,19 +930,19 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
               padding: '16px',
               borderRadius: '8px',
               border: tbRecon.unrecordedAccountsCount > 0 ? '1px solid #ef4444' : '1px solid #10b981',
-              background: tbRecon.unrecordedAccountsCount > 0 ? '#fef2f2' : '#f0fdf4'
+              background: tbRecon.unrecordedAccountsCount > 0 ? 'var(--error-bg)' : 'var(--success-bg)'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <span style={{ fontWeight: 700, fontSize: '15px', color: tbRecon.unrecordedAccountsCount > 0 ? '#b91c1c' : '#15803d' }}>
+                <span style={{ fontWeight: 700, fontSize: '15px', color: tbRecon.unrecordedAccountsCount > 0 ? 'var(--error)' : 'var(--success)' }}>
                   {tbRecon.unrecordedAccountsCount > 0
                     ? `⚠️ High Risk: ${tbRecon.unrecordedAccountsCount} Unrecorded Bank Account(s) Detected in Statements!`
                     : '✓ Trial Balance Verification Passed: All Bank Accounts Matched in General Ledger'}
                 </span>
-                <span style={{ fontSize: '12px', color: '#6b7280' }}>
+                <span style={{ fontSize: '12px', color: 'var(--muted)' }}>
                   Matched: {tbRecon.matchedAccountsCount} / {tbRecon.totalBankAccounts} Accounts
                 </span>
               </div>
-              <p style={{ margin: '0 0 12px 0', fontSize: '13px', color: '#374151' }}>
+              <p style={{ margin: '0 0 12px 0', fontSize: '13px', color: 'var(--text-secondary)' }}>
                 {tbRecon.unrecordedAccountsCount > 0
                   ? 'Audit Warning under Sec 68/69: The following bank accounts have active transaction feeds or statements, but NO matching general ledger bank account was identified in the imported Trial Balance.'
                   : 'All client bank accounts active in statements have been verified against general ledger bank accounts in the client Trial Balance.'}
@@ -952,17 +952,17 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
                   <div key={idx} style={{
                     padding: '8px 12px',
                     borderRadius: '6px',
-                    background: '#fff',
-                    border: m.isMatched ? '1px solid #86efac' : '1px solid #fca5a5',
+                    background: 'var(--card)',
+                    border: m.isMatched ? '1px solid #86efac' : '1px solid var(--error-border)',
                     fontSize: '12px'
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <strong>{m.bankName} - {m.accountNumber}</strong>
-                      <span style={{ color: m.isMatched ? '#16a34a' : '#dc2626', fontWeight: 600 }}>
+                      <span style={{ color: m.isMatched ? '#16a34a' : 'var(--error)', fontWeight: 600 }}>
                         {m.isMatched ? '✓ Matched in TB' : '⚠️ Unrecorded in TB'}
                       </span>
                     </div>
-                    <div style={{ color: '#666', marginTop: '4px' }}>
+                    <div style={{ color: 'var(--muted)', marginTop: '4px' }}>
                       Statement Balance: {formatCurrency(m.statementClosingBalance)} | TB Ledger: {m.tbLedgerName || 'None'}
                     </div>
                   </div>
@@ -974,13 +974,13 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
           {/* Forensic Risk Meter & Statutory Exposure KPIs */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '20px' }}>
             {/* Risk Score */}
-            <div className="card" style={{ padding: '16px', borderRadius: '8px', border: '1px solid var(--border, #e0e0e0)' }}>
-              <div style={{ fontSize: '13px', color: 'var(--muted, #666)' }}>Forensic Risk Score</div>
+            <div className="card" style={{ padding: '16px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: '13px', color: 'var(--muted)' }}>Forensic Risk Score</div>
               <div style={{
                 fontSize: '28px',
                 fontWeight: 800,
                 marginTop: '4px',
-                color: (forensicSummary?.overallRiskScore ?? 0) > 50 ? '#dc2626' : (forensicSummary?.overallRiskScore ?? 0) > 20 ? '#d97706' : '#16a34a'
+                color: (forensicSummary?.overallRiskScore ?? 0) > 50 ? 'var(--error)' : (forensicSummary?.overallRiskScore ?? 0) > 20 ? 'var(--warning)' : '#16a34a'
               }}>
                 {forensicSummary ? `${forensicSummary.overallRiskScore} / 100` : '—'}
               </div>
@@ -990,9 +990,9 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
             </div>
 
             {/* Sec 40A(3) Exposure */}
-            <div className="card" style={{ padding: '16px', borderRadius: '8px', border: '1px solid var(--border, #e0e0e0)' }}>
-              <div style={{ fontSize: '13px', color: 'var(--muted, #666)' }}>Sec 40A(3) Cash Disallowance</div>
-              <div style={{ fontSize: '24px', fontWeight: 700, marginTop: '4px', color: '#dc2626' }}>
+            <div className="card" style={{ padding: '16px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: '13px', color: 'var(--muted)' }}>Sec 40A(3) Cash Disallowance</div>
+              <div style={{ fontSize: '24px', fontWeight: 700, marginTop: '4px', color: 'var(--error)' }}>
                 {formatCurrency(forensicSummary?.sec40A3ExposureAmount || 0)}
               </div>
               <div style={{ fontSize: '11px', color: 'var(--muted, #888)', marginTop: '2px' }}>
@@ -1001,8 +1001,8 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
             </div>
 
             {/* Sec 269ST Penalty Exposure */}
-            <div className="card" style={{ padding: '16px', borderRadius: '8px', border: '1px solid var(--border, #e0e0e0)' }}>
-              <div style={{ fontSize: '13px', color: 'var(--muted, #666)' }}>Sec 269ST Cash Receipt Penalty</div>
+            <div className="card" style={{ padding: '16px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: '13px', color: 'var(--muted)' }}>Sec 269ST Cash Receipt Penalty</div>
               <div style={{ fontSize: '24px', fontWeight: 700, marginTop: '4px', color: '#c026d3' }}>
                 {formatCurrency(forensicSummary?.sec269StExposureAmount || 0)}
               </div>
@@ -1012,9 +1012,9 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
             </div>
 
             {/* Fraud Pattern Flags */}
-            <div className="card" style={{ padding: '16px', borderRadius: '8px', border: '1px solid var(--border, #e0e0e0)' }}>
-              <div style={{ fontSize: '13px', color: 'var(--muted, #666)' }}>Circular Flow &amp; Smurfing</div>
-              <div style={{ fontSize: '24px', fontWeight: 700, marginTop: '4px', color: '#d97706' }}>
+            <div className="card" style={{ padding: '16px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: '13px', color: 'var(--muted)' }}>Circular Flow &amp; Smurfing</div>
+              <div style={{ fontSize: '24px', fontWeight: 700, marginTop: '4px', color: 'var(--warning)' }}>
                 {(forensicSummary?.roundTrippingCount || 0) + (forensicSummary?.smurfingCount || 0)} Anomalies
               </div>
               <div style={{ fontSize: '11px', color: 'var(--muted, #888)', marginTop: '2px' }}>
@@ -1024,14 +1024,14 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
           </div>
 
           {/* Anomaly Filters & Table */}
-          <div className="card" style={{ padding: '16px', borderRadius: '8px', border: '1px solid var(--border, #e0e0e0)' }}>
+          <div className="card" style={{ padding: '16px', borderRadius: '8px', border: '1px solid var(--border)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
               <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                 <span style={{ fontWeight: 600, fontSize: '14px' }}>Filter by Type:</span>
                 <select
                   value={forensicFilterType}
                   onChange={e => setForensicFilterType(e.target.value)}
-                  style={{ padding: '6px 12px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '13px' }}
+                  style={{ padding: '6px 12px', borderRadius: '4px', border: '1px solid var(--border-subtle)', fontSize: '13px' }}
                 >
                   <option value="All">All Anomaly Types</option>
                   <option value="Sec40A3CashPayment">Section 40A(3) Cash Payment</option>
@@ -1048,7 +1048,7 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
                 <select
                   value={forensicFilterRisk}
                   onChange={e => setForensicFilterRisk(e.target.value)}
-                  style={{ padding: '6px 12px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '13px' }}
+                  style={{ padding: '6px 12px', borderRadius: '4px', border: '1px solid var(--border-subtle)', fontSize: '13px' }}
                 >
                   <option value="All">All Risk Levels</option>
                   <option value="High">High Risk Only</option>
@@ -1057,7 +1057,7 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
                 </select>
               </div>
 
-              <div style={{ fontSize: '13px', color: 'var(--muted, #666)' }}>
+              <div style={{ fontSize: '13px', color: 'var(--muted)' }}>
                 Showing <strong>{
                   (forensicSummary?.anomalies || []).filter((a: ForensicAnomalyDto) => {
                     const matchType = forensicFilterType === 'All' || a.anomalyType === forensicFilterType
@@ -1071,7 +1071,7 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
             {/* Table */}
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
               <thead>
-                <tr style={{ background: 'var(--bg-card, #f8f9fa)', borderBottom: '2px solid var(--border, #e0e0e0)', textAlign: 'left' }}>
+                <tr style={{ background: 'var(--card-subtle)', borderBottom: '2px solid var(--border)', textAlign: 'left' }}>
                   <th style={{ padding: '10px 8px' }}>Date</th>
                   <th style={{ padding: '10px 8px' }}>Anomaly Category</th>
                   <th style={{ padding: '10px 8px' }}>Narration / Detail</th>
@@ -1096,7 +1096,7 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
                       return matchType && matchRisk
                     })
                     .map((a: ForensicAnomalyDto) => (
-                      <tr key={a.id} style={{ borderBottom: '1px solid var(--border, #eee)' }}>
+                      <tr key={a.id} style={{ borderBottom: '1px solid var(--border)' }}>
                         <td style={{ padding: '10px 8px', whiteSpace: 'nowrap' }}>{a.transactionDate}</td>
                         <td style={{ padding: '10px 8px' }}>
                           <span style={{
@@ -1104,8 +1104,8 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
                             borderRadius: '4px',
                             fontSize: '11px',
                             fontWeight: 600,
-                            background: a.anomalyType.includes('40A3') ? '#fee2e2' : a.anomalyType.includes('269') ? '#f3e8ff' : '#fef3c7',
-                            color: a.anomalyType.includes('40A3') ? '#b91c1c' : a.anomalyType.includes('269') ? '#7e22ce' : '#b45309'
+                            background: a.anomalyType.includes('40A3') ? 'var(--error-bg)' : a.anomalyType.includes('269') ? 'var(--purple-bg)' : 'var(--warning-bg)',
+                            color: a.anomalyType.includes('40A3') ? 'var(--error)' : a.anomalyType.includes('269') ? '#7e22ce' : 'var(--warning)'
                           }}>
                             {a.anomalyType}
                           </span>
@@ -1128,10 +1128,10 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
                             {a.riskLevel}
                           </span>
                         </td>
-                        <td style={{ padding: '10px 8px', color: '#555', fontSize: '12px' }}>
+                        <td style={{ padding: '10px 8px', color: 'var(--text-secondary)', fontSize: '12px' }}>
                           <div>{a.recommendedAction}</div>
                           {a.statutorySection && (
-                            <div style={{ fontSize: '11px', color: '#888', marginTop: '2px', fontStyle: 'italic' }}>
+                            <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '2px', fontStyle: 'italic' }}>
                               Ref: {a.statutorySection}
                             </div>
                           )}
@@ -1144,8 +1144,8 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
                               padding: '4px 8px',
                               borderRadius: '4px',
                               fontSize: '12px',
-                              border: '1px solid #ccc',
-                              background: a.status === 'DisallowedIn3CD' ? '#fee2e2' : a.status === 'Reviewed' ? '#dcfce7' : '#fff'
+                              border: '1px solid var(--border-subtle)',
+                              background: a.status === 'DisallowedIn3CD' ? 'var(--error-bg)' : a.status === 'Reviewed' ? 'var(--success-bg)' : 'var(--card)'
                             }}
                           >
                             <option value="Flagged">Flagged</option>
@@ -1166,7 +1166,7 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
       {/* Account Modal */}
       {showAccountModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-          <div className="card" style={{ background: '#fff', padding: '24px', borderRadius: '8px', width: '500px', maxWidth: '90%' }}>
+          <div className="card" style={{ background: 'var(--card)', padding: '24px', borderRadius: '8px', width: '500px', maxWidth: '90%' }}>
             <h3 style={{ margin: '0 0 16px 0' }}>Add Client Bank Account</h3>
             <form onSubmit={handleCreateAccount}>
               <div style={{ marginBottom: '12px' }}>
@@ -1175,7 +1175,7 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
                   value={accountForm.clientId}
                   onChange={e => setAccountForm({ ...accountForm, clientId: e.target.value })}
                   required
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 >
                   <option value="">Select Client</option>
                   {clients.map(c => (
@@ -1193,7 +1193,7 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
                     onChange={e => setAccountForm({ ...accountForm, bankName: e.target.value })}
                     required
                     placeholder="e.g. HDFC Bank, ICICI, SBI"
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
                 <div>
@@ -1204,7 +1204,7 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
                     onChange={e => setAccountForm({ ...accountForm, accountName: e.target.value })}
                     required
                     placeholder="e.g. Primary Current A/C"
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
               </div>
@@ -1218,7 +1218,7 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
                     onChange={e => setAccountForm({ ...accountForm, accountNumber: e.target.value })}
                     required
                     placeholder="Account Number"
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
                 <div>
@@ -1229,7 +1229,7 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
                     onChange={e => setAccountForm({ ...accountForm, ifscCode: e.target.value.toUpperCase() })}
                     required
                     placeholder="e.g. HDFC0000123"
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
               </div>
@@ -1240,7 +1240,7 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
                   <select
                     value={accountForm.accountType}
                     onChange={e => setAccountForm({ ...accountForm, accountType: e.target.value })}
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   >
                     <option value="Current">Current</option>
                     <option value="Savings">Savings</option>
@@ -1255,7 +1255,7 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
                     step="0.01"
                     value={accountForm.openingBalance}
                     onChange={e => setAccountForm({ ...accountForm, openingBalance: parseFloat(e.target.value) || 0 })}
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
               </div>
@@ -1272,14 +1272,14 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
       {/* Upload Statement Modal */}
       {showUploadModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-          <div className="card" style={{ background: '#fff', padding: '24px', borderRadius: '8px', width: '600px', maxWidth: '90%' }}>
+          <div className="card" style={{ background: 'var(--card)', padding: '24px', borderRadius: '8px', width: '600px', maxWidth: '90%' }}>
             <h3 style={{ margin: '0 0 12px 0' }}>Upload Bank Statement (PDF / CSV / OFX)</h3>
-            <p style={{ fontSize: '13px', color: 'var(--muted, #666)', marginTop: 0 }}>
+            <p style={{ fontSize: '13px', color: 'var(--muted)', marginTop: 0 }}>
               Upload a bank statement in PDF, CSV, or OFX format. Standard Indian bank statements (HDFC, ICICI, SBI, Axis, Kotak) and running balance calculations will be automatically extracted.
             </p>
 
             <form onSubmit={handleUploadStatement}>
-              <div style={{ marginBottom: '12px', padding: '12px', border: '2px dashed #CBD5E1', borderRadius: '6px', textAlign: 'center', background: '#F8FAFC' }}>
+              <div style={{ marginBottom: '12px', padding: '12px', border: '2px dashed var(--border-subtle)', borderRadius: '6px', textAlign: 'center', background: 'var(--card-subtle)' }}>
                 <input
                   type="file"
                   id="bank-file-upload"
@@ -1287,10 +1287,10 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
                   onChange={handleStatementFileChange}
                   style={{ display: 'none' }}
                 />
-                <label htmlFor="bank-file-upload" style={{ cursor: 'pointer', color: '#4F46E5', fontWeight: 600, fontSize: '13px' }}>
+                <label htmlFor="bank-file-upload" style={{ cursor: 'pointer', color: 'var(--accent)', fontWeight: 600, fontSize: '13px' }}>
                   📁 Choose Statement File (.PDF, .CSV, .OFX)
                 </label>
-                <div style={{ fontSize: '11px', color: '#64748B', marginTop: '4px' }}>
+                <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '4px' }}>
                   Select file to automatically parse and populate fields below
                 </div>
               </div>
@@ -1303,7 +1303,7 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
                     value={uploadFileName}
                     onChange={e => setUploadFileName(e.target.value)}
                     required
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
                 <div style={{ width: '180px' }}>
@@ -1312,7 +1312,7 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
                     type="date"
                     value={uploadStatementDate}
                     onChange={e => setUploadStatementDate(e.target.value)}
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
               </div>
@@ -1330,7 +1330,7 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
                   onChange={e => setUploadCsvContent(e.target.value)}
                   placeholder="Date,Narration,Chq/Ref No,Debit,Credit,Balance... or select PDF above"
                   required
-                  style={{ width: '100%', padding: '8px', fontFamily: 'monospace', fontSize: '12px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  style={{ width: '100%', padding: '8px', fontFamily: 'monospace', fontSize: '12px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
 
@@ -1346,9 +1346,9 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
       {/* Match Transaction Modal */}
       {showMatchModal && selectedTxForMatch && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-          <div className="card" style={{ background: '#fff', padding: '24px', borderRadius: '8px', width: '480px', maxWidth: '90%' }}>
+          <div className="card" style={{ background: 'var(--card)', padding: '24px', borderRadius: '8px', width: '480px', maxWidth: '90%' }}>
             <h3 style={{ margin: '0 0 12px 0' }}>Reconcile Transaction</h3>
-            <div style={{ background: '#f8f9fa', padding: '12px', borderRadius: '6px', marginBottom: '16px', fontSize: '13px' }}>
+            <div style={{ background: 'var(--card-subtle)', padding: '12px', borderRadius: '6px', marginBottom: '16px', fontSize: '13px' }}>
               <div>Narration: <strong>{selectedTxForMatch.narration}</strong></div>
               <div>Amount: <strong>{formatCurrency(selectedTxForMatch.amount)}</strong> [{selectedTxForMatch.transactionType}]</div>
               <div>Date: <strong>{selectedTxForMatch.transactionDate}</strong></div>
@@ -1360,7 +1360,7 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
                 <select
                   value={matchForm.matchStatus}
                   onChange={e => setMatchForm({ ...matchForm, matchStatus: e.target.value })}
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 >
                   <option value="Matched">Matched</option>
                   <option value="AutoCategorized">AutoCategorized</option>
@@ -1374,7 +1374,7 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
                 <select
                   value={matchForm.matchedEntityType || ''}
                   onChange={e => setMatchForm({ ...matchForm, matchedEntityType: e.target.value || undefined })}
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 >
                   <option value="Expense">Expense / Payment Voucher</option>
                   <option value="Invoice">Sales Invoice Receipt</option>
@@ -1391,7 +1391,7 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
                   value={matchForm.notes || ''}
                   onChange={e => setMatchForm({ ...matchForm, notes: e.target.value })}
                   placeholder="e.g. Verified with bank slip, RTGS UTR matched"
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
 
@@ -1407,7 +1407,7 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
       {/* Rule Modal */}
       {showRuleModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-          <div className="card" style={{ background: '#fff', padding: '24px', borderRadius: '8px', width: '480px', maxWidth: '90%' }}>
+          <div className="card" style={{ background: 'var(--card)', padding: '24px', borderRadius: '8px', width: '480px', maxWidth: '90%' }}>
             <h3 style={{ margin: '0 0 16px 0' }}>Add Categorization Rule</h3>
             <form onSubmit={handleCreateRule}>
               <div style={{ marginBottom: '12px' }}>
@@ -1418,7 +1418,7 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
                   onChange={e => setRuleForm({ ...ruleForm, ruleName: e.target.value })}
                   required
                   placeholder="e.g. Rent Payment Rule"
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
 
@@ -1430,7 +1430,7 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
                   onChange={e => setRuleForm({ ...ruleForm, matchKeyword: e.target.value })}
                   required
                   placeholder="e.g. RENT, AMAZON, ADANI"
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
 
@@ -1440,7 +1440,7 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
                   <select
                     value={ruleForm.transactionType}
                     onChange={e => setRuleForm({ ...ruleForm, transactionType: e.target.value })}
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   >
                     <option value="Any">Any</option>
                     <option value="Debit">Debit (Outward)</option>
@@ -1453,7 +1453,7 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
                     type="number"
                     value={ruleForm.priority}
                     onChange={e => setRuleForm({ ...ruleForm, priority: parseInt(e.target.value) || 0 })}
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
               </div>
@@ -1466,7 +1466,7 @@ export const BankFeedsPage: React.FC<BankFeedsPageProps> = ({ isFeatureEnabled }
                   onChange={e => setRuleForm({ ...ruleForm, assignCategory: e.target.value })}
                   required
                   placeholder="e.g. Office Rent, Cloud Infrastructure"
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { toError,
   eInvoicingApi,
   api,
@@ -142,31 +142,31 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
     reason: 'Duplicate'
   })
 
-  // Load clients
-  useEffect(() => {
-    loadClients()
-  }, [])
-
-  // Load desk data when client selection changes
-  useEffect(() => {
-    loadData(selectedClientId || undefined)
-  }, [selectedClientId])
-
-  const loadClients = async () => {
+  const loadClients = useCallback(async () => {
     try {
       const res = await api<ClientPage>('/api/clients?pageSize=100')
       if (res && res.items) {
         setClients(res.items)
-        if (res.items.length > 0 && !selectedClientId) {
+        if (res.items.length > 0) {
           // Pre-populate default clientId in forms
-          setInvoiceForm(f => ({ ...f, clientId: res.items[0].id }))
-          setEwbForm(f => ({ ...f, clientId: res.items[0].id }))
+          setInvoiceForm(f => (f.clientId ? f : { ...f, clientId: res.items[0].id }))
+          setEwbForm(f => (f.clientId ? f : { ...f, clientId: res.items[0].id }))
         }
       }
     } catch {
       // Non-fatal if clients cannot be loaded immediately
     }
-  }
+  }, [])
+
+  // Load clients
+  useEffect(() => {
+    loadClients()
+  }, [loadClients])
+
+  // Load desk data when client selection changes
+  useEffect(() => {
+    loadData(selectedClientId || undefined)
+  }, [selectedClientId])
 
   const loadData = async (cId?: string) => {
     setLoading(true)
@@ -370,10 +370,10 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
       {/* Top Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: '26px', fontWeight: 700, color: '#1a237e' }}>
+          <h1 style={{ margin: 0, fontSize: '26px', fontWeight: 700, color: 'var(--accent)' }}>
             Automated E-Invoicing & E-Way Bill Desk
           </h1>
-          <p style={{ margin: '4px 0 0 0', color: '#555', fontSize: '14px' }}>
+          <p style={{ margin: '4px 0 0 0', color: 'var(--text-secondary)', fontSize: '14px' }}>
             Direct IRP integration, 64-character SHA-256 IRN generation, signed QR codes & Rule 138(10) E-Way Bill validity engine.
           </p>
         </div>
@@ -386,9 +386,9 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
             style={{
               padding: '8px 12px',
               borderRadius: '6px',
-              border: '1px solid #ccc',
+              border: '1px solid var(--border-subtle)',
               fontSize: '14px',
-              background: '#fff',
+              background: 'var(--card)',
               minWidth: '200px'
             }}
           >
@@ -406,9 +406,9 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
             style={{
               padding: '8px 14px',
               borderRadius: '6px',
-              border: '1px solid #1a237e',
-              background: '#fff',
-              color: '#1a237e',
+              border: '1px solid var(--accent)',
+              background: 'var(--card)',
+              color: 'var(--accent)',
               fontWeight: 600,
               cursor: 'pointer'
             }}
@@ -462,92 +462,92 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
       {error && (
         <div style={{
           padding: '12px 16px',
-          background: '#ffebee',
-          color: '#c62828',
+          background: 'var(--error-bg)',
+          color: 'var(--error)',
           borderRadius: '6px',
           marginBottom: '20px',
-          border: '1px solid #ffcdd2',
+          border: '1px solid var(--error-border)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center'
         }}>
           <span><strong>Error:</strong> {error}</span>
-          <button onClick={() => setError(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#c62828', fontWeight: 'bold' }}>✕</button>
+          <button onClick={() => setError(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--error)', fontWeight: 'bold' }}>✕</button>
         </div>
       )}
 
       {success && (
         <div style={{
           padding: '12px 16px',
-          background: '#e8f5e9',
-          color: '#2e7d32',
+          background: 'var(--success-bg)',
+          color: 'var(--success)',
           borderRadius: '6px',
           marginBottom: '20px',
-          border: '1px solid #c8e6c9',
+          border: '1px solid var(--success-border)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center'
         }}>
           <span><strong>Success:</strong> {success}</span>
-          <button onClick={() => setSuccess(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#2e7d32', fontWeight: 'bold' }}>✕</button>
+          <button onClick={() => setSuccess(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--success)', fontWeight: 'bold' }}>✕</button>
         </div>
       )}
 
       {/* Metric Cards */}
       {summary && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-          <div style={{ background: '#fff', padding: '16px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', borderLeft: '4px solid #1a237e' }}>
-            <div style={{ fontSize: '12px', color: '#666', textTransform: 'uppercase', fontWeight: 600 }}>Total E-Invoices</div>
-            <div style={{ fontSize: '24px', fontWeight: 700, color: '#1a237e', marginTop: '4px' }}>{summary.totalEInvoices}</div>
-            <div style={{ fontSize: '11px', color: '#666', marginTop: '4px' }}>
-              Active IRN: <strong style={{ color: '#2e7d32' }}>{summary.activeIrnCount}</strong> | Cancelled: <strong style={{ color: '#c62828' }}>{summary.cancelledIrnCount}</strong>
+          <div style={{ background: 'var(--card)', padding: '16px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', borderLeft: '4px solid var(--accent)' }}>
+            <div style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase', fontWeight: 600 }}>Total E-Invoices</div>
+            <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--accent)', marginTop: '4px' }}>{summary.totalEInvoices}</div>
+            <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '4px' }}>
+              Active IRN: <strong style={{ color: 'var(--success)' }}>{summary.activeIrnCount}</strong> | Cancelled: <strong style={{ color: 'var(--error)' }}>{summary.cancelledIrnCount}</strong>
             </div>
           </div>
 
-          <div style={{ background: '#fff', padding: '16px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', borderLeft: '4px solid #2e7d32' }}>
-            <div style={{ fontSize: '12px', color: '#666', textTransform: 'uppercase', fontWeight: 600 }}>Active IRNs</div>
-            <div style={{ fontSize: '24px', fontWeight: 700, color: '#2e7d32', marginTop: '4px' }}>{summary.activeIrnCount}</div>
-            <div style={{ fontSize: '11px', color: '#666', marginTop: '4px' }}>Signed IRP QR Verified</div>
+          <div style={{ background: 'var(--card)', padding: '16px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', borderLeft: '4px solid #2e7d32' }}>
+            <div style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase', fontWeight: 600 }}>Active IRNs</div>
+            <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--success)', marginTop: '4px' }}>{summary.activeIrnCount}</div>
+            <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '4px' }}>Signed IRP QR Verified</div>
           </div>
 
-          <div style={{ background: '#fff', padding: '16px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', borderLeft: '4px solid #00838f' }}>
-            <div style={{ fontSize: '12px', color: '#666', textTransform: 'uppercase', fontWeight: 600 }}>E-Invoiced Value</div>
+          <div style={{ background: 'var(--card)', padding: '16px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', borderLeft: '4px solid #00838f' }}>
+            <div style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase', fontWeight: 600 }}>E-Invoiced Value</div>
             <div style={{ fontSize: '22px', fontWeight: 700, color: '#00838f', marginTop: '4px' }}>{formatCurrency(summary.totalEInvoicedValue)}</div>
-            <div style={{ fontSize: '11px', color: '#666', marginTop: '4px' }}>Taxable + Statutory GST</div>
+            <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '4px' }}>Taxable + Statutory GST</div>
           </div>
 
-          <div style={{ background: '#fff', padding: '16px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', borderLeft: '4px solid #0277bd' }}>
-            <div style={{ fontSize: '12px', color: '#666', textTransform: 'uppercase', fontWeight: 600 }}>Active E-Way Bills</div>
+          <div style={{ background: 'var(--card)', padding: '16px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', borderLeft: '4px solid #0277bd' }}>
+            <div style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase', fontWeight: 600 }}>Active E-Way Bills</div>
             <div style={{ fontSize: '24px', fontWeight: 700, color: '#0277bd', marginTop: '4px' }}>{summary.activeEWayBills}</div>
-            <div style={{ fontSize: '11px', color: '#666', marginTop: '4px' }}>Movement In Transit</div>
+            <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '4px' }}>Movement In Transit</div>
           </div>
 
           <div style={{
-            background: '#fff',
+            background: 'var(--card)',
             padding: '16px',
             borderRadius: '8px',
             boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
             borderLeft: summary.expiringSoonEwbCount > 0 ? '4px solid #f57f17' : '4px solid #43a047'
           }}>
-            <div style={{ fontSize: '12px', color: '#666', textTransform: 'uppercase', fontWeight: 600 }}>Expiring Soon (&lt; 24h)</div>
+            <div style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase', fontWeight: 600 }}>Expiring Soon (&lt; 24h)</div>
             <div style={{ fontSize: '24px', fontWeight: 700, color: summary.expiringSoonEwbCount > 0 ? '#f57f17' : '#43a047', marginTop: '4px' }}>
               {summary.expiringSoonEwbCount}
             </div>
-            <div style={{ fontSize: '11px', color: '#666', marginTop: '4px' }}>
+            <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '4px' }}>
               {summary.expiringSoonEwbCount > 0 ? 'Action required: extend or deliver' : 'All EWBs in validity'}
             </div>
           </div>
 
-          <div style={{ background: '#fff', padding: '16px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', borderLeft: '4px solid #4527a0' }}>
-            <div style={{ fontSize: '12px', color: '#666', textTransform: 'uppercase', fontWeight: 600 }}>Total Consignment Value</div>
+          <div style={{ background: 'var(--card)', padding: '16px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', borderLeft: '4px solid #4527a0' }}>
+            <div style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase', fontWeight: 600 }}>Total Consignment Value</div>
             <div style={{ fontSize: '22px', fontWeight: 700, color: '#4527a0', marginTop: '4px' }}>{formatCurrency(summary.totalEwbValue)}</div>
-            <div style={{ fontSize: '11px', color: '#666', marginTop: '4px' }}>Active E-Way Bill Consignments</div>
+            <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '4px' }}>Active E-Way Bill Consignments</div>
           </div>
         </div>
       )}
 
       {/* Tabs */}
-      <div style={{ display: 'flex', borderBottom: '2px solid #e0e0e0', marginBottom: '20px' }}>
+      <div style={{ display: 'flex', borderBottom: '2px solid var(--border)', marginBottom: '20px' }}>
         <button
           onClick={() => setActiveTab('invoices')}
           style={{
@@ -556,8 +556,8 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
             fontWeight: 600,
             background: 'none',
             border: 'none',
-            borderBottom: activeTab === 'invoices' ? '3px solid #1a237e' : 'none',
-            color: activeTab === 'invoices' ? '#1a237e' : '#666',
+            borderBottom: activeTab === 'invoices' ? '3px solid var(--accent)' : 'none',
+            color: activeTab === 'invoices' ? 'var(--accent)' : 'var(--muted)',
             cursor: 'pointer'
           }}
         >
@@ -571,8 +571,8 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
             fontWeight: 600,
             background: 'none',
             border: 'none',
-            borderBottom: activeTab === 'ewaybills' ? '3px solid #1a237e' : 'none',
-            color: activeTab === 'ewaybills' ? '#1a237e' : '#666',
+            borderBottom: activeTab === 'ewaybills' ? '3px solid var(--accent)' : 'none',
+            color: activeTab === 'ewaybills' ? 'var(--accent)' : 'var(--muted)',
             cursor: 'pointer'
           }}
         >
@@ -582,16 +582,16 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
 
       {/* Tab 1: E-Invoices & IRN Register */}
       {activeTab === 'invoices' && (
-        <div style={{ background: '#fff', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
-          <div style={{ padding: '16px', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ background: 'var(--card)', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+          <div style={{ padding: '16px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600 }}>Registered E-Invoices</h3>
-            <span style={{ fontSize: '12px', color: '#666' }}>Showing {invoices.length} e-invoice records</span>
+            <span style={{ fontSize: '12px', color: 'var(--muted)' }}>Showing {invoices.length} e-invoice records</span>
           </div>
 
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left' }}>
               <thead>
-                <tr style={{ background: '#f8f9fa', color: '#555', borderBottom: '2px solid #eee' }}>
+                <tr style={{ background: 'var(--card-subtle)', color: 'var(--text-secondary)', borderBottom: '2px solid var(--border)' }}>
                   <th style={{ padding: '12px' }}>Doc Details</th>
                   <th style={{ padding: '12px' }}>Client & Supplier</th>
                   <th style={{ padding: '12px' }}>Recipient</th>
@@ -605,7 +605,7 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
               <tbody>
                 {invoices.length === 0 ? (
                   <tr>
-                    <td colSpan={8} style={{ padding: '32px', textAlign: 'center', color: '#999' }}>
+                    <td colSpan={8} style={{ padding: '32px', textAlign: 'center', color: 'var(--muted)' }}>
                       No E-Invoices found. Click "+ Generate E-Invoice (IRN)" to register your first IRP invoice.
                     </td>
                   </tr>
@@ -615,56 +615,56 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                     const isGenerated = statusStr === 'Generated'
                     const isCancelled = statusStr === 'Cancelled'
                     return (
-                      <tr key={inv.id} style={{ borderBottom: '1px solid #eee', background: isCancelled ? '#fff9f9' : '#fff' }}>
+                      <tr key={inv.id} style={{ borderBottom: '1px solid var(--border)', background: isCancelled ? '#fff9f9' : 'var(--card)' }}>
                         <td style={{ padding: '12px' }}>
-                          <div style={{ fontWeight: 600, color: '#1a237e' }}>{inv.docNumber}</div>
-                          <div style={{ fontSize: '11px', color: '#666' }}>
+                          <div style={{ fontWeight: 600, color: 'var(--accent)' }}>{inv.docNumber}</div>
+                          <div style={{ fontSize: '11px', color: 'var(--muted)' }}>
                             {formatDocType(inv.docType)} | {inv.docDate}
                           </div>
-                          <div style={{ fontSize: '10px', color: '#888' }}>FY: {inv.financialYear}</div>
+                          <div style={{ fontSize: '10px', color: 'var(--muted)' }}>FY: {inv.financialYear}</div>
                         </td>
                         <td style={{ padding: '12px' }}>
                           <div style={{ fontWeight: 600 }}>{inv.clientName}</div>
-                          <div style={{ fontSize: '11px', fontFamily: 'monospace', color: '#555' }}>
+                          <div style={{ fontSize: '11px', fontFamily: 'monospace', color: 'var(--text-secondary)' }}>
                             GSTIN: {inv.supplierGstin}
                           </div>
                         </td>
                         <td style={{ padding: '12px' }}>
                           <div style={{ fontWeight: 600 }}>{inv.recipientLegalName}</div>
-                          <div style={{ fontSize: '11px', fontFamily: 'monospace', color: '#555' }}>
+                          <div style={{ fontSize: '11px', fontFamily: 'monospace', color: 'var(--text-secondary)' }}>
                             GSTIN: {inv.recipientGstin}
                           </div>
                         </td>
                         <td style={{ padding: '12px', textAlign: 'right', fontWeight: 600 }}>
                           {formatCurrency(inv.totalTaxableValue)}
-                          <div style={{ fontSize: '11px', color: '#666' }}>
+                          <div style={{ fontSize: '11px', color: 'var(--muted)' }}>
                             CGST+SGST: {formatCurrency(inv.cgstAmount + inv.sgstAmount)}
                           </div>
                         </td>
-                        <td style={{ padding: '12px', textAlign: 'right', fontWeight: 700, color: '#1a237e' }}>
+                        <td style={{ padding: '12px', textAlign: 'right', fontWeight: 700, color: 'var(--accent)' }}>
                           {formatCurrency(inv.totalInvoiceValue)}
                         </td>
                         <td style={{ padding: '12px' }}>
                           {inv.irn ? (
                             <div>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <span style={{ fontFamily: 'monospace', fontSize: '11px', color: '#333' }}>
+                                <span style={{ fontFamily: 'monospace', fontSize: '11px', color: 'var(--text)' }}>
                                   {inv.irn.substring(0, 14)}...{inv.irn.substring(inv.irn.length - 6)}
                                 </span>
                                 <button
                                   onClick={() => copyToClipboard(inv.irn!, 'IRN Hash')}
                                   title="Copy 64-character IRN"
-                                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '11px', color: '#1a237e' }}
+                                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '11px', color: 'var(--accent)' }}
                                 >
                                   📋
                                 </button>
                               </div>
-                              <div style={{ fontSize: '10px', color: '#666' }}>
+                              <div style={{ fontSize: '10px', color: 'var(--muted)' }}>
                                 Ack #{inv.ackNo || '-'}
                               </div>
                             </div>
                           ) : (
-                            <span style={{ color: '#999', fontSize: '12px' }}>Pending</span>
+                            <span style={{ color: 'var(--muted)', fontSize: '12px' }}>Pending</span>
                           )}
                         </td>
                         <td style={{ padding: '12px' }}>
@@ -673,13 +673,13 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                             borderRadius: '12px',
                             fontSize: '11px',
                             fontWeight: 700,
-                            background: isGenerated ? '#e8f5e9' : isCancelled ? '#ffebee' : '#fff8e1',
-                            color: isGenerated ? '#2e7d32' : isCancelled ? '#c62828' : '#f57f17'
+                            background: isGenerated ? 'var(--success-bg)' : isCancelled ? 'var(--error-bg)' : 'var(--warning-bg)',
+                            color: isGenerated ? 'var(--success)' : isCancelled ? 'var(--error)' : '#f57f17'
                           }}>
                             {statusStr.toUpperCase()}
                           </span>
                           {isCancelled && inv.cancelReason && (
-                            <div style={{ fontSize: '10px', color: '#c62828', marginTop: '2px' }}>
+                            <div style={{ fontSize: '10px', color: 'var(--error)', marginTop: '2px' }}>
                               {inv.cancelReason}
                             </div>
                           )}
@@ -692,9 +692,9 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                               style={{
                                 padding: '4px 8px',
                                 borderRadius: '4px',
-                                border: '1px solid #1a237e',
-                                background: '#e8eaf6',
-                                color: '#1a237e',
+                                border: '1px solid var(--accent)',
+                                background: 'var(--accent-subtle)',
+                                color: 'var(--accent)',
                                 fontSize: '11px',
                                 fontWeight: 600,
                                 cursor: 'pointer'
@@ -730,7 +730,7 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                                   padding: '4px 8px',
                                   borderRadius: '4px',
                                   border: '1px solid #d32f2f',
-                                  background: '#ffebee',
+                                  background: 'var(--error-bg)',
                                   color: '#d32f2f',
                                   fontSize: '11px',
                                   fontWeight: 600,
@@ -754,21 +754,21 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
 
       {/* Tab 2: E-Way Bills (Part A & B) */}
       {activeTab === 'ewaybills' && (
-        <div style={{ background: '#fff', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
-          <div style={{ padding: '16px', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ background: 'var(--card)', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+          <div style={{ padding: '16px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600 }}>E-Way Bill Transit Register</h3>
-              <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#666' }}>
+              <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: 'var(--muted)' }}>
                 Rule 138(10): Validity is calculated dynamically (1 day per 200 km regular / 20 km ODC)
               </p>
             </div>
-            <span style={{ fontSize: '12px', color: '#666' }}>Showing {ewaybills.length} e-way bill records</span>
+            <span style={{ fontSize: '12px', color: 'var(--muted)' }}>Showing {ewaybills.length} e-way bill records</span>
           </div>
 
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left' }}>
               <thead>
-                <tr style={{ background: '#f8f9fa', color: '#555', borderBottom: '2px solid #eee' }}>
+                <tr style={{ background: 'var(--card-subtle)', color: 'var(--text-secondary)', borderBottom: '2px solid var(--border)' }}>
                   <th style={{ padding: '12px' }}>EWB Number</th>
                   <th style={{ padding: '12px' }}>Origin & Destination</th>
                   <th style={{ padding: '12px' }}>Distance & Goods</th>
@@ -781,7 +781,7 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
               <tbody>
                 {ewaybills.length === 0 ? (
                   <tr>
-                    <td colSpan={7} style={{ padding: '32px', textAlign: 'center', color: '#999' }}>
+                    <td colSpan={7} style={{ padding: '32px', textAlign: 'center', color: 'var(--muted)' }}>
                       No E-Way Bills found. Click "+ Generate E-Way Bill" to generate goods transit authorization.
                     </td>
                   </tr>
@@ -793,29 +793,29 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                     const isExpiringSoon = isActive && ewb.remainingHours > 0 && ewb.remainingHours <= 24
 
                     return (
-                      <tr key={ewb.id} style={{ borderBottom: '1px solid #eee' }}>
+                      <tr key={ewb.id} style={{ borderBottom: '1px solid var(--border)' }}>
                         <td style={{ padding: '12px' }}>
                           <div style={{ fontWeight: 700, fontFamily: 'monospace', color: '#0d47a1', fontSize: '14px' }}>
                             {ewb.ewbNumber}
                           </div>
-                          <div style={{ fontSize: '11px', color: '#666' }}>
+                          <div style={{ fontSize: '11px', color: 'var(--muted)' }}>
                             Doc #{ewb.docNumber} ({ewb.docType})
                           </div>
-                          <div style={{ fontSize: '10px', color: '#888' }}>
+                          <div style={{ fontSize: '10px', color: 'var(--muted)' }}>
                             Generated: {new Date(ewb.ewbDate).toLocaleDateString('en-IN')}
                           </div>
                         </td>
                         <td style={{ padding: '12px' }}>
                           <div style={{ fontWeight: 600 }}>{ewb.fromTradeName} ({ewb.fromPincode})</div>
-                          <div style={{ fontSize: '11px', color: '#555' }}>➔ {ewb.toTradeName} ({ewb.toPincode})</div>
-                          <div style={{ fontSize: '10px', color: '#777' }}>
+                          <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>➔ {ewb.toTradeName} ({ewb.toPincode})</div>
+                          <div style={{ fontSize: '10px', color: 'var(--muted)' }}>
                             State {ewb.fromStateCode} ➔ State {ewb.toStateCode}
                           </div>
                         </td>
                         <td style={{ padding: '12px' }}>
                           <div style={{ fontWeight: 600 }}>{ewb.distanceKm} km</div>
-                          <div style={{ fontSize: '11px', color: '#666' }}>HSN: {ewb.hsnCode}</div>
-                          <div style={{ fontSize: '11px', fontWeight: 600, color: '#1a237e' }}>
+                          <div style={{ fontSize: '11px', color: 'var(--muted)' }}>HSN: {ewb.hsnCode}</div>
+                          <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--accent)' }}>
                             Value: {formatCurrency(ewb.totalValue)}
                           </div>
                         </td>
@@ -825,15 +825,15 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                               <span style={{
                                 padding: '2px 6px',
                                 borderRadius: '4px',
-                                background: '#e8f5e9',
-                                color: '#2e7d32',
+                                background: 'var(--success-bg)',
+                                color: 'var(--success)',
                                 fontWeight: 700,
                                 fontFamily: 'monospace',
                                 fontSize: '12px'
                               }}>
                                 🚚 {ewb.vehicleNumber}
                               </span>
-                              <div style={{ fontSize: '10px', color: '#666', marginTop: '2px' }}>
+                              <div style={{ fontSize: '10px', color: 'var(--muted)', marginTop: '2px' }}>
                                 {ewb.transporterName || 'Self Transporter'}
                               </div>
                             </div>
@@ -841,8 +841,8 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                             <span style={{
                               padding: '2px 6px',
                               borderRadius: '4px',
-                              background: '#ffebee',
-                              color: '#c62828',
+                              background: 'var(--error-bg)',
+                              color: 'var(--error)',
                               fontWeight: 600,
                               fontSize: '11px'
                             }}>
@@ -862,8 +862,8 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                                 borderRadius: '4px',
                                 fontSize: '10px',
                                 fontWeight: 700,
-                                background: '#ffebee',
-                                color: '#c62828',
+                                background: 'var(--error-bg)',
+                                color: 'var(--error)',
                                 marginTop: '2px'
                               }}>
                                 ⚠️ EXPIRED
@@ -875,8 +875,8 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                                 borderRadius: '4px',
                                 fontSize: '10px',
                                 fontWeight: 700,
-                                background: '#fff3e0',
-                                color: '#e65100',
+                                background: 'var(--warning-bg)',
+                                color: 'var(--warning-text)',
                                 marginTop: '2px'
                               }}>
                                 ⏳ {ewb.remainingHours} hrs remaining
@@ -888,8 +888,8 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                                 borderRadius: '4px',
                                 fontSize: '10px',
                                 fontWeight: 600,
-                                background: '#e8f5e9',
-                                color: '#2e7d32',
+                                background: 'var(--success-bg)',
+                                color: 'var(--success)',
                                 marginTop: '2px'
                               }}>
                                 ✓ {ewb.remainingHours} hrs valid
@@ -903,8 +903,8 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                             borderRadius: '12px',
                             fontSize: '11px',
                             fontWeight: 700,
-                            background: isActive ? '#e8f5e9' : isExpired ? '#ffebee' : '#f5f5f5',
-                            color: isActive ? '#2e7d32' : isExpired ? '#c62828' : '#666'
+                            background: isActive ? 'var(--success-bg)' : isExpired ? 'var(--error-bg)' : 'var(--card-subtle)',
+                            color: isActive ? 'var(--success)' : isExpired ? 'var(--error)' : 'var(--muted)'
                           }}>
                             {statusStr.toUpperCase()}
                           </span>
@@ -918,9 +918,9 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                                 style={{
                                   padding: '4px 8px',
                                   borderRadius: '4px',
-                                  border: '1px solid #1a237e',
-                                  background: '#e8eaf6',
-                                  color: '#1a237e',
+                                  border: '1px solid var(--accent)',
+                                  background: 'var(--accent-subtle)',
+                                  color: 'var(--accent)',
                                   fontSize: '11px',
                                   fontWeight: 600,
                                   cursor: 'pointer'
@@ -938,7 +938,7 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                                   padding: '4px 8px',
                                   borderRadius: '4px',
                                   border: '1px solid #d32f2f',
-                                  background: '#ffebee',
+                                  background: 'var(--error-bg)',
                                   color: '#d32f2f',
                                   fontSize: '11px',
                                   fontWeight: 600,
@@ -976,7 +976,7 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
           padding: '20px'
         }}>
           <div style={{
-            background: '#fff',
+            background: 'var(--card)',
             borderRadius: '8px',
             width: '100%',
             maxWidth: '650px',
@@ -985,9 +985,9 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
             padding: '24px',
             boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #eee', paddingBottom: '12px' }}>
-              <h2 style={{ margin: 0, fontSize: '18px', color: '#1a237e' }}>Generate IRP E-Invoice & IRN</h2>
-              <button onClick={() => setShowGenInvoiceModal(false)} style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: '#666' }}>✕</button>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid var(--border)', paddingBottom: '12px' }}>
+              <h2 style={{ margin: 0, fontSize: '18px', color: 'var(--accent)' }}>Generate IRP E-Invoice & IRN</h2>
+              <button onClick={() => setShowGenInvoiceModal(false)} style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: 'var(--muted)' }}>✕</button>
             </div>
 
             <form onSubmit={handleSubmitInvoice}>
@@ -1006,7 +1006,7 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                       })
                     }}
                     required
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   >
                     {clients.map(c => (
                       <option key={c.id} value={c.id}>{c.name} ({c.code})</option>
@@ -1019,7 +1019,7 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                   <select
                     value={invoiceForm.docType}
                     onChange={e => setInvoiceForm({ ...invoiceForm, docType: Number(e.target.value) as (typeof invoiceForm)['docType'] })}
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   >
                     <option value={1}>INV - Tax Invoice</option>
                     <option value={2}>CRN - Credit Note</option>
@@ -1034,7 +1034,7 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                     value={invoiceForm.docNumber}
                     onChange={e => setInvoiceForm({ ...invoiceForm, docNumber: e.target.value })}
                     required
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
 
@@ -1045,7 +1045,7 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                     value={invoiceForm.docDate}
                     onChange={e => setInvoiceForm({ ...invoiceForm, docDate: e.target.value })}
                     required
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
 
@@ -1057,7 +1057,7 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                     onChange={e => setInvoiceForm({ ...invoiceForm, financialYear: e.target.value })}
                     placeholder="2024-25"
                     required
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
 
@@ -1066,7 +1066,7 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                   <select
                     value={invoiceForm.supplyType}
                     onChange={e => setInvoiceForm({ ...invoiceForm, supplyType: Number(e.target.value) as (typeof invoiceForm)['supplyType'] })}
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   >
                     <option value={1}>B2B (Regular)</option>
                     <option value={2}>SEZWP (SEZ with payment)</option>
@@ -1085,7 +1085,7 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                     onChange={e => setInvoiceForm({ ...invoiceForm, supplierGstin: e.target.value.toUpperCase() })}
                     required
                     maxLength={15}
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', fontFamily: 'monospace' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)', fontFamily: 'monospace' }}
                   />
                 </div>
 
@@ -1096,7 +1096,7 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                     value={invoiceForm.supplierTradeName}
                     onChange={e => setInvoiceForm({ ...invoiceForm, supplierTradeName: e.target.value })}
                     required
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
 
@@ -1108,7 +1108,7 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                     onChange={e => setInvoiceForm({ ...invoiceForm, recipientGstin: e.target.value.toUpperCase() })}
                     required
                     maxLength={15}
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', fontFamily: 'monospace' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)', fontFamily: 'monospace' }}
                   />
                 </div>
 
@@ -1119,7 +1119,7 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                     value={invoiceForm.recipientLegalName}
                     onChange={e => setInvoiceForm({ ...invoiceForm, recipientLegalName: e.target.value })}
                     required
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
 
@@ -1130,7 +1130,7 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                     value={invoiceForm.mainHsnCode}
                     onChange={e => setInvoiceForm({ ...invoiceForm, mainHsnCode: e.target.value })}
                     required
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
 
@@ -1142,7 +1142,7 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                     value={invoiceForm.itemCount}
                     onChange={e => setInvoiceForm({ ...invoiceForm, itemCount: parseInt(e.target.value) || 1 })}
                     required
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
 
@@ -1164,7 +1164,7 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                       })
                     }}
                     required
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
 
@@ -1175,7 +1175,7 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                     step="0.01"
                     value={invoiceForm.cgstAmount}
                     onChange={e => setInvoiceForm({ ...invoiceForm, cgstAmount: parseFloat(e.target.value) || 0 })}
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
 
@@ -1186,7 +1186,7 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                     step="0.01"
                     value={invoiceForm.sgstAmount}
                     onChange={e => setInvoiceForm({ ...invoiceForm, sgstAmount: parseFloat(e.target.value) || 0 })}
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
 
@@ -1197,15 +1197,15 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                     step="0.01"
                     value={invoiceForm.igstAmount}
                     onChange={e => setInvoiceForm({ ...invoiceForm, igstAmount: parseFloat(e.target.value) || 0 })}
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
               </div>
 
               {/* Total Summary */}
-              <div style={{ background: '#f5f5f5', padding: '12px', borderRadius: '6px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ background: 'var(--card-subtle)', padding: '12px', borderRadius: '6px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '14px', fontWeight: 600 }}>Calculated Total Invoice Value:</span>
-                <span style={{ fontSize: '18px', fontWeight: 700, color: '#1a237e' }}>
+                <span style={{ fontSize: '18px', fontWeight: 700, color: 'var(--accent)' }}>
                   {formatCurrency(
                     Number(invoiceForm.totalTaxableValue) +
                     Number(invoiceForm.cgstAmount) +
@@ -1220,7 +1220,7 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                 <button
                   type="button"
                   onClick={() => setShowGenInvoiceModal(false)}
-                  style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid #ccc', background: '#fff', cursor: 'pointer' }}
+                  style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid var(--border-subtle)', background: 'var(--card)', cursor: 'pointer' }}
                 >
                   Cancel
                 </button>
@@ -1253,7 +1253,7 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
           padding: '20px'
         }}>
           <div style={{
-            background: '#fff',
+            background: 'var(--card)',
             borderRadius: '8px',
             width: '100%',
             maxWidth: '700px',
@@ -1262,12 +1262,12 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
             padding: '24px',
             boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #eee', paddingBottom: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid var(--border)', paddingBottom: '12px' }}>
               <div>
                 <h2 style={{ margin: 0, fontSize: '18px', color: '#0d47a1' }}>Generate E-Way Bill (Part A & B)</h2>
-                <div style={{ fontSize: '12px', color: '#666' }}>Automated validity based on Rule 138(10)</div>
+                <div style={{ fontSize: '12px', color: 'var(--muted)' }}>Automated validity based on Rule 138(10)</div>
               </div>
-              <button onClick={() => setShowGenEwbModal(false)} style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: '#666' }}>✕</button>
+              <button onClick={() => setShowGenEwbModal(false)} style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: 'var(--muted)' }}>✕</button>
             </div>
 
             <form onSubmit={handleSubmitEwb}>
@@ -1286,7 +1286,7 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                       })
                     }}
                     required
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   >
                     {clients.map(c => (
                       <option key={c.id} value={c.id}>{c.name} ({c.code})</option>
@@ -1299,7 +1299,7 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                   <select
                     value={ewbForm.subSupplyType}
                     onChange={e => setEwbForm({ ...ewbForm, subSupplyType: Number(e.target.value) as (typeof ewbForm)['subSupplyType'] })}
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   >
                     <option value={1}>Supply (Regular)</option>
                     <option value={2}>Export</option>
@@ -1318,7 +1318,7 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                     value={ewbForm.docNumber}
                     onChange={e => setEwbForm({ ...ewbForm, docNumber: e.target.value })}
                     required
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
 
@@ -1329,7 +1329,7 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                     value={ewbForm.docDate}
                     onChange={e => setEwbForm({ ...ewbForm, docDate: e.target.value })}
                     required
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
 
@@ -1343,7 +1343,7 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                       onChange={e => setEwbForm({ ...ewbForm, fromPincode: e.target.value })}
                       required
                       maxLength={6}
-                      style={{ flex: 1, padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                      style={{ flex: 1, padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                     />
                     <input
                       type="number"
@@ -1351,7 +1351,7 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                       value={ewbForm.fromStateCode}
                       onChange={e => setEwbForm({ ...ewbForm, fromStateCode: parseInt(e.target.value) || 27 })}
                       required
-                      style={{ width: '80px', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                      style={{ width: '80px', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                     />
                   </div>
                 </div>
@@ -1366,7 +1366,7 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                       onChange={e => setEwbForm({ ...ewbForm, toPincode: e.target.value })}
                       required
                       maxLength={6}
-                      style={{ flex: 1, padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                      style={{ flex: 1, padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                     />
                     <input
                       type="number"
@@ -1374,7 +1374,7 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                       value={ewbForm.toStateCode}
                       onChange={e => setEwbForm({ ...ewbForm, toStateCode: parseInt(e.target.value) || 29 })}
                       required
-                      style={{ width: '80px', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                      style={{ width: '80px', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                     />
                   </div>
                 </div>
@@ -1386,7 +1386,7 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                     value={ewbForm.fromTradeName}
                     onChange={e => setEwbForm({ ...ewbForm, fromTradeName: e.target.value })}
                     required
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
 
@@ -1397,7 +1397,7 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                     value={ewbForm.toTradeName}
                     onChange={e => setEwbForm({ ...ewbForm, toTradeName: e.target.value })}
                     required
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
 
@@ -1408,7 +1408,7 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                     value={ewbForm.totalValue}
                     onChange={e => setEwbForm({ ...ewbForm, totalValue: parseFloat(e.target.value) || 0 })}
                     required
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
 
@@ -1419,7 +1419,7 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                     value={ewbForm.hsnCode}
                     onChange={e => setEwbForm({ ...ewbForm, hsnCode: e.target.value })}
                     required
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
 
@@ -1431,7 +1431,7 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                     value={ewbForm.distanceKm}
                     onChange={e => setEwbForm({ ...ewbForm, distanceKm: parseInt(e.target.value) || 1 })}
                     required
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
 
@@ -1440,7 +1440,7 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                   <select
                     value={ewbForm.vehicleType}
                     onChange={e => setEwbForm({ ...ewbForm, vehicleType: Number(e.target.value) as (typeof ewbForm)['vehicleType'] })}
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   >
                     <option value={1}>Regular Cargo (1 day / 200 km)</option>
                     <option value={2}>Over Dimensional Cargo (ODC) (1 day / 20 km)</option>
@@ -1454,7 +1454,7 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                     value={ewbForm.vehicleNumber || ''}
                     onChange={e => setEwbForm({ ...ewbForm, vehicleNumber: e.target.value.toUpperCase() })}
                     placeholder="MH02AB1234"
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', fontFamily: 'monospace' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)', fontFamily: 'monospace' }}
                   />
                 </div>
 
@@ -1465,17 +1465,17 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                     value={ewbForm.transporterName || ''}
                     onChange={e => setEwbForm({ ...ewbForm, transporterName: e.target.value })}
                     placeholder="Express Cargo Logistics"
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
               </div>
 
               {/* Statutory Rule 138(10) Preview Alert */}
-              <div style={{ background: '#e3f2fd', padding: '12px', borderRadius: '6px', marginBottom: '16px', borderLeft: '4px solid #1565c0' }}>
+              <div style={{ background: 'var(--accent-subtle)', padding: '12px', borderRadius: '6px', marginBottom: '16px', borderLeft: '4px solid #1565c0' }}>
                 <div style={{ fontSize: '13px', fontWeight: 600, color: '#0d47a1' }}>
                   Rule 138(10) Statutory Validity Preview:
                 </div>
-                <div style={{ fontSize: '12px', color: '#333', marginTop: '2px' }}>
+                <div style={{ fontSize: '12px', color: 'var(--text)', marginTop: '2px' }}>
                   Distance: <strong>{ewbForm.distanceKm} km</strong> | Vehicle: <strong>{ewbForm.vehicleType === 2 ? 'ODC' : 'Regular'}</strong> ➔
                   Validity will be <strong>{estimatedDays} day{estimatedDays > 1 ? 's' : ''}</strong> from issuance date.
                 </div>
@@ -1485,7 +1485,7 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                 <button
                   type="button"
                   onClick={() => setShowGenEwbModal(false)}
-                  style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid #ccc', background: '#fff', cursor: 'pointer' }}
+                  style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid var(--border-subtle)', background: 'var(--card)', cursor: 'pointer' }}
                 >
                   Cancel
                 </button>
@@ -1518,19 +1518,19 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
           padding: '20px'
         }}>
           <div style={{
-            background: '#fff',
+            background: 'var(--card)',
             borderRadius: '8px',
             width: '100%',
             maxWidth: '480px',
             padding: '24px',
             boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #eee', paddingBottom: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid var(--border)', paddingBottom: '12px' }}>
               <div>
-                <h2 style={{ margin: 0, fontSize: '18px', color: '#1a237e' }}>Update Part-B Vehicle</h2>
-                <div style={{ fontSize: '12px', color: '#666' }}>EWB #{selectedEwb.ewbNumber}</div>
+                <h2 style={{ margin: 0, fontSize: '18px', color: 'var(--accent)' }}>Update Part-B Vehicle</h2>
+                <div style={{ fontSize: '12px', color: 'var(--muted)' }}>EWB #{selectedEwb.ewbNumber}</div>
               </div>
-              <button onClick={() => setShowUpdatePartBModal(false)} style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: '#666' }}>✕</button>
+              <button onClick={() => setShowUpdatePartBModal(false)} style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: 'var(--muted)' }}>✕</button>
             </div>
 
             <form onSubmit={handleSubmitPartB}>
@@ -1542,7 +1542,7 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                   onChange={e => setPartBForm({ ...partBForm, vehicleNumber: e.target.value.toUpperCase() })}
                   required
                   placeholder="e.g. DL01AB5678"
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', fontFamily: 'monospace' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)', fontFamily: 'monospace' }}
                 />
               </div>
 
@@ -1553,7 +1553,7 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                   value={partBForm.transporterName || ''}
                   onChange={e => setPartBForm({ ...partBForm, transporterName: e.target.value })}
                   placeholder="Transporter Name"
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
 
@@ -1562,7 +1562,7 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                 <select
                   value={partBForm.reason}
                   onChange={e => setPartBForm({ ...partBForm, reason: e.target.value })}
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 >
                   <option value="Transshipment">Transshipment (Hub transfer)</option>
                   <option value="Vehicle Break down">Vehicle Breakdown</option>
@@ -1574,7 +1574,7 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                 <button
                   type="button"
                   onClick={() => setShowUpdatePartBModal(false)}
-                  style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid #ccc', background: '#fff', cursor: 'pointer' }}
+                  style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid var(--border-subtle)', background: 'var(--card)', cursor: 'pointer' }}
                 >
                   Cancel
                 </button>
@@ -1607,27 +1607,27 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
           padding: '20px'
         }}>
           <div style={{
-            background: '#fff',
+            background: 'var(--card)',
             borderRadius: '8px',
             width: '100%',
             maxWidth: '500px',
             padding: '24px',
             boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #eee', paddingBottom: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid var(--border)', paddingBottom: '12px' }}>
               <div>
-                <h2 style={{ margin: 0, fontSize: '18px', color: '#c62828' }}>Cancel E-Invoice (IRP)</h2>
-                <div style={{ fontSize: '12px', color: '#666' }}>Invoice #{selectedInvoice.docNumber}</div>
+                <h2 style={{ margin: 0, fontSize: '18px', color: 'var(--error)' }}>Cancel E-Invoice (IRP)</h2>
+                <div style={{ fontSize: '12px', color: 'var(--muted)' }}>Invoice #{selectedInvoice.docNumber}</div>
               </div>
-              <button onClick={() => setShowCancelInvoiceModal(false)} style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: '#666' }}>✕</button>
+              <button onClick={() => setShowCancelInvoiceModal(false)} style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: 'var(--muted)' }}>✕</button>
             </div>
 
             {/* Statutory Advisory Notice */}
-            <div style={{ background: '#fff3e0', padding: '12px', borderRadius: '6px', marginBottom: '16px', borderLeft: '4px solid #ef6c00' }}>
-              <div style={{ fontSize: '12px', fontWeight: 700, color: '#e65100' }}>
+            <div style={{ background: 'var(--warning-bg)', padding: '12px', borderRadius: '6px', marginBottom: '16px', borderLeft: '4px solid #ef6c00' }}>
+              <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--warning-text)' }}>
                 ⚠️ Statutory 24-Hour Cancellation Limit
               </div>
-              <div style={{ fontSize: '11px', color: '#555', marginTop: '2px' }}>
+              <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
                 According to GST E-Invoicing rules, an IRN can only be cancelled within 24 hours of generation on the IRP.
                 After 24 hours, cancellation is blocked and a Credit Note (CRN) must be issued instead.
               </div>
@@ -1639,7 +1639,7 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                 <select
                   value={cancelInvoiceForm.reason}
                   onChange={e => setCancelInvoiceForm({ ...cancelInvoiceForm, reason: e.target.value })}
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 >
                   <option value="1: Duplicate">1: Duplicate</option>
                   <option value="2: Data Entry Mistake">2: Data Entry Mistake</option>
@@ -1655,7 +1655,7 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                   value={cancelInvoiceForm.remarks || ''}
                   onChange={e => setCancelInvoiceForm({ ...cancelInvoiceForm, remarks: e.target.value })}
                   placeholder="Optional explanatory remarks"
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
 
@@ -1663,7 +1663,7 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                 <button
                   type="button"
                   onClick={() => setShowCancelInvoiceModal(false)}
-                  style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid #ccc', background: '#fff', cursor: 'pointer' }}
+                  style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid var(--border-subtle)', background: 'var(--card)', cursor: 'pointer' }}
                 >
                   Close
                 </button>
@@ -1696,19 +1696,19 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
           padding: '20px'
         }}>
           <div style={{
-            background: '#fff',
+            background: 'var(--card)',
             borderRadius: '8px',
             width: '100%',
             maxWidth: '480px',
             padding: '24px',
             boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #eee', paddingBottom: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid var(--border)', paddingBottom: '12px' }}>
               <div>
-                <h2 style={{ margin: 0, fontSize: '18px', color: '#c62828' }}>Cancel E-Way Bill</h2>
-                <div style={{ fontSize: '12px', color: '#666' }}>EWB #{selectedEwb.ewbNumber}</div>
+                <h2 style={{ margin: 0, fontSize: '18px', color: 'var(--error)' }}>Cancel E-Way Bill</h2>
+                <div style={{ fontSize: '12px', color: 'var(--muted)' }}>EWB #{selectedEwb.ewbNumber}</div>
               </div>
-              <button onClick={() => setShowCancelEwbModal(false)} style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: '#666' }}>✕</button>
+              <button onClick={() => setShowCancelEwbModal(false)} style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: 'var(--muted)' }}>✕</button>
             </div>
 
             <form onSubmit={handleSubmitCancelEwb}>
@@ -1717,7 +1717,7 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                 <select
                   value={cancelEwbForm.reason}
                   onChange={e => setCancelEwbForm({ ...cancelEwbForm, reason: e.target.value })}
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 >
                   <option value="Duplicate">Duplicate E-Way Bill</option>
                   <option value="Order Cancelled">Order Cancelled</option>
@@ -1729,7 +1729,7 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                 <button
                   type="button"
                   onClick={() => setShowCancelEwbModal(false)}
-                  style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid #ccc', background: '#fff', cursor: 'pointer' }}
+                  style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid var(--border-subtle)', background: 'var(--card)', cursor: 'pointer' }}
                 >
                   Close
                 </button>
@@ -1762,7 +1762,7 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
           padding: '20px'
         }}>
           <div style={{
-            background: '#fff',
+            background: 'var(--card)',
             borderRadius: '8px',
             width: '100%',
             maxWidth: '650px',
@@ -1771,18 +1771,18 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
             padding: '24px',
             boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #eee', paddingBottom: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid var(--border)', paddingBottom: '12px' }}>
               <div>
-                <h2 style={{ margin: 0, fontSize: '18px', color: '#1a237e' }}>IRP Verification & Signed QR</h2>
-                <div style={{ fontSize: '12px', color: '#666' }}>Invoice #{selectedInvoice.docNumber}</div>
+                <h2 style={{ margin: 0, fontSize: '18px', color: 'var(--accent)' }}>IRP Verification & Signed QR</h2>
+                <div style={{ fontSize: '12px', color: 'var(--muted)' }}>Invoice #{selectedInvoice.docNumber}</div>
               </div>
-              <button onClick={() => setShowQrModal(false)} style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: '#666' }}>✕</button>
+              <button onClick={() => setShowQrModal(false)} style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: 'var(--muted)' }}>✕</button>
             </div>
 
             <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
               {/* QR Visual */}
               <div style={{
-                background: '#f8f9fa',
+                background: 'var(--card-subtle)',
                 border: '2px dashed #9fa8da',
                 borderRadius: '8px',
                 padding: '16px',
@@ -1818,10 +1818,10 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                   <rect x="66" y="66" width="18" height="8" fill="#1a237e" />
                   <rect x="74" y="78" width="14" height="10" fill="#1a237e" />
                 </svg>
-                <div style={{ fontSize: '11px', fontWeight: 600, color: '#1a237e', marginTop: '8px' }}>
+                <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--accent)', marginTop: '8px' }}>
                   Signed QR Code
                 </div>
-                <div style={{ fontSize: '10px', color: '#666' }}>
+                <div style={{ fontSize: '10px', color: 'var(--muted)' }}>
                   IRP Digital Signature Verified
                 </div>
               </div>
@@ -1829,18 +1829,18 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
               {/* Data Fields */}
               <div style={{ flex: 1, minWidth: '260px' }}>
                 <div style={{ marginBottom: '12px' }}>
-                  <label style={{ display: 'block', fontSize: '11px', color: '#666', textTransform: 'uppercase', fontWeight: 600 }}>
+                  <label style={{ display: 'block', fontSize: '11px', color: 'var(--muted)', textTransform: 'uppercase', fontWeight: 600 }}>
                     Invoice Reference Number (IRN) (SHA-256):
                   </label>
                   <div style={{
-                    background: '#f5f5f5',
+                    background: 'var(--card-subtle)',
                     padding: '8px',
                     borderRadius: '4px',
                     fontFamily: 'monospace',
                     fontSize: '11px',
                     wordBreak: 'break-all',
-                    color: '#1a237e',
-                    border: '1px solid #ddd',
+                    color: 'var(--accent)',
+                    border: '1px solid var(--border-subtle)',
                     marginTop: '4px'
                   }}>
                     {selectedInvoice.irn || 'None'}
@@ -1852,9 +1852,9 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                         marginTop: '6px',
                         padding: '4px 10px',
                         borderRadius: '4px',
-                        border: '1px solid #1a237e',
-                        background: '#fff',
-                        color: '#1a237e',
+                        border: '1px solid var(--accent)',
+                        background: 'var(--card)',
+                        color: 'var(--accent)',
                         fontSize: '11px',
                         fontWeight: 600,
                         cursor: 'pointer'
@@ -1867,28 +1867,28 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '12px' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '10px', color: '#666', textTransform: 'uppercase', fontWeight: 600 }}>IRP Ack Number</label>
+                    <label style={{ display: 'block', fontSize: '10px', color: 'var(--muted)', textTransform: 'uppercase', fontWeight: 600 }}>IRP Ack Number</label>
                     <div style={{ fontFamily: 'monospace', fontWeight: 600 }}>{selectedInvoice.ackNo || '-'}</div>
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '10px', color: '#666', textTransform: 'uppercase', fontWeight: 600 }}>IRP Ack Timestamp</label>
+                    <label style={{ display: 'block', fontSize: '10px', color: 'var(--muted)', textTransform: 'uppercase', fontWeight: 600 }}>IRP Ack Timestamp</label>
                     <div style={{ fontSize: '12px' }}>{selectedInvoice.ackDate ? new Date(selectedInvoice.ackDate).toLocaleString('en-IN') : '-'}</div>
                   </div>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '12px' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '10px', color: '#666', textTransform: 'uppercase', fontWeight: 600 }}>Supplier GSTIN</label>
+                    <label style={{ display: 'block', fontSize: '10px', color: 'var(--muted)', textTransform: 'uppercase', fontWeight: 600 }}>Supplier GSTIN</label>
                     <div style={{ fontFamily: 'monospace', fontSize: '12px' }}>{selectedInvoice.supplierGstin}</div>
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: '10px', color: '#666', textTransform: 'uppercase', fontWeight: 600 }}>Recipient GSTIN</label>
+                    <label style={{ display: 'block', fontSize: '10px', color: 'var(--muted)', textTransform: 'uppercase', fontWeight: 600 }}>Recipient GSTIN</label>
                     <div style={{ fontFamily: 'monospace', fontSize: '12px' }}>{selectedInvoice.recipientGstin}</div>
                   </div>
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '11px', color: '#666', textTransform: 'uppercase', fontWeight: 600 }}>Signed QR Payload (JWT)</label>
+                  <label style={{ display: 'block', fontSize: '11px', color: 'var(--muted)', textTransform: 'uppercase', fontWeight: 600 }}>Signed QR Payload (JWT)</label>
                   <textarea
                     readOnly
                     value={selectedInvoice.signedQrCode || ''}
@@ -1897,10 +1897,10 @@ export const EInvoicingPage: React.FC<EInvoicingPageProps> = ({ can }) => {
                       width: '100%',
                       padding: '6px',
                       borderRadius: '4px',
-                      border: '1px solid #ddd',
+                      border: '1px solid var(--border-subtle)',
                       fontFamily: 'monospace',
                       fontSize: '10px',
-                      background: '#fafafa',
+                      background: 'var(--card-subtle)',
                       resize: 'none'
                     }}
                   />

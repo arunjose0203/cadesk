@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import {
   trialBalanceApi,
   api,
@@ -132,29 +132,29 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
     saveAsClientDefaultRule: true
   })
 
+  const loadClients = useCallback(async () => {
+    try {
+      const res = await api<ClientPage | Client[]>('/api/clients?take=200')
+      const items = Array.isArray(res) ? res : (res?.items || [])
+      setClients(items)
+      if (items && items.length > 0) {
+        setSelectedClientId(prev => prev || items[0].id)
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to load client list.')
+    }
+  }, [])
+
   useEffect(() => {
     loadClients()
     loadSamples()
-  }, [])
+  }, [loadClients])
 
   useEffect(() => {
     if (selectedClientId) {
       loadImports(selectedClientId, selectedFy)
     }
   }, [selectedClientId, selectedFy])
-
-  async function loadClients() {
-    try {
-      const res = await api<ClientPage | Client[]>('/api/clients?take=200')
-      const items = Array.isArray(res) ? res : (res?.items || [])
-      setClients(items)
-      if (items && items.length > 0 && !selectedClientId) {
-        setSelectedClientId(items[0].id)
-      }
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to load client list.')
-    }
-  }
 
   async function loadSamples() {
     try {
@@ -370,22 +370,22 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 700, color: '#111827' }}>
+            <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 700, color: 'var(--text)' }}>
               Universal Trial Balance & Financial Data Hub
             </h1>
             <span style={{
-              background: '#EEF2FF',
-              color: '#4F46E5',
+              background: 'var(--accent-subtle)',
+              color: 'var(--accent)',
               fontSize: '12px',
               fontWeight: 600,
               padding: '2px 10px',
               borderRadius: '9999px',
-              border: '1px solid #C7D2FE'
+              border: '1px solid var(--accent)'
             }}>
               Tally • Busy • SAP • Excel TSV
             </span>
           </div>
-          <p style={{ margin: '4px 0 0 0', color: '#6B7280', fontSize: '14px' }}>
+          <p style={{ margin: '4px 0 0 0', color: 'var(--muted)', fontSize: '14px' }}>
             Test-drive client numbers in under 60 seconds. One universal ingestion cascades into Statutory Audit, Schedule III, Form 3CD, CARO 2020, Fixed Assets, and Cost Audit.
           </p>
         </div>
@@ -398,9 +398,9 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
             style={{
               padding: '8px 16px',
               borderRadius: '6px',
-              border: '1px solid #D1D5DB',
-              background: '#FFFFFF',
-              color: '#374151',
+              border: '1px solid var(--border-subtle)',
+              background: 'var(--card)',
+              color: 'var(--text-secondary)',
               fontWeight: 500,
               cursor: 'pointer',
               display: 'flex',
@@ -422,9 +422,9 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
                 style={{
                   padding: '8px 18px',
                   borderRadius: '6px',
-                  border: '1px solid #C7D2FE',
-                  background: '#EEF2FF',
-                  color: '#4338CA',
+                  border: '1px solid var(--accent)',
+                  background: 'var(--accent-subtle)',
+                  color: 'var(--accent)',
                   fontWeight: 600,
                   cursor: 'pointer',
                   display: 'flex',
@@ -464,27 +464,27 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
 
       {/* Alerts */}
       {error && (
-        <div style={{ background: '#FEF2F2', border: '1px solid #FCA5A5', color: '#991B1B', padding: '12px 16px', borderRadius: '8px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ background: 'var(--error-bg)', border: '1px solid var(--error-border)', color: 'var(--error-text)', padding: '12px 16px', borderRadius: '8px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span>{error}</span>
-          <button onClick={() => setError(null)} style={{ background: 'transparent', border: 'none', color: '#991B1B', cursor: 'pointer', fontWeight: 600 }}>✕</button>
+          <button onClick={() => setError(null)} style={{ background: 'transparent', border: 'none', color: 'var(--error-text)', cursor: 'pointer', fontWeight: 600 }}>✕</button>
         </div>
       )}
 
       {success && (
-        <div style={{ background: '#ECFDF5', border: '1px solid #6EE7B7', color: '#065F46', padding: '12px 16px', borderRadius: '8px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ background: 'var(--success-bg)', border: '1px solid #6EE7B7', color: 'var(--success-text)', padding: '12px 16px', borderRadius: '8px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span>{success}</span>
-          <button onClick={() => setSuccess(null)} style={{ background: 'transparent', border: 'none', color: '#065F46', cursor: 'pointer', fontWeight: 600 }}>✕</button>
+          <button onClick={() => setSuccess(null)} style={{ background: 'transparent', border: 'none', color: 'var(--success-text)', cursor: 'pointer', fontWeight: 600 }}>✕</button>
         </div>
       )}
 
       {/* Selectors Bar */}
-      <div style={{ background: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: '8px', padding: '16px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
+      <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '16px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
         <div style={{ minWidth: '280px', flex: 1 }}>
-          <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#4B5563', marginBottom: '6px' }}>Client Entity</label>
+          <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Client Entity</label>
           <select
             value={selectedClientId}
             onChange={e => setSelectedClientId(e.target.value)}
-            style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '14px', background: '#FFFFFF' }}
+            style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-subtle)', fontSize: '14px', background: 'var(--card)' }}
           >
             {clients.map(c => (
               <option key={c.id} value={c.id}>
@@ -495,11 +495,11 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
         </div>
 
         <div style={{ minWidth: '160px' }}>
-          <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#4B5563', marginBottom: '6px' }}>Financial Year</label>
+          <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Financial Year</label>
           <select
             value={selectedFy}
             onChange={e => setSelectedFy(e.target.value)}
-            style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '14px', background: '#FFFFFF' }}
+            style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-subtle)', fontSize: '14px', background: 'var(--card)' }}
           >
             <option value="2024-25">2024-25 (AY 2025-26)</option>
             <option value="2023-24">2023-24 (AY 2024-25)</option>
@@ -510,11 +510,11 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
 
         {imports.length > 1 && (
           <div style={{ minWidth: '220px' }}>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#4B5563', marginBottom: '6px' }}>Import Version</label>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>Import Version</label>
             <select
               value={activeImport?.id || ''}
               onChange={e => handleSelectImport(e.target.value)}
-              style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '14px', background: '#FFFFFF' }}
+              style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-subtle)', fontSize: '14px', background: 'var(--card)' }}
             >
               {imports.map(imp => (
                 <option key={imp.id} value={imp.id}>
@@ -530,34 +530,34 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
       {activeImport ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '16px', marginBottom: '24px' }}>
           {/* Total Debit */}
-          <div style={{ background: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: '8px', padding: '16px' }}>
-            <div style={{ fontSize: '12px', fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '16px' }}>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Total Debits
             </div>
-            <div style={{ fontSize: '20px', fontWeight: 700, color: '#111827', marginTop: '6px' }}>
+            <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text)', marginTop: '6px' }}>
               {fmtInr(activeImport.totalDebit)}
             </div>
-            <div style={{ fontSize: '12px', color: '#9CA3AF', marginTop: '4px' }}>
+            <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '4px' }}>
               From {activeImport.totalLedgersCount} ledgers
             </div>
           </div>
 
           {/* Total Credit */}
-          <div style={{ background: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: '8px', padding: '16px' }}>
-            <div style={{ fontSize: '12px', fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '16px' }}>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Total Credits
             </div>
-            <div style={{ fontSize: '20px', fontWeight: 700, color: '#111827', marginTop: '6px' }}>
+            <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text)', marginTop: '6px' }}>
               {fmtInr(activeImport.totalCredit)}
             </div>
-            <div style={{ fontSize: '12px', color: '#9CA3AF', marginTop: '4px' }}>
+            <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '4px' }}>
               Closing balance net sum
             </div>
           </div>
 
           {/* Balanced Status */}
-          <div style={{ background: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: '8px', padding: '16px' }}>
-            <div style={{ fontSize: '12px', fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '16px' }}>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Integrity & Health
             </div>
             <div style={{ marginTop: '6px' }}>
@@ -566,62 +566,62 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
                   ✓ Balanced (₹0 Diff)
                 </span>
               ) : (
-                <span style={{ background: '#FDE8E8', color: '#9B1C1C', padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600 }}>
+                <span style={{ background: 'var(--error-bg)', color: 'var(--error-text)', padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600 }}>
                   ✕ Diff: {fmtInr(Math.abs(activeImport.totalDebit - activeImport.totalCredit))}
                 </span>
               )}
             </div>
-            <div style={{ fontSize: '12px', color: '#9CA3AF', marginTop: '6px' }}>
-              Source: <span style={{ fontWeight: 600, color: '#374151' }}>{activeImport.sourceType}</span>
+            <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '6px' }}>
+              Source: <span style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>{activeImport.sourceType}</span>
             </div>
           </div>
 
           {/* Classification Progress */}
-          <div style={{ background: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: '8px', padding: '16px' }}>
+          <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '16px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '12px', fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Classification
               </span>
-              <span style={{ fontSize: '12px', fontWeight: 700, color: '#4F46E5' }}>{mappedPercent}%</span>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--accent)' }}>{mappedPercent}%</span>
             </div>
-            <div style={{ fontSize: '20px', fontWeight: 700, color: '#111827', marginTop: '4px' }}>
+            <div style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text)', marginTop: '4px' }}>
               {activeImport.mappedLedgersCount} / {activeImport.totalLedgersCount}
             </div>
-            <div style={{ width: '100%', height: '6px', background: '#E5E7EB', borderRadius: '9999px', marginTop: '8px', overflow: 'hidden' }}>
+            <div style={{ width: '100%', height: '6px', background: 'var(--bg-subtle)', borderRadius: '9999px', marginTop: '8px', overflow: 'hidden' }}>
               <div style={{ width: `${mappedPercent}%`, height: '100%', background: '#4F46E5', borderRadius: '9999px' }} />
             </div>
           </div>
 
           {/* Multi-Desk Cascading Sync */}
-          <div style={{ background: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: '8px', padding: '16px' }}>
-            <div style={{ fontSize: '12px', fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '16px' }}>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Cascading Sync
             </div>
             <div style={{ marginTop: '6px' }}>
               {activeImport.syncedAt ? (
-                <span style={{ background: '#E0E7FF', color: '#3730A3', padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600 }}>
+                <span style={{ background: 'var(--accent-subtle)', color: 'var(--accent)', padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600 }}>
                   ✓ Synced ({activeImport.syncedDesks || 'All Desks'})
                 </span>
               ) : (
-                <span style={{ background: '#FEF3C7', color: '#92400E', padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600 }}>
+                <span style={{ background: 'var(--warning-bg)', color: 'var(--warning-text)', padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600 }}>
                   Ready to Sync (6 Desks)
                 </span>
               )}
             </div>
-            <div style={{ fontSize: '11px', color: '#9CA3AF', marginTop: '6px' }}>
+            <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '6px' }}>
               {activeImport.syncedAt ? `At: ${new Date(activeImport.syncedAt).toLocaleString()}` : 'Awaiting one-click sync'}
             </div>
           </div>
         </div>
       ) : (
-        <div style={{ background: '#FFFFFF', border: '1px dashed #C7D2FE', borderRadius: '12px', padding: '48px', textAlign: 'center', marginBottom: '24px' }}>
-          <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: '#EEF2FF', color: '#4F46E5', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: '28px' }}>
+        <div style={{ background: 'var(--card)', border: '1px dashed var(--accent)', borderRadius: '12px', padding: '48px', textAlign: 'center', marginBottom: '24px' }}>
+          <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'var(--accent-subtle)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: '28px' }}>
             ⚡
           </div>
-          <h3 style={{ margin: '0 0 8px 0', fontSize: '20px', fontWeight: 700, color: '#111827' }}>
+          <h3 style={{ margin: '0 0 8px 0', fontSize: '20px', fontWeight: 700, color: 'var(--text)' }}>
             Test Drive Real Financial Numbers in 60 Seconds
           </h3>
-          <p style={{ margin: '0 0 20px 0', color: '#6B7280', fontSize: '14px', maxWidth: '620px', marginLeft: 'auto', marginRight: 'auto', lineHeight: '1.5' }}>
+          <p style={{ margin: '0 0 20px 0', color: 'var(--muted)', fontSize: '14px', maxWidth: '620px', marginLeft: 'auto', marginRight: 'auto', lineHeight: '1.5' }}>
             No complicated migration needed! Ingest trial balances directly from <strong>Tally Prime (XML/CSV)</strong>, <strong>Busy Accounting (TSV)</strong>, <strong>SAP ERP (GL Statements)</strong>, or directly <strong>paste columns from Excel / Google Sheets</strong>.
           </p>
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
@@ -656,9 +656,9 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
               style={{
                 padding: '10px 20px',
                 borderRadius: '6px',
-                border: '1px solid #D1D5DB',
-                background: '#FFFFFF',
-                color: '#374151',
+                border: '1px solid var(--border-subtle)',
+                background: 'var(--card)',
+                color: 'var(--text-secondary)',
                 fontWeight: 600,
                 cursor: 'pointer',
                 fontSize: '14px',
@@ -675,26 +675,26 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
 
       {/* Ledgers Workbench Table */}
       {activeImport && (
-        <div style={{ background: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: '8px', overflow: 'hidden' }}>
+        <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden' }}>
           {/* Table Toolbar */}
-          <div style={{ padding: '16px', borderBottom: '1px solid #E5E7EB', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+          <div style={{ padding: '16px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flex: 1, minWidth: '300px' }}>
               <input
                 type="text"
                 placeholder="Search ledger name, parent group or Schedule III group..."
                 value={searchLedger}
                 onChange={e => setSearchLedger(e.target.value)}
-                style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '14px', width: '340px' }}
+                style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-subtle)', fontSize: '14px', width: '340px' }}
               />
-              <div style={{ display: 'flex', background: '#F3F4F6', borderRadius: '6px', padding: '2px' }}>
+              <div style={{ display: 'flex', background: 'var(--card-subtle)', borderRadius: '6px', padding: '2px' }}>
                 <button
                   onClick={() => setMappingFilter('all')}
                   style={{
                     padding: '6px 12px',
                     borderRadius: '4px',
                     border: 'none',
-                    background: mappingFilter === 'all' ? '#FFFFFF' : 'transparent',
-                    color: mappingFilter === 'all' ? '#111827' : '#6B7280',
+                    background: mappingFilter === 'all' ? 'var(--card)' : 'transparent',
+                    color: mappingFilter === 'all' ? 'var(--text)' : 'var(--muted)',
                     fontWeight: 600,
                     fontSize: '12px',
                     cursor: 'pointer',
@@ -709,8 +709,8 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
                     padding: '6px 12px',
                     borderRadius: '4px',
                     border: 'none',
-                    background: mappingFilter === 'mapped' ? '#FFFFFF' : 'transparent',
-                    color: mappingFilter === 'mapped' ? '#111827' : '#6B7280',
+                    background: mappingFilter === 'mapped' ? 'var(--card)' : 'transparent',
+                    color: mappingFilter === 'mapped' ? 'var(--text)' : 'var(--muted)',
                     fontWeight: 600,
                     fontSize: '12px',
                     cursor: 'pointer',
@@ -725,8 +725,8 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
                     padding: '6px 12px',
                     borderRadius: '4px',
                     border: 'none',
-                    background: mappingFilter === 'unmapped' ? '#FFFFFF' : 'transparent',
-                    color: mappingFilter === 'unmapped' ? '#111827' : '#6B7280',
+                    background: mappingFilter === 'unmapped' ? 'var(--card)' : 'transparent',
+                    color: mappingFilter === 'unmapped' ? 'var(--text)' : 'var(--muted)',
                     fontWeight: 600,
                     fontSize: '12px',
                     cursor: 'pointer',
@@ -738,7 +738,7 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
               </div>
             </div>
 
-            <div style={{ fontSize: '13px', color: '#6B7280' }}>
+            <div style={{ fontSize: '13px', color: 'var(--muted)' }}>
               Showing {filteredLedgers.length} of {activeImport.ledgers.length} ledgers
             </div>
           </div>
@@ -747,7 +747,7 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
               <thead>
-                <tr style={{ background: '#F9FAFB', borderBottom: '1px solid #E5E7EB', color: '#4B5563', fontWeight: 600 }}>
+                <tr style={{ background: 'var(--card-subtle)', borderBottom: '1px solid var(--border)', color: 'var(--text-secondary)', fontWeight: 600 }}>
                   <th style={{ padding: '12px 16px' }}>Ledger & Group</th>
                   <th style={{ padding: '12px 16px', textAlign: 'right' }}>Debit (₹)</th>
                   <th style={{ padding: '12px 16px', textAlign: 'right' }}>Credit (₹)</th>
@@ -766,19 +766,19 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
                       key={ledger.id}
                       style={{
                         borderBottom: '1px solid #F3F4F6',
-                        background: isEditing ? '#F0FDF4' : 'transparent',
+                        background: isEditing ? 'var(--success-bg)' : 'transparent',
                         transition: 'background 0.15s ease'
                       }}
                     >
                       {/* Name & Parent Group */}
                       <td style={{ padding: '12px 16px' }}>
-                        <div style={{ fontWeight: 600, color: '#111827' }}>{ledger.ledgerName}</div>
-                        <div style={{ fontSize: '11px', color: '#6B7280', marginTop: '2px' }}>
+                        <div style={{ fontWeight: 600, color: 'var(--text)' }}>{ledger.ledgerName}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '2px' }}>
                           Parent: <span style={{ fontWeight: 500 }}>{ledger.tallyGroup || 'Direct / Primary'}</span>
                           {ledger.isMapped ? (
-                            <span style={{ marginLeft: '6px', color: '#059669', fontWeight: 600 }}>✓ Mapped</span>
+                            <span style={{ marginLeft: '6px', color: 'var(--success)', fontWeight: 600 }}>✓ Mapped</span>
                           ) : (
-                            <span style={{ marginLeft: '6px', color: '#D97706', fontWeight: 500 }}>• Unmapped</span>
+                            <span style={{ marginLeft: '6px', color: 'var(--warning)', fontWeight: 500 }}>• Unmapped</span>
                           )}
                         </div>
                       </td>
@@ -790,7 +790,7 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
                       <td style={{ padding: '12px 16px', textAlign: 'right', fontFamily: 'monospace', fontSize: '13px' }}>
                         {ledger.creditAmount > 0 ? fmtInr(ledger.creditAmount) : '-'}
                       </td>
-                      <td style={{ padding: '12px 16px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 600, color: ledger.closingBalance >= 0 ? '#111827' : '#991B1B' }}>
+                      <td style={{ padding: '12px 16px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 600, color: ledger.closingBalance >= 0 ? 'var(--text)' : 'var(--error-text)' }}>
                         {fmtInr(ledger.closingBalance)}
                       </td>
 
@@ -800,14 +800,14 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
                           <select
                             value={editForm.schedule3Group}
                             onChange={e => setEditForm({ ...editForm, schedule3Group: e.target.value })}
-                            style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid #D1D5DB', fontSize: '12px', width: '100%' }}
+                            style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border-subtle)', fontSize: '12px', width: '100%' }}
                           >
                             {SCHEDULE3_GROUPS.map(g => (
                               <option key={g} value={g}>{g}</option>
                             ))}
                           </select>
                         ) : (
-                          <span style={{ background: '#F3F4F6', color: '#374151', padding: '2px 8px', borderRadius: '4px', fontSize: '12px' }}>
+                          <span style={{ background: 'var(--card-subtle)', color: 'var(--text-secondary)', padding: '2px 8px', borderRadius: '4px', fontSize: '12px' }}>
                             {ledger.schedule3Group}
                           </span>
                         )}
@@ -819,14 +819,14 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
                           <select
                             value={editForm.form3CdCategory}
                             onChange={e => setEditForm({ ...editForm, form3CdCategory: e.target.value })}
-                            style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid #D1D5DB', fontSize: '12px', width: '100%' }}
+                            style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border-subtle)', fontSize: '12px', width: '100%' }}
                           >
                             {FORM3CD_CATEGORIES.map(c => (
                               <option key={c.value} value={c.value}>{c.label}</option>
                             ))}
                           </select>
                         ) : (
-                          <span style={{ fontSize: '12px', color: ledger.form3CdCategory ? '#1E40AF' : '#9CA3AF' }}>
+                          <span style={{ fontSize: '12px', color: ledger.form3CdCategory ? 'var(--accent)' : 'var(--muted)' }}>
                             {FORM3CD_CATEGORIES.find(c => c.value === ledger.form3CdCategory)?.label || '—'}
                           </span>
                         )}
@@ -839,7 +839,7 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
                             <select
                               value={editForm.caroCategory}
                               onChange={e => setEditForm({ ...editForm, caroCategory: e.target.value })}
-                              style={{ padding: '4px 6px', borderRadius: '4px', border: '1px solid #D1D5DB', fontSize: '11px' }}
+                              style={{ padding: '4px 6px', borderRadius: '4px', border: '1px solid var(--border-subtle)', fontSize: '11px' }}
                             >
                               {CARO_CATEGORIES.map(c => (
                                 <option key={c.value} value={c.value}>{c.label}</option>
@@ -848,13 +848,13 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
                             <select
                               value={editForm.fixedAssetBlock}
                               onChange={e => setEditForm({ ...editForm, fixedAssetBlock: e.target.value })}
-                              style={{ padding: '4px 6px', borderRadius: '4px', border: '1px solid #D1D5DB', fontSize: '11px' }}
+                              style={{ padding: '4px 6px', borderRadius: '4px', border: '1px solid var(--border-subtle)', fontSize: '11px' }}
                             >
                               {FIXED_ASSET_BLOCKS.map(b => (
                                 <option key={b.value} value={b.value}>{b.label}</option>
                               ))}
                             </select>
-                            <label style={{ fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px', color: '#065F46' }}>
+                            <label style={{ fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px', color: 'var(--success-text)' }}>
                               <input
                                 type="checkbox"
                                 checked={editForm.saveAsClientDefaultRule}
@@ -866,16 +866,16 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
                         ) : (
                           <div style={{ fontSize: '12px' }}>
                             {ledger.fixedAssetBlock && (
-                              <div style={{ color: '#047857', fontWeight: 500 }}>
+                              <div style={{ color: 'var(--success-text)', fontWeight: 500 }}>
                                 Block: {ledger.fixedAssetBlock}
                               </div>
                             )}
                             {ledger.caroCategory && (
-                              <div style={{ color: '#B45309', fontSize: '11px' }}>
+                              <div style={{ color: 'var(--warning)', fontSize: '11px' }}>
                                 CARO: {ledger.caroCategory}
                               </div>
                             )}
-                            {!ledger.fixedAssetBlock && !ledger.caroCategory && <span style={{ color: '#9CA3AF' }}>—</span>}
+                            {!ledger.fixedAssetBlock && !ledger.caroCategory && <span style={{ color: 'var(--muted)' }}>—</span>}
                           </div>
                         )}
                       </td>
@@ -892,7 +892,7 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
                             </button>
                             <button
                               onClick={() => setEditingLedgerId(null)}
-                              style={{ padding: '4px 8px', borderRadius: '4px', background: '#E5E7EB', color: '#374151', border: 'none', fontSize: '11px', cursor: 'pointer' }}
+                              style={{ padding: '4px 8px', borderRadius: '4px', background: 'var(--bg-subtle)', color: 'var(--text-secondary)', border: 'none', fontSize: '11px', cursor: 'pointer' }}
                             >
                               ✕
                             </button>
@@ -900,7 +900,7 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
                         ) : (
                           <button
                             onClick={() => startEdit(ledger)}
-                            style={{ padding: '4px 10px', borderRadius: '4px', background: '#F3F4F6', color: '#374151', border: '1px solid #D1D5DB', fontSize: '11px', fontWeight: 500, cursor: 'pointer' }}
+                            style={{ padding: '4px 10px', borderRadius: '4px', background: 'var(--card-subtle)', color: 'var(--text-secondary)', border: '1px solid var(--border-subtle)', fontSize: '11px', fontWeight: 500, cursor: 'pointer' }}
                           >
                             Edit Map
                           </button>
@@ -918,36 +918,36 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
       {/* 3-in-1 Universal Ingestion Modal */}
       {showUploadModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, backdropFilter: 'blur(2px)' }}>
-          <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '12px', width: '820px', maxWidth: '95%', maxHeight: '92vh', overflowY: 'auto', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}>
+          <div style={{ background: 'var(--card)', padding: '24px', borderRadius: '12px', width: '820px', maxWidth: '95%', maxHeight: '92vh', overflowY: 'auto', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}>
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: '#111827' }}>
+                  <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: 'var(--text)' }}>
                     Universal Financial Data Importer
                   </h3>
-                  <span style={{ background: '#ECFDF5', color: '#047857', fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '6px' }}>
+                  <span style={{ background: 'var(--success-bg)', color: 'var(--success-text)', fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '6px' }}>
                     60-Sec Test Drive
                   </span>
                 </div>
-                <span style={{ fontSize: '13px', color: '#6B7280' }}>
+                <span style={{ fontSize: '13px', color: 'var(--muted)' }}>
                   Intelligent column heuristic auto-mapper for Tally Prime, Busy Accounting, SAP GL, and Excel clipboard paste.
                 </span>
               </div>
-              <button onClick={() => setShowUploadModal(false)} style={{ background: 'transparent', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#6B7280' }}>✕</button>
+              <button onClick={() => setShowUploadModal(false)} style={{ background: 'transparent', border: 'none', fontSize: '20px', cursor: 'pointer', color: 'var(--muted)' }}>✕</button>
             </div>
 
             {/* Ingestion Mode Tabs */}
-            <div style={{ display: 'flex', borderBottom: '1px solid #E5E7EB', marginBottom: '20px' }}>
+            <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', marginBottom: '20px' }}>
               <button
                 type="button"
                 onClick={() => setImportTab('demo')}
                 style={{
                   padding: '10px 18px',
                   border: 'none',
-                  borderBottom: importTab === 'demo' ? '2px solid #4F46E5' : '2px solid transparent',
+                  borderBottom: importTab === 'demo' ? '2px solid var(--accent)' : '2px solid transparent',
                   background: 'transparent',
-                  color: importTab === 'demo' ? '#4F46E5' : '#6B7280',
+                  color: importTab === 'demo' ? 'var(--accent)' : 'var(--muted)',
                   fontWeight: 600,
                   fontSize: '13px',
                   cursor: 'pointer',
@@ -965,9 +965,9 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
                 style={{
                   padding: '10px 18px',
                   border: 'none',
-                  borderBottom: importTab === 'paste' ? '2px solid #4F46E5' : '2px solid transparent',
+                  borderBottom: importTab === 'paste' ? '2px solid var(--accent)' : '2px solid transparent',
                   background: 'transparent',
-                  color: importTab === 'paste' ? '#4F46E5' : '#6B7280',
+                  color: importTab === 'paste' ? 'var(--accent)' : 'var(--muted)',
                   fontWeight: 600,
                   fontSize: '13px',
                   cursor: 'pointer',
@@ -985,9 +985,9 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
                 style={{
                   padding: '10px 18px',
                   border: 'none',
-                  borderBottom: importTab === 'file' ? '2px solid #4F46E5' : '2px solid transparent',
+                  borderBottom: importTab === 'file' ? '2px solid var(--accent)' : '2px solid transparent',
                   background: 'transparent',
-                  color: importTab === 'file' ? '#4F46E5' : '#6B7280',
+                  color: importTab === 'file' ? 'var(--accent)' : 'var(--muted)',
                   fontWeight: 600,
                   fontSize: '13px',
                   cursor: 'pointer',
@@ -1003,7 +1003,7 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
             {/* TAB 1: 1-Click Demo Datasets */}
             {importTab === 'demo' && (
               <div style={{ marginBottom: '20px' }}>
-                <p style={{ margin: '0 0 12px 0', fontSize: '13px', color: '#4B5563' }}>
+                <p style={{ margin: '0 0 12px 0', fontSize: '13px', color: 'var(--text-secondary)' }}>
                   Select one of the pre-loaded real-world datasets below to test the full CaDesk platform immediately without preparing client files:
                 </p>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: '12px', marginBottom: '16px' }}>
@@ -1014,8 +1014,8 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
                         key={s.key}
                         onClick={() => handleSelectSample(s)}
                         style={{
-                          border: isSelected ? '2px solid #4F46E5' : '1px solid #E5E7EB',
-                          background: isSelected ? '#EEF2FF' : '#F9FAFB',
+                          border: isSelected ? '2px solid var(--accent)' : '1px solid var(--border)',
+                          background: isSelected ? 'var(--accent-subtle)' : 'var(--card-subtle)',
                           borderRadius: '8px',
                           padding: '14px',
                           cursor: 'pointer',
@@ -1023,20 +1023,20 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
                         }}
                       >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                          <span style={{ fontSize: '11px', fontWeight: 600, color: '#4F46E5', background: '#FFFFFF', padding: '2px 6px', borderRadius: '4px', border: '1px solid #C7D2FE' }}>
+                          <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--accent)', background: 'var(--card)', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--accent)' }}>
                             {s.sourceType}
                           </span>
-                          <span style={{ fontSize: '12px', fontWeight: 700, color: '#059669' }}>
+                          <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--success)' }}>
                             ₹{(s.turnoverInr / 10000000).toFixed(1)} Cr Rev
                           </span>
                         </div>
-                        <div style={{ fontWeight: 700, fontSize: '14px', color: '#111827', marginTop: '8px' }}>
+                        <div style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text)', marginTop: '8px' }}>
                           {s.title}
                         </div>
-                        <p style={{ margin: '6px 0 0 0', fontSize: '12px', color: '#6B7280', lineHeight: '1.4' }}>
+                        <p style={{ margin: '6px 0 0 0', fontSize: '12px', color: 'var(--muted)', lineHeight: '1.4' }}>
                           {s.description}
                         </p>
-                        <div style={{ marginTop: '10px', fontSize: '11px', fontWeight: 600, color: '#4F46E5' }}>
+                        <div style={{ marginTop: '10px', fontSize: '11px', fontWeight: 600, color: 'var(--accent)' }}>
                           {isSelected ? '✓ Selected & Previewing' : 'Click to Load →'}
                         </div>
                       </div>
@@ -1049,17 +1049,17 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
             {/* TAB 2: Direct Clipboard Paste from Excel / Sheets */}
             {importTab === 'paste' && (
               <div style={{ marginBottom: '20px' }}>
-                <div style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', padding: '12px 16px', borderRadius: '8px', marginBottom: '12px', fontSize: '13px', color: '#166534' }}>
+                <div style={{ background: 'var(--success-bg)', border: '1px solid var(--success-border)', padding: '12px 16px', borderRadius: '8px', marginBottom: '12px', fontSize: '13px', color: 'var(--success-text)' }}>
                   💡 <strong>How to paste:</strong> In Microsoft Excel or Google Sheets, highlight your Trial Balance columns (Account Name, Group, Debit, Credit, Closing) and copy (Ctrl+C). Paste directly into the box below (Ctrl+V). CaDesk automatically splits tabs and detects headers!
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                  <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151' }}>
+                  <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>
                     Paste Excel / Google Sheets Columns (Tab-Delimited)
                   </label>
                   <button
                     type="button"
                     onClick={() => handleRunPreview()}
-                    style={{ background: 'transparent', border: 'none', color: '#4F46E5', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
+                    style={{ background: 'transparent', border: 'none', color: 'var(--accent)', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
                   >
                     Inspect & Preview Table →
                   </button>
@@ -1073,7 +1073,7 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
                   }}
                   onBlur={() => handleRunPreview()}
                   placeholder={"Account Name\tParent Group\tDebit (Rs.)\tCredit (Rs.)\tClosing Bal.\nDomestic Sales\tSales Accounts\t0.00\t15000000.00\t15000000.00 Cr\nRaw Material Consumed\tDirect Expenses\t8000000.00\t0.00\t8000000.00 Dr\nSBI Current A/c\tBank Accounts\t7000000.00\t0.00\t7000000.00 Dr"}
-                  style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '12px', fontFamily: 'monospace', whiteSpace: 'pre', overflowX: 'auto' }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid var(--border-subtle)', fontSize: '12px', fontFamily: 'monospace', whiteSpace: 'pre', overflowX: 'auto' }}
                 />
               </div>
             )}
@@ -1083,11 +1083,11 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
               <div style={{ marginBottom: '20px' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>Source Format</label>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px' }}>Source Format</label>
                     <select
                       value={uploadSourceType}
                       onChange={e => setUploadSourceType(e.target.value)}
-                      style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '13px' }}
+                      style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-subtle)', fontSize: '13px' }}
                     >
                       <option value="Auto">Auto-Detect (Heuristic)</option>
                       <option value="TallyXml">Tally XML Export (Collection / Envelope)</option>
@@ -1098,18 +1098,18 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>File Name</label>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px' }}>File Name</label>
                     <input
                       type="text"
                       value={uploadFileName}
                       onChange={e => setUploadFileName(e.target.value)}
-                      style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '13px' }}
+                      style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-subtle)', fontSize: '13px' }}
                       required
                     />
                   </div>
                 </div>
 
-                <div style={{ border: '2px dashed #D1D5DB', borderRadius: '8px', padding: '24px', textAlign: 'center', background: '#F9FAFB' }}>
+                <div style={{ border: '2px dashed var(--border-subtle)', borderRadius: '8px', padding: '24px', textAlign: 'center', background: 'var(--card-subtle)' }}>
                   <input
                     type="file"
                     accept=".xml,.csv,.tsv,.txt"
@@ -1117,10 +1117,10 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
                     style={{ display: 'none' }}
                     id="tb-file-input-universal"
                   />
-                  <label htmlFor="tb-file-input-universal" style={{ cursor: 'pointer', color: '#4F46E5', fontWeight: 600, fontSize: '14px', display: 'block' }}>
+                  <label htmlFor="tb-file-input-universal" style={{ cursor: 'pointer', color: 'var(--accent)', fontWeight: 600, fontSize: '14px', display: 'block' }}>
                     Browse XML, CSV or TSV File
                   </label>
-                  <span style={{ fontSize: '12px', color: '#6B7280', display: 'block', marginTop: '6px' }}>
+                  <span style={{ fontSize: '12px', color: 'var(--muted)', display: 'block', marginTop: '6px' }}>
                     Supports files exported from Tally ERP9/Prime, Busy 18/21, SAP S/4HANA or custom ERPs
                   </span>
                 </div>
@@ -1129,16 +1129,16 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
 
             {/* LIVE PREVIEW SECTION */}
             {previewLoading && (
-              <div style={{ padding: '16px', textAlign: 'center', color: '#4F46E5', fontSize: '13px' }}>
+              <div style={{ padding: '16px', textAlign: 'center', color: 'var(--accent)', fontSize: '13px' }}>
                 Analyzing column headers and checking balance integrity...
               </div>
             )}
 
             {previewResult && !previewLoading && (
-              <div style={{ background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: '8px', padding: '16px', marginBottom: '20px' }}>
+              <div style={{ background: 'var(--card-subtle)', border: '1px solid var(--border)', borderRadius: '8px', padding: '16px', marginBottom: '20px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ fontWeight: 700, fontSize: '14px', color: '#111827' }}>
+                    <span style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text)' }}>
                       Data Diagnostics
                     </span>
                     {previewResult.isBalanced ? (
@@ -1146,22 +1146,22 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
                         ✓ Balanced (₹0.00 Discrepancy)
                       </span>
                     ) : (
-                      <span style={{ background: '#FDE8E8', color: '#9B1C1C', padding: '3px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600 }}>
+                      <span style={{ background: 'var(--error-bg)', color: 'var(--error-text)', padding: '3px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600 }}>
                         ⚠ Out of Balance: ₹{previewResult.discrepancy.toLocaleString('en-IN')}
                       </span>
                     )}
-                    <span style={{ background: '#EEF2FF', color: '#4338CA', padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 600 }}>
+                    <span style={{ background: 'var(--accent-subtle)', color: 'var(--accent)', padding: '3px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 600 }}>
                       Format: {previewResult.detectedSourceType}
                     </span>
                   </div>
 
-                  <div style={{ fontSize: '12px', color: '#4B5563' }}>
+                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
                     <strong>{previewResult.totalLedgersCount}</strong> Ledgers • <strong>{previewResult.mappedLedgersCount}</strong> Auto-Mapped
                   </div>
                 </div>
 
                 {/* Diagnostics bullets */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '14px', fontSize: '12px', color: '#374151' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '14px', fontSize: '12px', color: 'var(--text-secondary)' }}>
                   {previewResult.diagnostics.map((d, idx) => (
                     <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span>{d}</span>
@@ -1170,10 +1170,10 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
                 </div>
 
                 {/* Mini Preview Table */}
-                <div style={{ overflowX: 'auto', maxHeight: '180px', overflowY: 'auto', background: '#FFFFFF', borderRadius: '6px', border: '1px solid #E5E7EB' }}>
+                <div style={{ overflowX: 'auto', maxHeight: '180px', overflowY: 'auto', background: 'var(--card)', borderRadius: '6px', border: '1px solid var(--border)' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
                     <thead>
-                      <tr style={{ background: '#F3F4F6', borderBottom: '1px solid #E5E7EB', color: '#4B5563' }}>
+                      <tr style={{ background: 'var(--card-subtle)', borderBottom: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
                         <th style={{ padding: '6px 10px', textAlign: 'left' }}>Ledger Account</th>
                         <th style={{ padding: '6px 10px', textAlign: 'left' }}>Parent Group</th>
                         <th style={{ padding: '6px 10px', textAlign: 'right' }}>Debit (₹)</th>
@@ -1185,7 +1185,7 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
                       {previewResult.ledgers.slice(0, 6).map((l, idx) => (
                         <tr key={idx} style={{ borderBottom: '1px solid #F3F4F6' }}>
                           <td style={{ padding: '6px 10px', fontWeight: 500 }}>{l.name}</td>
-                          <td style={{ padding: '6px 10px', color: '#6B7280' }}>{l.parentGroup || '—'}</td>
+                          <td style={{ padding: '6px 10px', color: 'var(--muted)' }}>{l.parentGroup || '—'}</td>
                           <td style={{ padding: '6px 10px', textAlign: 'right', fontFamily: 'monospace' }}>
                             {l.debitAmount > 0 ? fmtInr(l.debitAmount) : '-'}
                           </td>
@@ -1199,7 +1199,7 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
                       ))}
                       {previewResult.ledgers.length > 6 && (
                         <tr>
-                          <td colSpan={5} style={{ padding: '6px 10px', textAlign: 'center', color: '#6B7280', fontSize: '11px', background: '#F9FAFB' }}>
+                          <td colSpan={5} style={{ padding: '6px 10px', textAlign: 'center', color: 'var(--muted)', fontSize: '11px', background: 'var(--card-subtle)' }}>
                             ... and {previewResult.ledgers.length - 6} more ledgers parsed successfully
                           </td>
                         </tr>
@@ -1215,7 +1215,7 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
               <button
                 type="button"
                 onClick={() => setShowUploadModal(false)}
-                style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #D1D5DB', background: '#FFFFFF', cursor: 'pointer', fontSize: '13px' }}
+                style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid var(--border-subtle)', background: 'var(--card)', cursor: 'pointer', fontSize: '13px' }}
               >
                 Cancel
               </button>
@@ -1245,16 +1245,16 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
       {/* Sync Success & Results Modal */}
       {showSyncModal && syncResult && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, backdropFilter: 'blur(2px)' }}>
-          <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '12px', width: '640px', maxWidth: '95%', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div style={{ background: 'var(--card)', padding: '24px', borderRadius: '12px', width: '640px', maxWidth: '95%', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
               <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: '#DEF7EC', color: '#03543F', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>
                 ✓
               </div>
               <div>
-                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#111827' }}>
+                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: 'var(--text)' }}>
                   Multi-Desk Synchronization Complete!
                 </h3>
-                <span style={{ fontSize: '13px', color: '#6B7280' }}>
+                <span style={{ fontSize: '13px', color: 'var(--muted)' }}>
                   Financial Year: {syncResult.financialYear} • Synced at {new Date(syncResult.syncedAt).toLocaleTimeString()}
                 </span>
               </div>
@@ -1262,80 +1262,80 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '16px' }}>
               {/* Desk 1: Statutory Audit */}
-              <div style={{ padding: '10px 14px', background: '#F9FAFB', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
+              <div style={{ padding: '10px 14px', background: 'var(--card-subtle)', borderRadius: '8px', border: '1px solid var(--border)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontWeight: 600, fontSize: '13px', color: '#111827' }}>1. Statutory Audit Desk (SA 320 Materiality)</span>
-                  <span style={{ color: syncResult.auditSynced ? '#059669' : '#D97706', fontWeight: 600, fontSize: '12px' }}>
+                  <span style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text)' }}>1. Statutory Audit Desk (SA 320 Materiality)</span>
+                  <span style={{ color: syncResult.auditSynced ? 'var(--success)' : 'var(--warning)', fontWeight: 600, fontSize: '12px' }}>
                     {syncResult.auditSynced ? '✓ Benchmark Updated' : 'Materiality Suggestion'}
                   </span>
                 </div>
                 {syncResult.auditNotes && (
-                  <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#4B5563' }}>{syncResult.auditNotes}</p>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--text-secondary)' }}>{syncResult.auditNotes}</p>
                 )}
               </div>
 
               {/* Desk 2: Schedule III */}
-              <div style={{ padding: '10px 14px', background: '#F9FAFB', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
+              <div style={{ padding: '10px 14px', background: 'var(--card-subtle)', borderRadius: '8px', border: '1px solid var(--border)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontWeight: 600, fontSize: '13px', color: '#111827' }}>2. Schedule III Financial Statements Desk</span>
-                  <span style={{ color: syncResult.schedule3Synced ? '#059669' : '#6B7280', fontWeight: 600, fontSize: '12px' }}>
+                  <span style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text)' }}>2. Schedule III Financial Statements Desk</span>
+                  <span style={{ color: syncResult.schedule3Synced ? 'var(--success)' : 'var(--muted)', fontWeight: 600, fontSize: '12px' }}>
                     {syncResult.schedule3Synced ? '✓ 11 Statutory Ratios Updated' : 'Skipped'}
                   </span>
                 </div>
                 {syncResult.schedule3Notes && (
-                  <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#4B5563' }}>{syncResult.schedule3Notes}</p>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--text-secondary)' }}>{syncResult.schedule3Notes}</p>
                 )}
               </div>
 
               {/* Desk 3: Form 3CD */}
-              <div style={{ padding: '10px 14px', background: '#F9FAFB', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
+              <div style={{ padding: '10px 14px', background: 'var(--card-subtle)', borderRadius: '8px', border: '1px solid var(--border)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontWeight: 600, fontSize: '13px', color: '#111827' }}>3. Form 3CD Tax Audit Desk</span>
-                  <span style={{ color: syncResult.form3CdSynced ? '#059669' : '#6B7280', fontWeight: 600, fontSize: '12px' }}>
+                  <span style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text)' }}>3. Form 3CD Tax Audit Desk</span>
+                  <span style={{ color: syncResult.form3CdSynced ? 'var(--success)' : 'var(--muted)', fontWeight: 600, fontSize: '12px' }}>
                     {syncResult.form3CdSynced ? '✓ Turnover, 43B & MSME Populated' : 'Skipped'}
                   </span>
                 </div>
                 {syncResult.form3CdNotes && (
-                  <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#4B5563' }}>{syncResult.form3CdNotes}</p>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--text-secondary)' }}>{syncResult.form3CdNotes}</p>
                 )}
               </div>
 
               {/* Desk 4: CARO 2020 */}
-              <div style={{ padding: '10px 14px', background: '#F9FAFB', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
+              <div style={{ padding: '10px 14px', background: 'var(--card-subtle)', borderRadius: '8px', border: '1px solid var(--border)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontWeight: 600, fontSize: '13px', color: '#111827' }}>4. CARO 2020 Desk</span>
-                  <span style={{ color: syncResult.caroSynced ? '#059669' : '#6B7280', fontWeight: 600, fontSize: '12px' }}>
+                  <span style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text)' }}>4. CARO 2020 Desk</span>
+                  <span style={{ color: syncResult.caroSynced ? 'var(--success)' : 'var(--muted)', fontWeight: 600, fontSize: '12px' }}>
                     {syncResult.caroSynced ? '✓ Capital & Borrowing Limits Filled' : 'Skipped'}
                   </span>
                 </div>
                 {syncResult.caroNotes && (
-                  <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#4B5563' }}>{syncResult.caroNotes}</p>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--text-secondary)' }}>{syncResult.caroNotes}</p>
                 )}
               </div>
 
               {/* Desk 5: Fixed Assets */}
-              <div style={{ padding: '10px 14px', background: '#F9FAFB', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
+              <div style={{ padding: '10px 14px', background: 'var(--card-subtle)', borderRadius: '8px', border: '1px solid var(--border)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontWeight: 600, fontSize: '13px', color: '#111827' }}>5. Fixed Assets Register Desk</span>
-                  <span style={{ color: syncResult.fixedAssetsSynced ? '#059669' : '#6B7280', fontWeight: 600, fontSize: '12px' }}>
+                  <span style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text)' }}>5. Fixed Assets Register Desk</span>
+                  <span style={{ color: syncResult.fixedAssetsSynced ? 'var(--success)' : 'var(--muted)', fontWeight: 600, fontSize: '12px' }}>
                     {syncResult.fixedAssetsSynced ? '✓ Reconciled with Gross Register' : 'Skipped'}
                   </span>
                 </div>
                 {syncResult.fixedAssetsNotes && (
-                  <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#4B5563' }}>{syncResult.fixedAssetsNotes}</p>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--text-secondary)' }}>{syncResult.fixedAssetsNotes}</p>
                 )}
               </div>
 
               {/* Desk 6: Cost Audit */}
-              <div style={{ padding: '10px 14px', background: '#F9FAFB', borderRadius: '8px', border: '1px solid #E5E7EB' }}>
+              <div style={{ padding: '10px 14px', background: 'var(--card-subtle)', borderRadius: '8px', border: '1px solid var(--border)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontWeight: 600, fontSize: '13px', color: '#111827' }}>6. Cost Audit Desk (Form CRA-1 to CRA-4)</span>
-                  <span style={{ color: syncResult.costAuditSynced ? '#059669' : '#6B7280', fontWeight: 600, fontSize: '12px' }}>
+                  <span style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text)' }}>6. Cost Audit Desk (Form CRA-1 to CRA-4)</span>
+                  <span style={{ color: syncResult.costAuditSynced ? 'var(--success)' : 'var(--muted)', fontWeight: 600, fontSize: '12px' }}>
                     {syncResult.costAuditSynced ? '✓ Product Turnover & Costs Synchronized' : 'Optional / Ready'}
                   </span>
                 </div>
                 {syncResult.costAuditNotes && (
-                  <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#4B5563' }}>{syncResult.costAuditNotes}</p>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--text-secondary)' }}>{syncResult.costAuditNotes}</p>
                 )}
               </div>
             </div>
@@ -1355,13 +1355,13 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
       {/* Retained Rules Modal */}
       {showRulesModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, backdropFilter: 'blur(2px)' }}>
-          <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '12px', width: '720px', maxWidth: '95%', maxHeight: '85vh', overflowY: 'auto' }}>
+          <div style={{ background: 'var(--card)', padding: '24px', borderRadius: '12px', width: '720px', maxWidth: '95%', maxHeight: '85vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <div>
-                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#111827' }}>
+                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: 'var(--text)' }}>
                   Client Retained Mapping Rules
                 </h3>
-                <span style={{ fontSize: '12px', color: '#6B7280' }}>
+                <span style={{ fontSize: '12px', color: 'var(--muted)' }}>
                   Rules mapped once for this client are remembered forever across all financial years.
                 </span>
               </div>
@@ -1369,13 +1369,13 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
             </div>
 
             {clientRules.length === 0 ? (
-              <div style={{ padding: '32px', textAlign: 'center', color: '#6B7280', background: '#F9FAFB', borderRadius: '8px' }}>
+              <div style={{ padding: '32px', textAlign: 'center', color: 'var(--muted)', background: 'var(--card-subtle)', borderRadius: '8px' }}>
                 No custom default rules retained yet. When you edit a ledger mapping and check "Remember rule for future FYs", it will appear here.
               </div>
             ) : (
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
                 <thead>
-                  <tr style={{ background: '#F9FAFB', borderBottom: '1px solid #E5E7EB', textAlign: 'left' }}>
+                  <tr style={{ background: 'var(--card-subtle)', borderBottom: '1px solid var(--border)', textAlign: 'left' }}>
                     <th style={{ padding: '10px 12px' }}>Ledger Pattern</th>
                     <th style={{ padding: '10px 12px' }}>Schedule III Group</th>
                     <th style={{ padding: '10px 12px' }}>Form 3CD Category</th>
@@ -1387,8 +1387,8 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
                     <tr key={r.id} style={{ borderBottom: '1px solid #F3F4F6' }}>
                       <td style={{ padding: '10px 12px', fontWeight: 600 }}>{r.ledgerName}</td>
                       <td style={{ padding: '10px 12px' }}>{r.schedule3Group}</td>
-                      <td style={{ padding: '10px 12px', color: '#1E40AF' }}>{r.form3CdCategory || '—'}</td>
-                      <td style={{ padding: '10px 12px', color: '#047857' }}>{r.fixedAssetBlock || r.caroCategory || '—'}</td>
+                      <td style={{ padding: '10px 12px', color: 'var(--accent)' }}>{r.form3CdCategory || '—'}</td>
+                      <td style={{ padding: '10px 12px', color: 'var(--success-text)' }}>{r.fixedAssetBlock || r.caroCategory || '—'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -1398,7 +1398,7 @@ export function TrialBalancePage({ can }: { can?: (p: string) => boolean }) {
             <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end' }}>
               <button
                 onClick={() => setShowRulesModal(false)}
-                style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #D1D5DB', background: '#FFFFFF', cursor: 'pointer' }}
+                style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid var(--border-subtle)', background: 'var(--card)', cursor: 'pointer' }}
               >
                 Done
               </button>

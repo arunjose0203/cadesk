@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CaDesk.Application.Caro;
 
-public class CaroService(IAppDbContext db, ITenantContext tenant)
+public class CaroService(IAppDbContext db)
 {
     public async Task<List<CaroAssessmentDto>> ListAssessmentsAsync(
         Guid? clientId = null,

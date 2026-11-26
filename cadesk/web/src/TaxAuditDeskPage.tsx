@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
   type Form3CdAssessmentDto,
   type Form3CdSummaryDto,
@@ -108,12 +108,7 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
   const [calcMsmeDays, setCalcMsmeDays] = useState(50)
   const [calcMsmeHasAgreement, setCalcMsmeHasAgreement] = useState(true)
 
-  useEffect(() => {
-    loadData()
-    loadClients()
-  }, [filterFy, filterStatus])
-
-  async function loadData() {
+  const loadData = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -123,25 +118,27 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
       ])
       setAssessments(list)
       setSummary(sum)
-      if (selectedAssessment) {
-        const refreshed = list.find(a => a.id === selectedAssessment.id)
-        if (refreshed) setSelectedAssessment(refreshed)
-      }
+      setSelectedAssessment(prev => (prev ? (list.find(a => a.id === prev.id) ?? prev) : null))
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load Form 3CD assessments.')
     } finally {
       setLoading(false)
     }
-  }
+  }, [filterFy, filterStatus])
 
-  async function loadClients() {
+  const loadClients = useCallback(async () => {
     try {
       const res = await api<ClientPage>('/api/clients?pageSize=100')
       setClients(res.items || [])
     } catch {
       // ignore
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    loadData()
+    loadClients()
+  }, [loadData, loadClients])
 
   async function handleSelectAssessment(id: string) {
     setLoading(true)
@@ -291,15 +288,15 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
   }) || []
 
   return (
-    <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+    <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto', color: 'var(--text)' }}>
       {/* Top Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: '26px', fontWeight: '700', color: '#0f172a' }}>
-            Form 3CD Tax Audit Statement & Disclosures Desk
+          <h1 style={{ margin: 0, fontSize: '26px', fontWeight: '700', color: 'var(--text)' }}>
+            Form 3CD Tax Audit Statement &amp; Disclosures Desk
           </h1>
-          <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: '14px' }}>
-            Section 44AB statutory limit engine, 5% cash ratio rules, Clause-by-Clause disclosures (40(a), 43B(h) MSME, 269SS/ST/T), & Form 3CA/3CB reports.
+          <p style={{ margin: '4px 0 0', color: 'var(--muted)', fontSize: '14px' }}>
+            Section 44AB statutory limit engine, 5% cash ratio rules, Clause-by-Clause disclosures (40(a), 43B(h) MSME, 269SS/ST/T), &amp; Form 3CA/3CB reports.
           </p>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
@@ -310,9 +307,9 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
             }}
             style={{
               padding: '10px 16px',
-              backgroundColor: '#f1f5f9',
-              color: '#334155',
-              border: '1px solid #cbd5e1',
+              backgroundColor: 'var(--card-subtle)',
+              color: 'var(--text)',
+              border: '1px solid var(--border)',
               borderRadius: '6px',
               cursor: 'pointer',
               fontWeight: '600',
@@ -326,7 +323,7 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
               onClick={() => setShowNewModal(true)}
               style={{
                 padding: '10px 16px',
-                backgroundColor: '#2563eb',
+                backgroundColor: 'var(--accent)',
                 color: '#fff',
                 border: 'none',
                 borderRadius: '6px',
@@ -343,65 +340,65 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
       </div>
 
       {error && (
-        <div style={{ padding: '14px', backgroundColor: '#fee2e2', border: '1px solid #ef4444', color: '#991b1b', borderRadius: '8px', marginBottom: '20px', fontSize: '14px' }}>
+        <div style={{ padding: '14px', backgroundColor: 'rgba(220, 38, 38, 0.08)', border: '1px solid rgba(220, 38, 38, 0.35)', color: 'var(--error)', borderRadius: '8px', marginBottom: '20px', fontSize: '14px' }}>
           {error}
         </div>
       )}
 
       {/* KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-        <div style={{ backgroundColor: '#fff', padding: '18px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <div style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase' }}>Assessments Total</div>
-          <div style={{ fontSize: '24px', fontWeight: '700', color: '#0f172a', marginTop: '6px' }}>{summary?.totalAssessments ?? 0}</div>
-          <div style={{ fontSize: '12px', color: '#16a34a', marginTop: '4px' }}>
+        <div style={{ backgroundColor: 'var(--card)', padding: '18px', borderRadius: '8px', border: '1px solid var(--border)', borderTop: '3px solid var(--accent)' }}>
+          <div style={{ fontSize: '12px', fontWeight: '600', color: 'var(--muted)', textTransform: 'uppercase' }}>Assessments Total</div>
+          <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--text)', marginTop: '6px' }}>{summary?.totalAssessments ?? 0}</div>
+          <div style={{ fontSize: '12px', color: 'var(--success)', marginTop: '4px' }}>
             {summary?.mandatoryCount ?? 0} Mandatory | {summary?.exemptCount ?? 0} Exempt
           </div>
         </div>
 
-        <div style={{ backgroundColor: '#fff', padding: '18px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-          <div style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase' }}>Net Profit Additions</div>
-          <div style={{ fontSize: '24px', fontWeight: '700', color: '#b91c1c', marginTop: '6px' }}>
+        <div style={{ backgroundColor: 'var(--card)', padding: '18px', borderRadius: '8px', border: '1px solid var(--border)', borderTop: '3px solid var(--error)' }}>
+          <div style={{ fontSize: '12px', fontWeight: '600', color: 'var(--muted)', textTransform: 'uppercase' }}>Net Profit Additions</div>
+          <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--error)', marginTop: '6px' }}>
             {fmtInr(summary?.totalNetDisallowances ?? 0)}
           </div>
-          <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>Sec 40(a), 40A(3), 43B, 36(1)(va)</div>
+          <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '4px' }}>Sec 40(a), 40A(3), 43B, 36(1)(va)</div>
         </div>
 
-        <div style={{ backgroundColor: '#fff', padding: '18px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-          <div style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase' }}>Sec 43B(h) MSME Overdue</div>
-          <div style={{ fontSize: '24px', fontWeight: '700', color: '#ea580c', marginTop: '6px' }}>
+        <div style={{ backgroundColor: 'var(--card)', padding: '18px', borderRadius: '8px', border: '1px solid var(--border)', borderTop: '3px solid var(--warning)' }}>
+          <div style={{ fontSize: '12px', fontWeight: '600', color: 'var(--muted)', textTransform: 'uppercase' }}>Sec 43B(h) MSME Overdue</div>
+          <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--warning)', marginTop: '6px' }}>
             {fmtInr(summary?.total43BhMsmeDisallowances ?? 0)}
           </div>
-          <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>Delayed &gt; 15/45 days limit</div>
+          <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '4px' }}>Delayed &gt; 15/45 days limit</div>
         </div>
 
-        <div style={{ backgroundColor: '#fff', padding: '18px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-          <div style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase' }}>Sec 269SS/ST/T Violations</div>
-          <div style={{ fontSize: '24px', fontWeight: '700', color: '#d97706', marginTop: '6px' }}>
+        <div style={{ backgroundColor: 'var(--card)', padding: '18px', borderRadius: '8px', border: '1px solid var(--border)', borderTop: '3px solid var(--warning)' }}>
+          <div style={{ fontSize: '12px', fontWeight: '600', color: 'var(--muted)', textTransform: 'uppercase' }}>Sec 269SS/ST/T Violations</div>
+          <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--warning)', marginTop: '6px' }}>
             {fmtInr(summary?.total269Violations ?? 0)}
           </div>
-          <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>Cash loans &gt; ₹20k / ₹2L receipts</div>
+          <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '4px' }}>Cash loans &gt; ₹20k / ₹2L receipts</div>
         </div>
 
-        <div style={{ backgroundColor: '#fff', padding: '18px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-          <div style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase' }}>Finalized Reports</div>
-          <div style={{ fontSize: '24px', fontWeight: '700', color: '#2563eb', marginTop: '6px' }}>
+        <div style={{ backgroundColor: 'var(--card)', padding: '18px', borderRadius: '8px', border: '1px solid var(--border)', borderTop: '3px solid var(--success)' }}>
+          <div style={{ fontSize: '12px', fontWeight: '600', color: 'var(--muted)', textTransform: 'uppercase' }}>Finalized Reports</div>
+          <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--accent)', marginTop: '6px' }}>
             {summary?.finalizedCount ?? 0}
           </div>
-          <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>Signed off by Partners</div>
+          <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '4px' }}>Signed off by Partners</div>
         </div>
       </div>
 
       {/* Main Grid: Left side Assessment Selector, Right side Workbench */}
       <div style={{ display: 'grid', gridTemplateColumns: selectedAssessment ? '360px 1fr' : '1fr', gap: '20px' }}>
         {/* Left Column: Assessment List */}
-        <div style={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0', padding: '16px' }}>
+        <div style={{ backgroundColor: 'var(--card)', borderRadius: '8px', border: '1px solid var(--border)', padding: '16px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-            <h2 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: '#1e293b' }}>Tax Audit Files</h2>
+            <h2 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: 'var(--text)' }}>Tax Audit Files</h2>
             <div style={{ display: 'flex', gap: '8px' }}>
               <select
                 value={filterFy}
                 onChange={e => setFilterFy(e.target.value)}
-                style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '12px' }}
+                style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border)', backgroundColor: 'var(--card)', color: 'var(--text)', fontSize: '12px' }}
               >
                 <option value="2026-27">TY 2026-27</option>
                 <option value="2025-26">FY 2025-26</option>
@@ -412,7 +409,7 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
               <select
                 value={filterStatus}
                 onChange={e => setFilterStatus(e.target.value)}
-                style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '12px' }}
+                style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border)', backgroundColor: 'var(--card)', color: 'var(--text)', fontSize: '12px' }}
               >
                 <option value="all">All</option>
                 <option value="draft">Draft</option>
@@ -423,9 +420,9 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
           </div>
 
           {loading && assessments.length === 0 ? (
-            <div style={{ padding: '24px', textAlign: 'center', color: '#64748b' }}>Loading assessments...</div>
+            <div style={{ padding: '24px', textAlign: 'center', color: 'var(--muted)' }}>Loading assessments...</div>
           ) : assessments.length === 0 ? (
-            <div style={{ padding: '24px', textAlign: 'center', color: '#64748b', fontSize: '14px' }}>
+            <div style={{ padding: '24px', textAlign: 'center', color: 'var(--muted)', fontSize: '14px' }}>
               No tax audit assessments found for this filter. Create one to begin.
             </div>
           ) : (
@@ -439,14 +436,14 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                     style={{
                       padding: '12px',
                       borderRadius: '6px',
-                      border: isSelected ? '2px solid #2563eb' : '1px solid #e2e8f0',
-                      backgroundColor: isSelected ? '#eff6ff' : '#f8fafc',
+                      border: isSelected ? '2px solid var(--accent)' : '1px solid var(--border)',
+                      backgroundColor: isSelected ? 'rgba(37, 99, 235, 0.08)' : 'var(--card-subtle)',
                       cursor: 'pointer',
                       transition: 'all 0.15s ease'
                     }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <div style={{ fontWeight: '700', fontSize: '14px', color: '#0f172a' }}>{a.assesseeName || a.clientName || 'Assessee'}</div>
+                      <div style={{ fontWeight: '700', fontSize: '14px', color: 'var(--text)' }}>{a.assesseeName || a.clientName || 'Assessee'}</div>
                       <span
                         style={{
                           fontSize: '11px',
@@ -455,35 +452,35 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                           fontWeight: '600',
                           backgroundColor:
                             a.assessmentStatus === 'finalized'
-                              ? '#dcfce7'
+                              ? 'rgba(22, 163, 74, 0.12)'
                               : a.assessmentStatus === 'in_review'
-                                ? '#fef3c7'
-                                : '#e2e8f0',
+                                ? 'rgba(217, 119, 6, 0.12)'
+                                : 'var(--card)',
                           color:
                             a.assessmentStatus === 'finalized'
-                              ? '#166534'
+                              ? 'var(--success)'
                               : a.assessmentStatus === 'in_review'
-                                ? '#92400e'
-                                : '#475569'
+                                ? 'var(--warning)'
+                                : 'var(--muted)'
                         }}
                       >
                         {a.assessmentStatus.toUpperCase()}
                       </span>
                     </div>
 
-                    <div style={{ fontSize: '12px', color: '#475569', marginTop: '4px' }}>
+                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
                       PAN: <strong>{a.pan || 'N/A'}</strong> | {a.auditType}
                     </div>
 
-                    <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                    <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>
                       Turnover: {fmtInr(a.totalTurnoverOrGrossReceipts)} (Cash: {a.cashReceiptPercentage}%)
                     </div>
 
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px', paddingTop: '6px', borderTop: '1px solid #e2e8f0', fontSize: '12px' }}>
-                      <span style={{ color: a.isTaxAuditMandatory ? '#b91c1c' : '#16a34a', fontWeight: '600' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px', paddingTop: '6px', borderTop: '1px solid var(--border)', fontSize: '12px' }}>
+                      <span style={{ color: a.isTaxAuditMandatory ? 'var(--error)' : 'var(--success)', fontWeight: '600' }}>
                         {a.isTaxAuditMandatory ? '● 44AB Mandatory' : '○ 44AB Exempt'}
                       </span>
-                      <span style={{ fontWeight: '700', color: a.totalNetIncomeAdjustment > 0 ? '#b91c1c' : '#0f172a' }}>
+                      <span style={{ fontWeight: '700', color: a.totalNetIncomeAdjustment > 0 ? 'var(--error)' : 'var(--text)' }}>
                         +{fmtInr(a.totalNetIncomeAdjustment)}
                       </span>
                     </div>
@@ -496,12 +493,12 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
 
         {/* Right Column: Active Workbench */}
         {selectedAssessment && (
-          <div style={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0', padding: '20px' }}>
+          <div style={{ backgroundColor: 'var(--card)', borderRadius: '8px', border: '1px solid var(--border)', padding: '20px' }}>
             {/* Header Banner */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', paddingBottom: '16px', borderBottom: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', paddingBottom: '16px', borderBottom: '1px solid var(--border)' }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: '#0f172a' }}>
+                  <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: 'var(--text)' }}>
                     {selectedAssessment.assesseeName}
                   </h2>
                   <span
@@ -510,8 +507,8 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                       padding: '2px 8px',
                       borderRadius: '4px',
                       fontWeight: '700',
-                      backgroundColor: selectedAssessment.auditType === 'Form3CA' ? '#e0e7ff' : '#fef3c7',
-                      color: selectedAssessment.auditType === 'Form3CA' ? '#3730a3' : '#92400e'
+                      backgroundColor: selectedAssessment.auditType === 'Form3CA' ? 'rgba(37, 99, 235, 0.12)' : 'rgba(217, 119, 6, 0.12)',
+                      color: selectedAssessment.auditType === 'Form3CA' ? 'var(--accent)' : 'var(--warning)'
                     }}
                   >
                     {selectedAssessment.auditType}
@@ -522,17 +519,17 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                       padding: '2px 8px',
                       borderRadius: '4px',
                       fontWeight: '600',
-                      backgroundColor: selectedAssessment.isTaxAuditMandatory ? '#fee2e2' : '#dcfce7',
-                      color: selectedAssessment.isTaxAuditMandatory ? '#991b1b' : '#166534'
+                      backgroundColor: selectedAssessment.isTaxAuditMandatory ? 'rgba(220, 38, 38, 0.12)' : 'rgba(22, 163, 74, 0.12)',
+                      color: selectedAssessment.isTaxAuditMandatory ? 'var(--error)' : 'var(--success)'
                     }}
                   >
                     {selectedAssessment.isTaxAuditMandatory ? 'Mandatory u/s 44AB' : 'Exempt u/s 44AB'}
                   </span>
                 </div>
-                <div style={{ fontSize: '13px', color: '#64748b', marginTop: '6px' }}>
+                <div style={{ fontSize: '13px', color: 'var(--muted)', marginTop: '6px' }}>
                   PAN: <strong>{selectedAssessment.pan}</strong> | GSTIN: {selectedAssessment.gstin || 'N/A'} | Status: {selectedAssessment.status} | Regime: {selectedAssessment.optedSpecialTaxRegime}
                 </div>
-                <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>
                   Financial Year: <strong>{selectedAssessment.financialYear}</strong> (AY: {selectedAssessment.assessmentYear}) | Method: {selectedAssessment.methodOfAccounting}
                 </div>
               </div>
@@ -542,8 +539,9 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                   onClick={handleRegenerateReport}
                   style={{
                     padding: '8px 12px',
-                    backgroundColor: '#f1f5f9',
-                    border: '1px solid #cbd5e1',
+                    backgroundColor: 'var(--card-subtle)',
+                    border: '1px solid var(--border)',
+                    color: 'var(--text)',
                     borderRadius: '6px',
                     fontSize: '13px',
                     cursor: 'pointer',
@@ -560,7 +558,7 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                     }}
                     style={{
                       padding: '8px 14px',
-                      backgroundColor: '#16a34a',
+                      backgroundColor: 'var(--success)',
                       color: '#fff',
                       border: 'none',
                       borderRadius: '6px',
@@ -569,54 +567,54 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                       fontWeight: '600'
                     }}
                   >
-                    Finalize & Sign Off
+                    Finalize &amp; Sign Off
                   </button>
                 )}
               </div>
             </div>
 
             {/* Quick Metrics Bar */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px', padding: '14px 0', borderBottom: '1px solid #e2e8f0', fontSize: '13px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px', padding: '14px 0', borderBottom: '1px solid var(--border)', fontSize: '13px' }}>
               <div>
-                <span style={{ color: '#64748b' }}>Turnover: </span>
+                <span style={{ color: 'var(--muted)' }}>Turnover: </span>
                 <strong>{fmtInr(selectedAssessment.totalTurnoverOrGrossReceipts)}</strong>
               </div>
               <div>
-                <span style={{ color: '#64748b' }}>Cash Receipts: </span>
+                <span style={{ color: 'var(--muted)' }}>Cash Receipts: </span>
                 <strong>{selectedAssessment.cashReceiptPercentage}%</strong>
               </div>
               <div>
-                <span style={{ color: '#64748b' }}>Cash Payments: </span>
+                <span style={{ color: 'var(--muted)' }}>Cash Payments: </span>
                 <strong>{selectedAssessment.cashPaymentPercentage}%</strong>
               </div>
               <div>
-                <span style={{ color: '#64748b' }}>Sec 40(a) TDS: </span>
-                <strong style={{ color: selectedAssessment.totalDisallowanceSec40a > 0 ? '#b91c1c' : '#0f172a' }}>
+                <span style={{ color: 'var(--muted)' }}>Sec 40(a) TDS: </span>
+                <strong style={{ color: selectedAssessment.totalDisallowanceSec40a > 0 ? 'var(--error)' : 'var(--text)' }}>
                   {fmtInr(selectedAssessment.totalDisallowanceSec40a)}
                 </strong>
               </div>
               <div>
-                <span style={{ color: '#64748b' }}>Sec 43B(h) MSME: </span>
-                <strong style={{ color: selectedAssessment.totalDisallowanceSec43Bh > 0 ? '#ea580c' : '#0f172a' }}>
+                <span style={{ color: 'var(--muted)' }}>Sec 43B(h) MSME: </span>
+                <strong style={{ color: selectedAssessment.totalDisallowanceSec43Bh > 0 ? 'var(--warning)' : 'var(--text)' }}>
                   {fmtInr(selectedAssessment.totalDisallowanceSec43Bh)}
                 </strong>
               </div>
               <div>
-                <span style={{ color: '#64748b' }}>Total Additions: </span>
-                <strong style={{ color: '#b91c1c', fontSize: '14px' }}>{fmtInr(selectedAssessment.totalNetIncomeAdjustment)}</strong>
+                <span style={{ color: 'var(--muted)' }}>Total Additions: </span>
+                <strong style={{ color: 'var(--error)', fontSize: '14px' }}>{fmtInr(selectedAssessment.totalNetIncomeAdjustment)}</strong>
               </div>
             </div>
 
             {/* Navigation Tabs */}
-            <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid #e2e8f0', margin: '16px 0 20px' }}>
+            <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid var(--border)', margin: '16px 0 20px' }}>
               <button
                 onClick={() => setActiveTab('clauses')}
                 style={{
                   padding: '10px 18px',
                   border: 'none',
-                  borderBottom: activeTab === 'clauses' ? '2px solid #2563eb' : 'none',
+                  borderBottom: activeTab === 'clauses' ? '2px solid var(--accent)' : 'none',
                   backgroundColor: 'transparent',
-                  color: activeTab === 'clauses' ? '#2563eb' : '#64748b',
+                  color: activeTab === 'clauses' ? 'var(--accent)' : 'var(--muted)',
                   fontWeight: activeTab === 'clauses' ? '700' : '500',
                   cursor: 'pointer',
                   fontSize: '14px'
@@ -629,9 +627,9 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                 style={{
                   padding: '10px 18px',
                   border: 'none',
-                  borderBottom: activeTab === 'applicability' ? '2px solid #2563eb' : 'none',
+                  borderBottom: activeTab === 'applicability' ? '2px solid var(--accent)' : 'none',
                   backgroundColor: 'transparent',
-                  color: activeTab === 'applicability' ? '#2563eb' : '#64748b',
+                  color: activeTab === 'applicability' ? 'var(--accent)' : 'var(--muted)',
                   fontWeight: activeTab === 'applicability' ? '700' : '500',
                   cursor: 'pointer',
                   fontSize: '14px'
@@ -644,9 +642,9 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                 style={{
                   padding: '10px 18px',
                   border: 'none',
-                  borderBottom: activeTab === 'report' ? '2px solid #2563eb' : 'none',
+                  borderBottom: activeTab === 'report' ? '2px solid var(--accent)' : 'none',
                   backgroundColor: 'transparent',
-                  color: activeTab === 'report' ? '#2563eb' : '#64748b',
+                  color: activeTab === 'report' ? 'var(--accent)' : 'var(--muted)',
                   fontWeight: activeTab === 'report' ? '700' : '500',
                   cursor: 'pointer',
                   fontSize: '14px'
@@ -661,38 +659,38 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <label style={{ fontSize: '13px', color: '#475569', fontWeight: '600' }}>Filter Category:</label>
+                    <label style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '600' }}>Filter Category:</label>
                     <select
                       value={clauseCategoryFilter}
                       onChange={e => setClauseCategoryFilter(e.target.value)}
-                      style={{ padding: '6px 10px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                      style={{ padding: '6px 10px', borderRadius: '4px', border: '1px solid var(--border)', backgroundColor: 'var(--card)', color: 'var(--text)', fontSize: '13px' }}
                     >
                       <option value="all">All Categories</option>
                       <option value="disallowed">Only Disallowances / Qualifications</option>
                       <option value="Part A - General Assessee Details">Part A - General Details</option>
-                      <option value="Accounting Methods & ICDS">Accounting & ICDS</option>
-                      <option value="Depreciation & Capital Deductions">Depreciation & Capital</option>
+                      <option value="Accounting Methods & ICDS">Accounting &amp; ICDS</option>
+                      <option value="Depreciation & Capital Deductions">Depreciation &amp; Capital</option>
                       <option value="Disallowances & Additions (Sec 40, 40A, 36)">Disallowances (40, 40A, 36)</option>
-                      <option value="Statutory Dues & Sec 43B / 43B(h)">Statutory Dues & 43B / MSME</option>
-                      <option value="Loans, Deposits & Cash (Sec 269SS/ST/T)">Loans & Cash (269SS/ST/T)</option>
+                      <option value="Statutory Dues & Sec 43B / 43B(h)">Statutory Dues &amp; 43B / MSME</option>
+                      <option value="Loans, Deposits & Cash (Sec 269SS/ST/T)">Loans &amp; Cash (269SS/ST/T)</option>
                       <option value="TDS / TCS Compliance (Chapter XVII-B)">TDS/TCS Compliance</option>
-                      <option value="Analytical Ratios & GST Expenditure">Ratios & GST Expenditure</option>
+                      <option value="Analytical Ratios & GST Expenditure">Ratios &amp; GST Expenditure</option>
                     </select>
                   </div>
-                  <div style={{ fontSize: '13px', color: '#64748b' }}>
+                  <div style={{ fontSize: '13px', color: 'var(--muted)' }}>
                     Showing {filteredClauses.length} of {selectedAssessment.clauseResponses.length} clauses
                   </div>
                 </div>
 
-                <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '6px' }}>
+                <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: '6px' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
                     <thead>
-                      <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: '600' }}>
+                      <tr style={{ backgroundColor: 'var(--card-subtle)', borderBottom: '1px solid var(--border)', color: 'var(--muted)', fontWeight: '600' }}>
                         <th style={{ padding: '10px 12px' }}>Clause No.</th>
-                        <th style={{ padding: '10px 12px' }}>Title & Scope</th>
+                        <th style={{ padding: '10px 12px' }}>Title &amp; Scope</th>
                         <th style={{ padding: '10px 12px' }}>Status</th>
                         <th style={{ padding: '10px 12px', textAlign: 'right' }}>Disallowance / Amount</th>
-                        <th style={{ padding: '10px 12px' }}>Auditor Remarks & Finding</th>
+                        <th style={{ padding: '10px 12px' }}>Auditor Remarks &amp; Finding</th>
                         <th style={{ padding: '10px 12px' }}>Ref</th>
                         <th style={{ padding: '10px 12px', textAlign: 'center' }}>Action</th>
                       </tr>
@@ -701,13 +699,13 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                       {filteredClauses.map(c => {
                         const isDisallowed = c.status === 'Disallowed' || c.status === 'Qualified'
                         return (
-                          <tr key={c.id} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: isDisallowed ? '#fff5f5' : '#fff' }}>
+                          <tr key={c.id} style={{ borderBottom: '1px solid var(--border)', backgroundColor: isDisallowed ? 'rgba(220, 38, 38, 0.05)' : 'var(--card)' }}>
                             <td style={{ padding: '10px 12px', fontWeight: '700', whiteSpace: 'nowrap' }}>
                               {c.clauseNumber}
                             </td>
                             <td style={{ padding: '10px 12px' }}>
-                              <div style={{ fontWeight: '600', color: '#0f172a' }}>{c.clauseTitle}</div>
-                              <div style={{ fontSize: '11px', color: '#64748b' }}>{c.category}</div>
+                              <div style={{ fontWeight: '600', color: 'var(--text)' }}>{c.clauseTitle}</div>
+                              <div style={{ fontSize: '11px', color: 'var(--muted)' }}>{c.category}</div>
                             </td>
                             <td style={{ padding: '10px 12px' }}>
                               <span
@@ -718,34 +716,34 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                                   fontWeight: '700',
                                   backgroundColor:
                                     c.status === 'Clean'
-                                      ? '#dcfce7'
+                                      ? 'rgba(22, 163, 74, 0.12)'
                                       : c.status === 'Disallowed'
-                                        ? '#fee2e2'
+                                        ? 'rgba(220, 38, 38, 0.12)'
                                         : c.status === 'Qualified'
-                                          ? '#fef3c7'
-                                          : '#f1f5f9',
+                                          ? 'rgba(217, 119, 6, 0.12)'
+                                          : 'var(--card-subtle)',
                                   color:
                                     c.status === 'Clean'
-                                      ? '#166534'
+                                      ? 'var(--success)'
                                       : c.status === 'Disallowed'
-                                        ? '#991b1b'
+                                        ? 'var(--error)'
                                         : c.status === 'Qualified'
-                                          ? '#92400e'
-                                          : '#475569'
+                                          ? 'var(--warning)'
+                                          : 'var(--muted)'
                                 }}
                               >
                                 {c.status}
                               </span>
                             </td>
-                            <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: '700', color: c.reportedAmount > 0 ? '#b91c1c' : '#475569' }}>
+                            <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: '700', color: c.reportedAmount > 0 ? 'var(--error)' : 'var(--muted)' }}>
                               {c.reportedAmount > 0 ? fmtInr(c.reportedAmount) : '-'}
                             </td>
-                            <td style={{ padding: '10px 12px', maxWidth: '300px', color: '#334155' }}>
+                            <td style={{ padding: '10px 12px', maxWidth: '300px', color: 'var(--text-secondary)' }}>
                               <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={c.auditorRemarks}>
                                 {c.auditorRemarks || 'Verified without discrepancy.'}
                               </div>
                             </td>
-                            <td style={{ padding: '10px 12px', color: '#64748b', fontSize: '11px' }}>
+                            <td style={{ padding: '10px 12px', color: 'var(--muted)', fontSize: '11px' }}>
                               {c.workpaperRef || '-'}
                             </td>
                             <td style={{ padding: '10px 12px', textAlign: 'center' }}>
@@ -754,8 +752,9 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                                   onClick={() => openEditClause(c)}
                                   style={{
                                     padding: '4px 10px',
-                                    backgroundColor: '#f1f5f9',
-                                    border: '1px solid #cbd5e1',
+                                    backgroundColor: 'var(--card-subtle)',
+                                    border: '1px solid var(--border)',
+                                    color: 'var(--text)',
                                     borderRadius: '4px',
                                     cursor: 'pointer',
                                     fontSize: '12px',
@@ -765,7 +764,7 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                                   Edit / Verify
                                 </button>
                               ) : (
-                                <span style={{ color: '#94a3b8', fontSize: '12px' }}>Locked</span>
+                                <span style={{ color: 'var(--muted)', fontSize: '12px' }}>Locked</span>
                               )}
                             </td>
                           </tr>
@@ -779,42 +778,42 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
 
             {/* Tab 2: 44AB Applicability Analysis */}
             {activeTab === 'applicability' && (
-              <div style={{ backgroundColor: '#f8fafc', padding: '20px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                <h3 style={{ margin: '0 0 14px', fontSize: '16px', color: '#0f172a' }}>
+              <div style={{ backgroundColor: 'var(--card-subtle)', padding: '20px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                <h3 style={{ margin: '0 0 14px', fontSize: '16px', color: 'var(--text)' }}>
                   Section 44AB Statutory Audit Gating Rationale
                 </h3>
-                <div style={{ backgroundColor: selectedAssessment.isTaxAuditMandatory ? '#fef2f2' : '#f0fdf4', padding: '14px', borderRadius: '6px', border: `1px solid ${selectedAssessment.isTaxAuditMandatory ? '#f87171' : '#86efac'}`, marginBottom: '16px' }}>
-                  <div style={{ fontWeight: '700', fontSize: '14px', color: selectedAssessment.isTaxAuditMandatory ? '#991b1b' : '#166534' }}>
+                <div style={{ backgroundColor: selectedAssessment.isTaxAuditMandatory ? 'rgba(220, 38, 38, 0.08)' : 'rgba(22, 163, 74, 0.08)', padding: '14px', borderRadius: '6px', border: `1px solid ${selectedAssessment.isTaxAuditMandatory ? 'rgba(220, 38, 38, 0.35)' : 'rgba(22, 163, 74, 0.35)'}`, marginBottom: '16px' }}>
+                  <div style={{ fontWeight: '700', fontSize: '14px', color: selectedAssessment.isTaxAuditMandatory ? 'var(--error)' : 'var(--success)' }}>
                     {selectedAssessment.isTaxAuditMandatory ? 'Mandatory Audit Required' : 'Audit Not Mandatory (Exempt)'}
                   </div>
-                  <div style={{ fontSize: '13px', color: '#334155', marginTop: '6px' }}>
+                  <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '6px' }}>
                     {selectedAssessment.applicabilityReason}
                   </div>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', fontSize: '13px' }}>
-                  <div style={{ backgroundColor: '#fff', padding: '14px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
-                    <div style={{ fontWeight: '700', color: '#1e293b', marginBottom: '8px' }}>5% Cash Receipts Test</div>
+                  <div style={{ backgroundColor: 'var(--card)', padding: '14px', borderRadius: '6px', border: '1px solid var(--border)' }}>
+                    <div style={{ fontWeight: '700', color: 'var(--text)', marginBottom: '8px' }}>5% Cash Receipts Test</div>
                     <div>Total Turnover/Receipts: <strong>{fmtInr(selectedAssessment.totalTurnoverOrGrossReceipts)}</strong></div>
                     <div>Total Cash Receipts: <strong>{fmtInr(selectedAssessment.totalCashReceipts)}</strong></div>
                     <div>Cash Receipt Ratio: <strong>{selectedAssessment.cashReceiptPercentage}%</strong></div>
-                    <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>
+                    <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '4px' }}>
                       {selectedAssessment.cashReceiptPercentage <= 5 ? 'Eligible for enhanced limit (<= 5%)' : 'Exceeds 5% safe harbor threshold'}
                     </div>
                   </div>
 
-                  <div style={{ backgroundColor: '#fff', padding: '14px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
-                    <div style={{ fontWeight: '700', color: '#1e293b', marginBottom: '8px' }}>5% Cash Payments Test</div>
+                  <div style={{ backgroundColor: 'var(--card)', padding: '14px', borderRadius: '6px', border: '1px solid var(--border)' }}>
+                    <div style={{ fontWeight: '700', color: 'var(--text)', marginBottom: '8px' }}>5% Cash Payments Test</div>
                     <div>Total Payments Incurred: <strong>{fmtInr(selectedAssessment.totalPayments)}</strong></div>
                     <div>Total Cash Payments: <strong>{fmtInr(selectedAssessment.totalCashPayments)}</strong></div>
                     <div>Cash Payment Ratio: <strong>{selectedAssessment.cashPaymentPercentage}%</strong></div>
-                    <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>
+                    <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '4px' }}>
                       {selectedAssessment.cashPaymentPercentage <= 5 ? 'Eligible for enhanced limit (<= 5%)' : 'Exceeds 5% safe harbor threshold'}
                     </div>
                   </div>
                 </div>
 
-                <div style={{ marginTop: '16px', fontSize: '13px', color: '#475569', backgroundColor: '#fff', padding: '14px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
+                <div style={{ marginTop: '16px', fontSize: '13px', color: 'var(--text-secondary)', backgroundColor: 'var(--card)', padding: '14px', borderRadius: '6px', border: '1px solid var(--border)' }}>
                   <div>Audit Report Selected: <strong>{selectedAssessment.auditType}</strong></div>
                   <div>Statutory Sub-Clause: <strong>{selectedAssessment.section44AbClause}</strong></div>
                 </div>
@@ -825,8 +824,8 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
             {activeTab === 'report' && (
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                  <h3 style={{ margin: 0, fontSize: '16px', color: '#0f172a' }}>
-                    Legal Audit Report ({selectedAssessment.auditType}) & Observations
+                  <h3 style={{ margin: 0, fontSize: '16px', color: 'var(--text)' }}>
+                    Legal Audit Report ({selectedAssessment.auditType}) &amp; Observations
                   </h3>
                   <button
                     onClick={() => {
@@ -837,7 +836,7 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                     }}
                     style={{
                       padding: '6px 12px',
-                      backgroundColor: '#2563eb',
+                      backgroundColor: 'var(--accent)',
                       color: '#fff',
                       border: 'none',
                       borderRadius: '4px',
@@ -861,10 +860,10 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                     fontFamily: 'Consolas, Monaco, monospace',
                     fontSize: '12px',
                     lineHeight: '1.5',
-                    backgroundColor: '#0f172a',
+                    backgroundColor: '#0b1528',
                     color: '#f8fafc',
                     borderRadius: '6px',
-                    border: '1px solid #334155',
+                    border: '1px solid var(--border)',
                     resize: 'vertical'
                   }}
                 />
@@ -896,7 +895,7 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                       placeholder="CA Name"
                       value={form3CdOpts.auditorName || ''}
                       onChange={e => setForm3CdOpts(p => ({ ...p, auditorName: e.target.value }))}
-                      style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '12px' }}
+                      style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border)', backgroundColor: 'var(--card)', color: 'var(--text)', fontSize: '12px' }}
                     />
                     <input
                       type="text"
@@ -904,7 +903,7 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                       placeholder="Membership No. (6 digits)"
                       value={form3CdOpts.auditorMembershipNo || ''}
                       onChange={e => setForm3CdOpts(p => ({ ...p, auditorMembershipNo: e.target.value }))}
-                      style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '12px' }}
+                      style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border)', backgroundColor: 'var(--card)', color: 'var(--text)', fontSize: '12px' }}
                     />
                     <input
                       type="text"
@@ -912,21 +911,21 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                       placeholder="FRN (e.g. 004321S)"
                       value={form3CdOpts.firmRegNum || ''}
                       onChange={e => setForm3CdOpts(p => ({ ...p, firmRegNum: e.target.value.toUpperCase() }))}
-                      style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '12px' }}
+                      style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border)', backgroundColor: 'var(--card)', color: 'var(--text)', fontSize: '12px' }}
                     />
                     <input
                       type="text"
                       placeholder="CA Firm Name"
                       value={form3CdOpts.caFirmName || ''}
                       onChange={e => setForm3CdOpts(p => ({ ...p, caFirmName: e.target.value }))}
-                      style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '12px' }}
+                      style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border)', backgroundColor: 'var(--card)', color: 'var(--text)', fontSize: '12px' }}
                     />
                     <input
                       type="text"
                       placeholder="Place / City"
                       value={form3CdOpts.auditorCity || ''}
                       onChange={e => setForm3CdOpts(p => ({ ...p, auditorCity: e.target.value }))}
-                      style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '12px' }}
+                      style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border)', backgroundColor: 'var(--card)', color: 'var(--text)', fontSize: '12px' }}
                     />
                     <input
                       type="text"
@@ -934,7 +933,7 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                       placeholder="Auditor PIN Code"
                       value={form3CdOpts.auditorPinCode || ''}
                       onChange={e => setForm3CdOpts(p => ({ ...p, auditorPinCode: e.target.value }))}
-                      style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '12px' }}
+                      style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border)', backgroundColor: 'var(--card)', color: 'var(--text)', fontSize: '12px' }}
                     />
                   </div>
                 </JsonExportPanel>
@@ -946,8 +945,8 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
 
       {/* Modal: New Tax Audit Assessment */}
       {showNewModal && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '8px', maxWidth: '640px', width: '90%', maxHeight: '90vh', overflowY: 'auto' }}>
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ backgroundColor: 'var(--card)', color: 'var(--text)', border: '1px solid var(--border)', padding: '24px', borderRadius: '8px', maxWidth: '640px', width: '90%', maxHeight: '90vh', overflowY: 'auto' }}>
             <h2 style={{ margin: '0 0 16px', fontSize: '18px', fontWeight: '700' }}>Create Form 3CD Tax Audit Assessment</h2>
             <form onSubmit={handleCreateAssessment} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div>
@@ -956,7 +955,7 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                   required
                   value={newForm.clientId}
                   onChange={e => onClientChangeInNewForm(e.target.value)}
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', backgroundColor: 'var(--card)', color: 'var(--text)' }}
                 >
                   <option value="">-- Select Client --</option>
                   {clients.map(c => (
@@ -973,7 +972,7 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                   <select
                     value={newForm.financialYear}
                     onChange={e => setNewForm({ ...newForm, financialYear: e.target.value })}
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', backgroundColor: 'var(--card)', color: 'var(--text)' }}
                   >
                     <option value="2026-27">Tax Year 2026-27 (Income-tax Act, 2025 · Form 26)</option>
                     <option value="2025-26">2025-26</option>
@@ -987,7 +986,7 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                     type="text"
                     value={newForm.assessmentYear}
                     onChange={e => setNewForm({ ...newForm, assessmentYear: e.target.value })}
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', backgroundColor: 'var(--card)', color: 'var(--text)' }}
                   />
                 </div>
               </div>
@@ -1000,7 +999,7 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                     required
                     value={newForm.assesseeName}
                     onChange={e => setNewForm({ ...newForm, assesseeName: e.target.value })}
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', backgroundColor: 'var(--card)', color: 'var(--text)' }}
                   />
                 </div>
                 <div>
@@ -1010,7 +1009,7 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                     required
                     value={newForm.pan}
                     onChange={e => setNewForm({ ...newForm, pan: e.target.value })}
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', backgroundColor: 'var(--card)', color: 'var(--text)' }}
                   />
                 </div>
               </div>
@@ -1021,7 +1020,7 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                   <select
                     value={newForm.status}
                     onChange={e => setNewForm({ ...newForm, status: e.target.value })}
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', backgroundColor: 'var(--card)', color: 'var(--text)' }}
                   >
                     <option value="Company">Company</option>
                     <option value="Firm">Partnership Firm</option>
@@ -1035,7 +1034,7 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                   <select
                     value={newForm.optedSpecialTaxRegime}
                     onChange={e => setNewForm({ ...newForm, optedSpecialTaxRegime: e.target.value })}
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', backgroundColor: 'var(--card)', color: 'var(--text)' }}
                   >
                     <option value="None">Normal Provisions</option>
                     <option value="115BAA">115BAA (22% Domestic Co)</option>
@@ -1052,7 +1051,7 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                     type="number"
                     value={newForm.totalTurnoverOrGrossReceipts}
                     onChange={e => setNewForm({ ...newForm, totalTurnoverOrGrossReceipts: Number(e.target.value) })}
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', backgroundColor: 'var(--card)', color: 'var(--text)' }}
                   />
                 </div>
                 <div>
@@ -1061,7 +1060,7 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                     type="number"
                     value={newForm.totalCashReceipts}
                     onChange={e => setNewForm({ ...newForm, totalCashReceipts: Number(e.target.value) })}
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', backgroundColor: 'var(--card)', color: 'var(--text)' }}
                   />
                 </div>
               </div>
@@ -1073,7 +1072,7 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                     type="number"
                     value={newForm.totalPayments}
                     onChange={e => setNewForm({ ...newForm, totalPayments: Number(e.target.value) })}
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', backgroundColor: 'var(--card)', color: 'var(--text)' }}
                   />
                 </div>
                 <div>
@@ -1082,12 +1081,12 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                     type="number"
                     value={newForm.totalCashPayments}
                     onChange={e => setNewForm({ ...newForm, totalCashPayments: Number(e.target.value) })}
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', backgroundColor: 'var(--card)', color: 'var(--text)' }}
                   />
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', padding: '10px', backgroundColor: '#f8fafc', borderRadius: '6px' }}>
+              <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', padding: '10px', backgroundColor: 'var(--card-subtle)', borderRadius: '6px' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer' }}>
                   <input
                     type="checkbox"
@@ -1120,14 +1119,14 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                 <button
                   type="button"
                   onClick={() => setShowNewModal(false)}
-                  style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid #cbd5e1', backgroundColor: '#fff', cursor: 'pointer' }}
+                  style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid var(--border)', backgroundColor: 'var(--card-subtle)', color: 'var(--text)', cursor: 'pointer' }}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  style={{ padding: '8px 16px', borderRadius: '4px', border: 'none', backgroundColor: '#2563eb', color: '#fff', fontWeight: '600', cursor: 'pointer' }}
+                  style={{ padding: '8px 16px', borderRadius: '4px', border: 'none', backgroundColor: 'var(--accent)', color: '#fff', fontWeight: '600', cursor: 'pointer' }}
                 >
                   Create Assessment
                 </button>
@@ -1139,15 +1138,15 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
 
       {/* Modal: Clause Response Editor / Disallowance Entry */}
       {editingClause && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '8px', maxWidth: '640px', width: '90%', maxHeight: '90vh', overflowY: 'auto' }}>
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ backgroundColor: 'var(--card)', color: 'var(--text)', border: '1px solid var(--border)', padding: '24px', borderRadius: '8px', maxWidth: '640px', width: '90%', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
               <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '700' }}>
                 {editingClause.clauseNumber}: {editingClause.clauseTitle}
               </h2>
               <button
                 onClick={() => setEditingClause(null)}
-                style={{ border: 'none', background: 'transparent', fontSize: '18px', cursor: 'pointer' }}
+                style={{ border: 'none', background: 'transparent', color: 'var(--muted)', fontSize: '18px', cursor: 'pointer' }}
               >
                 &times;
               </button>
@@ -1159,7 +1158,7 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                 <select
                   value={clauseForm.status}
                   onChange={e => setClauseForm({ ...clauseForm, status: e.target.value })}
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', backgroundColor: 'var(--card)', color: 'var(--text)' }}
                 >
                   <option value="Clean">Clean / Favorable (No Disallowance)</option>
                   <option value="Disallowed">Disallowance / Addition to Income</option>
@@ -1176,21 +1175,21 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                   type="number"
                   value={clauseForm.reportedAmount}
                   onChange={e => setClauseForm({ ...clauseForm, reportedAmount: Number(e.target.value) })}
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', backgroundColor: 'var(--card)', color: 'var(--text)' }}
                 />
               </div>
 
               {/* Special helper for Clause 21(b) (Sec 40(a)(ia) 30% rule) */}
               {editingClause.clauseNumber.includes('21(b)') && (
-                <div style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', padding: '12px', borderRadius: '6px', fontSize: '12px' }}>
-                  <div style={{ fontWeight: '700', color: '#166534', marginBottom: '6px' }}>Section 40(a)(ia) 30% TDS Calculator Helper</div>
+                <div style={{ backgroundColor: 'rgba(22, 163, 74, 0.08)', border: '1px solid rgba(22, 163, 74, 0.35)', padding: '12px', borderRadius: '6px', fontSize: '12px' }}>
+                  <div style={{ fontWeight: '700', color: 'var(--success)', marginBottom: '6px' }}>Section 40(a)(ia) 30% TDS Calculator Helper</div>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                     <input
                       type="number"
                       placeholder="Resident payment without TDS"
                       value={calcResidentTdsBase || ''}
                       onChange={e => setCalcResidentTdsBase(Number(e.target.value))}
-                      style={{ flex: 1, padding: '6px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '12px' }}
+                      style={{ flex: 1, padding: '6px', border: '1px solid var(--border)', backgroundColor: 'var(--card)', color: 'var(--text)', borderRadius: '4px', fontSize: '12px' }}
                     />
                     <button
                       type="button"
@@ -1204,7 +1203,7 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                           auditorRemarks: `30% disallowance u/s 40(a)(ia) on resident payment of ₹${calcResidentTdsBase.toLocaleString('en-IN')} for failure to deduct/deposit TDS.`
                         })
                       }}
-                      style={{ padding: '6px 12px', backgroundColor: '#16a34a', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '600' }}
+                      style={{ padding: '6px 12px', backgroundColor: 'var(--success)', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '600' }}
                     >
                       Apply 30%
                     </button>
@@ -1214,8 +1213,8 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
 
               {/* Special helper for Clause 26/43B(h) (MSME 45-day overdue rule) */}
               {editingClause.clauseNumber.includes('43B(h)') && (
-                <div style={{ backgroundColor: '#fffbeb', border: '1px solid #fef3c7', padding: '12px', borderRadius: '6px', fontSize: '12px' }}>
-                  <div style={{ fontWeight: '700', color: '#92400e', marginBottom: '6px' }}>Section 43B(h) MSMED Act 15/45-Day Overdue Check</div>
+                <div style={{ backgroundColor: 'rgba(217, 119, 6, 0.08)', border: '1px solid rgba(217, 119, 6, 0.35)', padding: '12px', borderRadius: '6px', fontSize: '12px' }}>
+                  <div style={{ fontWeight: '700', color: 'var(--warning)', marginBottom: '6px' }}>Section 43B(h) MSMED Act 15/45-Day Overdue Check</div>
                   <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                     <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
                       <input
@@ -1230,9 +1229,9 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                       placeholder="Actual delay (days)"
                       value={calcMsmeDays || ''}
                       onChange={e => setCalcMsmeDays(Number(e.target.value))}
-                      style={{ width: '120px', padding: '6px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '12px' }}
+                      style={{ width: '120px', padding: '6px', border: '1px solid var(--border)', backgroundColor: 'var(--card)', color: 'var(--text)', borderRadius: '4px', fontSize: '12px' }}
                     />
-                    <span style={{ color: calcMsmeDays > (calcMsmeHasAgreement ? 45 : 15) ? '#b91c1c' : '#16a34a', fontWeight: '700' }}>
+                    <span style={{ color: calcMsmeDays > (calcMsmeHasAgreement ? 45 : 15) ? 'var(--error)' : 'var(--success)', fontWeight: '700' }}>
                       {calcMsmeDays > (calcMsmeHasAgreement ? 45 : 15) ? 'Overdue -> Disallowed' : 'Within Limit'}
                     </span>
                   </div>
@@ -1240,13 +1239,13 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
               )}
 
               <div>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px' }}>Auditor Remarks & Findings</label>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '4px' }}>Auditor Remarks &amp; Findings</label>
                 <textarea
                   rows={4}
                   required
                   value={clauseForm.auditorRemarks}
                   onChange={e => setClauseForm({ ...clauseForm, auditorRemarks: e.target.value })}
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', backgroundColor: 'var(--card)', color: 'var(--text)', fontSize: '13px' }}
                 />
               </div>
 
@@ -1258,7 +1257,7 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                     placeholder="e.g. WP-40A-01"
                     value={clauseForm.workpaperRef}
                     onChange={e => setClauseForm({ ...clauseForm, workpaperRef: e.target.value })}
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', backgroundColor: 'var(--card)', color: 'var(--text)' }}
                   />
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', marginTop: '20px' }}>
@@ -1277,14 +1276,14 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                 <button
                   type="button"
                   onClick={() => setEditingClause(null)}
-                  style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid #cbd5e1', backgroundColor: '#fff', cursor: 'pointer' }}
+                  style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid var(--border)', backgroundColor: 'var(--card-subtle)', color: 'var(--text)', cursor: 'pointer' }}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  style={{ padding: '8px 16px', borderRadius: '4px', border: 'none', backgroundColor: '#2563eb', color: '#fff', fontWeight: '600', cursor: 'pointer' }}
+                  style={{ padding: '8px 16px', borderRadius: '4px', border: 'none', backgroundColor: 'var(--accent)', color: '#fff', fontWeight: '600', cursor: 'pointer' }}
                 >
                   Save Clause Response
                 </button>
@@ -1296,8 +1295,8 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
 
       {/* Modal: Quick 44AB Applicability Calculator */}
       {showEvalModal && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '8px', maxWidth: '600px', width: '90%', maxHeight: '90vh', overflowY: 'auto' }}>
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ backgroundColor: 'var(--card)', color: 'var(--text)', border: '1px solid var(--border)', padding: '24px', borderRadius: '8px', maxWidth: '600px', width: '90%', maxHeight: '90vh', overflowY: 'auto' }}>
             <h2 style={{ margin: '0 0 14px', fontSize: '18px', fontWeight: '700' }}>Section 44AB Applicability Calculator</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
@@ -1306,7 +1305,7 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                   <select
                     value={evalForm.isBusiness ? 'business' : 'profession'}
                     onChange={e => setEvalForm({ ...evalForm, isBusiness: e.target.value === 'business' })}
-                    style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid var(--border)', backgroundColor: 'var(--card)', color: 'var(--text)' }}
                   >
                     <option value="business">Business (Turnover limit: ₹1 Cr / ₹10 Cr)</option>
                     <option value="profession">Profession (Receipts limit: ₹50 L; ₹75 L only under 44ADA)</option>
@@ -1317,7 +1316,7 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                   <select
                     value={evalForm.financialYear}
                     onChange={e => setEvalForm({ ...evalForm, financialYear: e.target.value })}
-                    style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid var(--border)', backgroundColor: 'var(--card)', color: 'var(--text)' }}
                   >
                     <option value="2026-27">Tax Year 2026-27 (Income-tax Act, 2025)</option>
                     <option value="2025-26">FY 2025-26 (Income-tax Act, 1961)</option>
@@ -1339,7 +1338,7 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                   <select
                     value={evalForm.entityType}
                     onChange={e => setEvalForm({ ...evalForm, entityType: e.target.value })}
-                    style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid var(--border)', backgroundColor: 'var(--card)', color: 'var(--text)' }}
                   >
                     <option value="Company">Company</option>
                     <option value="Partnership">Partnership</option>
@@ -1356,7 +1355,7 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                     type="number"
                     value={evalForm.turnoverOrGrossReceipts}
                     onChange={e => setEvalForm({ ...evalForm, turnoverOrGrossReceipts: Number(e.target.value) })}
-                    style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid var(--border)', backgroundColor: 'var(--card)', color: 'var(--text)' }}
                   />
                 </div>
                 <div>
@@ -1365,7 +1364,7 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                     type="number"
                     value={evalForm.cashReceipts}
                     onChange={e => setEvalForm({ ...evalForm, cashReceipts: Number(e.target.value) })}
-                    style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid var(--border)', backgroundColor: 'var(--card)', color: 'var(--text)' }}
                   />
                 </div>
               </div>
@@ -1377,7 +1376,7 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                     type="number"
                     value={evalForm.totalPayments}
                     onChange={e => setEvalForm({ ...evalForm, totalPayments: Number(e.target.value) })}
-                    style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid var(--border)', backgroundColor: 'var(--card)', color: 'var(--text)' }}
                   />
                 </div>
                 <div>
@@ -1386,7 +1385,7 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                     type="number"
                     value={evalForm.cashPayments}
                     onChange={e => setEvalForm({ ...evalForm, cashPayments: Number(e.target.value) })}
-                    style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid var(--border)', backgroundColor: 'var(--card)', color: 'var(--text)' }}
                   />
                 </div>
               </div>
@@ -1394,18 +1393,18 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
               <button
                 type="button"
                 onClick={handleEvaluateApplicability}
-                style={{ padding: '8px', backgroundColor: '#2563eb', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '600' }}
+                style={{ padding: '8px', backgroundColor: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '600' }}
               >
                 Compute Applicability
               </button>
 
               {evalResult && (
-                <div style={{ padding: '12px', backgroundColor: evalResult.isMandatory ? '#fee2e2' : '#dcfce7', border: `1px solid ${evalResult.isMandatory ? '#ef4444' : '#86efac'}`, borderRadius: '6px', fontSize: '13px' }}>
-                  <div style={{ fontWeight: '700', color: evalResult.isMandatory ? '#991b1b' : '#166534' }}>
+                <div style={{ padding: '12px', backgroundColor: evalResult.isMandatory ? 'rgba(220, 38, 38, 0.08)' : 'rgba(22, 163, 74, 0.08)', border: `1px solid ${evalResult.isMandatory ? 'rgba(220, 38, 38, 0.35)' : 'rgba(22, 163, 74, 0.35)'}`, borderRadius: '6px', fontSize: '13px' }}>
+                  <div style={{ fontWeight: '700', color: evalResult.isMandatory ? 'var(--error)' : 'var(--success)' }}>
                     {evalResult.isMandatory ? 'Mandatory Tax Audit (Section 44AB Applies)' : 'Tax Audit Not Mandatory (Exempt)'}
                   </div>
-                  <div style={{ marginTop: '4px', color: '#334155' }}>{evalResult.rationale}</div>
-                  <div style={{ marginTop: '6px', fontSize: '12px', color: '#64748b' }}>
+                  <div style={{ marginTop: '4px', color: 'var(--text-secondary)' }}>{evalResult.rationale}</div>
+                  <div style={{ marginTop: '6px', fontSize: '12px', color: 'var(--muted)' }}>
                     Audit Report: <strong>{evalResult.recommendedAuditType}</strong> | Cash Receipts: {evalResult.cashReceiptPercent}% | Cash Payments: {evalResult.cashPaymentPercent}%
                   </div>
                 </div>
@@ -1415,7 +1414,7 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                 <button
                   type="button"
                   onClick={() => setShowEvalModal(false)}
-                  style={{ padding: '6px 14px', borderRadius: '4px', border: '1px solid #cbd5e1', backgroundColor: '#fff', cursor: 'pointer' }}
+                  style={{ padding: '6px 14px', borderRadius: '4px', border: '1px solid var(--border)', backgroundColor: 'var(--card-subtle)', color: 'var(--text)', cursor: 'pointer' }}
                 >
                   Close
                 </button>
@@ -1427,12 +1426,12 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
 
       {/* Modal: Finalize Assessment */}
       {showFinalizeModal && selectedAssessment && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '8px', maxWidth: '520px', width: '90%' }}>
-            <h2 style={{ margin: '0 0 12px', fontSize: '18px', fontWeight: '700', color: '#0f172a' }}>
-              Finalize & Sign Off Tax Audit Report
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ backgroundColor: 'var(--card)', color: 'var(--text)', border: '1px solid var(--border)', padding: '24px', borderRadius: '8px', maxWidth: '520px', width: '90%' }}>
+            <h2 style={{ margin: '0 0 12px', fontSize: '18px', fontWeight: '700', color: 'var(--text)' }}>
+              Finalize &amp; Sign Off Tax Audit Report
             </h2>
-            <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#64748b' }}>
+            <p style={{ margin: '0 0 16px', fontSize: '13px', color: 'var(--muted)' }}>
               Finalizing will permanently lock this assessment and all 44 Form 3CD clauses. The legal {selectedAssessment.auditType} report will be frozen for filing.
             </p>
 
@@ -1445,7 +1444,7 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                 value={finalizeNote}
                 onChange={e => setFinalizeNote(e.target.value)}
                 placeholder="Enter formal observations to be included in Paragraph 3 of Form 3CA / 3CB..."
-                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', backgroundColor: 'var(--card)', color: 'var(--text)', fontSize: '13px' }}
               />
             </div>
 
@@ -1453,14 +1452,14 @@ export function TaxAuditDeskPage({ can }: { can: (p: string) => boolean }) {
               <button
                 type="button"
                 onClick={() => setShowFinalizeModal(false)}
-                style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid #cbd5e1', backgroundColor: '#fff', cursor: 'pointer' }}
+                style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid var(--border)', backgroundColor: 'var(--card-subtle)', color: 'var(--text)', cursor: 'pointer' }}
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleFinalizeAssessment}
-                style={{ padding: '8px 16px', borderRadius: '4px', border: 'none', backgroundColor: '#16a34a', color: '#fff', fontWeight: '600', cursor: 'pointer' }}
+                style={{ padding: '8px 16px', borderRadius: '4px', border: 'none', backgroundColor: 'var(--success)', color: '#fff', fontWeight: '600', cursor: 'pointer' }}
               >
                 Confirm Final Sign-Off
               </button>

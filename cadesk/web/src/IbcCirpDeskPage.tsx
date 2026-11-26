@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, type FormEvent } from 'react'
+import { useState, useEffect, useMemo, useCallback, type FormEvent } from 'react'
 import {
   ibcCirpApi,
   api,
@@ -162,11 +162,42 @@ export function IbcCirpDeskPage({ can }: { can?: (p: string) => boolean }) {
   const [val2Fair, setVal2Fair] = useState<number>(120000000)
   const [val2Liq, setVal2Liq] = useState<number>(82000000)
 
+  const loadClients = useCallback(async () => {
+    try {
+      const res = await api<ClientPage>('/api/clients?pageSize=100')
+      setClients(res.items || [])
+      if (res.items && res.items.length > 0) {
+        setFormClientId(prev => prev || res.items[0].id)
+      }
+    } catch {
+      // ignore
+    }
+  }, [])
+
+  const loadCases = useCallback(async (clientId?: string) => {
+    setLoading(true)
+    try {
+      const targetClientId = clientId !== undefined ? clientId : selectedClientId
+      const data = await ibcCirpApi.getCases(targetClientId ? targetClientId : undefined)
+      setCases(data)
+      if (data.length > 0) {
+        setSelectedCaseId(prev => prev || data[0].id)
+      } else {
+        setSelectedCaseId('')
+        setCurrentCase(null)
+      }
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : 'Failed to load CIRP cases')
+    } finally {
+      setLoading(false)
+    }
+  }, [selectedClientId])
+
   // Load clients & cases
   useEffect(() => {
     loadClients()
     loadCases()
-  }, [])
+  }, [loadClients, loadCases])
 
   // When selected case changes, fetch full details & compute timeline
   useEffect(() => {
@@ -177,37 +208,6 @@ export function IbcCirpDeskPage({ can }: { can?: (p: string) => boolean }) {
       setTimelineCalc(null)
     }
   }, [selectedCaseId])
-
-  async function loadClients() {
-    try {
-      const res = await api<ClientPage>('/api/clients?pageSize=100')
-      setClients(res.items || [])
-      if (res.items && res.items.length > 0 && !formClientId) {
-        setFormClientId(res.items[0].id)
-      }
-    } catch {
-      // ignore
-    }
-  }
-
-  async function loadCases(clientId?: string) {
-    setLoading(true)
-    try {
-      const targetClientId = clientId !== undefined ? clientId : selectedClientId
-      const data = await ibcCirpApi.getCases(targetClientId ? targetClientId : undefined)
-      setCases(data)
-      if (data.length > 0 && !selectedCaseId) {
-        setSelectedCaseId(data[0].id)
-      } else if (data.length === 0) {
-        setSelectedCaseId('')
-        setCurrentCase(null)
-      }
-    } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : 'Failed to load CIRP cases')
-    } finally {
-      setLoading(false)
-    }
-  }
 
   async function loadCaseDetail(id: string) {
     setLoading(true)

@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react'
-import { toError,
+import React, { useState, useEffect, useCallback } from 'react'
+import {
+  toError,
   fixedAssetApi,
   api,
   type FixedAssetDto,
@@ -116,30 +117,22 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
     remarks: 'Sold in secondary market'
   })
 
-  useEffect(() => {
-    loadClients()
-  }, [])
-
-  useEffect(() => {
-    loadData(selectedClientId || undefined, selectedFy)
-  }, [selectedClientId, selectedFy])
-
-  const loadClients = async () => {
+  const loadClients = useCallback(async () => {
     try {
       const res = await api<ClientPage>('/api/clients?pageSize=100')
       if (res && res.items) {
         setClients(res.items)
-        if (res.items.length > 0 && !selectedClientId) {
-          setAssetForm(f => ({ ...f, clientId: res.items[0].id }))
-          setDeprForm(f => ({ ...f, clientId: res.items[0].id }))
+        if (res.items.length > 0) {
+          setAssetForm(f => (f.clientId ? f : { ...f, clientId: res.items[0].id }))
+          setDeprForm(f => (f.clientId ? f : { ...f, clientId: res.items[0].id }))
         }
       }
     } catch {
       // Non-fatal if clients cannot be loaded immediately
     }
-  }
+  }, [])
 
-  const loadData = async (cId?: string, fy?: string) => {
+  const loadData = useCallback(async (cId?: string, fy?: string) => {
     setLoading(true)
     setError(null)
     try {
@@ -159,7 +152,15 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [filterClass, filterStatus])
+
+  useEffect(() => {
+    loadClients()
+  }, [loadClients])
+
+  useEffect(() => {
+    loadData(selectedClientId || undefined, selectedFy)
+  }, [selectedClientId, selectedFy, loadData])
 
   const handleOpenCreateAsset = () => {
     const defaultClient = clients.find(c => c.id === (selectedClientId || clients[0]?.id))
@@ -333,10 +334,10 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
       {/* Top Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: '26px', fontWeight: 700, color: '#1a237e' }}>
+          <h1 style={{ margin: 0, fontSize: '26px', fontWeight: 700, color: 'var(--accent)' }}>
             Fixed Asset Register & Dual Depreciation Desk
           </h1>
-          <p style={{ margin: '4px 0 0 0', color: '#555', fontSize: '14px' }}>
+          <p style={{ margin: '4px 0 0 0', color: 'var(--text-secondary)', fontSize: '14px' }}>
             Companies Act 2013 Sch II (Useful Life / SLM / WDV) vs. Income Tax Act Sec 32 (Block of Assets & 180-Day Rule) & AS 22 Deferred Tax Engine.
           </p>
         </div>
@@ -349,9 +350,9 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
             style={{
               padding: '8px 12px',
               borderRadius: '6px',
-              border: '1px solid #ccc',
+              border: '1px solid var(--border-subtle)',
               fontSize: '14px',
-              background: '#fff',
+              background: 'var(--card)',
               minWidth: '200px'
             }}
           >
@@ -370,9 +371,9 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
             style={{
               padding: '8px 12px',
               borderRadius: '6px',
-              border: '1px solid #ccc',
+              border: '1px solid var(--border-subtle)',
               fontSize: '14px',
-              background: '#fff',
+              background: 'var(--card)',
               fontWeight: 600
             }}
           >
@@ -387,9 +388,9 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
             style={{
               padding: '8px 14px',
               borderRadius: '6px',
-              border: '1px solid #1a237e',
-              background: '#fff',
-              color: '#1a237e',
+              border: '1px solid var(--accent)',
+              background: 'var(--card)',
+              color: 'var(--accent)',
               fontWeight: 600,
               cursor: 'pointer'
             }}
@@ -443,104 +444,104 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
       {error && (
         <div style={{
           padding: '12px 16px',
-          background: '#ffebee',
-          color: '#c62828',
+          background: 'var(--error-bg)',
+          color: 'var(--error)',
           borderRadius: '6px',
           marginBottom: '20px',
-          border: '1px solid #ffcdd2',
+          border: '1px solid var(--error-border)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center'
         }}>
           <span><strong>Error:</strong> {error}</span>
-          <button onClick={() => setError(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#c62828', fontWeight: 'bold' }}>✕</button>
+          <button onClick={() => setError(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--error)', fontWeight: 'bold' }}>✕</button>
         </div>
       )}
 
       {success && (
         <div style={{
           padding: '12px 16px',
-          background: '#e8f5e9',
-          color: '#2e7d32',
+          background: 'var(--success-bg)',
+          color: 'var(--success)',
           borderRadius: '6px',
           marginBottom: '20px',
-          border: '1px solid #c8e6c9',
+          border: '1px solid var(--success-border)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center'
         }}>
           <span><strong>Success:</strong> {success}</span>
-          <button onClick={() => setSuccess(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#2e7d32', fontWeight: 'bold' }}>✕</button>
+          <button onClick={() => setSuccess(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--success)', fontWeight: 'bold' }}>✕</button>
         </div>
       )}
 
       {/* Summary KPI Cards */}
       {summary && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-          <div style={{ background: '#fff', padding: '16px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', borderLeft: '4px solid #1a237e' }}>
-            <div style={{ fontSize: '12px', color: '#666', textTransform: 'uppercase', fontWeight: 600 }}>Total Gross Block</div>
-            <div style={{ fontSize: '22px', fontWeight: 700, color: '#1a237e', marginTop: '4px' }}>
+          <div style={{ background: 'var(--card)', padding: '16px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', borderLeft: '4px solid var(--accent)' }}>
+            <div style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase', fontWeight: 600 }}>Total Gross Block</div>
+            <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--accent)', marginTop: '4px' }}>
               {formatCurrency(summary.totalGrossBlock)}
             </div>
-            <div style={{ fontSize: '11px', color: '#666', marginTop: '4px' }}>
+            <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '4px' }}>
               Assets: <strong>{summary.totalAssets}</strong> ({summary.activeAssets} active)
             </div>
           </div>
 
-          <div style={{ background: '#fff', padding: '16px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', borderLeft: '4px solid #2e7d32' }}>
-            <div style={{ fontSize: '12px', color: '#666', textTransform: 'uppercase', fontWeight: 600 }}>Net Book Value (Sch II)</div>
-            <div style={{ fontSize: '22px', fontWeight: 700, color: '#2e7d32', marginTop: '4px' }}>
+          <div style={{ background: 'var(--card)', padding: '16px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', borderLeft: '4px solid #2e7d32' }}>
+            <div style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase', fontWeight: 600 }}>Net Book Value (Sch II)</div>
+            <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--success)', marginTop: '4px' }}>
               {formatCurrency(summary.totalNetBookValue)}
             </div>
-            <div style={{ fontSize: '11px', color: '#666', marginTop: '4px' }}>
+            <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '4px' }}>
               Accum Depr: {formatCurrency(summary.totalBookDepreciation)}
             </div>
           </div>
 
-          <div style={{ background: '#fff', padding: '16px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', borderLeft: '4px solid #00838f' }}>
-            <div style={{ fontSize: '12px', color: '#666', textTransform: 'uppercase', fontWeight: 600 }}>Tax Block WDV (Sec 32)</div>
+          <div style={{ background: 'var(--card)', padding: '16px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', borderLeft: '4px solid #00838f' }}>
+            <div style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase', fontWeight: 600 }}>Tax Block WDV (Sec 32)</div>
             <div style={{ fontSize: '22px', fontWeight: 700, color: '#00838f', marginTop: '4px' }}>
               {formatCurrency(summary.totalTaxWdv)}
             </div>
-            <div style={{ fontSize: '11px', color: '#666', marginTop: '4px' }}>
+            <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '4px' }}>
               FY Tax Depr: {formatCurrency(summary.totalTaxDepreciation)}
             </div>
           </div>
 
-          <div style={{ background: '#fff', padding: '16px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', borderLeft: '4px solid #f57f17' }}>
-            <div style={{ fontSize: '12px', color: '#666', textTransform: 'uppercase', fontWeight: 600 }}>Timing Difference</div>
-            <div style={{ fontSize: '22px', fontWeight: 700, color: summary.totalTimingDifference >= 0 ? '#f57f17' : '#c62828', marginTop: '4px' }}>
+          <div style={{ background: 'var(--card)', padding: '16px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', borderLeft: '4px solid #f57f17' }}>
+            <div style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase', fontWeight: 600 }}>Timing Difference</div>
+            <div style={{ fontSize: '22px', fontWeight: 700, color: summary.totalTimingDifference >= 0 ? '#f57f17' : 'var(--error)', marginTop: '4px' }}>
               {formatCurrency(summary.totalTimingDifference)}
             </div>
-            <div style={{ fontSize: '11px', color: '#666', marginTop: '4px' }}>
+            <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '4px' }}>
               Tax Depr - Book Depr
             </div>
           </div>
 
           <div style={{
-            background: '#fff',
+            background: 'var(--card)',
             padding: '16px',
             borderRadius: '8px',
             boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
             borderLeft: summary.netDeferredTaxLiability >= 0 ? '4px solid #d32f2f' : '4px solid #388e3c'
           }}>
-            <div style={{ fontSize: '12px', color: '#666', textTransform: 'uppercase', fontWeight: 600 }}>
+            <div style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase', fontWeight: 600 }}>
               AS 22 Deferred Tax {summary.netDeferredTaxLiability >= 0 ? '(DTL)' : '(DTA)'}
             </div>
             <div style={{ fontSize: '22px', fontWeight: 700, color: summary.netDeferredTaxLiability >= 0 ? '#d32f2f' : '#388e3c', marginTop: '4px' }}>
               {formatCurrency(Math.abs(summary.netDeferredTaxLiability))}
             </div>
-            <div style={{ fontSize: '11px', color: '#666', marginTop: '4px' }}>
+            <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '4px' }}>
               {summary.netDeferredTaxLiability >= 0 ? 'Deferred Tax Liability' : 'Deferred Tax Asset'}
             </div>
           </div>
 
-          <div style={{ background: '#fff', padding: '16px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', borderLeft: '4px solid #4527a0' }}>
-            <div style={{ fontSize: '12px', color: '#666', textTransform: 'uppercase', fontWeight: 600 }}>Physical Verification</div>
+          <div style={{ background: 'var(--card)', padding: '16px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', borderLeft: '4px solid #4527a0' }}>
+            <div style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase', fontWeight: 600 }}>Physical Verification</div>
             <div style={{ fontSize: '22px', fontWeight: 700, color: '#4527a0', marginTop: '4px' }}>
               {summary.verificationCompliancePercent}%
             </div>
-            <div style={{ fontSize: '11px', color: '#666', marginTop: '4px' }}>
+            <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '4px' }}>
               {summary.verifiedInLast12Months} of {summary.totalAssets} verified in 12m
             </div>
           </div>
@@ -548,7 +549,7 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
       )}
 
       {/* Tabs */}
-      <div style={{ display: 'flex', borderBottom: '2px solid #e0e0e0', marginBottom: '20px' }}>
+      <div style={{ display: 'flex', borderBottom: '2px solid var(--border)', marginBottom: '20px' }}>
         <button
           onClick={() => setActiveTab('assets')}
           style={{
@@ -557,8 +558,8 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
             fontWeight: 600,
             background: 'none',
             border: 'none',
-            borderBottom: activeTab === 'assets' ? '3px solid #1a237e' : 'none',
-            color: activeTab === 'assets' ? '#1a237e' : '#666',
+            borderBottom: activeTab === 'assets' ? '3px solid var(--accent)' : 'none',
+            color: activeTab === 'assets' ? 'var(--accent)' : 'var(--muted)',
             cursor: 'pointer'
           }}
         >
@@ -573,8 +574,8 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
             fontWeight: 600,
             background: 'none',
             border: 'none',
-            borderBottom: activeTab === 'depreciation' ? '3px solid #1a237e' : 'none',
-            color: activeTab === 'depreciation' ? '#1a237e' : '#666',
+            borderBottom: activeTab === 'depreciation' ? '3px solid var(--accent)' : 'none',
+            color: activeTab === 'depreciation' ? 'var(--accent)' : 'var(--muted)',
             cursor: 'pointer'
           }}
         >
@@ -589,8 +590,8 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
             fontWeight: 600,
             background: 'none',
             border: 'none',
-            borderBottom: activeTab === 'verifications' ? '3px solid #1a237e' : 'none',
-            color: activeTab === 'verifications' ? '#1a237e' : '#666',
+            borderBottom: activeTab === 'verifications' ? '3px solid var(--accent)' : 'none',
+            color: activeTab === 'verifications' ? 'var(--accent)' : 'var(--muted)',
             cursor: 'pointer'
           }}
         >
@@ -600,8 +601,8 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
 
       {/* TAB 1: Asset Register & Master */}
       {activeTab === 'assets' && (
-        <div style={{ background: '#fff', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
-          <div style={{ padding: '16px', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+        <div style={{ background: 'var(--card)', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+          <div style={{ padding: '16px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
             <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600 }}>Fixed Asset Master Register</h3>
             <div style={{ display: 'flex', gap: '8px' }}>
               <select
@@ -610,7 +611,7 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
                   setFilterClass(e.target.value)
                   loadData(selectedClientId || undefined, selectedFy)
                 }}
-                style={{ padding: '6px 10px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '12px' }}
+                style={{ padding: '6px 10px', borderRadius: '4px', border: '1px solid var(--border-subtle)', fontSize: '12px' }}
               >
                 <option value="">All Asset Classes</option>
                 <option value="Building">Buildings</option>
@@ -628,7 +629,7 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
                   setFilterStatus(e.target.value)
                   loadData(selectedClientId || undefined, selectedFy)
                 }}
-                style={{ padding: '6px 10px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '12px' }}
+                style={{ padding: '6px 10px', borderRadius: '4px', border: '1px solid var(--border-subtle)', fontSize: '12px' }}
               >
                 <option value="">All Statuses</option>
                 <option value="Active">Active</option>
@@ -641,7 +642,7 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left' }}>
               <thead>
-                <tr style={{ background: '#f8f9fa', color: '#555', borderBottom: '2px solid #eee' }}>
+                <tr style={{ background: 'var(--card-subtle)', color: 'var(--text-secondary)', borderBottom: '2px solid var(--border)' }}>
                   <th style={{ padding: '12px' }}>Tag & Asset Name</th>
                   <th style={{ padding: '12px' }}>Class & Location</th>
                   <th style={{ padding: '12px' }}>Put to Use Date</th>
@@ -657,7 +658,7 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
               <tbody>
                 {assets.length === 0 ? (
                   <tr>
-                    <td colSpan={10} style={{ padding: '32px', textAlign: 'center', color: '#999' }}>
+                    <td colSpan={10} style={{ padding: '32px', textAlign: 'center', color: 'var(--muted)' }}>
                       No fixed assets found. Click "+ Register Fixed Asset" to add capital assets to the register.
                     </td>
                   </tr>
@@ -667,35 +668,35 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
                     const isDisposed = a.status === 'Disposed'
 
                     return (
-                      <tr key={a.id} style={{ borderBottom: '1px solid #eee', background: isDisposed ? '#fafafa' : '#fff' }}>
+                      <tr key={a.id} style={{ borderBottom: '1px solid var(--border)', background: isDisposed ? 'var(--card-subtle)' : 'var(--card)' }}>
                         <td style={{ padding: '12px' }}>
-                          <div style={{ fontWeight: 700, fontFamily: 'monospace', color: '#1a237e' }}>{a.assetTag}</div>
+                          <div style={{ fontWeight: 700, fontFamily: 'monospace', color: 'var(--accent)' }}>{a.assetTag}</div>
                           <div style={{ fontWeight: 600 }}>{a.name}</div>
-                          <div style={{ fontSize: '11px', color: '#666' }}>Client: {a.clientName}</div>
+                          <div style={{ fontSize: '11px', color: 'var(--muted)' }}>Client: {a.clientName}</div>
                         </td>
                         <td style={{ padding: '12px' }}>
                           <div style={{ fontSize: '12px', fontWeight: 600 }}>{formatAssetClass(a.assetClass)}</div>
-                          <div style={{ fontSize: '11px', color: '#666' }}>
+                          <div style={{ fontSize: '11px', color: 'var(--muted)' }}>
                             {a.location || 'HQ'} | {a.department || 'General'}
                           </div>
                           {a.custodianName && (
-                            <div style={{ fontSize: '10px', color: '#888' }}>Custodian: {a.custodianName}</div>
+                            <div style={{ fontSize: '10px', color: 'var(--muted)' }}>Custodian: {a.custodianName}</div>
                           )}
                         </td>
                         <td style={{ padding: '12px' }}>
                           <div style={{ fontWeight: 600 }}>{a.capitalizationDate}</div>
-                          <div style={{ fontSize: '11px', color: '#666' }}>Pur: {a.purchaseDate}</div>
+                          <div style={{ fontSize: '11px', color: 'var(--muted)' }}>Pur: {a.purchaseDate}</div>
                         </td>
-                        <td style={{ padding: '12px', textAlign: 'right', fontWeight: 700, color: '#1a237e' }}>
+                        <td style={{ padding: '12px', textAlign: 'right', fontWeight: 700, color: 'var(--accent)' }}>
                           {formatCurrency(a.grossCost)}
-                          <div style={{ fontSize: '10px', color: '#777' }}>
+                          <div style={{ fontSize: '10px', color: 'var(--muted)' }}>
                             Sal: {formatCurrency(a.salvageValue)}
                           </div>
                         </td>
                         <td style={{ padding: '12px' }}>
                           <div style={{ fontWeight: 600 }}>{a.usefulLifeYears} yrs ({a.companyDepreciationMethod})</div>
-                          <div style={{ fontSize: '11px', color: '#555' }}>
-                            Shift: <span style={{ fontWeight: 600, color: a.shiftType === 'SingleShift' ? '#555' : '#1565c0' }}>{a.shiftType}</span>
+                          <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                            Shift: <span style={{ fontWeight: 600, color: a.shiftType === 'SingleShift' ? 'var(--text-secondary)' : '#1565c0' }}>{a.shiftType}</span>
                           </div>
                         </td>
                         <td style={{ padding: '12px' }}>
@@ -705,8 +706,8 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
                               display: 'inline-block',
                               padding: '2px 5px',
                               borderRadius: '3px',
-                              background: '#e8f5e9',
-                              color: '#2e7d32',
+                              background: 'var(--success-bg)',
+                              color: 'var(--success)',
                               fontSize: '10px',
                               fontWeight: 700,
                               marginTop: '2px'
@@ -715,7 +716,7 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
                             </span>
                           )}
                         </td>
-                        <td style={{ padding: '12px', textAlign: 'right', fontWeight: 600, color: '#2e7d32' }}>
+                        <td style={{ padding: '12px', textAlign: 'right', fontWeight: 600, color: 'var(--success)' }}>
                           {formatCurrency(a.latestBookValue)}
                         </td>
                         <td style={{ padding: '12px', textAlign: 'right', fontWeight: 600, color: '#00838f' }}>
@@ -727,8 +728,8 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
                             borderRadius: '12px',
                             fontSize: '11px',
                             fontWeight: 700,
-                            background: isActive ? '#e8f5e9' : isDisposed ? '#fff3e0' : '#ffebee',
-                            color: isActive ? '#2e7d32' : isDisposed ? '#e65100' : '#c62828'
+                            background: isActive ? 'var(--success-bg)' : isDisposed ? 'var(--warning-bg)' : 'var(--error-bg)',
+                            color: isActive ? 'var(--success)' : isDisposed ? 'var(--warning-text)' : 'var(--error)'
                           }}>
                             {a.status}
                           </span>
@@ -742,9 +743,9 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
                                 style={{
                                   padding: '4px 8px',
                                   borderRadius: '4px',
-                                  border: '1px solid #1a237e',
-                                  background: '#e8eaf6',
-                                  color: '#1a237e',
+                                  border: '1px solid var(--accent)',
+                                  background: 'var(--accent-subtle)',
+                                  color: 'var(--accent)',
                                   fontSize: '11px',
                                   fontWeight: 600,
                                   cursor: 'pointer'
@@ -781,7 +782,7 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
                                   padding: '4px 8px',
                                   borderRadius: '4px',
                                   border: '1px solid #d32f2f',
-                                  background: '#ffebee',
+                                  background: 'var(--error-bg)',
                                   color: '#d32f2f',
                                   fontSize: '11px',
                                   fontWeight: 600,
@@ -805,13 +806,13 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
 
       {/* TAB 2: Dual Depreciation & AS 22 Schedule */}
       {activeTab === 'depreciation' && (
-        <div style={{ background: '#fff', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
-          <div style={{ padding: '16px', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ background: 'var(--card)', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+          <div style={{ padding: '16px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600 }}>
                 Dual Depreciation & Deferred Tax (AS 22 / Ind AS 12) Register
               </h3>
-              <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#666' }}>
+              <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: 'var(--muted)' }}>
                 Comparing Book Depreciation (Schedule II) vs. Tax Depreciation (Section 32) for FY {selectedFy}
               </p>
             </div>
@@ -835,7 +836,7 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left' }}>
               <thead>
-                <tr style={{ background: '#f8f9fa', color: '#555', borderBottom: '2px solid #eee' }}>
+                <tr style={{ background: 'var(--card-subtle)', color: 'var(--text-secondary)', borderBottom: '2px solid var(--border)' }}>
                   <th style={{ padding: '12px' }}>Asset Details</th>
                   <th style={{ padding: '12px' }}>FY</th>
                   <th style={{ padding: '12px', textAlign: 'right' }}>Sch II Opening</th>
@@ -852,7 +853,7 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
               <tbody>
                 {deprEntries.length === 0 ? (
                   <tr>
-                    <td colSpan={11} style={{ padding: '32px', textAlign: 'center', color: '#999' }}>
+                    <td colSpan={11} style={{ padding: '32px', textAlign: 'center', color: 'var(--muted)' }}>
                       No depreciation entries computed for FY {selectedFy}. Click "⚡ Run Dual Depreciation" to compute statutory schedules.
                     </td>
                   </tr>
@@ -861,18 +862,18 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
                     const isDtl = e.deferredTaxImpact >= 0
 
                     return (
-                      <tr key={e.id} style={{ borderBottom: '1px solid #eee' }}>
+                      <tr key={e.id} style={{ borderBottom: '1px solid var(--border)' }}>
                         <td style={{ padding: '12px' }}>
-                          <div style={{ fontWeight: 700, fontFamily: 'monospace', color: '#1a237e' }}>{e.assetTag}</div>
+                          <div style={{ fontWeight: 700, fontFamily: 'monospace', color: 'var(--accent)' }}>{e.assetTag}</div>
                           <div style={{ fontWeight: 600 }}>{e.assetName}</div>
-                          <div style={{ fontSize: '11px', color: '#666' }}>{formatAssetClass(e.assetClass)}</div>
+                          <div style={{ fontSize: '11px', color: 'var(--muted)' }}>{formatAssetClass(e.assetClass)}</div>
                         </td>
                         <td style={{ padding: '12px', fontWeight: 600 }}>{e.financialYear}</td>
                         <td style={{ padding: '12px', textAlign: 'right' }}>{formatCurrency(e.openingBookValue)}</td>
                         <td style={{ padding: '12px', textAlign: 'right', fontWeight: 600, color: '#1565c0' }}>
                           {formatCurrency(e.bookDepreciation)}
                         </td>
-                        <td style={{ padding: '12px', textAlign: 'right', fontWeight: 600, color: '#2e7d32' }}>
+                        <td style={{ padding: '12px', textAlign: 'right', fontWeight: 600, color: 'var(--success)' }}>
                           {formatCurrency(e.closingBookValue)}
                         </td>
                         <td style={{ padding: '12px', textAlign: 'right' }}>{formatCurrency(e.openingTaxWdv)}</td>
@@ -883,8 +884,8 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
                               borderRadius: '4px',
                               fontSize: '10px',
                               fontWeight: 700,
-                              background: '#fff3e0',
-                              color: '#e65100'
+                              background: 'var(--warning-bg)',
+                              color: 'var(--warning-text)'
                             }}>
                               &lt; 180 Days (50%)
                             </span>
@@ -894,13 +895,13 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
                               borderRadius: '4px',
                               fontSize: '10px',
                               fontWeight: 700,
-                              background: '#e8f5e9',
-                              color: '#2e7d32'
+                              background: 'var(--success-bg)',
+                              color: 'var(--success)'
                             }}>
                               &ge; 180 Days (100%)
                             </span>
                           )}
-                          <div style={{ fontSize: '10px', color: '#777', marginTop: '2px' }}>
+                          <div style={{ fontSize: '10px', color: 'var(--muted)', marginTop: '2px' }}>
                             {e.daysPutToUseInYear} days
                           </div>
                         </td>
@@ -910,7 +911,7 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
                         <td style={{ padding: '12px', textAlign: 'right', fontWeight: 600 }}>
                           {formatCurrency(e.closingTaxWdv)}
                         </td>
-                        <td style={{ padding: '12px', textAlign: 'right', fontWeight: 700, color: e.timingDifference >= 0 ? '#e65100' : '#c62828' }}>
+                        <td style={{ padding: '12px', textAlign: 'right', fontWeight: 700, color: e.timingDifference >= 0 ? 'var(--warning-text)' : 'var(--error)' }}>
                           {formatCurrency(e.timingDifference)}
                         </td>
                         <td style={{ padding: '12px', textAlign: 'right' }}>
@@ -919,8 +920,8 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
                             borderRadius: '4px',
                             fontSize: '11px',
                             fontWeight: 700,
-                            background: isDtl ? '#ffebee' : '#e8f5e9',
-                            color: isDtl ? '#c62828' : '#2e7d32'
+                            background: isDtl ? 'var(--error-bg)' : 'var(--success-bg)',
+                            color: isDtl ? 'var(--error)' : 'var(--success)'
                           }}>
                             {formatCurrency(Math.abs(e.deferredTaxImpact))} {isDtl ? 'DTL' : 'DTA'}
                           </span>
@@ -937,16 +938,16 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
 
       {/* TAB 3: Physical Verification Audits */}
       {activeTab === 'verifications' && (
-        <div style={{ background: '#fff', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
-          <div style={{ padding: '16px', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ background: 'var(--card)', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+          <div style={{ padding: '16px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600 }}>Physical Verification Audit Trail</h3>
-            <span style={{ fontSize: '12px', color: '#666' }}>Showing {verifications.length} verification events</span>
+            <span style={{ fontSize: '12px', color: 'var(--muted)' }}>Showing {verifications.length} verification events</span>
           </div>
 
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left' }}>
               <thead>
-                <tr style={{ background: '#f8f9fa', color: '#555', borderBottom: '2px solid #eee' }}>
+                <tr style={{ background: 'var(--card-subtle)', color: 'var(--text-secondary)', borderBottom: '2px solid var(--border)' }}>
                   <th style={{ padding: '12px' }}>Asset Tag & Name</th>
                   <th style={{ padding: '12px' }}>Verification Date</th>
                   <th style={{ padding: '12px' }}>Verified By</th>
@@ -958,15 +959,15 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
               <tbody>
                 {verifications.length === 0 ? (
                   <tr>
-                    <td colSpan={6} style={{ padding: '32px', textAlign: 'center', color: '#999' }}>
+                    <td colSpan={6} style={{ padding: '32px', textAlign: 'center', color: 'var(--muted)' }}>
                       No physical verification records yet. Use the "Audit" action on any asset in the master register to log physical inspection.
                     </td>
                   </tr>
                 ) : (
                   verifications.map(v => (
-                    <tr key={v.id} style={{ borderBottom: '1px solid #eee' }}>
+                    <tr key={v.id} style={{ borderBottom: '1px solid var(--border)' }}>
                       <td style={{ padding: '12px' }}>
-                        <div style={{ fontWeight: 700, fontFamily: 'monospace', color: '#1a237e' }}>{v.assetTag}</div>
+                        <div style={{ fontWeight: 700, fontFamily: 'monospace', color: 'var(--accent)' }}>{v.assetTag}</div>
                         <div style={{ fontWeight: 600 }}>{v.assetName}</div>
                       </td>
                       <td style={{ padding: '12px', fontWeight: 600 }}>{v.verificationDate}</td>
@@ -977,13 +978,13 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
                           borderRadius: '12px',
                           fontSize: '11px',
                           fontWeight: 700,
-                          background: v.status === 'FoundAndGood' ? '#e8f5e9' : v.status === 'NeedsMaintenance' ? '#fff3e0' : '#ffebee',
-                          color: v.status === 'FoundAndGood' ? '#2e7d32' : v.status === 'NeedsMaintenance' ? '#e65100' : '#c62828'
+                          background: v.status === 'FoundAndGood' ? 'var(--success-bg)' : v.status === 'NeedsMaintenance' ? 'var(--warning-bg)' : 'var(--error-bg)',
+                          color: v.status === 'FoundAndGood' ? 'var(--success)' : v.status === 'NeedsMaintenance' ? 'var(--warning-text)' : 'var(--error)'
                         }}>
                           {v.status}
                         </span>
                       </td>
-                      <td style={{ padding: '12px', color: '#555' }}>{v.locationVerified || '-'}</td>
+                      <td style={{ padding: '12px', color: 'var(--text-secondary)' }}>{v.locationVerified || '-'}</td>
                       <td style={{ padding: '12px', color: '#444' }}>{v.remarks || '-'}</td>
                     </tr>
                   ))
@@ -1010,7 +1011,7 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
           padding: '20px'
         }}>
           <div style={{
-            background: '#fff',
+            background: 'var(--card)',
             borderRadius: '8px',
             width: '100%',
             maxWidth: '720px',
@@ -1019,14 +1020,14 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
             padding: '24px',
             boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #eee', paddingBottom: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid var(--border)', paddingBottom: '12px' }}>
               <div>
-                <h2 style={{ margin: 0, fontSize: '18px', color: '#1a237e' }}>
+                <h2 style={{ margin: 0, fontSize: '18px', color: 'var(--accent)' }}>
                   {editingAssetId ? 'Edit Fixed Asset' : 'Register New Fixed Asset'}
                 </h2>
-                <div style={{ fontSize: '12px', color: '#666' }}>Capital asset master with dual depreciation parameters</div>
+                <div style={{ fontSize: '12px', color: 'var(--muted)' }}>Capital asset master with dual depreciation parameters</div>
               </div>
-              <button onClick={() => setShowAssetModal(false)} style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: '#666' }}>✕</button>
+              <button onClick={() => setShowAssetModal(false)} style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: 'var(--muted)' }}>✕</button>
             </div>
 
             <form onSubmit={handleSaveAsset}>
@@ -1037,7 +1038,7 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
                     value={assetForm.clientId}
                     onChange={e => setAssetForm({ ...assetForm, clientId: e.target.value })}
                     required
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   >
                     {clients.map(c => (
                       <option key={c.id} value={c.id}>{c.name} ({c.code})</option>
@@ -1053,7 +1054,7 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
                     onChange={e => setAssetForm({ ...assetForm, assetTag: e.target.value.toUpperCase() })}
                     required
                     placeholder="e.g. FA-2024-001"
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', fontFamily: 'monospace' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)', fontFamily: 'monospace' }}
                   />
                 </div>
 
@@ -1065,7 +1066,7 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
                     onChange={e => setAssetForm({ ...assetForm, name: e.target.value })}
                     required
                     placeholder="e.g. Dell PowerEdge R750 Rack Server"
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
 
@@ -1092,7 +1093,7 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
                         incomeTaxBlockRatePercent: rate
                       })
                     }}
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   >
                     <option value="Building">Building</option>
                     <option value="PlantAndMachinery">Plant & Machinery</option>
@@ -1111,7 +1112,7 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
                     value={assetForm.purchaseDate}
                     onChange={e => setAssetForm({ ...assetForm, purchaseDate: e.target.value })}
                     required
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
 
@@ -1122,7 +1123,7 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
                     value={assetForm.capitalizationDate}
                     onChange={e => setAssetForm({ ...assetForm, capitalizationDate: e.target.value })}
                     required
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
 
@@ -1137,7 +1138,7 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
                       setAssetForm({ ...assetForm, purchaseCost: cost, salvageValue: Math.round(cost * 0.05) })
                     }}
                     required
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
 
@@ -1148,7 +1149,7 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
                     step="0.01"
                     value={assetForm.inwardFreight}
                     onChange={e => setAssetForm({ ...assetForm, inwardFreight: parseFloat(e.target.value) || 0 })}
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
 
@@ -1159,7 +1160,7 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
                     step="0.01"
                     value={assetForm.installationCost}
                     onChange={e => setAssetForm({ ...assetForm, installationCost: parseFloat(e.target.value) || 0 })}
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
 
@@ -1171,7 +1172,7 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
                     value={assetForm.gstItcClaimed}
                     onChange={e => setAssetForm({ ...assetForm, gstItcClaimed: parseFloat(e.target.value) || 0 })}
                     placeholder="Reduces cost if claimed"
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
 
@@ -1182,7 +1183,7 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
                     step="0.01"
                     value={assetForm.salvageValue || ''}
                     onChange={e => setAssetForm({ ...assetForm, salvageValue: parseFloat(e.target.value) || 0 })}
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
 
@@ -1196,7 +1197,7 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
                     value={assetForm.usefulLifeYears}
                     onChange={e => setAssetForm({ ...assetForm, usefulLifeYears: parseFloat(e.target.value) || 1 })}
                     required
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
 
@@ -1205,7 +1206,7 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
                   <select
                     value={assetForm.companyDepreciationMethod}
                     onChange={e => setAssetForm({ ...assetForm, companyDepreciationMethod: e.target.value as (typeof assetForm)['companyDepreciationMethod'] })}
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   >
                     <option value="SLM">Straight Line Method (SLM)</option>
                     <option value="WDV">Written Down Value (WDV)</option>
@@ -1217,7 +1218,7 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
                   <select
                     value={assetForm.shiftType}
                     onChange={e => setAssetForm({ ...assetForm, shiftType: e.target.value as (typeof assetForm)['shiftType'] })}
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   >
                     <option value="SingleShift">Single Shift (1.0x)</option>
                     <option value="DoubleShift">Double Shift (+50% extra depr)</option>
@@ -1236,7 +1237,7 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
                     value={assetForm.incomeTaxBlockRatePercent}
                     onChange={e => setAssetForm({ ...assetForm, incomeTaxBlockRatePercent: parseFloat(e.target.value) || 15 })}
                     required
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
 
@@ -1258,7 +1259,7 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
                     value={assetForm.location || ''}
                     onChange={e => setAssetForm({ ...assetForm, location: e.target.value })}
                     placeholder="e.g. Plant 1, Floor 2"
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
 
@@ -1269,15 +1270,15 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
                     value={assetForm.custodianName || ''}
                     onChange={e => setAssetForm({ ...assetForm, custodianName: e.target.value })}
                     placeholder="e.g. Employee Name"
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
               </div>
 
               {/* Computed Gross Block Banner */}
-              <div style={{ background: '#f5f5f5', padding: '12px', borderRadius: '6px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ background: 'var(--card-subtle)', padding: '12px', borderRadius: '6px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '14px', fontWeight: 600 }}>Calculated Gross Block (Historical Cost):</span>
-                <span style={{ fontSize: '18px', fontWeight: 700, color: '#1a237e' }}>
+                <span style={{ fontSize: '18px', fontWeight: 700, color: 'var(--accent)' }}>
                   {formatCurrency(computedGrossCost)}
                 </span>
               </div>
@@ -1286,7 +1287,7 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
                 <button
                   type="button"
                   onClick={() => setShowAssetModal(false)}
-                  style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid #ccc', background: '#fff', cursor: 'pointer' }}
+                  style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid var(--border-subtle)', background: 'var(--card)', cursor: 'pointer' }}
                 >
                   Cancel
                 </button>
@@ -1319,19 +1320,19 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
           padding: '20px'
         }}>
           <div style={{
-            background: '#fff',
+            background: 'var(--card)',
             borderRadius: '8px',
             width: '100%',
             maxWidth: '520px',
             padding: '24px',
             boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #eee', paddingBottom: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid var(--border)', paddingBottom: '12px' }}>
               <div>
                 <h2 style={{ margin: 0, fontSize: '18px', color: '#0d47a1' }}>Run Dual Depreciation Engine</h2>
-                <div style={{ fontSize: '12px', color: '#666' }}>Compute Companies Act Sch II vs. Sec 32 and Deferred Tax</div>
+                <div style={{ fontSize: '12px', color: 'var(--muted)' }}>Compute Companies Act Sch II vs. Sec 32 and Deferred Tax</div>
               </div>
-              <button onClick={() => setShowDeprModal(false)} style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: '#666' }}>✕</button>
+              <button onClick={() => setShowDeprModal(false)} style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: 'var(--muted)' }}>✕</button>
             </div>
 
             <form onSubmit={handleSubmitDepr}>
@@ -1341,7 +1342,7 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
                   value={deprForm.clientId}
                   onChange={e => setDeprForm({ ...deprForm, clientId: e.target.value })}
                   required
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 >
                   {clients.map(c => (
                     <option key={c.id} value={c.id}>{c.name} ({c.code})</option>
@@ -1355,7 +1356,7 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
                   value={deprForm.financialYear}
                   onChange={e => setDeprForm({ ...deprForm, financialYear: e.target.value })}
                   required
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 >
                   <option value="2024-25">FY 2024-25 (01-Apr-2024 to 31-Mar-2025)</option>
                   <option value="2023-24">FY 2023-24 (01-Apr-2023 to 31-Mar-2024)</option>
@@ -1368,7 +1369,7 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
                 <select
                   value={deprForm.corporateTaxRate ?? 0.2517}
                   onChange={e => setDeprForm({ ...deprForm, corporateTaxRate: parseFloat(e.target.value) })}
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 >
                   <option value={0.2517}>25.17% (Section 115BAA Domestic Corporate)</option>
                   <option value={0.22}>22.00% (Base Corporate Rate)</option>
@@ -1377,7 +1378,7 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
                 </select>
               </div>
 
-              <div style={{ background: '#e3f2fd', padding: '12px', borderRadius: '6px', marginBottom: '16px', borderLeft: '4px solid #1565c0' }}>
+              <div style={{ background: 'var(--accent-subtle)', padding: '12px', borderRadius: '6px', marginBottom: '16px', borderLeft: '4px solid #1565c0' }}>
                 <div style={{ fontSize: '12px', fontWeight: 700, color: '#0d47a1' }}>
                   Statutory Rule 180-Day Handling
                 </div>
@@ -1390,7 +1391,7 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
                 <button
                   type="button"
                   onClick={() => setShowDeprModal(false)}
-                  style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid #ccc', background: '#fff', cursor: 'pointer' }}
+                  style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid var(--border-subtle)', background: 'var(--card)', cursor: 'pointer' }}
                 >
                   Cancel
                 </button>
@@ -1423,19 +1424,19 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
           padding: '20px'
         }}>
           <div style={{
-            background: '#fff',
+            background: 'var(--card)',
             borderRadius: '8px',
             width: '100%',
             maxWidth: '480px',
             padding: '24px',
             boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #eee', paddingBottom: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid var(--border)', paddingBottom: '12px' }}>
               <div>
                 <h2 style={{ margin: 0, fontSize: '18px', color: '#4527a0' }}>Record Physical Verification</h2>
-                <div style={{ fontSize: '12px', color: '#666' }}>{selectedAsset.assetTag} - {selectedAsset.name}</div>
+                <div style={{ fontSize: '12px', color: 'var(--muted)' }}>{selectedAsset.assetTag} - {selectedAsset.name}</div>
               </div>
-              <button onClick={() => setShowVerifModal(false)} style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: '#666' }}>✕</button>
+              <button onClick={() => setShowVerifModal(false)} style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: 'var(--muted)' }}>✕</button>
             </div>
 
             <form onSubmit={handleSubmitVerification}>
@@ -1446,7 +1447,7 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
                   value={verifForm.verificationDate}
                   onChange={e => setVerifForm({ ...verifForm, verificationDate: e.target.value })}
                   required
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
 
@@ -1458,7 +1459,7 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
                   onChange={e => setVerifForm({ ...verifForm, verifiedBy: e.target.value })}
                   required
                   placeholder="e.g. CA Sandeep Kumar"
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
 
@@ -1467,7 +1468,7 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
                 <select
                   value={verifForm.status}
                   onChange={e => setVerifForm({ ...verifForm, status: e.target.value as (typeof verifForm)['status'] })}
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 >
                   <option value="FoundAndGood">Found & Good Condition</option>
                   <option value="NeedsMaintenance">Needs Maintenance / Calibration</option>
@@ -1483,7 +1484,7 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
                   value={verifForm.locationVerified || ''}
                   onChange={e => setVerifForm({ ...verifForm, locationVerified: e.target.value })}
                   placeholder="e.g. Unit 3 Floor 1"
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
 
@@ -1494,7 +1495,7 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
                   value={verifForm.remarks || ''}
                   onChange={e => setVerifForm({ ...verifForm, remarks: e.target.value })}
                   placeholder="e.g. Barcode tag scanned, verified with serial number"
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
 
@@ -1502,7 +1503,7 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
                 <button
                   type="button"
                   onClick={() => setShowVerifModal(false)}
-                  style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid #ccc', background: '#fff', cursor: 'pointer' }}
+                  style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid var(--border-subtle)', background: 'var(--card)', cursor: 'pointer' }}
                 >
                   Cancel
                 </button>
@@ -1535,19 +1536,19 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
           padding: '20px'
         }}>
           <div style={{
-            background: '#fff',
+            background: 'var(--card)',
             borderRadius: '8px',
             width: '100%',
             maxWidth: '480px',
             padding: '24px',
             boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #eee', paddingBottom: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid var(--border)', paddingBottom: '12px' }}>
               <div>
-                <h2 style={{ margin: 0, fontSize: '18px', color: '#c62828' }}>Dispose / Sell Fixed Asset</h2>
-                <div style={{ fontSize: '12px', color: '#666' }}>{selectedAsset.assetTag} - {selectedAsset.name}</div>
+                <h2 style={{ margin: 0, fontSize: '18px', color: 'var(--error)' }}>Dispose / Sell Fixed Asset</h2>
+                <div style={{ fontSize: '12px', color: 'var(--muted)' }}>{selectedAsset.assetTag} - {selectedAsset.name}</div>
               </div>
-              <button onClick={() => setShowDisposeModal(false)} style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: '#666' }}>✕</button>
+              <button onClick={() => setShowDisposeModal(false)} style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: 'var(--muted)' }}>✕</button>
             </div>
 
             <form onSubmit={handleSubmitDispose}>
@@ -1558,7 +1559,7 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
                   value={disposeForm.disposalDate}
                   onChange={e => setDisposeForm({ ...disposeForm, disposalDate: e.target.value })}
                   required
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
 
@@ -1570,7 +1571,7 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
                   value={disposeForm.disposalProceeds}
                   onChange={e => setDisposeForm({ ...disposeForm, disposalProceeds: parseFloat(e.target.value) || 0 })}
                   required
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
 
@@ -1581,12 +1582,12 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
                   value={disposeForm.remarks || ''}
                   onChange={e => setDisposeForm({ ...disposeForm, remarks: e.target.value })}
                   placeholder="e.g. Scrapped due to obsolescence, sold to vendor"
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
 
               {/* Profit / Loss on Sale Preview */}
-              <div style={{ background: '#f5f5f5', padding: '12px', borderRadius: '6px', marginBottom: '16px' }}>
+              <div style={{ background: 'var(--card-subtle)', padding: '12px', borderRadius: '6px', marginBottom: '16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
                   <span>Current Net Book Value:</span>
                   <strong>{formatCurrency(selectedAsset.latestBookValue)}</strong>
@@ -1594,7 +1595,7 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginTop: '4px' }}>
                   <span>Estimated Profit / (Loss) on Disposal:</span>
                   <strong style={{
-                    color: Number(disposeForm.disposalProceeds) >= selectedAsset.latestBookValue ? '#2e7d32' : '#c62828'
+                    color: Number(disposeForm.disposalProceeds) >= selectedAsset.latestBookValue ? 'var(--success)' : 'var(--error)'
                   }}>
                     {formatCurrency(Number(disposeForm.disposalProceeds) - selectedAsset.latestBookValue)}
                   </strong>
@@ -1605,7 +1606,7 @@ export const FixedAssetsPage: React.FC<FixedAssetsPageProps> = ({ can }) => {
                 <button
                   type="button"
                   onClick={() => setShowDisposeModal(false)}
-                  style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid #ccc', background: '#fff', cursor: 'pointer' }}
+                  style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid var(--border-subtle)', background: 'var(--card)', cursor: 'pointer' }}
                 >
                   Cancel
                 </button>

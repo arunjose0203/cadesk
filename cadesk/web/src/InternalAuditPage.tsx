@@ -144,8 +144,8 @@ export function InternalAuditPage() {
       try {
         const res = await api<ClientPage>('/api/clients?pageSize=100').catch(() => ({ items: [], total: 0 }))
         setClients(res.items || [])
-        if (res.items && res.items.length > 0 && !selectedClientId) {
-          setSelectedClientId(res.items[0].id)
+        if (res.items && res.items.length > 0) {
+          setSelectedClientId(prev => prev || res.items[0].id)
         }
       } catch (err) {
         console.error(err)
@@ -164,9 +164,7 @@ export function InternalAuditPage() {
         setEngagements(engList)
         if (engList.length > 0) {
           // preserve selection if valid
-          if (!selectedEngId || !engList.some(e => e.id === selectedEngId)) {
-            setSelectedEngId(engList[0].id)
-          }
+          setSelectedEngId(prev => (prev && engList.some(e => e.id === prev) ? prev : engList[0].id))
         } else {
           setSelectedEngId('')
           setCurrentEngagement(null)

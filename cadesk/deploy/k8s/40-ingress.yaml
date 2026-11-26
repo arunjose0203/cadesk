@@ -37,13 +37,6 @@ spec:
                 name: cadesk-api
                 port:
                   number: 8080
-          - path: /metrics
-            pathType: Exact
-            backend:
-              service:
-                name: cadesk-api
-                port:
-                  number: 8080
           - path: /
             pathType: Prefix
             backend:

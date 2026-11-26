@@ -125,8 +125,8 @@ export function AntiProfiteeringPage() {
         ])
         setClients(cRes.items || [])
         setNotifications(notifRes)
-        if (cRes.items && cRes.items.length > 0 && !selectedClientId) {
-          setSelectedClientId(cRes.items[0].id)
+        if (cRes.items && cRes.items.length > 0) {
+          setSelectedClientId(prev => prev || cRes.items[0].id)
         }
       } catch (err) {
         console.error(err)
@@ -144,9 +144,7 @@ export function AntiProfiteeringPage() {
         const aList = await antiProfiteeringApi.listAssessments(selectedClientId, selectedFy)
         setAssessments(aList)
         if (aList.length > 0) {
-          if (!selectedAssessmentId || !aList.some(a => a.id === selectedAssessmentId)) {
-            setSelectedAssessmentId(aList[0].id)
-          }
+          setSelectedAssessmentId(prev => (prev && aList.some(a => a.id === prev) ? prev : aList[0].id))
         } else {
           setSelectedAssessmentId('')
           setCurrentAssessment(null)

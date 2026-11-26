@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import QRCode from 'qrcode'
 import { api, ApiError, setAccessToken, type AuthResult, type UserProfile } from './api'
-import { ValueEditor } from './SettingsPage'
+import { ValueEditor } from './ValueEditor'
 import type { Json, Schema } from './format'
 
 type Props = { me: UserProfile; onChanged: () => void }

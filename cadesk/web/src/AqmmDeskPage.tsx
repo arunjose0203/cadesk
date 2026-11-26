@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import {
   aqmmApi,
   type AqmmAssessmentSummaryDto,
@@ -34,11 +34,7 @@ export function AqmmDeskPage() {
   const [udin, setUdin] = useState<string>('')
   const [certifying, setCertifying] = useState<boolean>(false)
 
-  useEffect(() => {
-    loadData()
-  }, [financialYear])
-
-  async function loadData() {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true)
       const [sum, qList, gap] = await Promise.all([
@@ -74,7 +70,11 @@ export function AqmmDeskPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [financialYear])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
 
   async function handleAutoScore() {
     try {
@@ -161,25 +161,25 @@ export function AqmmDeskPage() {
   })
 
   const levelColor = summary?.maturityLevel === 'Level 3'
-    ? { bg: '#ecfdf5', text: '#065f46', border: '#a7f3d0' }
+    ? { bg: 'var(--success-bg)', text: 'var(--success-text)', border: 'var(--success-border)' }
     : summary?.maturityLevel === 'Level 2'
-    ? { bg: '#fffbeb', text: '#92400e', border: '#fde68a' }
-    : { bg: '#fef2f2', text: '#991b1b', border: '#fecaca' }
+    ? { bg: 'var(--warning-bg)', text: 'var(--warning-text)', border: 'var(--warning-border)' }
+    : { bg: 'var(--error-bg)', text: 'var(--error-text)', border: 'var(--error-border)' }
 
   return (
-    <div style={{ padding: '28px', maxWidth: '1360px', margin: '0 auto', color: '#1e293b' }}>
+    <div style={{ padding: '28px', maxWidth: '1360px', margin: '0 auto', color: 'var(--text)' }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '14px' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <h1 style={{ fontSize: '24px', fontWeight: 700, margin: 0, color: '#0f172a' }}>
+            <h1 style={{ fontSize: '24px', fontWeight: 700, margin: 0, color: 'var(--text)' }}>
               🛡️ ICAI Audit Quality Maturity Model (AQMM v1.0) Desk
             </h1>
-            <span style={{ fontSize: '11px', background: '#e0e7ff', color: '#3730a3', padding: '3px 8px', borderRadius: '4px', fontWeight: 700 }}>
+            <span style={{ fontSize: '11px', background: 'var(--accent-subtle)', color: 'var(--accent)', padding: '3px 8px', borderRadius: '4px', fontWeight: 700 }}>
               MANDATORY CAQ FRAMEWORK
             </span>
           </div>
-          <p style={{ fontSize: '13px', color: '#64748b', margin: '4px 0 0 0' }}>
+          <p style={{ fontSize: '13px', color: 'var(--muted)', margin: '4px 0 0 0' }}>
             Comprehensive 600-point self-assessment and peer-review scoring matrix for Indian Chartered Accountant firms.
           </p>
         </div>
@@ -188,7 +188,7 @@ export function AqmmDeskPage() {
           <select
             value={financialYear}
             onChange={e => setFinancialYear(e.target.value)}
-            style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', fontWeight: 600, background: '#fff' }}
+            style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-subtle)', fontSize: '13px', fontWeight: 600, background: 'var(--card)' }}
           >
             <option value="2024-25">FY 2024-25 (Current)</option>
             <option value="2023-24">FY 2023-24</option>
@@ -213,9 +213,9 @@ export function AqmmDeskPage() {
 
       {/* Toast Notification */}
       {toastMessage && (
-        <div style={{ padding: '12px 16px', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '8px', marginBottom: '20px', color: '#166534', fontSize: '13px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ padding: '12px 16px', background: 'var(--success-bg)', border: '1px solid #86efac', borderRadius: '8px', marginBottom: '20px', color: 'var(--success-text)', fontSize: '13px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>{toastMessage}</div>
-          <button onClick={() => setToastMessage(null)} style={{ background: 'none', border: 'none', color: '#166534', cursor: 'pointer', fontWeight: 700 }}>✕</button>
+          <button onClick={() => setToastMessage(null)} style={{ background: 'none', border: 'none', color: 'var(--success-text)', cursor: 'pointer', fontWeight: 700 }}>✕</button>
         </div>
       )}
 
@@ -236,78 +236,78 @@ export function AqmmDeskPage() {
               {summary.maturityLevel === 'Level 1' && '⚠️ Needs Substantial Quality Improvement (< 450 Pts)'}
             </div>
             {summary.udin && (
-              <div style={{ marginTop: '10px', fontSize: '11px', background: '#fff', padding: '4px 8px', borderRadius: '4px', border: `1px solid ${levelColor.border}`, display: 'inline-block' }}>
+              <div style={{ marginTop: '10px', fontSize: '11px', background: 'var(--card)', padding: '4px 8px', borderRadius: '4px', border: `1px solid ${levelColor.border}`, display: 'inline-block' }}>
                 UDIN: <strong>{summary.udin}</strong>
               </div>
             )}
           </div>
 
           {/* Section A Card */}
-          <div style={{ padding: '20px', borderRadius: '8px', background: '#fff', border: '1px solid #e2e8f0' }}>
-            <div style={{ fontSize: '11px', textTransform: 'uppercase', fontWeight: 700, color: '#64748b' }}>
+          <div style={{ padding: '20px', borderRadius: '8px', background: 'var(--card)', border: '1px solid var(--border)' }}>
+            <div style={{ fontSize: '11px', textTransform: 'uppercase', fontWeight: 700, color: 'var(--muted)' }}>
               Section A: Practice Operations
             </div>
-            <div style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a', margin: '4px 0' }}>
-              {summary.sectionAScore} <span style={{ fontSize: '14px', color: '#94a3b8' }}>/ 190 pts</span>
+            <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text)', margin: '4px 0' }}>
+              {summary.sectionAScore} <span style={{ fontSize: '14px', color: 'var(--muted)' }}>/ 190 pts</span>
             </div>
-            <div style={{ width: '100%', background: '#f1f5f9', height: '6px', borderRadius: '3px', overflow: 'hidden', margin: '8px 0' }}>
+            <div style={{ width: '100%', background: 'var(--card-subtle)', height: '6px', borderRadius: '3px', overflow: 'hidden', margin: '8px 0' }}>
               <div style={{ width: `${Math.min(100, summary.sectionAPercentage)}%`, background: '#2563eb', height: '100%' }} />
             </div>
-            <div style={{ fontSize: '12px', color: '#64748b' }}>Score: {summary.sectionAPercentage}% (7 criteria)</div>
+            <div style={{ fontSize: '12px', color: 'var(--muted)' }}>Score: {summary.sectionAPercentage}% (7 criteria)</div>
           </div>
 
           {/* Section B Card */}
-          <div style={{ padding: '20px', borderRadius: '8px', background: '#fff', border: '1px solid #e2e8f0' }}>
-            <div style={{ fontSize: '11px', textTransform: 'uppercase', fontWeight: 700, color: '#64748b' }}>
+          <div style={{ padding: '20px', borderRadius: '8px', background: 'var(--card)', border: '1px solid var(--border)' }}>
+            <div style={{ fontSize: '11px', textTransform: 'uppercase', fontWeight: 700, color: 'var(--muted)' }}>
               Section B: Human Resources
             </div>
-            <div style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a', margin: '4px 0' }}>
-              {summary.sectionBScore} <span style={{ fontSize: '14px', color: '#94a3b8' }}>/ 110 pts</span>
+            <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text)', margin: '4px 0' }}>
+              {summary.sectionBScore} <span style={{ fontSize: '14px', color: 'var(--muted)' }}>/ 110 pts</span>
             </div>
-            <div style={{ width: '100%', background: '#f1f5f9', height: '6px', borderRadius: '3px', overflow: 'hidden', margin: '8px 0' }}>
+            <div style={{ width: '100%', background: 'var(--card-subtle)', height: '6px', borderRadius: '3px', overflow: 'hidden', margin: '8px 0' }}>
               <div style={{ width: `${Math.min(100, summary.sectionBPercentage)}%`, background: '#8b5cf6', height: '100%' }} />
             </div>
-            <div style={{ fontSize: '12px', color: '#64748b' }}>Score: {summary.sectionBPercentage}% (5 criteria)</div>
+            <div style={{ fontSize: '12px', color: 'var(--muted)' }}>Score: {summary.sectionBPercentage}% (5 criteria)</div>
           </div>
 
           {/* Section C Card */}
-          <div style={{ padding: '20px', borderRadius: '8px', background: '#fff', border: '1px solid #e2e8f0' }}>
-            <div style={{ fontSize: '11px', textTransform: 'uppercase', fontWeight: 700, color: '#64748b' }}>
+          <div style={{ padding: '20px', borderRadius: '8px', background: 'var(--card)', border: '1px solid var(--border)' }}>
+            <div style={{ fontSize: '11px', textTransform: 'uppercase', fontWeight: 700, color: 'var(--muted)' }}>
               Section C: Audit Execution & SQC 1
             </div>
-            <div style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a', margin: '4px 0' }}>
-              {summary.sectionCScore} <span style={{ fontSize: '14px', color: '#94a3b8' }}>/ 300 pts</span>
+            <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text)', margin: '4px 0' }}>
+              {summary.sectionCScore} <span style={{ fontSize: '14px', color: 'var(--muted)' }}>/ 300 pts</span>
             </div>
-            <div style={{ width: '100%', background: '#f1f5f9', height: '6px', borderRadius: '3px', overflow: 'hidden', margin: '8px 0' }}>
+            <div style={{ width: '100%', background: 'var(--card-subtle)', height: '6px', borderRadius: '3px', overflow: 'hidden', margin: '8px 0' }}>
               <div style={{ width: `${Math.min(100, summary.sectionCPercentage)}%`, background: '#059669', height: '100%' }} />
             </div>
-            <div style={{ fontSize: '12px', color: '#64748b' }}>Score: {summary.sectionCPercentage}% (9 criteria)</div>
+            <div style={{ fontSize: '12px', color: 'var(--muted)' }}>Score: {summary.sectionCPercentage}% (9 criteria)</div>
           </div>
         </div>
       )}
 
       {/* Tabs */}
-      <div style={{ display: 'flex', borderBottom: '1px solid #e2e8f0', marginBottom: '24px' }}>
+      <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', marginBottom: '24px' }}>
         <button
           onClick={() => setActiveTab('questionnaire')}
-          style={{ padding: '10px 20px', background: 'none', border: 'none', borderBottom: activeTab === 'questionnaire' ? '2px solid #0284c7' : 'none', color: activeTab === 'questionnaire' ? '#0284c7' : '#64748b', fontWeight: 700, fontSize: '14px', cursor: 'pointer' }}
+          style={{ padding: '10px 20px', background: 'none', border: 'none', borderBottom: activeTab === 'questionnaire' ? '2px solid var(--accent)' : 'none', color: activeTab === 'questionnaire' ? 'var(--accent)' : 'var(--muted)', fontWeight: 700, fontSize: '14px', cursor: 'pointer' }}
         >
           📋 Assessment Questionnaire ({questions.length} Criteria)
         </button>
         <button
           onClick={() => setActiveTab('gap')}
-          style={{ padding: '10px 20px', background: 'none', border: 'none', borderBottom: activeTab === 'gap' ? '2px solid #0284c7' : 'none', color: activeTab === 'gap' ? '#0284c7' : '#64748b', fontWeight: 700, fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+          style={{ padding: '10px 20px', background: 'none', border: 'none', borderBottom: activeTab === 'gap' ? '2px solid var(--accent)' : 'none', color: activeTab === 'gap' ? 'var(--accent)' : 'var(--muted)', fontWeight: 700, fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
         >
           <span>🎯 Gap Analysis &amp; Path to Level 3</span>
           {summary && summary.level3Gap > 0 && (
-            <span style={{ fontSize: '11px', background: '#fee2e2', color: '#b91c1c', padding: '2px 6px', borderRadius: '10px', fontWeight: 700 }}>
+            <span style={{ fontSize: '11px', background: 'var(--error-bg)', color: 'var(--error)', padding: '2px 6px', borderRadius: '10px', fontWeight: 700 }}>
               +{summary.level3Gap} pts needed
             </span>
           )}
         </button>
         <button
           onClick={() => setActiveTab('certify')}
-          style={{ padding: '10px 20px', background: 'none', border: 'none', borderBottom: activeTab === 'certify' ? '2px solid #0284c7' : 'none', color: activeTab === 'certify' ? '#0284c7' : '#64748b', fontWeight: 700, fontSize: '14px', cursor: 'pointer' }}
+          style={{ padding: '10px 20px', background: 'none', border: 'none', borderBottom: activeTab === 'certify' ? '2px solid var(--accent)' : 'none', color: activeTab === 'certify' ? 'var(--accent)' : 'var(--muted)', fontWeight: 700, fontSize: '14px', cursor: 'pointer' }}
         >
           ✍️ Partner Certification &amp; UDIN
         </button>
@@ -329,7 +329,7 @@ export function AqmmDeskPage() {
               <button
                 key={pill.id}
                 onClick={() => setSectionFilter(pill.id)}
-                style={{ padding: '6px 14px', borderRadius: '20px', border: '1px solid #cbd5e1', background: sectionFilter === pill.id ? '#0f172a' : '#fff', color: sectionFilter === pill.id ? '#fff' : '#475569', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
+                style={{ padding: '6px 14px', borderRadius: '20px', border: '1px solid var(--border-subtle)', background: sectionFilter === pill.id ? '#0f172a' : 'var(--card)', color: sectionFilter === pill.id ? '#fff' : 'var(--text-secondary)', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
               >
                 {pill.label}
               </button>
@@ -345,47 +345,47 @@ export function AqmmDeskPage() {
               const isSaving = savingCode === q.questionCode
 
               return (
-                <div key={q.questionCode} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px' }}>
+                <div key={q.questionCode} style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '20px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                        <span style={{ fontSize: '12px', fontWeight: 700, color: '#0369a1', background: '#f0f9ff', padding: '2px 8px', borderRadius: '4px' }}>
+                        <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--accent)', background: '#f0f9ff', padding: '2px 8px', borderRadius: '4px' }}>
                           {q.questionCode}
                         </span>
-                        <span style={{ fontSize: '11px', color: '#64748b' }}>
+                        <span style={{ fontSize: '11px', color: 'var(--muted)' }}>
                           {q.section === 'PracticeManagement' ? 'Section A: Operations' : (q.section === 'HumanResources' ? 'Section B: HR' : 'Section C: Audit Execution')}
                         </span>
                         {q.isAutoEvaluated && (
-                          <span style={{ fontSize: '10px', background: '#dcfce7', color: '#166534', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>
+                          <span style={{ fontSize: '10px', background: 'var(--success-bg)', color: 'var(--success-text)', padding: '2px 6px', borderRadius: '4px', fontWeight: 700 }}>
                             ⚡ Auto-Evaluated by CA Desk
                           </span>
                         )}
                       </div>
-                      <h3 style={{ fontSize: '16px', fontWeight: 700, margin: '0 0 4px 0', color: '#0f172a' }}>
+                      <h3 style={{ fontSize: '16px', fontWeight: 700, margin: '0 0 4px 0', color: 'var(--text)' }}>
                         {q.title}
                       </h3>
-                      <p style={{ fontSize: '13px', color: '#475569', margin: 0 }}>
+                      <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>
                         {q.description}
                       </p>
                     </div>
 
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: '20px', fontWeight: 800, color: currentScore === q.maxPoints ? '#166534' : '#b45309' }}>
-                        {currentScore} <span style={{ fontSize: '12px', color: '#94a3b8' }}>/ {q.maxPoints} pts</span>
+                      <div style={{ fontSize: '20px', fontWeight: 800, color: currentScore === q.maxPoints ? 'var(--success-text)' : 'var(--warning)' }}>
+                        {currentScore} <span style={{ fontSize: '12px', color: 'var(--muted)' }}>/ {q.maxPoints} pts</span>
                       </div>
                     </div>
                   </div>
 
                   {/* Scoring Criteria Radios */}
-                  <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '6px', marginBottom: '14px' }}>
-                    <div style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '8px' }}>
+                  <div style={{ background: 'var(--card-subtle)', padding: '14px', borderRadius: '6px', marginBottom: '14px' }}>
+                    <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '8px' }}>
                       Select Scoring Level:
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       {q.criteria.map((c: AqmmScoringCriterion) => (
                         <label
                           key={c.points}
-                          style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13px', cursor: 'pointer', padding: '6px 10px', borderRadius: '4px', background: currentScore === c.points ? '#eff6ff' : 'transparent', border: currentScore === c.points ? '1px solid #bfdbfe' : '1px solid transparent' }}
+                          style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13px', cursor: 'pointer', padding: '6px 10px', borderRadius: '4px', background: currentScore === c.points ? 'var(--accent-subtle)' : 'transparent', border: currentScore === c.points ? '1px solid var(--accent)' : '1px solid transparent' }}
                         >
                           <input
                             type="radio"
@@ -395,8 +395,8 @@ export function AqmmDeskPage() {
                             style={{ marginTop: '3px' }}
                           />
                           <div>
-                            <span style={{ fontWeight: 700, color: '#0f172a' }}>{c.label} ({c.points} pts): </span>
-                            <span style={{ color: '#475569' }}>{c.description}</span>
+                            <span style={{ fontWeight: 700, color: 'var(--text)' }}>{c.label} ({c.points} pts): </span>
+                            <span style={{ color: 'var(--text-secondary)' }}>{c.description}</span>
                           </div>
                         </label>
                       ))}
@@ -406,7 +406,7 @@ export function AqmmDeskPage() {
                   {/* Remarks & Evidence inputs */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
                     <div>
-                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#64748b', marginBottom: '4px' }}>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--muted)', marginBottom: '4px' }}>
                         Partner Evaluation Remarks:
                       </label>
                       <input
@@ -414,11 +414,11 @@ export function AqmmDeskPage() {
                         value={remarks}
                         onChange={e => setRemarksBuffer(prev => ({ ...prev, [q.questionCode]: e.target.value }))}
                         placeholder="e.g. Documented in firm Quality Control Manual Section 4.2"
-                        style={{ width: '100%', padding: '6px 10px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '12px' }}
+                        style={{ width: '100%', padding: '6px 10px', borderRadius: '4px', border: '1px solid var(--border-subtle)', fontSize: '12px' }}
                       />
                     </div>
                     <div>
-                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#64748b', marginBottom: '4px' }}>
+                      <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'var(--muted)', marginBottom: '4px' }}>
                         Evidence Reference / Attachment Citation:
                       </label>
                       <input
@@ -426,7 +426,7 @@ export function AqmmDeskPage() {
                         value={evidence}
                         onChange={e => setEvidenceBuffer(prev => ({ ...prev, [q.questionCode]: e.target.value }))}
                         placeholder="e.g. Workpaper Folder WP-2024-KYC or ClamAV scan log"
-                        style={{ width: '100%', padding: '6px 10px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '12px' }}
+                        style={{ width: '100%', padding: '6px 10px', borderRadius: '4px', border: '1px solid var(--border-subtle)', fontSize: '12px' }}
                       />
                     </div>
                   </div>
@@ -449,43 +449,43 @@ export function AqmmDeskPage() {
 
       {/* TAB 2: Gap Analysis & Path to Level 3 */}
       {activeTab === 'gap' && gapAnalysis && (
-        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '24px' }}>
+        <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '24px' }}>
           <div style={{ marginBottom: '20px' }}>
-            <h2 style={{ fontSize: '18px', fontWeight: 700, margin: '0 0 6px 0', color: '#0f172a' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: 700, margin: '0 0 6px 0', color: 'var(--text)' }}>
               🎯 Quality Maturity Gap Analysis &amp; Action Plan
             </h2>
-            <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
+            <p style={{ fontSize: '13px', color: 'var(--muted)', margin: 0 }}>
               Actionable roadmap detailing the highest point-yield remediation tasks required to elevate your firm from <strong>{gapAnalysis.currentLevel}</strong> to <strong>Level 3 Excellence</strong>.
             </p>
           </div>
 
           <div style={{ display: 'flex', gap: '20px', marginBottom: '24px', flexWrap: 'wrap' }}>
-            <div style={{ padding: '16px 20px', borderRadius: '6px', background: '#f8fafc', border: '1px solid #e2e8f0', flex: '1 1 200px' }}>
-              <div style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>Current Score</div>
-              <div style={{ fontSize: '26px', fontWeight: 800, color: '#0f172a' }}>{gapAnalysis.currentScore} / 600</div>
+            <div style={{ padding: '16px 20px', borderRadius: '6px', background: 'var(--card-subtle)', border: '1px solid var(--border)', flex: '1 1 200px' }}>
+              <div style={{ fontSize: '11px', color: 'var(--muted)', textTransform: 'uppercase', fontWeight: 700 }}>Current Score</div>
+              <div style={{ fontSize: '26px', fontWeight: 800, color: 'var(--text)' }}>{gapAnalysis.currentScore} / 600</div>
             </div>
-            <div style={{ padding: '16px 20px', borderRadius: '6px', background: '#fef3c7', border: '1px solid #fde68a', flex: '1 1 200px' }}>
-              <div style={{ fontSize: '11px', color: '#b45309', textTransform: 'uppercase', fontWeight: 700 }}>Gap to Level 2 (450 Pts)</div>
-              <div style={{ fontSize: '26px', fontWeight: 800, color: '#92400e' }}>
+            <div style={{ padding: '16px 20px', borderRadius: '6px', background: 'var(--warning-bg)', border: '1px solid var(--warning-border)', flex: '1 1 200px' }}>
+              <div style={{ fontSize: '11px', color: 'var(--warning)', textTransform: 'uppercase', fontWeight: 700 }}>Gap to Level 2 (450 Pts)</div>
+              <div style={{ fontSize: '26px', fontWeight: 800, color: 'var(--warning-text)' }}>
                 {gapAnalysis.pointsNeededForLevel2 > 0 ? `+${gapAnalysis.pointsNeededForLevel2} pts needed` : '✅ Achieved'}
               </div>
             </div>
-            <div style={{ padding: '16px 20px', borderRadius: '6px', background: '#ecfdf5', border: '1px solid #a7f3d0', flex: '1 1 200px' }}>
-              <div style={{ fontSize: '11px', color: '#065f46', textTransform: 'uppercase', fontWeight: 700 }}>Gap to Level 3 (510 Pts)</div>
-              <div style={{ fontSize: '26px', fontWeight: 800, color: '#047857' }}>
+            <div style={{ padding: '16px 20px', borderRadius: '6px', background: 'var(--success-bg)', border: '1px solid var(--success-border)', flex: '1 1 200px' }}>
+              <div style={{ fontSize: '11px', color: 'var(--success-text)', textTransform: 'uppercase', fontWeight: 700 }}>Gap to Level 3 (510 Pts)</div>
+              <div style={{ fontSize: '26px', fontWeight: 800, color: 'var(--success-text)' }}>
                 {gapAnalysis.pointsNeededForLevel3 > 0 ? `+${gapAnalysis.pointsNeededForLevel3} pts needed` : '🏆 Level 3 Achieved!'}
               </div>
             </div>
           </div>
 
-          <h3 style={{ fontSize: '15px', fontWeight: 700, margin: '0 0 12px 0', color: '#0f172a' }}>
+          <h3 style={{ fontSize: '15px', fontWeight: 700, margin: '0 0 12px 0', color: 'var(--text)' }}>
             Prioritized Remediation Roadmap (Sorted by Highest Potential Point Gain)
           </h3>
 
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
               <thead>
-                <tr style={{ background: '#f1f5f9', borderBottom: '2px solid #cbd5e1' }}>
+                <tr style={{ background: 'var(--card-subtle)', borderBottom: '2px solid var(--border-subtle)' }}>
                   <th style={{ padding: '10px 12px', textAlign: 'left' }}>Code</th>
                   <th style={{ padding: '10px 12px', textAlign: 'left' }}>Audit Quality Area</th>
                   <th style={{ padding: '10px 12px', textAlign: 'center' }}>Current</th>
@@ -497,18 +497,18 @@ export function AqmmDeskPage() {
               </thead>
               <tbody>
                 {gapAnalysis.topRecommendations.map((r: AqmmRecommendationDto) => (
-                  <tr key={r.questionCode} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                    <td style={{ padding: '10px 12px', fontWeight: 700, color: '#0369a1' }}>{r.questionCode}</td>
+                  <tr key={r.questionCode} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td style={{ padding: '10px 12px', fontWeight: 700, color: 'var(--accent)' }}>{r.questionCode}</td>
                     <td style={{ padding: '10px 12px', fontWeight: 600 }}>{r.title}</td>
                     <td style={{ padding: '10px 12px', textAlign: 'center' }}>{r.currentPoints}</td>
                     <td style={{ padding: '10px 12px', textAlign: 'center' }}>{r.maxPoints}</td>
-                    <td style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 800, color: '#166534' }}>+{r.potentialGain}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 800, color: 'var(--success-text)' }}>+{r.potentialGain}</td>
                     <td style={{ padding: '10px 12px', textAlign: 'center' }}>
-                      <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '4px', fontWeight: 700, background: r.priority === 'High' ? '#fee2e2' : (r.priority === 'Medium' ? '#fef3c7' : '#f1f5f9'), color: r.priority === 'High' ? '#b91c1c' : (r.priority === 'Medium' ? '#b45309' : '#475569') }}>
+                      <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '4px', fontWeight: 700, background: r.priority === 'High' ? 'var(--error-bg)' : (r.priority === 'Medium' ? 'var(--warning-bg)' : 'var(--card-subtle)'), color: r.priority === 'High' ? 'var(--error)' : (r.priority === 'Medium' ? 'var(--warning)' : 'var(--text-secondary)') }}>
                         {r.priority}
                       </span>
                     </td>
-                    <td style={{ padding: '10px 12px', color: '#475569' }}>{r.remedialAction}</td>
+                    <td style={{ padding: '10px 12px', color: 'var(--text-secondary)' }}>{r.remedialAction}</td>
                   </tr>
                 ))}
               </tbody>
@@ -519,17 +519,17 @@ export function AqmmDeskPage() {
 
       {/* TAB 3: Certification & UDIN */}
       {activeTab === 'certify' && (
-        <div style={{ maxWidth: '640px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '28px', margin: '0 auto' }}>
-          <h2 style={{ fontSize: '18px', fontWeight: 700, margin: '0 0 6px 0', color: '#0f172a' }}>
+        <div style={{ maxWidth: '640px', background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '28px', margin: '0 auto' }}>
+          <h2 style={{ fontSize: '18px', fontWeight: 700, margin: '0 0 6px 0', color: 'var(--text)' }}>
             ✍️ Certify AQMM Self-Assessment with ICAI UDIN
           </h2>
-          <p style={{ fontSize: '13px', color: '#64748b', margin: '0 0 20px 0' }}>
+          <p style={{ fontSize: '13px', color: 'var(--muted)', margin: '0 0 20px 0' }}>
             Once the Managing / Lead Quality Partner completes the self-evaluation, bind the scorecard with your 18-digit Unique Document Identification Number (UDIN).
           </p>
 
           <form onSubmit={handleCertify}>
             <div style={{ marginBottom: '14px' }}>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '4px' }}>
                 Lead Partner Name:
               </label>
               <input
@@ -538,13 +538,13 @@ export function AqmmDeskPage() {
                 value={partnerName}
                 onChange={e => setPartnerName(e.target.value)}
                 placeholder="e.g. CA Rajesh Kumar"
-                style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-subtle)', fontSize: '13px' }}
               />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '4px' }}>
                   ICAI Membership Number:
                 </label>
                 <input
@@ -553,11 +553,11 @@ export function AqmmDeskPage() {
                   value={membershipNo}
                   onChange={e => setMembershipNo(e.target.value)}
                   placeholder="e.g. 054321"
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-subtle)', fontSize: '13px' }}
                 />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '4px' }}>
                   Firm Registration Number (FRN):
                 </label>
                 <input
@@ -566,13 +566,13 @@ export function AqmmDeskPage() {
                   value={frn}
                   onChange={e => setFrn(e.target.value)}
                   placeholder="e.g. 104523W"
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-subtle)', fontSize: '13px' }}
                 />
               </div>
             </div>
 
             <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '4px' }}>
                 18-Digit ICAI UDIN:
               </label>
               <input
@@ -582,9 +582,9 @@ export function AqmmDeskPage() {
                 value={udin}
                 onChange={e => setUdin(e.target.value.toUpperCase())}
                 placeholder="e.g. 25054321AAAA123456"
-                style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', fontFamily: 'monospace', letterSpacing: '1px', fontWeight: 700 }}
+                style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-subtle)', fontSize: '14px', fontFamily: 'monospace', letterSpacing: '1px', fontWeight: 700 }}
               />
-              <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>
+              <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '4px' }}>
                 Generated from the ICAI UDIN Portal under Certificate/AQMM category. Must be exactly 18 characters.
               </div>
             </div>

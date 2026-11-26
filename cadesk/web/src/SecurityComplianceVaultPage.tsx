@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
   securityComplianceApi,
   type SecurityAssessmentSummaryDto,
@@ -24,7 +24,7 @@ export default function SecurityComplianceVaultPage() {
   const [partnerName, setPartnerName] = useState<string>('CA Rajesh Sharma')
   const [membershipNo, setMembershipNo] = useState<string>('054321')
 
-  async function loadData() {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true)
       const sum = await securityComplianceApi.getSummary('2024-25')
@@ -37,11 +37,11 @@ export default function SecurityComplianceVaultPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [selectedCategory])
 
   useEffect(() => {
     loadData()
-  }, [selectedCategory])
+  }, [loadData])
 
   async function handleRunContinuousAudit() {
     try {
@@ -125,20 +125,20 @@ export default function SecurityComplianceVaultPage() {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
             <span style={{ fontSize: '26px' }}>🛡️</span>
-            <h1 style={{ fontSize: '24px', fontWeight: 800, margin: 0, color: '#0f172a' }}>
+            <h1 style={{ fontSize: '24px', fontWeight: 800, margin: 0, color: 'var(--text)' }}>
               Security Controls &amp; Data Protection Vault
             </h1>
-            <span style={{ fontSize: '11px', background: '#dcfce7', color: '#15803d', padding: '3px 8px', borderRadius: '4px', fontWeight: 700 }}>
+            <span style={{ fontSize: '11px', background: 'var(--success-bg)', color: 'var(--success)', padding: '3px 8px', borderRadius: '4px', fontWeight: 700 }}>
               CONTROLS ALIGNED TO ISO/IEC 27001
             </span>
-            <span style={{ fontSize: '11px', background: '#e0e7ff', color: '#3730a3', padding: '3px 8px', borderRadius: '4px', fontWeight: 700 }}>
+            <span style={{ fontSize: '11px', background: 'var(--accent-subtle)', color: 'var(--accent)', padding: '3px 8px', borderRadius: '4px', fontWeight: 700 }}>
               SOC 2 ALIGNED
             </span>
-            <span style={{ fontSize: '11px', background: '#fef3c7', color: '#92400e', padding: '3px 8px', borderRadius: '4px', fontWeight: 700 }}>
+            <span style={{ fontSize: '11px', background: 'var(--warning-bg)', color: 'var(--warning-text)', padding: '3px 8px', borderRadius: '4px', fontWeight: 700 }}>
               DPDP ACT 2023
             </span>
           </div>
-          <p style={{ margin: 0, color: '#64748b', fontSize: '14px' }}>
+          <p style={{ margin: 0, color: 'var(--muted)', fontSize: '14px' }}>
             Continuous security telemetry verification, Statement of Applicability (SoA), and 1-click Security Controls Whitepaper generator for enterprise client vendor assessments and NFRA/ICAI peer reviews. Controls designed in alignment with ISO/IEC 27001 and SOC 2.
           </p>
         </div>
@@ -163,7 +163,7 @@ export default function SecurityComplianceVaultPage() {
           <button
             onClick={() => setShowCertifyModal(true)}
             disabled={loading || busy}
-            style={{ padding: '9px 16px', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '13px', fontWeight: 600, color: '#334155', cursor: 'pointer' }}
+            style={{ padding: '9px 16px', background: 'var(--card-subtle)', border: '1px solid var(--border-subtle)', borderRadius: '6px', fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', cursor: 'pointer' }}
           >
             <span>✍️ Partner Sign-Off</span>
           </button>
@@ -172,33 +172,33 @@ export default function SecurityComplianceVaultPage() {
 
       {/* Notifications */}
       {actionMessage && (
-        <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#166534', padding: '12px 16px', borderRadius: '6px', marginBottom: '20px', fontSize: '13px', display: 'flex', justifyContent: 'space-between' }}>
+        <div style={{ background: 'var(--success-bg)', border: '1px solid var(--success-border)', color: 'var(--success-text)', padding: '12px 16px', borderRadius: '6px', marginBottom: '20px', fontSize: '13px', display: 'flex', justifyContent: 'space-between' }}>
           <span>✓ {actionMessage}</span>
-          <button onClick={() => setActionMessage(null)} style={{ background: 'none', border: 'none', color: '#166534', cursor: 'pointer', fontWeight: 700 }}>✕</button>
+          <button onClick={() => setActionMessage(null)} style={{ background: 'none', border: 'none', color: 'var(--success-text)', cursor: 'pointer', fontWeight: 700 }}>✕</button>
         </div>
       )}
 
       {error && (
-        <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', padding: '12px 16px', borderRadius: '6px', marginBottom: '20px', fontSize: '13px', display: 'flex', justifyContent: 'space-between' }}>
+        <div style={{ background: 'var(--error-bg)', border: '1px solid var(--error-border)', color: 'var(--error-text)', padding: '12px 16px', borderRadius: '6px', marginBottom: '20px', fontSize: '13px', display: 'flex', justifyContent: 'space-between' }}>
           <span>⚠️ {error}</span>
-          <button onClick={() => setError(null)} style={{ background: 'none', border: 'none', color: '#991b1b', cursor: 'pointer', fontWeight: 700 }}>✕</button>
+          <button onClick={() => setError(null)} style={{ background: 'none', border: 'none', color: 'var(--error-text)', cursor: 'pointer', fontWeight: 700 }}>✕</button>
         </div>
       )}
 
       {/* High-Level Scorecards */}
       <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 2fr', gap: '20px', marginBottom: '28px' }}>
         {/* Overall Score Box */}
-        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+        <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Overall Enterprise Posture</span>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase' }}>Overall Enterprise Posture</span>
               <span style={{
                 padding: '3px 8px',
                 borderRadius: '4px',
                 fontSize: '11px',
                 fontWeight: 700,
-                background: summary?.status === 'Certified' ? '#dcfce7' : '#e0e7ff',
-                color: summary?.status === 'Certified' ? '#15803d' : '#3730a3'
+                background: summary?.status === 'Certified' ? 'var(--success-bg)' : 'var(--accent-subtle)',
+                color: summary?.status === 'Certified' ? 'var(--success)' : 'var(--accent)'
               }}>
                 {summary?.status === 'Certified' ? 'CERTIFIED ENTERPRISE READY' : 'ACTIVE AUDIT READY'}
               </span>
@@ -208,15 +208,15 @@ export default function SecurityComplianceVaultPage() {
               <span style={{ fontSize: '48px', fontWeight: 900, color: '#16a34a', letterSpacing: '-1px' }}>
                 {summary?.overallScorePercentage ?? 96}%
               </span>
-              <span style={{ fontSize: '14px', color: '#64748b', fontWeight: 600 }}>Compliance Rating</span>
+              <span style={{ fontSize: '14px', color: 'var(--muted)', fontWeight: 600 }}>Compliance Rating</span>
             </div>
 
-            <div style={{ fontSize: '13px', color: '#475569', marginBottom: '16px' }}>
+            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
               {summary?.compliantControlsCount ?? 17} of {summary?.totalControlsCount ?? 18} Controls Fully Compliant · {summary?.partiallyCompliantCount ?? 1} Partial
             </div>
           </div>
 
-          <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '14px', fontSize: '12px', color: '#64748b' }}>
+          <div style={{ borderTop: '1px solid var(--border)', paddingTop: '14px', fontSize: '12px', color: 'var(--muted)' }}>
             <div>Last Telemetry Audit: <b>{summary?.lastEvaluatedAt ? new Date(summary.lastEvaluatedAt).toLocaleString() : 'Just now'}</b></div>
             {summary?.certifiedByPartner && (
               <div style={{ marginTop: '4px' }}>
@@ -227,8 +227,8 @@ export default function SecurityComplianceVaultPage() {
         </div>
 
         {/* 5 Pillar Meters */}
-        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '24px' }}>
-          <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a', marginBottom: '16px' }}>
+        <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '24px' }}>
+          <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)', marginBottom: '16px' }}>
             5 Continuous Security &amp; Compliance Pillars
           </div>
 
@@ -236,16 +236,16 @@ export default function SecurityComplianceVaultPage() {
             {[
               { label: 'Access Control & Two-Lock RLS (ISO A.5/A.9, SOC 2 CC6.1)', score: summary?.accessControlScore ?? 100, color: '#16a34a' },
               { label: 'Cryptography & AES-256 GFS Backups (ISO A.8.24, SOC 2 CC6.6)', score: summary?.cryptographyScore ?? 100, color: '#16a34a' },
-              { label: 'Operations Security & ClamAV Antivirus (ISO A.8.7, SOC 2 CC7.1)', score: summary?.operationsScore ?? 92, color: '#0284c7' },
-              { label: 'Physical & Tier-IV Cloud Infrastructure (ISO A.7, SOC 2 CC6.4)', score: summary?.physicalScore ?? 95, color: '#0284c7' },
-              { label: 'Privacy, DPDP 2023 & Zero AI Training (SOC 2 Privacy P1)', score: summary?.privacyScore ?? 95, color: '#0284c7' }
+              { label: 'Operations Security & ClamAV Antivirus (ISO A.8.7, SOC 2 CC7.1)', score: summary?.operationsScore ?? 92, color: 'var(--accent)' },
+              { label: 'Physical & Tier-IV Cloud Infrastructure (ISO A.7, SOC 2 CC6.4)', score: summary?.physicalScore ?? 95, color: 'var(--accent)' },
+              { label: 'Privacy, DPDP 2023 & Zero AI Training (SOC 2 Privacy P1)', score: summary?.privacyScore ?? 95, color: 'var(--accent)' }
             ].map((p, idx) => (
               <div key={idx}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>
-                  <span style={{ color: '#334155' }}>{p.label}</span>
+                  <span style={{ color: 'var(--text-secondary)' }}>{p.label}</span>
                   <span style={{ color: p.color }}>{p.score}%</span>
                 </div>
-                <div style={{ height: '7px', background: '#f1f5f9', borderRadius: '4px', overflow: 'hidden' }}>
+                <div style={{ height: '7px', background: 'var(--card-subtle)', borderRadius: '4px', overflow: 'hidden' }}>
                   <div style={{ width: `${p.score}%`, height: '100%', background: p.color, borderRadius: '4px' }}></div>
                 </div>
               </div>
@@ -255,13 +255,13 @@ export default function SecurityComplianceVaultPage() {
       </div>
 
       {/* Controls Workbench Header & Category Filter */}
-      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px', marginBottom: '24px' }}>
+      <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '20px', marginBottom: '24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
           <div>
-            <h3 style={{ fontSize: '16px', fontWeight: 700, margin: 0, color: '#0f172a' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: 700, margin: 0, color: 'var(--text)' }}>
               Statement of Applicability (SoA) &amp; Controls Matrix
             </h3>
-            <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#64748b' }}>
+            <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--muted)' }}>
               Real-time telemetry signals verified directly against the production runtime, database kernel, and backup engine.
             </p>
           </div>
@@ -283,9 +283,9 @@ export default function SecurityComplianceVaultPage() {
                   borderRadius: '6px',
                   fontSize: '12px',
                   fontWeight: 600,
-                  border: selectedCategory === cat.id ? '1px solid #0284c7' : '1px solid #e2e8f0',
-                  background: selectedCategory === cat.id ? '#f0f9ff' : '#fff',
-                  color: selectedCategory === cat.id ? '#0284c7' : '#475569',
+                  border: selectedCategory === cat.id ? '1px solid var(--accent)' : '1px solid var(--border)',
+                  background: selectedCategory === cat.id ? '#f0f9ff' : 'var(--card)',
+                  color: selectedCategory === cat.id ? 'var(--accent)' : 'var(--text-secondary)',
                   cursor: 'pointer'
                 }}
               >
@@ -299,34 +299,34 @@ export default function SecurityComplianceVaultPage() {
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
             <thead>
-              <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', textAlign: 'left' }}>
-                <th style={{ padding: '10px 12px', color: '#475569', width: '90px' }}>Code</th>
-                <th style={{ padding: '10px 12px', color: '#475569', width: '220px' }}>Control Title</th>
-                <th style={{ padding: '10px 12px', color: '#475569', width: '160px' }}>Standards Mapping</th>
-                <th style={{ padding: '10px 12px', color: '#475569' }}>Continuous Telemetry Signal</th>
-                <th style={{ padding: '10px 12px', color: '#475569', width: '100px' }}>Status</th>
-                <th style={{ padding: '10px 12px', color: '#475569', width: '70px', textAlign: 'center' }}>Action</th>
+              <tr style={{ background: 'var(--card-subtle)', borderBottom: '1px solid var(--border)', textAlign: 'left' }}>
+                <th style={{ padding: '10px 12px', color: 'var(--text-secondary)', width: '90px' }}>Code</th>
+                <th style={{ padding: '10px 12px', color: 'var(--text-secondary)', width: '220px' }}>Control Title</th>
+                <th style={{ padding: '10px 12px', color: 'var(--text-secondary)', width: '160px' }}>Standards Mapping</th>
+                <th style={{ padding: '10px 12px', color: 'var(--text-secondary)' }}>Continuous Telemetry Signal</th>
+                <th style={{ padding: '10px 12px', color: 'var(--text-secondary)', width: '100px' }}>Status</th>
+                <th style={{ padding: '10px 12px', color: 'var(--text-secondary)', width: '70px', textAlign: 'center' }}>Action</th>
               </tr>
             </thead>
             <tbody>
               {controls.map(c => (
-                <tr key={c.controlCode} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                  <td style={{ padding: '12px', fontWeight: 800, color: '#0f172a', fontFamily: 'monospace' }}>
+                <tr key={c.controlCode} style={{ borderBottom: '1px solid var(--border)' }}>
+                  <td style={{ padding: '12px', fontWeight: 800, color: 'var(--text)', fontFamily: 'monospace' }}>
                     {c.controlCode}
                   </td>
                   <td style={{ padding: '12px' }}>
-                    <div style={{ fontWeight: 700, color: '#0f172a' }}>{c.title}</div>
-                    <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>{c.category}</div>
+                    <div style={{ fontWeight: 700, color: 'var(--text)' }}>{c.title}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '2px' }}>{c.category}</div>
                   </td>
-                  <td style={{ padding: '12px', fontSize: '11px', color: '#475569', fontWeight: 600 }}>
+                  <td style={{ padding: '12px', fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600 }}>
                     {c.frameworkMapping}
                   </td>
                   <td style={{ padding: '12px' }}>
-                    <div style={{ fontSize: '12px', color: '#166534', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '6px 10px', borderRadius: '4px', fontWeight: 500 }}>
+                    <div style={{ fontSize: '12px', color: 'var(--success-text)', background: 'var(--success-bg)', border: '1px solid var(--success-border)', padding: '6px 10px', borderRadius: '4px', fontWeight: 500 }}>
                       ⚡ {c.telemetrySignal || c.description}
                     </div>
                     {c.evidenceNotes && (
-                      <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px', fontStyle: 'italic' }}>
+                      <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '4px', fontStyle: 'italic' }}>
                         Notes: {c.evidenceNotes}
                       </div>
                     )}
@@ -337,8 +337,8 @@ export default function SecurityComplianceVaultPage() {
                       borderRadius: '4px',
                       fontSize: '11px',
                       fontWeight: 700,
-                      background: c.status === 'Compliant' ? '#dcfce7' : '#fef9c3',
-                      color: c.status === 'Compliant' ? '#15803d' : '#854d0e'
+                      background: c.status === 'Compliant' ? 'var(--success-bg)' : 'var(--warning-bg)',
+                      color: c.status === 'Compliant' ? 'var(--success)' : '#854d0e'
                     }}>
                       {c.status.toUpperCase()}
                     </span>
@@ -350,7 +350,7 @@ export default function SecurityComplianceVaultPage() {
                         setEditStatus(c.status)
                         setEditNotes(c.evidenceNotes || '')
                       }}
-                      style={{ padding: '4px 8px', background: 'none', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '11px', fontWeight: 600, color: '#334155', cursor: 'pointer' }}
+                      style={{ padding: '4px 8px', background: 'none', border: '1px solid var(--border-subtle)', borderRadius: '4px', fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', cursor: 'pointer' }}
                     >
                       Edit
                     </button>
@@ -365,23 +365,23 @@ export default function SecurityComplianceVaultPage() {
       {/* Edit Control Modal */}
       {editingControl && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}>
-          <div style={{ background: '#fff', borderRadius: '8px', maxWidth: '540px', width: '100%', padding: '24px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
-            <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>
+          <div style={{ background: 'var(--card)', borderRadius: '8px', maxWidth: '540px', width: '100%', padding: '24px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
+            <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: 800, color: 'var(--text)' }}>
               Edit Control: {editingControl.controlCode} - {editingControl.title}
             </h3>
-            <p style={{ margin: '0 0 16px 0', fontSize: '12px', color: '#64748b' }}>
+            <p style={{ margin: '0 0 16px 0', fontSize: '12px', color: 'var(--muted)' }}>
               {editingControl.frameworkMapping} · {editingControl.category}
             </p>
 
             <form onSubmit={handleSaveEvidence}>
               <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '4px' }}>
                   Compliance Status:
                 </label>
                 <select
                   value={editStatus}
                   onChange={e => setEditStatus(e.target.value)}
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-subtle)', fontSize: '13px' }}
                 >
                   <option value="Compliant">Compliant (Fully Met)</option>
                   <option value="PartiallyCompliant">Partially Compliant (Under Implementation)</option>
@@ -391,7 +391,7 @@ export default function SecurityComplianceVaultPage() {
               </div>
 
               <div style={{ marginBottom: '18px' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '4px' }}>
                   Auditor Remarks / Evidence Notes:
                 </label>
                 <textarea
@@ -399,7 +399,7 @@ export default function SecurityComplianceVaultPage() {
                   value={editNotes}
                   onChange={e => setEditNotes(e.target.value)}
                   placeholder="Document specific evidence, policies, or manual verification references..."
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-subtle)', fontSize: '13px' }}
                 />
               </div>
 
@@ -407,7 +407,7 @@ export default function SecurityComplianceVaultPage() {
                 <button
                   type="button"
                   onClick={() => setEditingControl(null)}
-                  style={{ padding: '8px 16px', background: 'none', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '13px', fontWeight: 600, color: '#64748b', cursor: 'pointer' }}
+                  style={{ padding: '8px 16px', background: 'none', border: '1px solid var(--border-subtle)', borderRadius: '6px', fontSize: '13px', fontWeight: 600, color: 'var(--muted)', cursor: 'pointer' }}
                 >
                   Cancel
                 </button>
@@ -427,17 +427,17 @@ export default function SecurityComplianceVaultPage() {
       {/* Partner Attestation Modal */}
       {showCertifyModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' }}>
-          <div style={{ background: '#fff', borderRadius: '8px', maxWidth: '480px', width: '100%', padding: '24px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
-            <h3 style={{ margin: '0 0 6px 0', fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>
+          <div style={{ background: 'var(--card)', borderRadius: '8px', maxWidth: '480px', width: '100%', padding: '24px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
+            <h3 style={{ margin: '0 0 6px 0', fontSize: '16px', fontWeight: 800, color: 'var(--text)' }}>
               Managing Partner Security Attestation
             </h3>
-            <p style={{ margin: '0 0 16px 0', fontSize: '12px', color: '#64748b' }}>
+            <p style={{ margin: '0 0 16px 0', fontSize: '12px', color: 'var(--muted)' }}>
               Affirm that all continuous telemetry signals, Two-Lock isolation policies, and encryption controls have been verified for corporate client assurance.
             </p>
 
             <form onSubmit={handleCertify}>
               <div style={{ marginBottom: '14px' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '4px' }}>
                   Managing Partner Name: *
                 </label>
                 <input
@@ -445,12 +445,12 @@ export default function SecurityComplianceVaultPage() {
                   required
                   value={partnerName}
                   onChange={e => setPartnerName(e.target.value)}
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-subtle)', fontSize: '13px' }}
                 />
               </div>
 
               <div style={{ marginBottom: '18px' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '4px' }}>
                   ICAI Membership Number: *
                 </label>
                 <input
@@ -458,7 +458,7 @@ export default function SecurityComplianceVaultPage() {
                   required
                   value={membershipNo}
                   onChange={e => setMembershipNo(e.target.value)}
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', fontFamily: 'monospace' }}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-subtle)', fontSize: '13px', fontFamily: 'monospace' }}
                 />
               </div>
 
@@ -466,7 +466,7 @@ export default function SecurityComplianceVaultPage() {
                 <button
                   type="button"
                   onClick={() => setShowCertifyModal(false)}
-                  style={{ padding: '8px 16px', background: 'none', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '13px', fontWeight: 600, color: '#64748b', cursor: 'pointer' }}
+                  style={{ padding: '8px 16px', background: 'none', border: '1px solid var(--border-subtle)', borderRadius: '6px', fontSize: '13px', fontWeight: 600, color: 'var(--muted)', cursor: 'pointer' }}
                 >
                   Cancel
                 </button>

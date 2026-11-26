@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { toError,
   type AuditCommitteeEngagementDto,
   type AuditCommitteeSummaryDto,
@@ -99,30 +99,30 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
     managementJustificationForNonAdjustment: ''
   })
 
+  const selectedEngagementIdRef = useRef<string | null>(null)
   useEffect(() => {
-    loadData()
-    loadClients()
-  }, [filterFy, filterStatus])
+    selectedEngagementIdRef.current = selectedEngagement?.id ?? null
+  }, [selectedEngagement])
 
   const showToast = (msg: string) => {
     setToastMsg(msg)
     setTimeout(() => setToastMsg(null), 4000)
   }
 
-  const loadClients = async () => {
+  const loadClients = useCallback(async () => {
     try {
       const res = await api<ClientPage>('/api/clients?pageSize=100')
       setClients(res.items || [])
-      if (res.items && res.items.length > 0 && !engForm.clientId) {
-        setEngForm(f => ({ ...f, clientId: res.items[0].id }))
+      if (res.items && res.items.length > 0) {
+        setEngForm(f => (f.clientId ? f : { ...f, clientId: res.items[0].id }))
       }
     } catch (caught) {
       const err = toError(caught)
       console.error('Failed to load clients', err)
     }
-  }
+  }, [])
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -134,13 +134,12 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
       setEngagements(engRes)
 
       if (engRes.length > 0) {
-        if (!selectedEngagement || !engRes.find(e => e.id === selectedEngagement.id)) {
-          setSelectedEngagement(engRes[0])
-        } else {
-          const fresh = engRes.find(e => e.id === selectedEngagement.id)
-          if (fresh) setSelectedEngagement(fresh)
-        }
+        const prevId = selectedEngagementIdRef.current
+        const next = (prevId && engRes.find(e => e.id === prevId)) || engRes[0]
+        selectedEngagementIdRef.current = next.id
+        setSelectedEngagement(next)
       } else {
+        selectedEngagementIdRef.current = null
         setSelectedEngagement(null)
       }
     } catch (caught) {
@@ -149,7 +148,12 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
     } finally {
       setLoading(false)
     }
-  }
+  }, [filterFy, filterStatus])
+
+  useEffect(() => {
+    loadData()
+    loadClients()
+  }, [loadData, loadClients])
 
   const handleCreateEngagement = async () => {
     try {
@@ -404,7 +408,7 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
               Audit Committee & Board Governance Desk
             </h1>
             <span style={{
-              background: '#ede9fe',
+              background: 'var(--purple-bg)',
               color: '#6d28d9',
               fontSize: '0.75rem',
               fontWeight: 700,
@@ -414,22 +418,22 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
             }}>
               Sprint 34
             </span>
-            {loading && <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Refreshing...</span>}
+            {loading && <span style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>Refreshing...</span>}
           </div>
           <p className="muted" style={{ margin: '6px 0 0', fontSize: '0.95rem' }}>
             Statutory Governance & Two-Way Communication with Those Charged with Governance (TCWG) under <strong>Companies Act, 2013 Sec 177</strong> & <strong>ICAI SA 260 / SA 265</strong>
           </p>
           <div style={{ display: 'flex', gap: '8px', marginTop: '10px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.78rem', background: '#f1f5f9', color: '#475569', padding: '2px 8px', borderRadius: '4px' }}>
+            <span style={{ fontSize: '0.78rem', background: 'var(--card-subtle)', color: 'var(--text-secondary)', padding: '2px 8px', borderRadius: '4px' }}>
               ⚖️ Section 177 Audit Committee Mandate
             </span>
-            <span style={{ fontSize: '0.78rem', background: '#f1f5f9', color: '#475569', padding: '2px 8px', borderRadius: '4px' }}>
+            <span style={{ fontSize: '0.78rem', background: 'var(--card-subtle)', color: 'var(--text-secondary)', padding: '2px 8px', borderRadius: '4px' }}>
               🛡️ SA 260 Auditor Independence Statement
             </span>
-            <span style={{ fontSize: '0.78rem', background: '#f1f5f9', color: '#475569', padding: '2px 8px', borderRadius: '4px' }}>
+            <span style={{ fontSize: '0.78rem', background: 'var(--card-subtle)', color: 'var(--text-secondary)', padding: '2px 8px', borderRadius: '4px' }}>
               ⚠️ SA 265 Significant Internal Control Deficiencies
             </span>
-            <span style={{ fontSize: '0.78rem', background: '#f1f5f9', color: '#475569', padding: '2px 8px', borderRadius: '4px' }}>
+            <span style={{ fontSize: '0.78rem', background: 'var(--card-subtle)', color: 'var(--text-secondary)', padding: '2px 8px', borderRadius: '4px' }}>
               📑 SA 450 Uncorrected Misstatements Evaluation
             </span>
           </div>
@@ -475,9 +479,9 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
 
       {error && (
         <div style={{
-          background: '#fee2e2',
-          border: '1px solid #fca5a5',
-          color: '#b91c1c',
+          background: 'var(--error-bg)',
+          border: '1px solid var(--error-border)',
+          color: 'var(--error)',
           padding: '12px 16px',
           borderRadius: '6px',
           marginBottom: '18px',
@@ -486,15 +490,15 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
           alignItems: 'center'
         }}>
           <span>{error}</span>
-          <button onClick={() => setError(null)} style={{ background: 'none', border: 'none', color: '#b91c1c', cursor: 'pointer', fontWeight: 700 }}>✕</button>
+          <button onClick={() => setError(null)} style={{ background: 'none', border: 'none', color: 'var(--error)', cursor: 'pointer', fontWeight: 700 }}>✕</button>
         </div>
       )}
 
       {/* KPI Cards Row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-        <div style={{ background: '#fff', padding: '16px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-          <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Committee Engagements</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0f172a', marginTop: '4px' }}>
+        <div style={{ background: 'var(--card)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border)', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+          <div style={{ fontSize: '0.8rem', color: 'var(--muted)', fontWeight: 600 }}>Committee Engagements</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text)', marginTop: '4px' }}>
             {summary?.totalEngagements ?? 0}
           </div>
           <div style={{ fontSize: '0.75rem', color: '#10b981', marginTop: '4px' }}>
@@ -502,42 +506,42 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
           </div>
         </div>
 
-        <div style={{ background: '#fff', padding: '16px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-          <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Internal Control Deficiencies</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0f172a', marginTop: '4px' }}>
+        <div style={{ background: 'var(--card)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border)', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+          <div style={{ fontSize: '0.8rem', color: 'var(--muted)', fontWeight: 600 }}>Internal Control Deficiencies</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text)', marginTop: '4px' }}>
             {summary?.totalDeficiencies ?? 0}
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: '4px' }}>
             Across all financial process areas
           </div>
         </div>
 
-        <div style={{ background: '#fff', padding: '16px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-          <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Significant Deficiencies (SA 265)</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: (summary?.totalSignificantDeficiencies ?? 0) > 0 ? '#b91c1c' : '#059669', marginTop: '4px' }}>
+        <div style={{ background: 'var(--card)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border)', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+          <div style={{ fontSize: '0.8rem', color: 'var(--muted)', fontWeight: 600 }}>Significant Deficiencies (SA 265)</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: (summary?.totalSignificantDeficiencies ?? 0) > 0 ? 'var(--error)' : 'var(--success)', marginTop: '4px' }}>
             {summary?.totalSignificantDeficiencies ?? 0}
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: '4px' }}>
             Mandatory written reporting to TCWG
           </div>
         </div>
 
-        <div style={{ background: '#fff', padding: '16px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-          <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Est. Control Risk Exposure</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#d97706', marginTop: '4px' }}>
+        <div style={{ background: 'var(--card)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border)', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+          <div style={{ fontSize: '0.8rem', color: 'var(--muted)', fontWeight: 600 }}>Est. Control Risk Exposure</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--warning)', marginTop: '4px' }}>
             {fmtInr(summary?.totalEstimatedRiskAmount ?? 0)}
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: '4px' }}>
             Quantified control risk aggregate
           </div>
         </div>
 
-        <div style={{ background: '#fff', padding: '16px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-          <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Uncorrected Misstatements (SA 450)</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#4f46e5', marginTop: '4px' }}>
+        <div style={{ background: 'var(--card)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border)', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+          <div style={{ fontSize: '0.8rem', color: 'var(--muted)', fontWeight: 600 }}>Uncorrected Misstatements (SA 450)</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--accent)', marginTop: '4px' }}>
             {fmtInr(summary?.totalUncorrectedMisstatementValue ?? 0)}
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: '4px' }}>
             {summary?.totalUncorrectedMisstatements ?? 0} unadjusted audit items
           </div>
         </div>
@@ -545,10 +549,10 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
 
       {/* Engagement Selection & Filters Strip */}
       <div style={{
-        background: '#fff',
+        background: 'var(--card)',
         padding: '16px 20px',
         borderRadius: '8px',
-        border: '1px solid #e2e8f0',
+        border: '1px solid var(--border)',
         marginBottom: '24px',
         display: 'flex',
         justifyContent: 'space-between',
@@ -558,7 +562,7 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
           <div>
-            <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>
+            <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--muted)', display: 'block', marginBottom: '4px' }}>
               Active Engagement
             </label>
             <select
@@ -570,7 +574,7 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
               style={{
                 padding: '7px 12px',
                 borderRadius: '6px',
-                border: '1px solid #cbd5e1',
+                border: '1px solid var(--border-subtle)',
                 fontSize: '0.88rem',
                 minWidth: '340px',
                 fontWeight: 600
@@ -586,13 +590,13 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
           </div>
 
           <div>
-            <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>
+            <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--muted)', display: 'block', marginBottom: '4px' }}>
               Financial Year
             </label>
             <select
               value={filterFy}
               onChange={e => setFilterFy(e.target.value)}
-              style={{ padding: '7px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.88rem' }}
+              style={{ padding: '7px 12px', borderRadius: '6px', border: '1px solid var(--border-subtle)', fontSize: '0.88rem' }}
             >
               <option value="all">All FYs</option>
               <option value="2024-25">2024-25</option>
@@ -601,13 +605,13 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
           </div>
 
           <div>
-            <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>
+            <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--muted)', display: 'block', marginBottom: '4px' }}>
               Status
             </label>
             <select
               value={filterStatus}
               onChange={e => setFilterStatus(e.target.value)}
-              style={{ padding: '7px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.88rem' }}
+              style={{ padding: '7px 12px', borderRadius: '6px', border: '1px solid var(--border-subtle)', fontSize: '0.88rem' }}
             >
               <option value="all">All Statuses</option>
               <option value="Draft">Draft</option>
@@ -625,9 +629,9 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
               padding: '4px 10px',
               borderRadius: '9999px',
               textTransform: 'uppercase',
-              background: selectedEngagement.status === 'SignedOff' ? '#dcfce7' :
+              background: selectedEngagement.status === 'SignedOff' ? 'var(--success-bg)' :
                           selectedEngagement.status === 'PackGenerated' ? '#ede9fe' : '#f1f5f9',
-              color: selectedEngagement.status === 'SignedOff' ? '#166534' :
+              color: selectedEngagement.status === 'SignedOff' ? 'var(--success-text)' :
                      selectedEngagement.status === 'PackGenerated' ? '#6d28d9' : '#475569'
             }}>
               {selectedEngagement.status}
@@ -677,12 +681,12 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
 
       {/* Main Workspace */}
       {selectedEngagement ? (
-        <div style={{ background: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+        <div style={{ background: 'var(--card)', borderRadius: '8px', border: '1px solid var(--border)', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
           {/* Tabs navigation */}
           <div style={{
             display: 'flex',
-            borderBottom: '1px solid #e2e8f0',
-            background: '#f8fafc',
+            borderBottom: '1px solid var(--border)',
+            background: 'var(--card-subtle)',
             padding: '0 16px'
           }}>
             <button
@@ -694,8 +698,8 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
                 fontWeight: 600,
                 fontSize: '0.88rem',
                 cursor: 'pointer',
-                color: activeTab === 'deficiencies' ? '#4f46e5' : '#64748b',
-                borderBottom: activeTab === 'deficiencies' ? '2px solid #4f46e5' : '2px solid transparent'
+                color: activeTab === 'deficiencies' ? 'var(--accent)' : 'var(--muted)',
+                borderBottom: activeTab === 'deficiencies' ? '2px solid var(--accent)' : '2px solid transparent'
               }}
             >
               ⚠️ Internal Control Deficiencies (SA 265) ({selectedEngagement.deficiencies?.length || 0})
@@ -709,8 +713,8 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
                 fontWeight: 600,
                 fontSize: '0.88rem',
                 cursor: 'pointer',
-                color: activeTab === 'matters' ? '#4f46e5' : '#64748b',
-                borderBottom: activeTab === 'matters' ? '2px solid #4f46e5' : '2px solid transparent'
+                color: activeTab === 'matters' ? 'var(--accent)' : 'var(--muted)',
+                borderBottom: activeTab === 'matters' ? '2px solid var(--accent)' : '2px solid transparent'
               }}
             >
               📋 Significant Audit Matters & KAM (SA 260) ({selectedEngagement.significantMatters?.length || 0})
@@ -724,8 +728,8 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
                 fontWeight: 600,
                 fontSize: '0.88rem',
                 cursor: 'pointer',
-                color: activeTab === 'misstatements' ? '#4f46e5' : '#64748b',
-                borderBottom: activeTab === 'misstatements' ? '2px solid #4f46e5' : '2px solid transparent'
+                color: activeTab === 'misstatements' ? 'var(--accent)' : 'var(--muted)',
+                borderBottom: activeTab === 'misstatements' ? '2px solid var(--accent)' : '2px solid transparent'
               }}
             >
               ⚖️ Uncorrected Misstatements (SA 450) ({selectedEngagement.uncorrectedMisstatements?.length || 0})
@@ -739,8 +743,8 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
                 fontWeight: 600,
                 fontSize: '0.88rem',
                 cursor: 'pointer',
-                color: activeTab === 'packs' ? '#4f46e5' : '#64748b',
-                borderBottom: activeTab === 'packs' ? '2px solid #4f46e5' : '2px solid transparent'
+                color: activeTab === 'packs' ? 'var(--accent)' : 'var(--muted)',
+                borderBottom: activeTab === 'packs' ? '2px solid var(--accent)' : '2px solid transparent'
               }}
             >
               📑 Governance Pack & SA 265 Letter Drafts
@@ -780,9 +784,9 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
               </div>
 
               {(!selectedEngagement.deficiencies || selectedEngagement.deficiencies.length === 0) ? (
-                <div style={{ textAlign: 'center', padding: '48px 24px', color: '#64748b' }}>
+                <div style={{ textAlign: 'center', padding: '48px 24px', color: 'var(--muted)' }}>
                   <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>🛡️</div>
-                  <div style={{ fontWeight: 600, fontSize: '1rem', color: '#1e293b' }}>No Deficiencies Recorded Yet</div>
+                  <div style={{ fontWeight: 600, fontSize: '1rem', color: 'var(--text)' }}>No Deficiencies Recorded Yet</div>
                   <p style={{ maxWidth: '420px', margin: '8px auto 16px', fontSize: '0.85rem' }}>
                     Record identified deficiencies in internal control, evaluate whether they constitute significant deficiencies, and draft auditor recommendations.
                   </p>
@@ -807,7 +811,7 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.84rem' }}>
                     <thead>
-                      <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', textAlign: 'left', color: '#475569' }}>
+                      <tr style={{ background: 'var(--card-subtle)', borderBottom: '2px solid var(--border)', textAlign: 'left', color: 'var(--text-secondary)' }}>
                         <th style={{ padding: '10px 12px' }}>Code & Title</th>
                         <th style={{ padding: '10px 12px' }}>Process Area</th>
                         <th style={{ padding: '10px 12px' }}>Nature</th>
@@ -819,13 +823,13 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
                     </thead>
                     <tbody>
                       {selectedEngagement.deficiencies.map(d => (
-                        <tr key={d.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                        <tr key={d.id} style={{ borderBottom: '1px solid var(--border)' }}>
                           <td style={{ padding: '12px' }}>
-                            <div style={{ fontWeight: 600, color: '#0f172a' }}>{d.title}</div>
-                            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Ref: {d.deficiencyCode}</div>
+                            <div style={{ fontWeight: 600, color: 'var(--text)' }}>{d.title}</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>Ref: {d.deficiencyCode}</div>
                           </td>
                           <td style={{ padding: '12px' }}>
-                            <span style={{ background: '#f1f5f9', color: '#334155', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600 }}>
+                            <span style={{ background: 'var(--card-subtle)', color: 'var(--text-secondary)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600 }}>
                               {d.processArea}
                             </span>
                           </td>
@@ -840,13 +844,13 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
                               fontWeight: 700,
                               padding: '2px 8px',
                               borderRadius: '4px',
-                              background: d.severity === 'SignificantDeficiency' ? '#fee2e2' : '#fef3c7',
-                              color: d.severity === 'SignificantDeficiency' ? '#b91c1c' : '#b45309'
+                              background: d.severity === 'SignificantDeficiency' ? 'var(--error-bg)' : 'var(--warning-bg)',
+                              color: d.severity === 'SignificantDeficiency' ? 'var(--error)' : 'var(--warning)'
                             }}>
                               {d.severity === 'SignificantDeficiency' ? '⚠️ SIGNIFICANT DEFICIENCY' : 'Other Deficiency'}
                             </span>
                           </td>
-                          <td style={{ padding: '12px', textAlign: 'right', fontWeight: 600, color: '#0f172a' }}>
+                          <td style={{ padding: '12px', textAlign: 'right', fontWeight: 600, color: 'var(--text)' }}>
                             {d.estimatedRiskAmount ? fmtInr(d.estimatedRiskAmount) : '—'}
                           </td>
                           <td style={{ padding: '12px' }}>
@@ -855,8 +859,8 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
                               fontWeight: 600,
                               padding: '2px 8px',
                               borderRadius: '4px',
-                              background: d.status === 'Remediated' ? '#dcfce7' : '#f1f5f9',
-                              color: d.status === 'Remediated' ? '#15803d' : '#475569'
+                              background: d.status === 'Remediated' ? 'var(--success-bg)' : 'var(--card-subtle)',
+                              color: d.status === 'Remediated' ? 'var(--success)' : 'var(--text-secondary)'
                             }}>
                               {d.status}
                             </span>
@@ -868,8 +872,8 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
                                   onClick={() => openEditDefModal(d)}
                                   title="Edit deficiency"
                                   style={{
-                                    background: '#f1f5f9',
-                                    border: '1px solid #cbd5e1',
+                                    background: 'var(--card-subtle)',
+                                    border: '1px solid var(--border-subtle)',
                                     borderRadius: '4px',
                                     padding: '4px 8px',
                                     fontSize: '0.72rem',
@@ -884,9 +888,9 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
                                   onClick={() => handleDeleteDeficiency(d.id)}
                                   title="Remove deficiency"
                                   style={{
-                                    background: '#fee2e2',
-                                    color: '#b91c1c',
-                                    border: '1px solid #fecaca',
+                                    background: 'var(--error-bg)',
+                                    color: 'var(--error)',
+                                    border: '1px solid var(--error-border)',
                                     borderRadius: '4px',
                                     padding: '4px 8px',
                                     fontSize: '0.72rem',
@@ -912,18 +916,18 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
             <div style={{ padding: '24px' }}>
               {/* Auditor Independence Card */}
               <div style={{
-                background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+                background: 'var(--success-bg)',
                 padding: '20px',
                 borderRadius: '8px',
-                border: '1px solid #bbf7d0',
+                border: '1px solid var(--success-border)',
                 marginBottom: '24px'
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
-                    <h3 style={{ margin: 0, fontSize: '1rem', color: '#166534', fontWeight: 700 }}>
+                    <h3 style={{ margin: 0, fontSize: '1rem', color: 'var(--success-text)', fontWeight: 700 }}>
                       ✓ Statement of Auditor Independence (ICAI SA 260 & Companies Act Sec 177(4)(i))
                     </h3>
-                    <p style={{ margin: '6px 0 0', fontSize: '0.84rem', color: '#14532d' }}>
+                    <p style={{ margin: '6px 0 0', fontSize: '0.84rem', color: 'var(--success-text)' }}>
                       Lead partner confirmation affirming firm independence, compliance with Section 144 non-audit service prohibitions, and elimination of threats to independence.
                     </p>
                   </div>
@@ -964,10 +968,10 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
               </div>
 
               {(!selectedEngagement.significantMatters || selectedEngagement.significantMatters.length === 0) ? (
-                <div style={{ textAlign: 'center', padding: '40px 24px', background: '#f8fafc', borderRadius: '8px' }}>
+                <div style={{ textAlign: 'center', padding: '40px 24px', background: 'var(--card-subtle)', borderRadius: '8px' }}>
                   <div style={{ fontSize: '2rem', marginBottom: '8px' }}>📋</div>
-                  <div style={{ fontWeight: 600, color: '#1e293b' }}>No Significant Audit Matters Logged</div>
-                  <p style={{ margin: '6px 0 0', fontSize: '0.82rem', color: '#64748b' }}>
+                  <div style={{ fontWeight: 600, color: 'var(--text)' }}>No Significant Audit Matters Logged</div>
+                  <p style={{ margin: '6px 0 0', fontSize: '0.82rem', color: 'var(--muted)' }}>
                     Log accounting judgments, estimates, or KAM previews for Audit Committee discussion.
                   </p>
                 </div>
@@ -975,8 +979,8 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                   {selectedEngagement.significantMatters.map(m => (
                     <div key={m.id} style={{
-                      background: '#fff',
-                      border: '1px solid #e2e8f0',
+                      background: 'var(--card)',
+                      border: '1px solid var(--border)',
                       borderRadius: '8px',
                       padding: '16px',
                       boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
@@ -984,10 +988,10 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
                         <div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#4f46e5', background: '#ede9fe', padding: '2px 6px', borderRadius: '4px' }}>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent)', background: 'var(--purple-bg)', padding: '2px 6px', borderRadius: '4px' }}>
                               {m.matterCode}
                             </span>
-                            <span style={{ fontSize: '0.75rem', background: '#f1f5f9', color: '#475569', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>
+                            <span style={{ fontSize: '0.75rem', background: 'var(--card-subtle)', color: 'var(--text-secondary)', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>
                               {m.category}
                             </span>
                             <h4 style={{ margin: 0, fontSize: '0.96rem', fontWeight: 600 }}>{m.subject}</h4>
@@ -998,13 +1002,13 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
                           <div style={{ display: 'flex', gap: '6px' }}>
                             <button
                               onClick={() => openEditMatterModal(m)}
-                              style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', padding: '3px 8px', fontSize: '0.72rem', cursor: 'pointer' }}
+                              style={{ background: 'var(--card-subtle)', border: '1px solid var(--border-subtle)', borderRadius: '4px', padding: '3px 8px', fontSize: '0.72rem', cursor: 'pointer' }}
                             >
                               ✏️ Edit
                             </button>
                             <button
                               onClick={() => handleDeleteMatter(m.id)}
-                              style={{ background: '#fee2e2', color: '#b91c1c', border: '1px solid #fecaca', borderRadius: '4px', padding: '3px 8px', fontSize: '0.72rem', cursor: 'pointer' }}
+                              style={{ background: 'var(--error-bg)', color: 'var(--error)', border: '1px solid var(--error-border)', borderRadius: '4px', padding: '3px 8px', fontSize: '0.72rem', cursor: 'pointer' }}
                             >
                               🗑️
                             </button>
@@ -1012,14 +1016,14 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
                         )}
                       </div>
 
-                      <div style={{ fontSize: '0.84rem', color: '#334155', marginBottom: '8px' }}>
+                      <div style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>
                         <strong>Details:</strong> {m.details}
                       </div>
-                      <div style={{ fontSize: '0.84rem', color: '#166534', background: '#f0fdf4', padding: '8px', borderRadius: '4px', marginBottom: m.auditCommitteeFeedback ? '8px' : '0' }}>
+                      <div style={{ fontSize: '0.84rem', color: 'var(--success-text)', background: 'var(--success-bg)', padding: '8px', borderRadius: '4px', marginBottom: m.auditCommitteeFeedback ? '8px' : '0' }}>
                         <strong>Auditor Assessment:</strong> {m.auditorAssessment}
                       </div>
                       {m.auditCommitteeFeedback && (
-                        <div style={{ fontSize: '0.84rem', color: '#1e40af', background: '#eff6ff', padding: '8px', borderRadius: '4px' }}>
+                        <div style={{ fontSize: '0.84rem', color: 'var(--accent)', background: 'var(--accent-subtle)', padding: '8px', borderRadius: '4px' }}>
                           <strong>Committee Feedback:</strong> {m.auditCommitteeFeedback}
                         </div>
                       )}
@@ -1063,10 +1067,10 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
               </div>
 
               {(!selectedEngagement.uncorrectedMisstatements || selectedEngagement.uncorrectedMisstatements.length === 0) ? (
-                <div style={{ textAlign: 'center', padding: '40px 24px', background: '#f8fafc', borderRadius: '8px' }}>
+                <div style={{ textAlign: 'center', padding: '40px 24px', background: 'var(--card-subtle)', borderRadius: '8px' }}>
                   <div style={{ fontSize: '2rem', marginBottom: '8px' }}>⚖️</div>
-                  <div style={{ fontWeight: 600, color: '#1e293b' }}>No Uncorrected Misstatements</div>
-                  <p style={{ margin: '6px 0 0', fontSize: '0.82rem', color: '#64748b' }}>
+                  <div style={{ fontWeight: 600, color: 'var(--text)' }}>No Uncorrected Misstatements</div>
+                  <p style={{ margin: '6px 0 0', fontSize: '0.82rem', color: 'var(--muted)' }}>
                     All identified audit adjustments have been passed by management in the statutory financial statements.
                   </p>
                 </div>
@@ -1074,7 +1078,7 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.84rem' }}>
                     <thead>
-                      <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', textAlign: 'left', color: '#475569' }}>
+                      <tr style={{ background: 'var(--card-subtle)', borderBottom: '2px solid var(--border)', textAlign: 'left', color: 'var(--text-secondary)' }}>
                         <th style={{ padding: '10px 12px' }}>Account / Description</th>
                         <th style={{ padding: '10px 12px', textAlign: 'right' }}>Amount (INR)</th>
                         <th style={{ padding: '10px 12px' }}>Nature</th>
@@ -1085,13 +1089,13 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
                     </thead>
                     <tbody>
                       {selectedEngagement.uncorrectedMisstatements.map(m => (
-                        <tr key={m.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                        <tr key={m.id} style={{ borderBottom: '1px solid var(--border)' }}>
                           <td style={{ padding: '12px', fontWeight: 600 }}>{m.accountDescription}</td>
-                          <td style={{ padding: '12px', textAlign: 'right', fontWeight: 600, color: '#0f172a' }}>
+                          <td style={{ padding: '12px', textAlign: 'right', fontWeight: 600, color: 'var(--text)' }}>
                             {fmtInr(m.misstatementAmount)}
                           </td>
                           <td style={{ padding: '12px' }}>
-                            <span style={{ background: '#f1f5f9', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600 }}>
+                            <span style={{ background: 'var(--card-subtle)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600 }}>
                               {m.nature}
                             </span>
                           </td>
@@ -1101,13 +1105,13 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
                               fontWeight: 700,
                               padding: '2px 8px',
                               borderRadius: '4px',
-                              background: m.isMaterial ? '#fee2e2' : '#dcfce7',
-                              color: m.isMaterial ? '#b91c1c' : '#15803d'
+                              background: m.isMaterial ? 'var(--error-bg)' : 'var(--success-bg)',
+                              color: m.isMaterial ? 'var(--error)' : 'var(--success)'
                             }}>
                               {m.isMaterial ? 'YES (MATERIAL)' : 'No (Immaterial)'}
                             </span>
                           </td>
-                          <td style={{ padding: '12px', fontSize: '0.8rem', color: '#475569' }}>
+                          <td style={{ padding: '12px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                             {m.managementJustificationForNonAdjustment || '—'}
                           </td>
                           <td style={{ padding: '12px', textAlign: 'center' }}>
@@ -1115,7 +1119,7 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
                               {can('auditcommittee.manage') && selectedEngagement.status !== 'SignedOff' && (
                                 <button
                                   onClick={() => openEditMisModal(m)}
-                                  style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', padding: '4px 8px', fontSize: '0.72rem', cursor: 'pointer' }}
+                                  style={{ background: 'var(--card-subtle)', border: '1px solid var(--border-subtle)', borderRadius: '4px', padding: '4px 8px', fontSize: '0.72rem', cursor: 'pointer' }}
                                 >
                                   ✏️ Edit
                                 </button>
@@ -1123,7 +1127,7 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
                               {can('auditcommittee.manage') && selectedEngagement.status !== 'SignedOff' && (
                                 <button
                                   onClick={() => handleDeleteMisstatement(m.id)}
-                                  style={{ background: '#fee2e2', color: '#b91c1c', border: '1px solid #fecaca', borderRadius: '4px', padding: '4px 8px', fontSize: '0.72rem', cursor: 'pointer' }}
+                                  style={{ background: 'var(--error-bg)', color: 'var(--error)', border: '1px solid var(--error-border)', borderRadius: '4px', padding: '4px 8px', fontSize: '0.72rem', cursor: 'pointer' }}
                                 >
                                   🗑️
                                 </button>
@@ -1153,8 +1157,8 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
                       fontWeight: 600,
                       fontSize: '0.82rem',
                       cursor: 'pointer',
-                      background: packSubTab === 'sa265' ? '#4f46e5' : '#f1f5f9',
-                      color: packSubTab === 'sa265' ? '#fff' : '#475569'
+                      background: packSubTab === 'sa265' ? '#4f46e5' : 'var(--card-subtle)',
+                      color: packSubTab === 'sa265' ? '#fff' : 'var(--text-secondary)'
                     }}
                   >
                     ✉️ SA 265 Internal Control Deficiency Letter
@@ -1168,8 +1172,8 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
                       fontWeight: 600,
                       fontSize: '0.82rem',
                       cursor: 'pointer',
-                      background: packSubTab === 'sa260' ? '#4f46e5' : '#f1f5f9',
-                      color: packSubTab === 'sa260' ? '#fff' : '#475569'
+                      background: packSubTab === 'sa260' ? '#4f46e5' : 'var(--card-subtle)',
+                      color: packSubTab === 'sa260' ? '#fff' : 'var(--text-secondary)'
                     }}
                   >
                     📑 SA 260 Audit Committee Governance Pack
@@ -1183,8 +1187,8 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
                       packSubTab === 'sa265' ? 'SA 265 Letter' : 'SA 260 Pack'
                     )}
                     style={{
-                      background: '#f1f5f9',
-                      border: '1px solid #cbd5e1',
+                      background: 'var(--card-subtle)',
+                      border: '1px solid var(--border-subtle)',
                       borderRadius: '6px',
                       padding: '7px 14px',
                       fontSize: '0.82rem',
@@ -1231,10 +1235,10 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
                     {selectedEngagement.generatedSa265LetterText}
                   </div>
                 ) : (
-                  <div style={{ textAlign: 'center', padding: '48px 24px', background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
+                  <div style={{ textAlign: 'center', padding: '48px 24px', background: 'var(--card-subtle)', borderRadius: '8px', border: '1px dashed var(--border-subtle)' }}>
                     <div style={{ fontSize: '2rem', marginBottom: '8px' }}>✉️</div>
-                    <div style={{ fontWeight: 600, color: '#1e293b' }}>SA 265 Letter Not Yet Generated</div>
-                    <p style={{ margin: '8px auto 16px', maxWidth: '400px', fontSize: '0.84rem', color: '#64748b' }}>
+                    <div style={{ fontWeight: 600, color: 'var(--text)' }}>SA 265 Letter Not Yet Generated</div>
+                    <p style={{ margin: '8px auto 16px', maxWidth: '400px', fontSize: '0.84rem', color: 'var(--muted)' }}>
                       Click Generate below to draft the formal letter communicating significant deficiencies in internal control.
                     </p>
                     <button onClick={handleGeneratePack} style={{ background: '#4f46e5', color: '#fff', border: 'none', borderRadius: '6px', padding: '8px 16px', fontWeight: 600, cursor: 'pointer' }}>
@@ -1259,10 +1263,10 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
                     {selectedEngagement.generatedGovernancePackText}
                   </div>
                 ) : (
-                  <div style={{ textAlign: 'center', padding: '48px 24px', background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
+                  <div style={{ textAlign: 'center', padding: '48px 24px', background: 'var(--card-subtle)', borderRadius: '8px', border: '1px dashed var(--border-subtle)' }}>
                     <div style={{ fontSize: '2rem', marginBottom: '8px' }}>📑</div>
-                    <div style={{ fontWeight: 600, color: '#1e293b' }}>SA 260 Governance Pack Not Yet Generated</div>
-                    <p style={{ margin: '8px auto 16px', maxWidth: '400px', fontSize: '0.84rem', color: '#64748b' }}>
+                    <div style={{ fontWeight: 600, color: 'var(--text)' }}>SA 260 Governance Pack Not Yet Generated</div>
+                    <p style={{ margin: '8px auto 16px', maxWidth: '400px', fontSize: '0.84rem', color: 'var(--muted)' }}>
                       Click Generate below to compile the statutory Audit Committee presentation docket.
                     </p>
                     <button onClick={handleGeneratePack} style={{ background: '#4f46e5', color: '#fff', border: 'none', borderRadius: '6px', padding: '8px 16px', fontWeight: 600, cursor: 'pointer' }}>
@@ -1275,9 +1279,9 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
           )}
         </div>
       ) : (
-        <div style={{ textAlign: 'center', padding: '64px 24px', background: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+        <div style={{ textAlign: 'center', padding: '64px 24px', background: 'var(--card)', borderRadius: '8px', border: '1px solid var(--border)' }}>
           <div style={{ fontSize: '3rem', marginBottom: '12px' }}>🏛️</div>
-          <h2 style={{ margin: 0, fontWeight: 700, fontSize: '1.25rem', color: '#0f172a' }}>No Engagement Selected</h2>
+          <h2 style={{ margin: 0, fontWeight: 700, fontSize: '1.25rem', color: 'var(--text)' }}>No Engagement Selected</h2>
           <p className="muted" style={{ maxWidth: '480px', margin: '8px auto 20px', fontSize: '0.9rem' }}>
             Select an existing Audit Committee engagement or register a new statutory governance meeting for your corporate clients.
           </p>
@@ -1313,7 +1317,7 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
           padding: '20px'
         }}>
           <div style={{
-            background: '#fff',
+            background: 'var(--card)',
             borderRadius: '10px',
             width: '100%',
             maxWidth: '640px',
@@ -1328,13 +1332,13 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
               <div>
-                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
                   Client Organization *
                 </label>
                 <select
                   value={engForm.clientId}
                   onChange={e => setEngForm(f => ({ ...f, clientId: e.target.value }))}
-                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}
                 >
                   {clients.map(c => (
                     <option key={c.id} value={c.id}>{c.name} ({c.code})</option>
@@ -1343,39 +1347,39 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
               </div>
 
               <div>
-                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
                   Financial Year *
                 </label>
                 <input
                   type="text"
                   value={engForm.financialYear}
                   onChange={e => setEngForm(f => ({ ...f, financialYear: e.target.value }))}
-                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
             </div>
 
             <div style={{ marginBottom: '14px' }}>
-              <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
+              <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
                 Engagement Title *
               </label>
               <input
                 type="text"
                 value={engForm.title}
                 onChange={e => setEngForm(f => ({ ...f, title: e.target.value }))}
-                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}
               />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
               <div>
-                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
                   Meeting Type
                 </label>
                 <select
                   value={engForm.meetingType}
                   onChange={e => setEngForm(f => ({ ...f, meetingType: e.target.value }))}
-                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}
                 >
                   <option value="Pre-Issuance">Pre-Issuance Meeting</option>
                   <option value="Quarterly">Quarterly Review Meeting</option>
@@ -1385,7 +1389,7 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
               </div>
 
               <div>
-                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
                   Meeting Location / Mode
                 </label>
                 <input
@@ -1393,14 +1397,14 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
                   placeholder="Board Room / Hybrid VC"
                   value={engForm.meetingLocation || ''}
                   onChange={e => setEngForm(f => ({ ...f, meetingLocation: e.target.value }))}
-                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '16px' }}>
               <div>
-                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
                   Audit Committee Chair
                 </label>
                 <input
@@ -1408,12 +1412,12 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
                   placeholder="Dr. K. S. Rao (Independent Director)"
                   value={engForm.committeeChairName}
                   onChange={e => setEngForm(f => ({ ...f, committeeChairName: e.target.value }))}
-                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
 
               <div>
-                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
                   Lead Audit Partner
                 </label>
                 <input
@@ -1421,7 +1425,7 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
                   placeholder="CA Rajesh Verma"
                   value={engForm.leadPartnerName}
                   onChange={e => setEngForm(f => ({ ...f, leadPartnerName: e.target.value }))}
-                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
             </div>
@@ -1429,7 +1433,7 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
               <button
                 onClick={() => setShowNewEngModal(false)}
-                style={{ padding: '8px 16px', background: '#f1f5f9', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer' }}
+                style={{ padding: '8px 16px', background: 'var(--card-subtle)', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer' }}
               >
                 Cancel
               </button>
@@ -1457,7 +1461,7 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
           padding: '20px'
         }}>
           <div style={{
-            background: '#fff',
+            background: 'var(--card)',
             borderRadius: '10px',
             width: '100%',
             maxWidth: '680px',
@@ -1472,7 +1476,7 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '12px', marginBottom: '12px' }}>
               <div>
-                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
                   Code *
                 </label>
                 <input
@@ -1480,11 +1484,11 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
                   placeholder="ICD-01"
                   value={defForm.deficiencyCode}
                   onChange={e => setDefForm(f => ({ ...f, deficiencyCode: e.target.value }))}
-                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
               <div>
-                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
                   Title *
                 </label>
                 <input
@@ -1492,20 +1496,20 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
                   placeholder="Deficiency in 3-way matching of procurement invoices"
                   value={defForm.title}
                   onChange={e => setDefForm(f => ({ ...f, title: e.target.value }))}
-                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '12px' }}>
               <div>
-                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
                   Process Area
                 </label>
                 <select
                   value={defForm.processArea}
                   onChange={e => setDefForm(f => ({ ...f, processArea: e.target.value }))}
-                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}
                 >
                   <option value="Revenue Recognition">Revenue Recognition</option>
                   <option value="Procurement & Payables">Procurement & Payables</option>
@@ -1517,13 +1521,13 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
               </div>
 
               <div>
-                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
                   Deficiency Type
                 </label>
                 <select
                   value={defForm.deficiencyType}
                   onChange={e => setDefForm(f => ({ ...f, deficiencyType: e.target.value }))}
-                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}
                 >
                   <option value="DesignDeficiency">Design Deficiency</option>
                   <option value="OperatingDeficiency">Operating Deficiency</option>
@@ -1531,13 +1535,13 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
               </div>
 
               <div>
-                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
                   Severity Level
                 </label>
                 <select
                   value={defForm.severity}
                   onChange={e => setDefForm(f => ({ ...f, severity: e.target.value }))}
-                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}
                 >
                   <option value="SignificantDeficiency">Significant Deficiency</option>
                   <option value="OtherDeficiency">Other Deficiency</option>
@@ -1546,20 +1550,20 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
             </div>
 
             <div style={{ marginBottom: '12px' }}>
-              <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
+              <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
                 Description of the Deficiency
               </label>
               <textarea
                 rows={2}
                 value={defForm.description}
                 onChange={e => setDefForm(f => ({ ...f, description: e.target.value }))}
-                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}
               />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px', marginBottom: '12px' }}>
               <div>
-                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
                   Potential Financial / Operational Effect
                 </label>
                 <input
@@ -1567,24 +1571,24 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
                   placeholder="Risk of duplicate payments or unrecorded supplier liabilities"
                   value={defForm.potentialFinancialEffect}
                   onChange={e => setDefForm(f => ({ ...f, potentialFinancialEffect: e.target.value }))}
-                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
               <div>
-                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
                   Estimated Risk (INR)
                 </label>
                 <input
                   type="number"
                   value={defForm.estimatedRiskAmount || 0}
                   onChange={e => setDefForm(f => ({ ...f, estimatedRiskAmount: parseFloat(e.target.value) || 0 }))}
-                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
             </div>
 
             <div style={{ marginBottom: '12px' }}>
-              <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
+              <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
                 Auditor Recommendation (SA 265)
               </label>
               <textarea
@@ -1592,13 +1596,13 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
                 placeholder="Automated three-way match hard stop should be implemented in SAP..."
                 value={defForm.auditorRecommendation}
                 onChange={e => setDefForm(f => ({ ...f, auditorRecommendation: e.target.value }))}
-                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}
               />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px', marginBottom: '16px' }}>
               <div>
-                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
                   Management Response / Remediation Plan
                 </label>
                 <input
@@ -1606,17 +1610,17 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
                   placeholder="IT workflow deployed effective April 1, 2025"
                   value={defForm.managementResponse || ''}
                   onChange={e => setDefForm(f => ({ ...f, managementResponse: e.target.value }))}
-                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
               <div>
-                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
                   Status
                 </label>
                 <select
                   value={defForm.status}
                   onChange={e => setDefForm(f => ({ ...f, status: e.target.value }))}
-                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}
                 >
                   <option value="Identified">Identified</option>
                   <option value="CommunicatedToManagement">Communicated to Management</option>
@@ -1629,7 +1633,7 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
               <button
                 onClick={() => { setShowAddDefModal(false); setEditingDef(null); }}
-                style={{ padding: '8px 16px', background: '#f1f5f9', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer' }}
+                style={{ padding: '8px 16px', background: 'var(--card-subtle)', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer' }}
               >
                 Cancel
               </button>
@@ -1657,7 +1661,7 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
           padding: '20px'
         }}>
           <div style={{
-            background: '#fff',
+            background: 'var(--card)',
             borderRadius: '10px',
             width: '100%',
             maxWidth: '600px',
@@ -1672,7 +1676,7 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '12px', marginBottom: '12px' }}>
               <div>
-                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
                   Code *
                 </label>
                 <input
@@ -1680,17 +1684,17 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
                   placeholder="SAM-01"
                   value={matterForm.matterCode}
                   onChange={e => setMatterForm(f => ({ ...f, matterCode: e.target.value }))}
-                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
               <div>
-                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
                   Category
                 </label>
                 <select
                   value={matterForm.category}
                   onChange={e => setMatterForm(f => ({ ...f, category: e.target.value }))}
-                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}
                 >
                   <option value="KeyAuditMatter">Key Audit Matter (KAM)</option>
                   <option value="AccountingPractices">Qualitative Accounting Practices</option>
@@ -1702,7 +1706,7 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
             </div>
 
             <div style={{ marginBottom: '12px' }}>
-              <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
+              <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
                 Subject / Topic *
               </label>
               <input
@@ -1710,36 +1714,36 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
                 placeholder="Revenue Recognition on Long-Term Turnkey Contracts (Ind AS 115)"
                 value={matterForm.subject}
                 onChange={e => setMatterForm(f => ({ ...f, subject: e.target.value }))}
-                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}
               />
             </div>
 
             <div style={{ marginBottom: '12px' }}>
-              <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
+              <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
                 Matter Details & Background
               </label>
               <textarea
                 rows={2}
                 value={matterForm.details}
                 onChange={e => setMatterForm(f => ({ ...f, details: e.target.value }))}
-                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}
               />
             </div>
 
             <div style={{ marginBottom: '12px' }}>
-              <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
+              <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
                 Auditor Assessment & Technical Conclusion
               </label>
               <textarea
                 rows={2}
                 value={matterForm.auditorAssessment}
                 onChange={e => setMatterForm(f => ({ ...f, auditorAssessment: e.target.value }))}
-                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}
               />
             </div>
 
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
+              <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
                 Audit Committee Feedback / Remarks
               </label>
               <input
@@ -1747,14 +1751,14 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
                 placeholder="Committee noted and agreed with proposed presentation."
                 value={matterForm.auditCommitteeFeedback || ''}
                 onChange={e => setMatterForm(f => ({ ...f, auditCommitteeFeedback: e.target.value }))}
-                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}
               />
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
               <button
                 onClick={() => { setShowAddMatterModal(false); setEditingMatter(null); }}
-                style={{ padding: '8px 16px', background: '#f1f5f9', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer' }}
+                style={{ padding: '8px 16px', background: 'var(--card-subtle)', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer' }}
               >
                 Cancel
               </button>
@@ -1782,7 +1786,7 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
           padding: '20px'
         }}>
           <div style={{
-            background: '#fff',
+            background: 'var(--card)',
             borderRadius: '10px',
             width: '100%',
             maxWidth: '540px',
@@ -1794,7 +1798,7 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
             </h2>
 
             <div style={{ marginBottom: '12px' }}>
-              <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
+              <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
                 Account / Particulars *
               </label>
               <input
@@ -1802,31 +1806,31 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
                 placeholder="Understatement of provision for warranties"
                 value={misForm.accountDescription}
                 onChange={e => setMisForm(f => ({ ...f, accountDescription: e.target.value }))}
-                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}
               />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
               <div>
-                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
                   Misstatement Amount (INR) *
                 </label>
                 <input
                   type="number"
                   value={misForm.misstatementAmount}
                   onChange={e => setMisForm(f => ({ ...f, misstatementAmount: parseFloat(e.target.value) || 0 }))}
-                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
 
               <div>
-                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
                   Nature of Misstatement
                 </label>
                 <select
                   value={misForm.nature}
                   onChange={e => setMisForm(f => ({ ...f, nature: e.target.value }))}
-                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}
                 >
                   <option value="Factual">Factual (Objective error)</option>
                   <option value="Judgmental">Judgmental (Estimate variance)</option>
@@ -1842,14 +1846,14 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
                   checked={misForm.isMaterial}
                   onChange={e => setMisForm(f => ({ ...f, isMaterial: e.target.checked }))}
                 />
-                <span style={{ fontSize: '0.84rem', fontWeight: 600, color: misForm.isMaterial ? '#b91c1c' : '#475569' }}>
+                <span style={{ fontSize: '0.84rem', fontWeight: 600, color: misForm.isMaterial ? 'var(--error)' : 'var(--text-secondary)' }}>
                   Considered Material to the Financial Statements?
                 </span>
               </label>
             </div>
 
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
+              <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
                 Management Justification for Non-Adjustment
               </label>
               <textarea
@@ -1857,14 +1861,14 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
                 placeholder="Immaterial timing difference; will reverse in subsequent financial year..."
                 value={misForm.managementJustificationForNonAdjustment || ''}
                 onChange={e => setMisForm(f => ({ ...f, managementJustificationForNonAdjustment: e.target.value }))}
-                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}
               />
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
               <button
                 onClick={() => { setShowAddMisModal(false); setEditingMis(null); }}
-                style={{ padding: '8px 16px', background: '#f1f5f9', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer' }}
+                style={{ padding: '8px 16px', background: 'var(--card-subtle)', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer' }}
               >
                 Cancel
               </button>
@@ -1892,7 +1896,7 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
           padding: '20px'
         }}>
           <div style={{
-            background: '#fff',
+            background: 'var(--card)',
             borderRadius: '10px',
             width: '100%',
             maxWidth: '540px',
@@ -1915,14 +1919,14 @@ export function AuditCommitteeDeskPage({ can }: { can: (p: string) => boolean })
                 placeholder="Audit Committee reviewed SA 260 presentation, uncorrected misstatements, and SA 265 letter. Committee recommended financial statements for Board approval."
                 value={signOffMinutes}
                 onChange={e => setSignOffMinutes(e.target.value)}
-                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}
               />
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
               <button
                 onClick={() => setShowSignOffModal(false)}
-                style={{ padding: '8px 16px', background: '#f1f5f9', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer' }}
+                style={{ padding: '8px 16px', background: 'var(--card-subtle)', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer' }}
               >
                 Cancel
               </button>

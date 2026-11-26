@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { toError,
   costAuditApi,
   type CostAuditSummaryDto,
@@ -155,8 +155,13 @@ export function CostAuditPage() {
     seedDefaultHeads: true,
   })
 
+  const selectedEngagementIdRef = useRef<string | null>(null)
+  useEffect(() => {
+    selectedEngagementIdRef.current = selectedEngagement?.id ?? null
+  }, [selectedEngagement])
+
   // Load clients and engagements
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -175,13 +180,12 @@ export function CostAuditPage() {
       setEngagements(engData)
 
       if (engData.length > 0) {
-        if (!selectedEngagement || !engData.find((e) => e.id === selectedEngagement.id)) {
-          setSelectedEngagement(engData[0])
-        } else {
-          const fresh = engData.find((e) => e.id === selectedEngagement.id)!
-          setSelectedEngagement(fresh)
-        }
+        const prevId = selectedEngagementIdRef.current
+        const next = (prevId && engData.find((e) => e.id === prevId)) || engData[0]
+        selectedEngagementIdRef.current = next.id
+        setSelectedEngagement(next)
       } else {
+        selectedEngagementIdRef.current = null
         setSelectedEngagement(null)
       }
     } catch (caught) {
@@ -190,11 +194,11 @@ export function CostAuditPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [selectedClientId, selectedFy, selectedStatus])
 
   useEffect(() => {
     loadData()
-  }, [selectedClientId, selectedFy, selectedStatus])
+  }, [loadData])
 
   const notify = (msg: string) => {
     setSuccessMsg(msg)

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import {
   tdsApi,
   type Client,
@@ -86,52 +86,65 @@ export const TdsRpuExportTab: React.FC<Props> = ({
   const [errContent, setErrContent] = useState('')
   const [errEntries, setErrEntries] = useState<ParsedFvuErrEntry[]>([])
   const [parsingErr, setParsingErr] = useState(false)
+  const prevClientIdRef = useRef<string>('')
 
   useEffect(() => {
     if (!activeClientId) return
     let cancelled = false
+    if (prevClientIdRef.current !== activeClientId) {
+      prevClientIdRef.current = activeClientId
+      setProfile(emptyProfile())
+    }
     setLoadingProfile(true)
     setExportResult(null)
     tdsApi
       .getProfile(activeClientId)
       .then((dto) => {
         if (cancelled) return
-        setProfile({
-          tan: dto.tan || '',
-          pan: dto.pan || '',
-          deductorType: dto.deductorType || 'K',
-          deductorName: dto.deductorName || '',
-          branchDivision: dto.branchDivision || 'NA',
-          gstin: dto.gstin || '',
-          flatBlock: dto.flatBlock || '',
-          premisesName: dto.premisesName || '',
-          streetRoad: dto.streetRoad || '',
-          areaLocality: dto.areaLocality || '',
-          cityDistrict: dto.cityDistrict || '',
-          stateCode: dto.stateCode || '16',
-          pincode: dto.pincode || '',
-          countryName: dto.countryName || 'INDIA',
-          email: dto.email || '',
-          stdCode: dto.stdCode || '',
-          phone: dto.phone || '',
-          mobile: dto.mobile || '',
-          countryCallingCode: dto.countryCallingCode || '91',
-          respName: dto.respName || '',
-          respDesignation: dto.respDesignation || '',
-          respPan: dto.respPan || '',
-          respFlatBlock: dto.respFlatBlock || '',
-          respPremisesName: dto.respPremisesName || '',
-          respStreetRoad: dto.respStreetRoad || '',
-          respAreaLocality: dto.respAreaLocality || '',
-          respCityDistrict: dto.respCityDistrict || '',
-          respStateCode: dto.respStateCode || '16',
-          respPincode: dto.respPincode || '',
-          respCountryName: dto.respCountryName || 'INDIA',
-          respEmail: dto.respEmail || '',
-          respMobile: dto.respMobile || '',
-          respCountryCallingCode: dto.respCountryCallingCode || '91',
-          filedPreviousRegular: dto.filedPreviousRegular,
-          previousTokenNo: dto.previousTokenNo || '',
+        setProfile((prev) => {
+          const base = emptyProfile()
+          const pick = <K extends keyof SaveTdsDeductorProfileRequest>(
+            key: K,
+            serverVal: SaveTdsDeductorProfileRequest[K],
+          ): SaveTdsDeductorProfileRequest[K] => (prev[key] !== base[key] ? prev[key] : serverVal)
+
+          return {
+            tan: pick('tan', dto.tan || ''),
+            pan: pick('pan', dto.pan || ''),
+            deductorType: pick('deductorType', dto.deductorType || 'K'),
+            deductorName: pick('deductorName', dto.deductorName || ''),
+            branchDivision: pick('branchDivision', dto.branchDivision || 'NA'),
+            gstin: pick('gstin', dto.gstin || ''),
+            flatBlock: pick('flatBlock', dto.flatBlock || ''),
+            premisesName: pick('premisesName', dto.premisesName || ''),
+            streetRoad: pick('streetRoad', dto.streetRoad || ''),
+            areaLocality: pick('areaLocality', dto.areaLocality || ''),
+            cityDistrict: pick('cityDistrict', dto.cityDistrict || ''),
+            stateCode: pick('stateCode', dto.stateCode || '16'),
+            pincode: pick('pincode', dto.pincode || ''),
+            countryName: pick('countryName', dto.countryName || 'INDIA'),
+            email: pick('email', dto.email || ''),
+            stdCode: pick('stdCode', dto.stdCode || ''),
+            phone: pick('phone', dto.phone || ''),
+            mobile: pick('mobile', dto.mobile || ''),
+            countryCallingCode: pick('countryCallingCode', dto.countryCallingCode || '91'),
+            respName: pick('respName', dto.respName || ''),
+            respDesignation: pick('respDesignation', dto.respDesignation || ''),
+            respPan: pick('respPan', dto.respPan || ''),
+            respFlatBlock: pick('respFlatBlock', dto.respFlatBlock || ''),
+            respPremisesName: pick('respPremisesName', dto.respPremisesName || ''),
+            respStreetRoad: pick('respStreetRoad', dto.respStreetRoad || ''),
+            respAreaLocality: pick('respAreaLocality', dto.respAreaLocality || ''),
+            respCityDistrict: pick('respCityDistrict', dto.respCityDistrict || ''),
+            respStateCode: pick('respStateCode', dto.respStateCode || '16'),
+            respPincode: pick('respPincode', dto.respPincode || ''),
+            respCountryName: pick('respCountryName', dto.respCountryName || 'INDIA'),
+            respEmail: pick('respEmail', dto.respEmail || ''),
+            respMobile: pick('respMobile', dto.respMobile || ''),
+            respCountryCallingCode: pick('respCountryCallingCode', dto.respCountryCallingCode || '91'),
+            filedPreviousRegular: pick('filedPreviousRegular', dto.filedPreviousRegular),
+            previousTokenNo: pick('previousTokenNo', dto.previousTokenNo || ''),
+          }
         })
       })
       .catch((err: unknown) => {
@@ -143,7 +156,7 @@ export const TdsRpuExportTab: React.FC<Props> = ({
     return () => {
       cancelled = true
     }
-  }, [activeClientId])
+  }, [activeClientId, onNotify])
 
   const badge = officialFormBadge(formType, financialYear)
   const expectedFile = suggestedRpuFileName(formType, quarter, financialYear)
@@ -264,7 +277,7 @@ export const TdsRpuExportTab: React.FC<Props> = ({
     width: '100%',
     padding: '7px 10px',
     borderRadius: '6px',
-    border: '1px solid #cbd5e1',
+    border: '1px solid var(--border-subtle)',
     fontSize: '13px',
     boxSizing: 'border-box',
   }
@@ -272,7 +285,7 @@ export const TdsRpuExportTab: React.FC<Props> = ({
   const labelStyle: React.CSSProperties = {
     fontSize: '11px',
     fontWeight: 600,
-    color: '#475569',
+    color: 'var(--text-secondary)',
     display: 'block',
     marginBottom: '4px',
   }
@@ -280,21 +293,21 @@ export const TdsRpuExportTab: React.FC<Props> = ({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       {/* Return Scope & Generator Bar */}
-      <div style={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0', padding: '20px' }}>
+      <div style={{ backgroundColor: 'var(--card)', borderRadius: '8px', border: '1px solid var(--border)', padding: '20px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>
                 Protean / NSDL e-TDS RPU `.txt` Generator
               </h3>
-              <span style={{ padding: '2px 10px', borderRadius: '999px', backgroundColor: '#eff6ff', color: '#1d4ed8', fontSize: '11px', fontWeight: 700 }}>
+              <span style={{ padding: '2px 10px', borderRadius: '999px', backgroundColor: 'var(--accent-subtle)', color: 'var(--accent)', fontSize: '11px', fontWeight: 700 }}>
                 Form {badge.formNo} ({quarter} • {financialYear})
               </span>
-              <span style={{ padding: '2px 10px', borderRadius: '999px', backgroundColor: '#f1f5f9', color: '#334155', fontSize: '11px', fontWeight: 600 }}>
+              <span style={{ padding: '2px 10px', borderRadius: '999px', backgroundColor: 'var(--card-subtle)', color: 'var(--text-secondary)', fontSize: '11px', fontWeight: 600 }}>
                 {badge.actLabel}
               </span>
             </div>
-            <p style={{ margin: '6px 0 0', fontSize: '13px', color: '#64748b' }}>
+            <p style={{ margin: '6px 0 0', fontSize: '13px', color: 'var(--muted)' }}>
               Generates ASCII CRLF caret-delimited `FH^BH^CD^DD` regular statement `{expectedFile}` (Protean FVU compliant filename:{' '}
               <strong>{isValidFvuFileName(expectedFile) ? 'Valid' : 'Invalid'}</strong>).
             </p>
@@ -306,7 +319,7 @@ export const TdsRpuExportTab: React.FC<Props> = ({
               <select
                 value={activeClientId}
                 onChange={(e) => onSelectClient(e.target.value)}
-                style={{ padding: '7px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                style={{ padding: '7px 12px', borderRadius: '6px', border: '1px solid var(--border-subtle)', fontSize: '13px' }}
               >
                 {clients.map((c) => (
                   <option key={c.id} value={c.id}>{c.name}</option>
@@ -318,7 +331,7 @@ export const TdsRpuExportTab: React.FC<Props> = ({
               <select
                 value={formType}
                 onChange={(e) => setFormType(e.target.value as '24Q' | '26Q' | '27Q')}
-                style={{ padding: '7px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                style={{ padding: '7px 12px', borderRadius: '6px', border: '1px solid var(--border-subtle)', fontSize: '13px' }}
               >
                 <option value="24Q">24Q / 138 (Salary)</option>
                 <option value="26Q">26Q / 140 (Resident Non-Salary)</option>
@@ -331,7 +344,7 @@ export const TdsRpuExportTab: React.FC<Props> = ({
                 type="date"
                 value={fileDate}
                 onChange={(e) => setFileDate(e.target.value)}
-                style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border-subtle)', fontSize: '13px' }}
               />
             </div>
             <button
@@ -357,7 +370,7 @@ export const TdsRpuExportTab: React.FC<Props> = ({
 
       {/* Export Result, FVU Checklist & Preview */}
       {exportResult && (
-        <div style={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ backgroundColor: 'var(--card)', borderRadius: '8px', border: '1px solid var(--border)', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
               <span
@@ -366,13 +379,13 @@ export const TdsRpuExportTab: React.FC<Props> = ({
                   borderRadius: '999px',
                   fontSize: '12px',
                   fontWeight: 700,
-                  backgroundColor: exportResult.validForFvu ? '#dcfce7' : '#fee2e2',
-                  color: exportResult.validForFvu ? '#15803d' : '#b91c1c',
+                  backgroundColor: exportResult.validForFvu ? 'var(--success-bg)' : 'var(--error-bg)',
+                  color: exportResult.validForFvu ? 'var(--success)' : 'var(--error)',
                 }}
               >
                 {exportResult.validForFvu ? 'FVU Pre-Check Passed' : 'FVU Issues Found'}
               </span>
-              <span style={{ fontSize: '13px', color: '#334155', fontWeight: 600 }}>
+              <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600 }}>
                 File: {exportResult.fileName} • Form {exportResult.officialFormNumber} • AY {exportResult.assessmentYear}
               </span>
             </div>
@@ -380,7 +393,7 @@ export const TdsRpuExportTab: React.FC<Props> = ({
               <button
                 type="button"
                 onClick={() => download(exportResult.fileName, exportResult.content, 'text/plain;charset=us-ascii')}
-                style={{ padding: '8px 14px', borderRadius: '6px', border: '1px solid #2563eb', background: '#eff6ff', color: '#1d4ed8', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}
+                style={{ padding: '8px 14px', borderRadius: '6px', border: '1px solid var(--accent)', background: 'var(--accent-subtle)', color: 'var(--accent)', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}
               >
                 Download {exportResult.fileName}
               </button>
@@ -396,29 +409,29 @@ export const TdsRpuExportTab: React.FC<Props> = ({
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
-            <div style={{ padding: '12px', backgroundColor: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-              <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>RECORDS</div>
-              <div style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a' }}>{exportResult.lineCount} lines</div>
-              <div style={{ fontSize: '11px', color: '#64748b' }}>{exportResult.challanCount} CD • {exportResult.deducteeCount} DD</div>
+            <div style={{ padding: '12px', backgroundColor: 'var(--card-subtle)', borderRadius: '6px', border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 600 }}>RECORDS</div>
+              <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text)' }}>{exportResult.lineCount} lines</div>
+              <div style={{ fontSize: '11px', color: 'var(--muted)' }}>{exportResult.challanCount} CD • {exportResult.deducteeCount} DD</div>
             </div>
-            <div style={{ padding: '12px', backgroundColor: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-              <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>AMOUNT PAID</div>
-              <div style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a' }}>₹{exportResult.totalPaid.toLocaleString('en-IN')}</div>
+            <div style={{ padding: '12px', backgroundColor: 'var(--card-subtle)', borderRadius: '6px', border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 600 }}>AMOUNT PAID</div>
+              <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text)' }}>₹{exportResult.totalPaid.toLocaleString('en-IN')}</div>
             </div>
-            <div style={{ padding: '12px', backgroundColor: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-              <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>TAX DEDUCTED</div>
-              <div style={{ fontSize: '18px', fontWeight: 700, color: '#dc2626' }}>₹{exportResult.totalDeducted.toLocaleString('en-IN')}</div>
+            <div style={{ padding: '12px', backgroundColor: 'var(--card-subtle)', borderRadius: '6px', border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 600 }}>TAX DEDUCTED</div>
+              <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--error)' }}>₹{exportResult.totalDeducted.toLocaleString('en-IN')}</div>
             </div>
-            <div style={{ padding: '12px', backgroundColor: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-              <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>CHALLAN DEPOSITED</div>
-              <div style={{ fontSize: '18px', fontWeight: 700, color: '#059669' }}>₹{exportResult.totalDeposited.toLocaleString('en-IN')}</div>
+            <div style={{ padding: '12px', backgroundColor: 'var(--card-subtle)', borderRadius: '6px', border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 600 }}>CHALLAN DEPOSITED</div>
+              <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--success)' }}>₹{exportResult.totalDeposited.toLocaleString('en-IN')}</div>
             </div>
           </div>
 
           {exportResult.issues.length > 0 && (
-            <div style={{ border: '1px solid #e2e8f0', borderRadius: '6px', overflow: 'hidden' }}>
+            <div style={{ border: '1px solid var(--border)', borderRadius: '6px', overflow: 'hidden' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'left' }}>
-                <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                <thead style={{ backgroundColor: 'var(--card-subtle)', borderBottom: '1px solid var(--border)' }}>
                   <tr>
                     <th style={{ padding: '8px 12px' }}>Severity</th>
                     <th style={{ padding: '8px 12px' }}>Record</th>
@@ -429,7 +442,7 @@ export const TdsRpuExportTab: React.FC<Props> = ({
                 </thead>
                 <tbody>
                   {exportResult.issues.map((issue, idx) => (
-                    <tr key={`${issue.code}-${idx}`} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <tr key={`${issue.code}-${idx}`} style={{ borderBottom: '1px solid var(--border)' }}>
                       <td style={{ padding: '8px 12px' }}>
                         <span
                           style={{
@@ -437,8 +450,8 @@ export const TdsRpuExportTab: React.FC<Props> = ({
                             borderRadius: '10px',
                             fontWeight: 700,
                             fontSize: '11px',
-                            backgroundColor: issue.severity === 'error' ? '#fee2e2' : '#fef3c7',
-                            color: issue.severity === 'error' ? '#b91c1c' : '#b45309',
+                            backgroundColor: issue.severity === 'error' ? 'var(--error-bg)' : 'var(--warning-bg)',
+                            color: issue.severity === 'error' ? 'var(--error)' : 'var(--warning)',
                           }}
                         >
                           {issue.severity.toUpperCase()}
@@ -447,7 +460,7 @@ export const TdsRpuExportTab: React.FC<Props> = ({
                       <td style={{ padding: '8px 12px', fontWeight: 600 }}>{issue.recordType}</td>
                       <td style={{ padding: '8px 12px' }}>{issue.lineNumber ?? '-'}</td>
                       <td style={{ padding: '8px 12px', fontFamily: 'monospace' }}>{issue.code || '-'}</td>
-                      <td style={{ padding: '8px 12px', color: '#334155' }}>{issue.message}</td>
+                      <td style={{ padding: '8px 12px', color: 'var(--text-secondary)' }}>{issue.message}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -456,7 +469,7 @@ export const TdsRpuExportTab: React.FC<Props> = ({
           )}
 
           <div>
-            <div style={{ fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
               Raw Protean Caret-Delimited Output (`^` • ASCII CRLF)
             </div>
             <pre
@@ -482,14 +495,14 @@ export const TdsRpuExportTab: React.FC<Props> = ({
       {/* Deductor & Responsible Person Profile (FH/BH) */}
       <form
         onSubmit={handleSaveProfile}
-        style={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}
+        style={{ backgroundColor: 'var(--card)', borderRadius: '8px', border: '1px solid var(--border)', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
           <div>
-            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>
+            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>
               Deductor & Responsible Person Profile (FH / BH Header Metadata)
             </h3>
-            <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#64748b' }}>
+            <p style={{ margin: '4px 0 0', fontSize: '12px', color: 'var(--muted)' }}>
               {loadingProfile ? 'Loading client metadata...' : 'Required once per client before generating FVU-ready .txt files.'}
             </p>
           </div>
@@ -497,7 +510,7 @@ export const TdsRpuExportTab: React.FC<Props> = ({
             <button
               type="button"
               onClick={copyDeductorAddrToResp}
-              style={{ padding: '7px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', fontSize: '12px', cursor: 'pointer' }}
+              style={{ padding: '7px 12px', borderRadius: '6px', border: '1px solid var(--border-subtle)', background: 'var(--card)', color: 'var(--text)', fontSize: '12px', cursor: 'pointer' }}
             >
               Copy Deductor Address to Responsible Person
             </button>
@@ -514,7 +527,7 @@ export const TdsRpuExportTab: React.FC<Props> = ({
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '12px' }}>
           <div>
             <label style={labelStyle}>
-              TAN (AAAA99999A) {profile.tan && !isValidTan(profile.tan) && <span style={{ color: '#dc2626' }}>• Invalid</span>}
+              TAN (AAAA99999A) {profile.tan && !isValidTan(profile.tan) && <span style={{ color: 'var(--error)' }}>• Invalid</span>}
             </label>
             <input
               type="text"
@@ -528,7 +541,7 @@ export const TdsRpuExportTab: React.FC<Props> = ({
           </div>
           <div>
             <label style={labelStyle}>
-              Deductor PAN {profile.pan && profile.pan !== 'PANNOTREQD' && !isValidPan(profile.pan) && <span style={{ color: '#dc2626' }}>• Invalid</span>}
+              Deductor PAN {profile.pan && profile.pan !== 'PANNOTREQD' && !isValidPan(profile.pan) && <span style={{ color: 'var(--error)' }}>• Invalid</span>}
             </label>
             <input
               type="text"
@@ -633,8 +646,8 @@ export const TdsRpuExportTab: React.FC<Props> = ({
           </div>
         </div>
 
-        <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
-          <div style={{ fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '10px' }}>
+        <div style={{ borderTop: '1px solid var(--border)', paddingTop: '12px' }}>
+          <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '10px' }}>
             Responsible Person Details (Mandatory for BH Record)
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '12px' }}>
@@ -728,7 +741,7 @@ export const TdsRpuExportTab: React.FC<Props> = ({
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginTop: '12px', flexWrap: 'wrap' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#334155', cursor: 'pointer' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--text-secondary)', cursor: 'pointer' }}>
               <input
                 type="checkbox"
                 checked={profile.filedPreviousRegular || false}
@@ -751,11 +764,11 @@ export const TdsRpuExportTab: React.FC<Props> = ({
       </form>
 
       {/* Protean FVU .err Parser */}
-      <div style={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0', padding: '20px' }}>
+      <div style={{ backgroundColor: 'var(--card)', borderRadius: '8px', border: '1px solid var(--border)', padding: '20px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', marginBottom: '10px' }}>
           <div>
-            <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#0f172a' }}>Protean FVU `.err` Report Parser</h3>
-            <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#64748b' }}>
+            <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: 'var(--text)' }}>Protean FVU `.err` Report Parser</h3>
+            <p style={{ margin: '2px 0 0', fontSize: '12px', color: 'var(--muted)' }}>
               Upload or paste the caret-delimited `.err` file from Protean FVU 9.5 / 1.2 to inspect line-by-line errors.
             </p>
           </div>
@@ -765,7 +778,7 @@ export const TdsRpuExportTab: React.FC<Props> = ({
               type="button"
               disabled={parsingErr || !errContent.trim()}
               onClick={handleParseErr}
-              style={{ padding: '7px 14px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#f8fafc', fontWeight: 600, fontSize: '12px', cursor: 'pointer' }}
+              style={{ padding: '7px 14px', borderRadius: '6px', border: '1px solid var(--border-subtle)', background: 'var(--card-subtle)', color: 'var(--text)', fontWeight: 600, fontSize: '12px', cursor: 'pointer' }}
             >
               {parsingErr ? 'Parsing...' : 'Parse .err Text'}
             </button>
@@ -779,9 +792,9 @@ export const TdsRpuExportTab: React.FC<Props> = ({
           style={{ ...inputStyle, fontFamily: 'monospace', fontSize: '12px' }}
         />
         {errEntries.length > 0 && (
-          <div style={{ marginTop: '12px', border: '1px solid #e2e8f0', borderRadius: '6px', overflow: 'hidden' }}>
+          <div style={{ marginTop: '12px', border: '1px solid var(--border)', borderRadius: '6px', overflow: 'hidden' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'left' }}>
-              <thead style={{ backgroundColor: '#fef2f2', borderBottom: '1px solid #fecaca' }}>
+              <thead style={{ backgroundColor: 'var(--error-bg)', borderBottom: '1px solid var(--error-border)' }}>
                 <tr>
                   <th style={{ padding: '8px 12px' }}>Line</th>
                   <th style={{ padding: '8px 12px' }}>Record</th>
@@ -793,12 +806,12 @@ export const TdsRpuExportTab: React.FC<Props> = ({
               </thead>
               <tbody>
                 {errEntries.map((entry, idx) => (
-                  <tr key={`${entry.errorCode}-${idx}`} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                  <tr key={`${entry.errorCode}-${idx}`} style={{ borderBottom: '1px solid var(--border)' }}>
                     <td style={{ padding: '8px 12px' }}>{entry.lineNumber ?? '-'}</td>
                     <td style={{ padding: '8px 12px', fontWeight: 600 }}>{entry.recordType || '-'}</td>
                     <td style={{ padding: '8px 12px' }}>{entry.challanNo ?? '-'}</td>
                     <td style={{ padding: '8px 12px' }}>{entry.deducteeNo ?? '-'}</td>
-                    <td style={{ padding: '8px 12px', fontFamily: 'monospace', color: '#b91c1c' }}>{entry.errorCode}</td>
+                    <td style={{ padding: '8px 12px', fontFamily: 'monospace', color: 'var(--error)' }}>{entry.errorCode}</td>
                     <td style={{ padding: '8px 12px' }}>{entry.description}</td>
                   </tr>
                 ))}

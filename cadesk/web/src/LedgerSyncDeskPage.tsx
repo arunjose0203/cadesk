@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, type FormEvent } from 'react'
+import { useState, useEffect, useMemo, useCallback, type FormEvent } from 'react'
 import {
   ledgerSyncApi,
   bankFeedApi,
@@ -89,79 +89,64 @@ export function LedgerSyncDeskPage() {
     auditReason: 'DepreciationSec32'
   })
 
-  // Initial Load
-  useEffect(() => {
-    loadClients()
-    loadBankAccounts()
-  }, [])
-
-  // Reload tab data when client changes
-  useEffect(() => {
-    loadAgents()
-    loadVouchers()
-    loadOutgoingVouchers()
-    if (selectedClientId && selectedBankAccountId) {
-      loadReconciliation()
-    }
-  }, [selectedClientId, selectedBankAccountId])
-
-  const loadClients = async () => {
+  const loadClients = useCallback(async () => {
     try {
       const res = await api<ClientPage>('/api/clients?take=100')
       setClients(res.items || [])
-      if (res.items && res.items.length > 0 && !selectedClientId) {
-        setSelectedClientId(res.items[0].id)
-        setAgentForm(prev => ({ ...prev, clientId: res.items[0].id }))
-        setOutgoingForm(prev => ({ ...prev, clientId: res.items[0].id }))
+      if (res.items && res.items.length > 0) {
+        const firstId = res.items[0].id
+        setSelectedClientId(prev => prev || firstId)
+        setAgentForm(prev => (prev.clientId ? prev : { ...prev, clientId: firstId }))
+        setOutgoingForm(prev => (prev.clientId ? prev : { ...prev, clientId: firstId }))
       }
     } catch (err: unknown) {
       console.error('Failed to load clients', err)
     }
-  }
+  }, [])
 
-  const loadBankAccounts = async () => {
+  const loadBankAccounts = useCallback(async () => {
     try {
       const res = await bankFeedApi.getAccounts()
       setBankAccounts(res || [])
-      if (res && res.length > 0 && !selectedBankAccountId) {
-        setSelectedBankAccountId(res[0].id)
+      if (res && res.length > 0) {
+        setSelectedBankAccountId(prev => prev || res[0].id)
       }
     } catch (err: unknown) {
       console.error('Failed to load bank accounts', err)
     }
-  }
+  }, [])
 
-  const loadAgents = async () => {
+  const loadAgents = useCallback(async () => {
     try {
       const res = await ledgerSyncApi.getAgentConfigs(selectedClientId || undefined)
       setAgents(res || [])
-      if (res && res.length > 0 && !outgoingForm.agentConfigId) {
-        setOutgoingForm(prev => ({ ...prev, agentConfigId: res[0].id }))
+      if (res && res.length > 0) {
+        setOutgoingForm(prev => (prev.agentConfigId ? prev : { ...prev, agentConfigId: res[0].id }))
       }
     } catch (err: unknown) {
       console.error('Failed to load agent configs', err)
     }
-  }
+  }, [selectedClientId])
 
-  const loadVouchers = async () => {
+  const loadVouchers = useCallback(async () => {
     try {
       const res = await ledgerSyncApi.getVouchers(selectedClientId || undefined)
       setVouchers(res || [])
     } catch (err: unknown) {
       console.error('Failed to load vouchers', err)
     }
-  }
+  }, [selectedClientId])
 
-  const loadOutgoingVouchers = async () => {
+  const loadOutgoingVouchers = useCallback(async () => {
     try {
       const res = await ledgerSyncApi.getOutgoingVouchers(selectedClientId || undefined)
       setOutgoingVouchers(res || [])
     } catch (err: unknown) {
       console.error('Failed to load outgoing vouchers', err)
     }
-  }
+  }, [selectedClientId])
 
-  const loadReconciliation = async () => {
+  const loadReconciliation = useCallback(async () => {
     if (!selectedClientId || !selectedBankAccountId) return
     try {
       const [matchesRes, summaryRes] = await Promise.all([
@@ -173,7 +158,23 @@ export function LedgerSyncDeskPage() {
     } catch (err: unknown) {
       console.error('Failed to load reconciliation matches', err)
     }
-  }
+  }, [selectedClientId, selectedBankAccountId])
+
+  // Initial Load
+  useEffect(() => {
+    loadClients()
+    loadBankAccounts()
+  }, [loadClients, loadBankAccounts])
+
+  // Reload tab data when client changes
+  useEffect(() => {
+    loadAgents()
+    loadVouchers()
+    loadOutgoingVouchers()
+    if (selectedClientId && selectedBankAccountId) {
+      loadReconciliation()
+    }
+  }, [selectedClientId, selectedBankAccountId, loadAgents, loadVouchers, loadOutgoingVouchers, loadReconciliation])
 
   const handleRunReconciliation = async () => {
     if (!selectedClientId || !selectedBankAccountId) {

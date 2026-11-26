@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
   type GstReconciliationBatchDto,
   type GstReconciliationItemDto,
@@ -41,11 +41,7 @@ export function GstReconciliationPage() {
   const [useGstr2bJson, setUseGstr2bJson] = useState(false)
   const [gstr2bRawJson, setGstr2bRawJson] = useState('')
 
-  useEffect(() => {
-    loadData()
-  }, [])
-
-  async function loadData() {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true)
       const [sumRes, batchRes, clRes] = await Promise.all([
@@ -57,15 +53,19 @@ export function GstReconciliationPage() {
       setSummary(sumRes)
       setBatches(batchRes || [])
       setClients(clientList)
-      if (clientList.length > 0 && !formClientId) {
-        setFormClientId(clientList[0].id)
+      if (clientList.length > 0) {
+        setFormClientId(prev => prev || clientList[0].id)
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load GST data.')
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
 
   async function loadItems(batchId: string, filter: string = 'all') {
     try {
@@ -173,14 +173,14 @@ export function GstReconciliationPage() {
   }
 
   return (
-    <div style={{ padding: '24px', maxWidth: '1440px', margin: '0 auto', color: '#1e293b' }}>
+    <div style={{ padding: '24px', maxWidth: '1440px', margin: '0 auto', color: 'var(--text)' }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 'bold', margin: '0 0 4px 0', color: '#0f172a' }}>
+          <h1 style={{ fontSize: '24px', fontWeight: 'bold', margin: '0 0 4px 0', color: 'var(--text)' }}>
             GST 2A / 2B Purchase Register Reconciliation
           </h1>
-          <p style={{ margin: 0, color: '#64748b', fontSize: '14px' }}>
+          <p style={{ margin: 0, color: 'var(--muted)', fontSize: '14px' }}>
             Section 16(2)(aa) &amp; Rule 36(4) Matching • Numbering Normalizer • Round-off Tolerance • Missing ITC Radar
           </p>
         </div>
@@ -188,7 +188,7 @@ export function GstReconciliationPage() {
           {selectedBatch && (
             <button
               onClick={() => setSelectedBatch(null)}
-              style={{ padding: '8px 16px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}
+              style={{ padding: '8px 16px', background: 'var(--card-subtle)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: '6px', cursor: 'pointer', fontWeight: 500 }}
             >
               ← Back to Batches
             </button>
@@ -198,7 +198,7 @@ export function GstReconciliationPage() {
               setShowModal(true)
               loadSampleData()
             }}
-            style={{ padding: '8px 16px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer' }}
+            style={{ padding: '8px 16px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer' }}
           >
             + New Reconciliation Batch
           </button>
@@ -206,7 +206,7 @@ export function GstReconciliationPage() {
       </div>
 
       {error && (
-        <div style={{ padding: '12px 16px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', color: '#dc2626', marginBottom: '16px' }}>
+        <div style={{ padding: '12px 16px', background: 'rgba(220, 38, 38, 0.08)', border: '1px solid rgba(220, 38, 38, 0.35)', borderRadius: '6px', color: 'var(--error)', marginBottom: '16px' }}>
           {error}
         </div>
       )}
@@ -214,45 +214,45 @@ export function GstReconciliationPage() {
       {/* KPI Cards */}
       {summary && !selectedBatch && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px' }}>
-            <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>RECONCILED BATCHES</div>
-            <div style={{ fontSize: '24px', fontWeight: 700, color: '#0f172a', marginTop: '4px' }}>{summary.totalBatches}</div>
+          <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '16px' }}>
+            <div style={{ fontSize: '12px', color: 'var(--muted)', fontWeight: 600 }}>RECONCILED BATCHES</div>
+            <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text)', marginTop: '4px' }}>{summary.totalBatches}</div>
           </div>
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px' }}>
-            <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>MATCHED INVOICES</div>
-            <div style={{ fontSize: '24px', fontWeight: 700, color: '#16a34a', marginTop: '4px' }}>{summary.totalMatchedCount}</div>
+          <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '16px' }}>
+            <div style={{ fontSize: '12px', color: 'var(--muted)', fontWeight: 600 }}>MATCHED INVOICES</div>
+            <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--success)', marginTop: '4px' }}>{summary.totalMatchedCount}</div>
           </div>
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px' }}>
-            <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>MISSING IN 2B (ITC AT RISK)</div>
-            <div style={{ fontSize: '24px', fontWeight: 700, color: '#dc2626', marginTop: '4px' }}>{summary.totalMissingIn2BCount}</div>
-            <div style={{ fontSize: '12px', color: '#dc2626', marginTop: '2px' }}>{fmtInr(summary.totalItcAtRisk)}</div>
+          <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '16px' }}>
+            <div style={{ fontSize: '12px', color: 'var(--muted)', fontWeight: 600 }}>MISSING IN 2B (ITC AT RISK)</div>
+            <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--error)', marginTop: '4px' }}>{summary.totalMissingIn2BCount}</div>
+            <div style={{ fontSize: '12px', color: 'var(--error)', marginTop: '2px' }}>{fmtInr(summary.totalItcAtRisk)}</div>
           </div>
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px' }}>
-            <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>UNBOOKED IN 2B</div>
-            <div style={{ fontSize: '24px', fontWeight: 700, color: '#f59e0b', marginTop: '4px' }}>{summary.totalMissingInBooksCount}</div>
+          <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '16px' }}>
+            <div style={{ fontSize: '12px', color: 'var(--muted)', fontWeight: 600 }}>UNBOOKED IN 2B</div>
+            <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--warning)', marginTop: '4px' }}>{summary.totalMissingInBooksCount}</div>
           </div>
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px' }}>
-            <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>ELIGIBLE ITC (GSTR-3B)</div>
-            <div style={{ fontSize: '24px', fontWeight: 700, color: '#0284c7', marginTop: '4px' }}>{fmtInr(summary.totalItcEligible)}</div>
+          <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '16px' }}>
+            <div style={{ fontSize: '12px', color: 'var(--muted)', fontWeight: 600 }}>ELIGIBLE ITC (GSTR-3B)</div>
+            <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--accent)', marginTop: '4px' }}>{fmtInr(summary.totalItcEligible)}</div>
           </div>
         </div>
       )}
 
       {/* Main View: Batches Table OR Selected Batch Item Workspace */}
       {!selectedBatch ? (
-        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px' }}>
-          <h2 style={{ fontSize: '18px', fontWeight: 600, marginTop: 0, marginBottom: '16px' }}>Reconciliation Runs</h2>
+        <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '20px' }}>
+          <h2 style={{ fontSize: '18px', fontWeight: 600, marginTop: 0, marginBottom: '16px', color: 'var(--text)' }}>Reconciliation Runs</h2>
 
           {loading ? (
-            <div style={{ padding: '32px', textAlign: 'center', color: '#64748b' }}>Loading GST reconciliation batches...</div>
+            <div style={{ padding: '32px', textAlign: 'center', color: 'var(--muted)' }}>Loading GST reconciliation batches...</div>
           ) : batches.length === 0 ? (
-            <div style={{ padding: '48px', textAlign: 'center', color: '#64748b' }}>
+            <div style={{ padding: '48px', textAlign: 'center', color: 'var(--muted)' }}>
               No reconciliation batches found. Click "+ New Reconciliation Batch" to compare client purchases against GSTR-2B.
             </div>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
               <thead>
-                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', textAlign: 'left' }}>
+                <tr style={{ background: 'var(--card-subtle)', borderBottom: '1px solid var(--border)', textAlign: 'left', color: 'var(--muted)' }}>
                   <th style={{ padding: '10px 12px' }}>Client Name</th>
                   <th style={{ padding: '10px 12px' }}>Period / FY</th>
                   <th style={{ padding: '10px 12px', textAlign: 'right' }}>PR Invoices</th>
@@ -265,36 +265,36 @@ export function GstReconciliationPage() {
               </thead>
               <tbody>
                 {batches.map(b => (
-                  <tr key={b.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '10px 12px', fontWeight: 600, color: '#0f172a' }}>
+                  <tr key={b.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td style={{ padding: '10px 12px', fontWeight: 600, color: 'var(--text)' }}>
                       {b.clientName || 'Client ' + b.clientId.slice(0, 8)}
                     </td>
                     <td style={{ padding: '10px 12px' }}>
                       <span style={{ fontWeight: 500 }}>{b.returnPeriod}</span>
-                      <div style={{ fontSize: '11px', color: '#64748b' }}>{b.financialYear}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--muted)' }}>{b.financialYear}</div>
                     </td>
                     <td style={{ padding: '10px 12px', textAlign: 'right' }}>{b.purchaseRegisterCount}</td>
                     <td style={{ padding: '10px 12px', textAlign: 'right' }}>{b.gstr2BCount}</td>
-                    <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: '#16a34a' }}>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: 'var(--success)' }}>
                       {b.matchedCount + b.matchedWithToleranceCount}
                     </td>
-                    <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: b.missingIn2BCount > 0 ? '#dc2626' : '#64748b' }}>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: b.missingIn2BCount > 0 ? 'var(--error)' : 'var(--muted)' }}>
                       {b.missingIn2BCount}
                     </td>
-                    <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: '#0284c7' }}>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: 'var(--accent)' }}>
                       {fmtInr(b.totalItcEligible)}
                     </td>
                     <td style={{ padding: '10px 12px', textAlign: 'right' }}>
                       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
                         <button
                           onClick={() => handleSelectBatch(b)}
-                          style={{ padding: '4px 10px', fontSize: '12px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 500 }}
+                          style={{ padding: '4px 10px', fontSize: '12px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 500 }}
                         >
                           View Results →
                         </button>
                         <button
                           onClick={() => handleDeleteBatch(b.id)}
-                          style={{ padding: '4px 8px', fontSize: '12px', background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                          style={{ padding: '4px 8px', fontSize: '12px', background: 'rgba(220, 38, 38, 0.12)', color: 'var(--error)', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
                         >
                           Delete
                         </button>
@@ -310,63 +310,63 @@ export function GstReconciliationPage() {
         /* Batch Detail View */
         <div>
           {/* Batch Overview Banner */}
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px', marginBottom: '24px' }}>
+          <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '20px', marginBottom: '24px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
                 <span style={{
                   padding: '3px 8px',
                   borderRadius: '4px',
-                  background: '#e0f2fe',
-                  color: '#0369a1',
+                  background: 'rgba(37, 99, 235, 0.12)',
+                  color: 'var(--accent)',
                   fontWeight: 600,
                   fontSize: '12px'
                 }}>
                   PERIOD {selectedBatch.returnPeriod} • FY {selectedBatch.financialYear}
                 </span>
-                <h2 style={{ fontSize: '20px', fontWeight: 700, margin: '8px 0 4px 0', color: '#0f172a' }}>
+                <h2 style={{ fontSize: '20px', fontWeight: 700, margin: '8px 0 4px 0', color: 'var(--text)' }}>
                   Reconciliation Results: {selectedBatch.clientName}
                 </h2>
-                <div style={{ fontSize: '13px', color: '#64748b' }}>
+                <div style={{ fontSize: '13px', color: 'var(--muted)' }}>
                   Tolerance applied: ±₹{selectedBatch.toleranceAmount.toFixed(2)} • {selectedBatch.notes}
                 </div>
               </div>
             </div>
 
             {/* Metrics Breakdown */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px', background: '#f8fafc', padding: '14px', borderRadius: '6px', marginTop: '16px', border: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px', background: 'var(--card-subtle)', padding: '14px', borderRadius: '6px', marginTop: '16px', border: '1px solid var(--border)' }}>
               <div>
-                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>PURCHASE REGISTER (BOOKS)</div>
-                <div style={{ fontSize: '15px', fontWeight: 700, color: '#334155', marginTop: '2px' }}>{selectedBatch.purchaseRegisterCount} Invoices</div>
-                <div style={{ fontSize: '12px', color: '#64748b' }}>Tax: {fmtInr(selectedBatch.totalPrTax)}</div>
+                <div style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 600 }}>PURCHASE REGISTER (BOOKS)</div>
+                <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)', marginTop: '2px' }}>{selectedBatch.purchaseRegisterCount} Invoices</div>
+                <div style={{ fontSize: '12px', color: 'var(--muted)' }}>Tax: {fmtInr(selectedBatch.totalPrTax)}</div>
               </div>
               <div>
-                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>GSTR-2B (PORTAL)</div>
-                <div style={{ fontSize: '15px', fontWeight: 700, color: '#334155', marginTop: '2px' }}>{selectedBatch.gstr2BCount} Invoices</div>
-                <div style={{ fontSize: '12px', color: '#64748b' }}>Tax: {fmtInr(selectedBatch.total2BTax)}</div>
+                <div style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 600 }}>GSTR-2B (PORTAL)</div>
+                <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)', marginTop: '2px' }}>{selectedBatch.gstr2BCount} Invoices</div>
+                <div style={{ fontSize: '12px', color: 'var(--muted)' }}>Tax: {fmtInr(selectedBatch.total2BTax)}</div>
               </div>
               <div>
-                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>MATCHED INVOICES</div>
-                <div style={{ fontSize: '15px', fontWeight: 700, color: '#16a34a', marginTop: '2px' }}>
+                <div style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 600 }}>MATCHED INVOICES</div>
+                <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--success)', marginTop: '2px' }}>
                   {selectedBatch.matchedCount + selectedBatch.matchedWithToleranceCount}
                 </div>
-                <div style={{ fontSize: '12px', color: '#16a34a' }}>Exact: {selectedBatch.matchedCount} • Tol: {selectedBatch.matchedWithToleranceCount}</div>
+                <div style={{ fontSize: '12px', color: 'var(--success)' }}>Exact: {selectedBatch.matchedCount} • Tol: {selectedBatch.matchedWithToleranceCount}</div>
               </div>
               <div>
-                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>MISSING IN 2B (RISK)</div>
-                <div style={{ fontSize: '15px', fontWeight: 700, color: '#dc2626', marginTop: '2px' }}>{selectedBatch.missingIn2BCount} Invoices</div>
-                <div style={{ fontSize: '12px', color: '#dc2626' }}>Supplier did not file</div>
+                <div style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 600 }}>MISSING IN 2B (RISK)</div>
+                <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--error)', marginTop: '2px' }}>{selectedBatch.missingIn2BCount} Invoices</div>
+                <div style={{ fontSize: '12px', color: 'var(--error)' }}>Supplier did not file</div>
               </div>
               <div>
-                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>UNBOOKED IN 2B</div>
-                <div style={{ fontSize: '15px', fontWeight: 700, color: '#f59e0b', marginTop: '2px' }}>{selectedBatch.missingInBooksCount} Invoices</div>
-                <div style={{ fontSize: '12px', color: '#f59e0b' }}>Avail in books</div>
+                <div style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 600 }}>UNBOOKED IN 2B</div>
+                <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--warning)', marginTop: '2px' }}>{selectedBatch.missingInBooksCount} Invoices</div>
+                <div style={{ fontSize: '12px', color: 'var(--warning)' }}>Avail in books</div>
               </div>
             </div>
           </div>
 
           {/* Filter Tabs & Items Table */}
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px' }}>
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
+          <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '20px' }}>
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', borderBottom: '1px solid var(--border)', paddingBottom: '12px', flexWrap: 'wrap' }}>
               {[
                 { id: 'all', label: `All Invoices (${items.length})` },
                 { id: 'exact_match', label: `Exact Matches (${selectedBatch.matchedCount})` },
@@ -381,9 +381,9 @@ export function GstReconciliationPage() {
                   style={{
                     padding: '6px 12px',
                     borderRadius: '4px',
-                    border: 'none',
-                    background: itemFilter === tab.id ? '#2563eb' : '#f1f5f9',
-                    color: itemFilter === tab.id ? '#fff' : '#475569',
+                    border: itemFilter === tab.id ? '1px solid var(--accent)' : '1px solid var(--border)',
+                    background: itemFilter === tab.id ? 'var(--accent)' : 'var(--card-subtle)',
+                    color: itemFilter === tab.id ? '#fff' : 'var(--text-secondary)',
                     fontWeight: 500,
                     fontSize: '12px',
                     cursor: 'pointer'
@@ -395,13 +395,13 @@ export function GstReconciliationPage() {
             </div>
 
             {loadingItems ? (
-              <div style={{ padding: '32px', textAlign: 'center', color: '#64748b' }}>Loading items...</div>
+              <div style={{ padding: '32px', textAlign: 'center', color: 'var(--muted)' }}>Loading items...</div>
             ) : items.length === 0 ? (
-              <div style={{ padding: '32px', textAlign: 'center', color: '#64748b' }}>No invoices found in this filter.</div>
+              <div style={{ padding: '32px', textAlign: 'center', color: 'var(--muted)' }}>No invoices found in this filter.</div>
             ) : (
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                 <thead>
-                  <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', textAlign: 'left' }}>
+                  <tr style={{ background: 'var(--card-subtle)', borderBottom: '1px solid var(--border)', textAlign: 'left', color: 'var(--muted)' }}>
                     <th style={{ padding: '10px 12px' }}>Supplier GSTIN / Name</th>
                     <th style={{ padding: '10px 12px' }}>Invoice No / Date</th>
                     <th style={{ padding: '10px 12px', textAlign: 'right' }}>Books (Taxable / Tax)</th>
@@ -417,26 +417,26 @@ export function GstReconciliationPage() {
                     const twoBTax = it.gstr2BCgst + it.gstr2BSgst + it.gstr2BIgst + it.gstr2BCess
 
                     return (
-                      <tr key={it.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <tr key={it.id} style={{ borderBottom: '1px solid var(--border)' }}>
                         <td style={{ padding: '10px 12px' }}>
-                          <span style={{ fontWeight: 600, color: '#0f172a' }}>{it.supplierGstin}</span>
-                          <div style={{ fontSize: '11px', color: '#64748b' }}>{it.supplierName || 'Unknown Vendor'}</div>
+                          <span style={{ fontWeight: 600, color: 'var(--text)' }}>{it.supplierGstin}</span>
+                          <div style={{ fontSize: '11px', color: 'var(--muted)' }}>{it.supplierName || 'Unknown Vendor'}</div>
                         </td>
                         <td style={{ padding: '10px 12px' }}>
                           <span style={{ fontWeight: 500 }}>{it.invoiceNumber}</span>
-                          <div style={{ fontSize: '11px', color: '#64748b' }}>
+                          <div style={{ fontSize: '11px', color: 'var(--muted)' }}>
                             {it.invoiceDate || 'Date missing'} • {it.invoiceType.toUpperCase()}
                           </div>
                         </td>
                         <td style={{ padding: '10px 12px', textAlign: 'right' }}>
                           <div>{it.prTaxableValue > 0 ? fmtInr(it.prTaxableValue) : '-'}</div>
-                          <div style={{ fontSize: '11px', color: '#64748b' }}>
+                          <div style={{ fontSize: '11px', color: 'var(--muted)' }}>
                             {prTax > 0 ? `Tax: ${fmtInr(prTax)}` : ''}
                           </div>
                         </td>
                         <td style={{ padding: '10px 12px', textAlign: 'right' }}>
                           <div>{it.gstr2BTaxableValue > 0 ? fmtInr(it.gstr2BTaxableValue) : '-'}</div>
-                          <div style={{ fontSize: '11px', color: '#64748b' }}>
+                          <div style={{ fontSize: '11px', color: 'var(--muted)' }}>
                             {twoBTax > 0 ? `Tax: ${fmtInr(twoBTax)}` : ''}
                           </div>
                         </td>
@@ -447,15 +447,15 @@ export function GstReconciliationPage() {
                             fontSize: '11px',
                             fontWeight: 600,
                             background:
-                              it.matchStatus === 'exact_match' ? '#dcfce7' :
-                              it.matchStatus === 'match_with_tolerance' ? '#dbeafe' :
-                              it.matchStatus === 'missing_in_2b' ? '#fee2e2' :
-                              it.matchStatus === 'missing_in_books' ? '#fef3c7' : '#fef2f2',
+                              it.matchStatus === 'exact_match' ? 'rgba(22, 163, 74, 0.12)' :
+                              it.matchStatus === 'match_with_tolerance' ? 'rgba(37, 99, 235, 0.12)' :
+                              it.matchStatus === 'missing_in_2b' ? 'rgba(220, 38, 38, 0.12)' :
+                              it.matchStatus === 'missing_in_books' ? 'rgba(217, 119, 6, 0.12)' : 'rgba(220, 38, 38, 0.12)',
                             color:
-                              it.matchStatus === 'exact_match' ? '#15803d' :
-                              it.matchStatus === 'match_with_tolerance' ? '#1d4ed8' :
-                              it.matchStatus === 'missing_in_2b' ? '#dc2626' :
-                              it.matchStatus === 'missing_in_books' ? '#b45309' : '#dc2626',
+                              it.matchStatus === 'exact_match' ? 'var(--success)' :
+                              it.matchStatus === 'match_with_tolerance' ? 'var(--accent)' :
+                              it.matchStatus === 'missing_in_2b' ? 'var(--error)' :
+                              it.matchStatus === 'missing_in_books' ? 'var(--warning)' : 'var(--error)',
                           }}>
                             {it.matchStatus.replace(/_/g, ' ').toUpperCase()}
                           </span>
@@ -466,13 +466,13 @@ export function GstReconciliationPage() {
                             borderRadius: '4px',
                             fontSize: '11px',
                             fontWeight: 500,
-                            background: it.itcEligibility === 'eligible' ? '#f0fdf4' : '#fee2e2',
-                            color: it.itcEligibility === 'eligible' ? '#16a34a' : '#dc2626'
+                            background: it.itcEligibility === 'eligible' ? 'rgba(22, 163, 74, 0.12)' : 'rgba(220, 38, 38, 0.12)',
+                            color: it.itcEligibility === 'eligible' ? 'var(--success)' : 'var(--error)'
                           }}>
                             {it.itcEligibility.toUpperCase()}
                           </span>
                         </td>
-                        <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: it.taxDifference > 0 ? '#dc2626' : '#16a34a' }}>
+                        <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: it.taxDifference > 0 ? 'var(--error)' : 'var(--success)' }}>
                           {it.taxDifference > 0 ? fmtInr(it.taxDifference) : '₹0'}
                         </td>
                       </tr>
@@ -489,14 +489,14 @@ export function GstReconciliationPage() {
       {showModal && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+          background: 'rgba(15, 23, 42, 0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
         }}>
-          <div style={{ background: '#fff', borderRadius: '8px', width: '650px', maxHeight: '90vh', overflowY: 'auto', padding: '24px' }}>
+          <div style={{ background: 'var(--card)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '8px', width: '650px', maxHeight: '90vh', overflowY: 'auto', padding: '24px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <h3 style={{ margin: 0, fontSize: '18px' }}>Run GST 2A/2B Reconciliation</h3>
               <button
                 onClick={loadSampleData}
-                style={{ padding: '4px 8px', fontSize: '12px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer' }}
+                style={{ padding: '4px 8px', fontSize: '12px', background: 'var(--card-subtle)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: '4px', cursor: 'pointer' }}
               >
                 ↻ Load Demo Invoices
               </button>
@@ -504,11 +504,11 @@ export function GstReconciliationPage() {
 
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '12px', marginBottom: '12px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>Client</label>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, marginBottom: '4px', color: 'var(--text-secondary)' }}>Client</label>
                 <select
                   value={formClientId}
                   onChange={e => setFormClientId(e.target.value)}
-                  style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
                 >
                   {clients.map(c => (
                     <option key={c.id} value={c.id}>{c.name}</option>
@@ -516,29 +516,29 @@ export function GstReconciliationPage() {
                 </select>
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>Period</label>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, marginBottom: '4px', color: 'var(--text-secondary)' }}>Period</label>
                 <input
                   type="text"
                   value={formPeriod}
                   onChange={e => setFormPeriod(e.target.value)}
-                  style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
                   placeholder="042024"
                 />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>Financial Year</label>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, marginBottom: '4px', color: 'var(--text-secondary)' }}>Financial Year</label>
                 <input
                   type="text"
                   value={formFy}
                   onChange={e => setFormFy(e.target.value)}
-                  style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
                   placeholder="2024-25"
                 />
               </div>
             </div>
 
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, marginBottom: '4px', color: 'var(--text-secondary)' }}>
                 Rounding Tolerance Threshold (₹)
               </label>
               <input
@@ -546,22 +546,22 @@ export function GstReconciliationPage() {
                 step="0.5"
                 value={formTolerance}
                 onChange={e => setFormTolerance(Number(e.target.value))}
-                style={{ width: '120px', padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                style={{ width: '120px', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
               />
-              <span style={{ fontSize: '12px', color: '#64748b', marginLeft: '8px' }}>
+              <span style={{ fontSize: '12px', color: 'var(--muted)', marginLeft: '8px' }}>
                 Differences within this amount will be marked "Match with Tolerance".
               </span>
             </div>
 
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, marginBottom: '4px', color: 'var(--text-secondary)' }}>
                 Reconciliation Notes / Remarks
               </label>
               <input
                 type="text"
                 value={formNotes}
                 onChange={e => setFormNotes(e.target.value)}
-                style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
               />
             </div>
 
@@ -572,9 +572,9 @@ export function GstReconciliationPage() {
                 style={{
                   padding: '6px 12px',
                   borderRadius: '4px',
-                  border: '1px solid #cbd5e1',
-                  background: !useGstr2bJson ? '#2563eb' : '#f8fafc',
-                  color: !useGstr2bJson ? '#fff' : '#475569',
+                  border: !useGstr2bJson ? '1px solid var(--accent)' : '1px solid var(--border)',
+                  background: !useGstr2bJson ? 'var(--accent)' : 'var(--card-subtle)',
+                  color: !useGstr2bJson ? '#fff' : 'var(--text-secondary)',
                   fontSize: '12px',
                   fontWeight: 600,
                   cursor: 'pointer'
@@ -588,22 +588,22 @@ export function GstReconciliationPage() {
                 style={{
                   padding: '6px 12px',
                   borderRadius: '4px',
-                  border: '1px solid #cbd5e1',
-                  background: useGstr2bJson ? '#2563eb' : '#f8fafc',
-                  color: useGstr2bJson ? '#fff' : '#475569',
+                  border: useGstr2bJson ? '1px solid var(--accent)' : '1px solid var(--border)',
+                  background: useGstr2bJson ? 'var(--accent)' : 'var(--card-subtle)',
+                  color: useGstr2bJson ? '#fff' : 'var(--text-secondary)',
                   fontSize: '12px',
                   fontWeight: 600,
                   cursor: 'pointer'
                 }}
               >
-                📥 Direct GSTR-2B JSON (Portal)
+                Direct GSTR-2B JSON (Portal)
               </button>
             </div>
 
             {useGstr2bJson ? (
               <div style={{ marginBottom: '16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                  <label style={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>
+                  <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>
                     GSTR-2B JSON (B2B, CDNR invoices)
                   </label>
                   <button
@@ -631,7 +631,7 @@ export function GstReconciliationPage() {
     ]
   }
 }`)}
-                    style={{ background: 'transparent', border: 'none', color: '#2563eb', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
+                    style={{ background: 'transparent', border: 'none', color: 'var(--accent)', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
                   >
                     Load Sample GSTR-2B JSON
                   </button>
@@ -641,17 +641,17 @@ export function GstReconciliationPage() {
                   value={gstr2bRawJson}
                   onChange={e => setGstr2bRawJson(e.target.value)}
                   placeholder="Paste official GSTR-2B JSON downloaded from GST portal..."
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontFamily: 'monospace', fontSize: '12px' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)', fontFamily: 'monospace', fontSize: '12px' }}
                 />
               </div>
             ) : (
               /* Invoices Preview */
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', background: '#f8fafc', padding: '12px', borderRadius: '6px', border: '1px solid #e2e8f0', marginBottom: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', background: 'var(--card-subtle)', padding: '12px', borderRadius: '6px', border: '1px solid var(--border)', marginBottom: '16px' }}>
                 <div>
                   <div style={{ fontWeight: 600, fontSize: '12px', marginBottom: '6px' }}>
                     Purchase Register Invoices: {prInvoices.length}
                   </div>
-                  <div style={{ fontSize: '11px', color: '#64748b', maxHeight: '100px', overflowY: 'auto' }}>
+                  <div style={{ fontSize: '11px', color: 'var(--muted)', maxHeight: '100px', overflowY: 'auto' }}>
                     {prInvoices.map((p, i) => (
                       <div key={i}>{p.invoiceNumber} - {p.supplierName} ({fmtInr(p.taxableValue)})</div>
                     ))}
@@ -661,7 +661,7 @@ export function GstReconciliationPage() {
                   <div style={{ fontWeight: 600, fontSize: '12px', marginBottom: '6px' }}>
                     GSTR-2B Portal Invoices: {twoBInvoices.length}
                   </div>
-                  <div style={{ fontSize: '11px', color: '#64748b', maxHeight: '100px', overflowY: 'auto' }}>
+                  <div style={{ fontSize: '11px', color: 'var(--muted)', maxHeight: '100px', overflowY: 'auto' }}>
                     {twoBInvoices.map((b, i) => (
                       <div key={i}>{b.invoiceNumber} - {b.supplierName} ({fmtInr(b.taxableValue)})</div>
                     ))}
@@ -673,14 +673,14 @@ export function GstReconciliationPage() {
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
               <button
                 onClick={() => setShowModal(false)}
-                style={{ padding: '8px 16px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer' }}
+                style={{ padding: '8px 16px', background: 'var(--card-subtle)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: '4px', cursor: 'pointer' }}
               >
                 Cancel
               </button>
               <button
                 onClick={handleRunReconcile}
                 disabled={running}
-                style={{ padding: '8px 16px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 600, cursor: 'pointer' }}
+                style={{ padding: '8px 16px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 600, cursor: 'pointer' }}
               >
                 {running ? 'Reconciling...' : 'Run Reconciliation Engine'}
               </button>

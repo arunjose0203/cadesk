@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, type FormEvent } from 'react'
+import { useState, useEffect, useMemo, useCallback, type FormEvent } from 'react'
 import {
   foreignRemittanceApi,
   api,
@@ -198,34 +198,21 @@ export function ForeignRemittancePage() {
   })
   const [portalAck, setPortalAck] = useState('')
 
-  // Load initial data
-  useEffect(() => {
-    fetchClients()
-    fetchRemittances()
-    fetchFirmsData()
-    fetchFlaData()
-    handleRunMfnEval()
-    handleRunPeEval()
-  }, [])
-
-  useEffect(() => {
-    fetchRemittances()
-  }, [selectedFy, selectedStatus])
-
-  async function fetchClients() {
+  const fetchClients = useCallback(async () => {
     try {
       const res = await api<ClientPage>('/api/clients?pageSize=100')
       setClients(res.items || [])
       if (res.items && res.items.length > 0) {
-        if (!firmsClientId) setFirmsClientId(res.items[0].id)
-        if (!flaClientId) setFlaClientId(res.items[0].id)
+        const firstId = res.items[0].id
+        setFirmsClientId(prev => prev || firstId)
+        setFlaClientId(prev => prev || firstId)
       }
     } catch {
       // ignore
     }
-  }
+  }, [])
 
-  async function fetchRemittances() {
+  const fetchRemittances = useCallback(async () => {
     try {
       setLoading(true)
       const [sum, list] = await Promise.all([
@@ -234,18 +221,15 @@ export function ForeignRemittancePage() {
       ])
       setSummary(sum)
       setAssessments(list)
-      if (activeItem) {
-        const fresh = list.find(x => x.id === activeItem.id)
-        if (fresh) setActiveItem(fresh)
-      }
+      setActiveItem(prev => (prev ? (list.find(x => x.id === prev.id) ?? prev) : null))
     } catch (err: unknown) {
       setErrorMsg(err instanceof Error ? err.message : 'Failed to load foreign remittances.')
     } finally {
       setLoading(false)
     }
-  }
+  }, [selectedFy, selectedStatus])
 
-  async function fetchFirmsData() {
+  const fetchFirmsData = useCallback(async () => {
     try {
       const [s, list] = await Promise.all([
         foreignRemittanceApi.getFirmsSummary(),
@@ -256,9 +240,9 @@ export function ForeignRemittancePage() {
     } catch {
       // ignore
     }
-  }
+  }, [selectedFirmsType])
 
-  async function fetchFlaData() {
+  const fetchFlaData = useCallback(async () => {
     try {
       const [s, list] = await Promise.all([
         foreignRemittanceApi.getFlaSummary(selectedFy),
@@ -269,7 +253,32 @@ export function ForeignRemittancePage() {
     } catch {
       // ignore
     }
-  }
+  }, [selectedFy])
+
+  // Load initial data
+  useEffect(() => {
+    fetchClients()
+    fetchFirmsData()
+    fetchFlaData()
+  }, [fetchClients, fetchFirmsData, fetchFlaData])
+
+  useEffect(() => {
+    fetchRemittances()
+  }, [fetchRemittances])
+
+  useEffect(() => {
+    foreignRemittanceApi.evaluateMfn({
+      country: 'Netherlands',
+      baseTreatyRate: 10
+    }).then(setMfnResult).catch(() => {})
+    foreignRemittanceApi.evaluatePe({
+      hasPhysicalOffice: false,
+      personnelDaysInIndia: 45,
+      hasAuthorityToConcludeContracts: false,
+      maintainsInventoryStock: false,
+      treatyCountry: 'United States'
+    }).then(setPeResult).catch(() => {})
+  }, [])
 
   // Handle MFN Evaluation
   async function handleRunMfnEval() {

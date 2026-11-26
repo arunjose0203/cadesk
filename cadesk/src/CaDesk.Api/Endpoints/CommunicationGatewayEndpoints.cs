@@ -52,8 +52,8 @@ public static class CommunicationGatewayEndpoints
             [FromQuery(Name = "hub.challenge")] string? challenge,
             IConfiguration config) =>
         {
-            var expectedToken = config["Notifications:WhatsApp:VerifyToken"] ?? "cadesk_meta_verify_secret";
-            if (mode == "subscribe" && token == expectedToken)
+            var expectedToken = config["Notifications:WhatsApp:VerifyToken"];
+            if (!string.IsNullOrWhiteSpace(expectedToken) && mode == "subscribe" && token == expectedToken)
             {
                 return Results.Content(challenge ?? "", "text/plain");
             }

@@ -160,7 +160,7 @@ public class PracticeReportService : IPracticeReportService
             var utilPct = total > 0 ? Math.Round((billable / total) * 100, 2) : 0m;
             var billedValue = userEntries.Where(e => e.Billable).Sum(e => e.Hours * e.HourlyRate);
 
-            var role = u.UserRoles.FirstOrDefault()?.Role.Name ?? "Staff";
+            var role = u.UserRoles.FirstOrDefault()?.Role?.Name ?? "Staff";
 
             list.Add(new StaffUtilizationDto(
                 UserId: u.Id,

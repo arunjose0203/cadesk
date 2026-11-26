@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CaDesk.Application.Presumptive;
 
-public class PresumptiveTaxService(IAppDbContext db, ITenantContext tenant)
+public class PresumptiveTaxService(IAppDbContext db)
 {
     public async Task<List<PresumptiveTaxComputationDto>> ListComputationsAsync(
         Guid? clientId = null,

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
   type CalculateTaxRequest,
   type RegimeComparisonDto,
@@ -87,25 +87,20 @@ export function TaxPage() {
   // Regime preview state
   const [preview, setPreview] = useState<RegimeComparisonDto | null>(null)
 
-  useEffect(() => {
-    loadClients()
-    loadComputations()
-  }, [filterAy])
-
-  async function loadClients() {
+  const loadClients = useCallback(async () => {
     try {
       const res = await api<ClientPage | Client[]>('/api/clients?take=200')
       const clientList = Array.isArray(res) ? res : (res?.items || [])
       setClients(clientList)
-      if (clientList.length > 0 && !form.clientId) {
-        setForm(prev => ({ ...prev, clientId: clientList[0].id }))
+      if (clientList.length > 0) {
+        setForm(prev => (prev.clientId ? prev : { ...prev, clientId: clientList[0].id }))
       }
     } catch {
       // non fatal
     }
-  }
+  }, [])
 
-  async function loadComputations() {
+  const loadComputations = useCallback(async () => {
     try {
       setLoading(true)
       const list = await taxApi.list(undefined, filterAy === 'all' ? undefined : filterAy)
@@ -115,7 +110,12 @@ export function TaxPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [filterAy])
+
+  useEffect(() => {
+    loadClients()
+    loadComputations()
+  }, [loadClients, loadComputations])
 
   async function handleImportAis(e: React.FormEvent) {
     e.preventDefault()
@@ -230,14 +230,14 @@ export function TaxPage() {
   }
 
   return (
-    <div style={{ padding: '24px', maxWidth: '1440px', margin: '0 auto', color: '#1e293b' }}>
+    <div style={{ padding: '24px', maxWidth: '1440px', margin: '0 auto', color: 'var(--text)' }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 'bold', margin: '0 0 4px 0', color: '#0f172a' }}>
+          <h1 style={{ fontSize: '24px', fontWeight: 'bold', margin: '0 0 4px 0', color: 'var(--text)' }}>
             Direct Tax Computation Engine
           </h1>
-          <p style={{ margin: 0, color: '#64748b', fontSize: '14px' }}>
+          <p style={{ margin: 0, color: 'var(--muted)', fontSize: '14px' }}>
             AY 2025-26 &amp; FY 2024-25 Income Tax Calculator, 5 Heads Analysis &amp; Old vs New (Sec 115BAC) Comparison
           </p>
         </div>
@@ -250,10 +250,10 @@ export function TaxPage() {
             style={{
               padding: '8px 16px',
               borderRadius: '6px',
-              background: '#4338ca',
-              color: '#fff',
+              background: 'var(--card)',
+              color: 'var(--accent)',
               fontWeight: 600,
-              border: 'none',
+              border: '1px solid var(--accent)',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -267,10 +267,10 @@ export function TaxPage() {
             style={{
               padding: '8px 16px',
               borderRadius: '6px',
-              background: activeTab === 'calculator' ? '#2563eb' : '#f1f5f9',
-              color: activeTab === 'calculator' ? '#fff' : '#475569',
+              background: activeTab === 'calculator' ? 'var(--accent)' : 'var(--card-subtle)',
+              color: activeTab === 'calculator' ? '#fff' : 'var(--text-secondary)',
               fontWeight: 500,
-              border: 'none',
+              border: activeTab === 'calculator' ? '1px solid var(--accent)' : '1px solid var(--border)',
               cursor: 'pointer'
             }}
           >
@@ -281,10 +281,10 @@ export function TaxPage() {
             style={{
               padding: '8px 16px',
               borderRadius: '6px',
-              background: activeTab === 'history' ? '#2563eb' : '#f1f5f9',
-              color: activeTab === 'history' ? '#fff' : '#475569',
+              background: activeTab === 'history' ? 'var(--accent)' : 'var(--card-subtle)',
+              color: activeTab === 'history' ? '#fff' : 'var(--text-secondary)',
               fontWeight: 500,
-              border: 'none',
+              border: activeTab === 'history' ? '1px solid var(--accent)' : '1px solid var(--border)',
               cursor: 'pointer'
             }}
           >
@@ -294,13 +294,13 @@ export function TaxPage() {
       </div>
 
       {error && (
-        <div style={{ padding: '12px 16px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', color: '#dc2626', marginBottom: '16px' }}>
+        <div style={{ padding: '12px 16px', background: 'rgba(220, 38, 38, 0.08)', border: '1px solid rgba(220, 38, 38, 0.35)', borderRadius: '6px', color: 'var(--error)', marginBottom: '16px' }}>
           {error}
         </div>
       )}
 
       {successMsg && (
-        <div style={{ padding: '12px 16px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', color: '#16a34a', marginBottom: '16px' }}>
+        <div style={{ padding: '12px 16px', background: 'rgba(22, 163, 74, 0.08)', border: '1px solid rgba(22, 163, 74, 0.35)', borderRadius: '6px', color: 'var(--success)', marginBottom: '16px' }}>
           {successMsg}
         </div>
       )}
@@ -309,18 +309,18 @@ export function TaxPage() {
       {activeTab === 'calculator' && (
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(500px, 1.2fr) minmax(450px, 1fr)', gap: '24px' }}>
           {/* Inputs Section */}
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px' }}>
-            <h2 style={{ fontSize: '18px', fontWeight: 600, marginTop: 0, marginBottom: '16px', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
+          <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '20px' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: 600, marginTop: 0, marginBottom: '16px', borderBottom: '1px solid var(--border)', paddingBottom: '8px', color: 'var(--text)' }}>
               Taxpayer &amp; Assessment Setup
             </h2>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, marginBottom: '4px' }}>Select Client</label>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, marginBottom: '4px', color: 'var(--text-secondary)' }}>Select Client</label>
                 <select
                   value={form.clientId}
                   onChange={e => setForm({ ...form, clientId: e.target.value })}
-                  style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
                 >
                   <option value="">-- Choose Client --</option>
                   {clients.map(c => (
@@ -330,7 +330,7 @@ export function TaxPage() {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, marginBottom: '4px' }}>Assessment Year</label>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, marginBottom: '4px', color: 'var(--text-secondary)' }}>Assessment Year</label>
                 <select
                   value={form.assessmentYear}
                   onChange={e => {
@@ -338,7 +338,7 @@ export function TaxPage() {
                     const fy = ay === '2026-27' ? '2025-26' : ay === '2025-26' ? '2024-25' : '2023-24'
                     setForm({ ...form, assessmentYear: ay, financialYear: fy })
                   }}
-                  style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
                 >
                   <option value="2026-27">AY 2026-27 (FY 2025-26)</option>
                   <option value="2025-26">AY 2025-26 (FY 2024-25)</option>
@@ -348,189 +348,189 @@ export function TaxPage() {
             </div>
 
             {/* Head 1: Salary */}
-            <div style={{ marginBottom: '20px', background: '#f8fafc', padding: '14px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-              <div style={{ fontWeight: 600, fontSize: '14px', marginBottom: '10px', color: '#0369a1' }}>
+            <div style={{ marginBottom: '20px', background: 'var(--card-subtle)', padding: '14px', borderRadius: '6px', border: '1px solid var(--border)' }}>
+              <div style={{ fontWeight: 600, fontSize: '14px', marginBottom: '10px', color: 'var(--accent)' }}>
                 1. Income from Salary (Sec 15–17)
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
-                  <label style={{ fontSize: '12px', color: '#475569' }}>Gross Salary (₹)</label>
+                  <label style={{ fontSize: '12px', color: 'var(--muted)' }}>Gross Salary (₹)</label>
                   <input
                     type="number"
                     value={form.grossSalary}
                     onChange={e => setForm({ ...form, grossSalary: Number(e.target.value) })}
-                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '12px', color: '#475569' }}>HRA Received (₹)</label>
+                  <label style={{ fontSize: '12px', color: 'var(--muted)' }}>HRA Received (₹)</label>
                   <input
                     type="number"
                     value={form.hraReceived}
                     onChange={e => setForm({ ...form, hraReceived: Number(e.target.value) })}
-                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '12px', color: '#475569' }}>Actual Rent Paid (₹)</label>
+                  <label style={{ fontSize: '12px', color: 'var(--muted)' }}>Actual Rent Paid (₹)</label>
                   <input
                     type="number"
                     value={form.rentPaid}
                     onChange={e => setForm({ ...form, rentPaid: Number(e.target.value) })}
-                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '12px', color: '#475569' }}>Professional Tax (₹)</label>
+                  <label style={{ fontSize: '12px', color: 'var(--muted)' }}>Professional Tax (₹)</label>
                   <input
                     type="number"
                     value={form.professionalTax}
                     onChange={e => setForm({ ...form, professionalTax: Number(e.target.value) })}
-                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
                   />
                 </div>
               </div>
             </div>
 
             {/* Head 2: House Property */}
-            <div style={{ marginBottom: '20px', background: '#f8fafc', padding: '14px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-              <div style={{ fontWeight: 600, fontSize: '14px', marginBottom: '10px', color: '#0369a1' }}>
+            <div style={{ marginBottom: '20px', background: 'var(--card-subtle)', padding: '14px', borderRadius: '6px', border: '1px solid var(--border)' }}>
+              <div style={{ fontWeight: 600, fontSize: '14px', marginBottom: '10px', color: 'var(--accent)' }}>
                 2. Income from House Property (Sec 22–27)
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
-                  <label style={{ fontSize: '12px', color: '#475569' }}>Annual Rent Received (₹)</label>
+                  <label style={{ fontSize: '12px', color: 'var(--muted)' }}>Annual Rent Received (₹)</label>
                   <input
                     type="number"
                     value={form.annualRentReceived}
                     onChange={e => setForm({ ...form, annualRentReceived: Number(e.target.value) })}
-                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '12px', color: '#475569' }}>Housing Loan Interest Sec 24(b) (₹)</label>
+                  <label style={{ fontSize: '12px', color: 'var(--muted)' }}>Housing Loan Interest Sec 24(b) (₹)</label>
                   <input
                     type="number"
                     value={form.housingLoanInterest}
                     onChange={e => setForm({ ...form, housingLoanInterest: Number(e.target.value) })}
-                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
                   />
                 </div>
               </div>
             </div>
 
             {/* Head 3 & 4: Capital Gains & Other Sources */}
-            <div style={{ marginBottom: '20px', background: '#f8fafc', padding: '14px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-              <div style={{ fontWeight: 600, fontSize: '14px', marginBottom: '10px', color: '#0369a1' }}>
+            <div style={{ marginBottom: '20px', background: 'var(--card-subtle)', padding: '14px', borderRadius: '6px', border: '1px solid var(--border)' }}>
+              <div style={{ fontWeight: 600, fontSize: '14px', marginBottom: '10px', color: 'var(--accent)' }}>
                 3 &amp; 4. Capital Gains &amp; Other Sources
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
-                  <label style={{ fontSize: '12px', color: '#475569' }}>STCG 111A (Equity 15%/20%) (₹)</label>
+                  <label style={{ fontSize: '12px', color: 'var(--muted)' }}>STCG 111A (Equity 15%/20%) (₹)</label>
                   <input
                     type="number"
                     value={form.stcg111A}
                     onChange={e => setForm({ ...form, stcg111A: Number(e.target.value) })}
-                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '12px', color: '#475569' }}>LTCG 112A (Equity 10%/12.5%) (₹)</label>
+                  <label style={{ fontSize: '12px', color: 'var(--muted)' }}>LTCG 112A (Equity 10%/12.5%) (₹)</label>
                   <input
                     type="number"
                     value={form.ltcg112A}
                     onChange={e => setForm({ ...form, ltcg112A: Number(e.target.value) })}
-                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '12px', color: '#475569' }}>Bank Interest (Savings + FD) (₹)</label>
+                  <label style={{ fontSize: '12px', color: 'var(--muted)' }}>Bank Interest (Savings + FD) (₹)</label>
                   <input
                     type="number"
                     value={form.savingsInterest + form.fdInterest}
                     onChange={e => setForm({ ...form, fdInterest: Number(e.target.value) })}
-                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '12px', color: '#475569' }}>Dividend &amp; Other Income (₹)</label>
+                  <label style={{ fontSize: '12px', color: 'var(--muted)' }}>Dividend &amp; Other Income (₹)</label>
                   <input
                     type="number"
                     value={form.dividendIncome + form.otherIncome}
                     onChange={e => setForm({ ...form, dividendIncome: Number(e.target.value) })}
-                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
                   />
                 </div>
               </div>
             </div>
 
             {/* Chapter VI-A Deductions */}
-            <div style={{ marginBottom: '20px', background: '#f8fafc', padding: '14px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-              <div style={{ fontWeight: 600, fontSize: '14px', marginBottom: '10px', color: '#0369a1' }}>
+            <div style={{ marginBottom: '20px', background: 'var(--card-subtle)', padding: '14px', borderRadius: '6px', border: '1px solid var(--border)' }}>
+              <div style={{ fontWeight: 600, fontSize: '14px', marginBottom: '10px', color: 'var(--accent)' }}>
                 5. Chapter VI-A Deductions (Old Regime Only)
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
-                  <label style={{ fontSize: '12px', color: '#475569' }}>80C (EPF/PPF/ELSS, max 1.5L) (₹)</label>
+                  <label style={{ fontSize: '12px', color: 'var(--muted)' }}>80C (EPF/PPF/ELSS, max 1.5L) (₹)</label>
                   <input
                     type="number"
                     value={form.section80C}
                     onChange={e => setForm({ ...form, section80C: Number(e.target.value) })}
-                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '12px', color: '#475569' }}>80CCD(1B) (NPS, max 50k) (₹)</label>
+                  <label style={{ fontSize: '12px', color: 'var(--muted)' }}>80CCD(1B) (NPS, max 50k) (₹)</label>
                   <input
                     type="number"
                     value={form.section80Ccd1B}
                     onChange={e => setForm({ ...form, section80Ccd1B: Number(e.target.value) })}
-                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '12px', color: '#475569' }}>80D (Health Insurance) (₹)</label>
+                  <label style={{ fontSize: '12px', color: 'var(--muted)' }}>80D (Health Insurance) (₹)</label>
                   <input
                     type="number"
                     value={form.section80D}
                     onChange={e => setForm({ ...form, section80D: Number(e.target.value) })}
-                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '12px', color: '#475569' }}>80TTA (Savings Interest) (₹)</label>
+                  <label style={{ fontSize: '12px', color: 'var(--muted)' }}>80TTA (Savings Interest) (₹)</label>
                   <input
                     type="number"
                     value={form.section80Tta}
                     onChange={e => setForm({ ...form, section80Tta: Number(e.target.value) })}
-                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
                   />
                 </div>
               </div>
             </div>
 
             {/* Prepaid Taxes */}
-            <div style={{ marginBottom: '20px', background: '#f8fafc', padding: '14px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-              <div style={{ fontWeight: 600, fontSize: '14px', marginBottom: '10px', color: '#0369a1' }}>
+            <div style={{ marginBottom: '20px', background: 'var(--card-subtle)', padding: '14px', borderRadius: '6px', border: '1px solid var(--border)' }}>
+              <div style={{ fontWeight: 600, fontSize: '14px', marginBottom: '10px', color: 'var(--accent)' }}>
                 Prepaid Taxes (TDS / Advance Tax)
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
-                  <label style={{ fontSize: '12px', color: '#475569' }}>TDS / TCS Paid (₹)</label>
+                  <label style={{ fontSize: '12px', color: 'var(--muted)' }}>TDS / TCS Paid (₹)</label>
                   <input
                     type="number"
                     value={form.tdsPaid}
                     onChange={e => setForm({ ...form, tdsPaid: Number(e.target.value) })}
-                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '12px', color: '#475569' }}>Advance Tax Paid (₹)</label>
+                  <label style={{ fontSize: '12px', color: 'var(--muted)' }}>Advance Tax Paid (₹)</label>
                   <input
                     type="number"
                     value={form.advanceTaxPaid}
                     onChange={e => setForm({ ...form, advanceTaxPaid: Number(e.target.value) })}
-                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
                   />
                 </div>
               </div>
@@ -543,7 +543,7 @@ export function TaxPage() {
                 style={{
                   flex: 1,
                   padding: '10px 16px',
-                  background: '#0284c7',
+                  background: 'var(--accent)',
                   color: '#fff',
                   border: 'none',
                   borderRadius: '6px',
@@ -559,7 +559,7 @@ export function TaxPage() {
                   disabled={saving}
                   style={{
                     padding: '10px 20px',
-                    background: '#16a34a',
+                    background: 'var(--success)',
                     color: '#fff',
                     border: 'none',
                     borderRadius: '6px',
@@ -576,9 +576,13 @@ export function TaxPage() {
           {/* Comparative Results Section */}
           <div>
             {!preview ? (
-              <div style={{ background: '#fff', border: '2px dashed #cbd5e1', borderRadius: '8px', padding: '48px 24px', textAlign: 'center', color: '#64748b' }}>
-                <div style={{ fontSize: '36px', marginBottom: '12px' }}>⚖️</div>
-                <div style={{ fontWeight: 600, fontSize: '16px', marginBottom: '4px', color: '#334155' }}>
+              <div style={{ background: 'var(--card)', border: '2px dashed var(--border)', borderRadius: '8px', padding: '48px 24px', textAlign: 'center', color: 'var(--muted)' }}>
+                <div style={{ display: 'inline-flex', padding: '12px', borderRadius: '12px', background: 'var(--card-subtle)', border: '1px solid var(--border)', color: 'var(--accent)', marginBottom: '12px' }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z" /><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z" /><path d="M7 21h10" /><path d="M12 3v18" /><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2" />
+                  </svg>
+                </div>
+                <div style={{ fontWeight: 600, fontSize: '16px', marginBottom: '4px', color: 'var(--text)' }}>
                   Regime Comparative Simulator Ready
                 </div>
                 <div style={{ fontSize: '13px', maxWidth: '360px', margin: '0 auto' }}>
@@ -592,15 +596,15 @@ export function TaxPage() {
                   padding: '16px',
                   borderRadius: '8px',
                   marginBottom: '16px',
-                  background: preview.recommendedRegime === 'new' ? '#eff6ff' : '#f0fdf4',
-                  border: `1px solid ${preview.recommendedRegime === 'new' ? '#93c5fd' : '#86efac'}`
+                  background: preview.recommendedRegime === 'new' ? 'rgba(37, 99, 235, 0.08)' : 'rgba(22, 163, 74, 0.08)',
+                  border: `1px solid ${preview.recommendedRegime === 'new' ? 'rgba(37, 99, 235, 0.35)' : 'rgba(22, 163, 74, 0.35)'}`
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ fontWeight: 700, fontSize: '16px', color: preview.recommendedRegime === 'new' ? '#1d4ed8' : '#15803d' }}>
+                    <div style={{ fontWeight: 700, fontSize: '16px', color: preview.recommendedRegime === 'new' ? 'var(--accent)' : 'var(--success)' }}>
                       Recommended: {preview.recommendedRegime.toUpperCase()} REGIME
                     </div>
                     <div style={{
-                      background: preview.recommendedRegime === 'new' ? '#2563eb' : '#16a34a',
+                      background: preview.recommendedRegime === 'new' ? 'var(--accent)' : 'var(--success)',
                       color: '#fff',
                       padding: '4px 10px',
                       borderRadius: '12px',
@@ -610,104 +614,104 @@ export function TaxPage() {
                       Saves {fmtInr(preview.taxSavings)}
                     </div>
                   </div>
-                  <div style={{ fontSize: '13px', marginTop: '6px', color: '#334155' }}>
+                  <div style={{ fontSize: '13px', marginTop: '6px', color: 'var(--text)' }}>
                     {preview.recommendationReason}
                   </div>
                 </div>
 
                 {/* Side by side comparison table */}
-                <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
+                <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                     <thead>
-                      <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                        <th style={{ textAlign: 'left', padding: '10px 14px', color: '#475569' }}>Tax Head / Step</th>
-                        <th style={{ textAlign: 'right', padding: '10px 14px', color: '#475569' }}>Old Regime</th>
-                        <th style={{ textAlign: 'right', padding: '10px 14px', color: '#475569' }}>New Regime (115BAC)</th>
+                      <tr style={{ background: 'var(--card-subtle)', borderBottom: '1px solid var(--border)' }}>
+                        <th style={{ textAlign: 'left', padding: '10px 14px', color: 'var(--muted)' }}>Tax Head / Step</th>
+                        <th style={{ textAlign: 'right', padding: '10px 14px', color: 'var(--muted)' }}>Old Regime</th>
+                        <th style={{ textAlign: 'right', padding: '10px 14px', color: 'var(--muted)' }}>New Regime (115BAC)</th>
                       </tr>
                     </thead>
                     <tbody>
-                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <tr style={{ borderBottom: '1px solid var(--border)' }}>
                         <td style={{ padding: '8px 14px' }}>Gross Salary</td>
                         <td style={{ textAlign: 'right', padding: '8px 14px' }}>{fmtInr(preview.oldRegime.grossSalary)}</td>
                         <td style={{ textAlign: 'right', padding: '8px 14px' }}>{fmtInr(preview.newRegime.grossSalary)}</td>
                       </tr>
-                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <tr style={{ borderBottom: '1px solid var(--border)' }}>
                         <td style={{ padding: '8px 14px' }}>Standard &amp; Salary Deductions</td>
-                        <td style={{ textAlign: 'right', padding: '8px 14px', color: '#16a34a' }}>- {fmtInr(preview.oldRegime.standardDeduction)}</td>
-                        <td style={{ textAlign: 'right', padding: '8px 14px', color: '#16a34a' }}>- {fmtInr(preview.newRegime.standardDeduction)}</td>
+                        <td style={{ textAlign: 'right', padding: '8px 14px', color: 'var(--success)' }}>- {fmtInr(preview.oldRegime.standardDeduction)}</td>
+                        <td style={{ textAlign: 'right', padding: '8px 14px', color: 'var(--success)' }}>- {fmtInr(preview.newRegime.standardDeduction)}</td>
                       </tr>
-                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <tr style={{ borderBottom: '1px solid var(--border)' }}>
                         <td style={{ padding: '8px 14px' }}>Net Salary</td>
                         <td style={{ textAlign: 'right', padding: '8px 14px', fontWeight: 500 }}>{fmtInr(preview.oldRegime.netSalary)}</td>
                         <td style={{ textAlign: 'right', padding: '8px 14px', fontWeight: 500 }}>{fmtInr(preview.newRegime.netSalary)}</td>
                       </tr>
-                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <tr style={{ borderBottom: '1px solid var(--border)' }}>
                         <td style={{ padding: '8px 14px' }}>House Property Income</td>
                         <td style={{ textAlign: 'right', padding: '8px 14px' }}>{fmtInr(preview.oldRegime.housePropertyIncome)}</td>
                         <td style={{ textAlign: 'right', padding: '8px 14px' }}>{fmtInr(preview.newRegime.housePropertyIncome)}</td>
                       </tr>
-                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <tr style={{ borderBottom: '1px solid var(--border)' }}>
                         <td style={{ padding: '8px 14px' }}>Capital Gains (STCG + LTCG)</td>
                         <td style={{ textAlign: 'right', padding: '8px 14px' }}>{fmtInr(preview.oldRegime.capitalGainsStcg + preview.oldRegime.capitalGainsLtcg)}</td>
                         <td style={{ textAlign: 'right', padding: '8px 14px' }}>{fmtInr(preview.newRegime.capitalGainsStcg + preview.newRegime.capitalGainsLtcg)}</td>
                       </tr>
-                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <tr style={{ borderBottom: '1px solid var(--border)' }}>
                         <td style={{ padding: '8px 14px' }}>Other Sources (Interest/Div)</td>
                         <td style={{ textAlign: 'right', padding: '8px 14px' }}>{fmtInr(preview.oldRegime.otherSourcesIncome)}</td>
                         <td style={{ textAlign: 'right', padding: '8px 14px' }}>{fmtInr(preview.newRegime.otherSourcesIncome)}</td>
                       </tr>
-                      <tr style={{ borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
+                      <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--card-subtle)' }}>
                         <td style={{ padding: '8px 14px', fontWeight: 600 }}>Gross Total Income (GTI)</td>
                         <td style={{ textAlign: 'right', padding: '8px 14px', fontWeight: 600 }}>{fmtInr(preview.oldRegime.grossTotalIncome)}</td>
                         <td style={{ textAlign: 'right', padding: '8px 14px', fontWeight: 600 }}>{fmtInr(preview.newRegime.grossTotalIncome)}</td>
                       </tr>
-                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <tr style={{ borderBottom: '1px solid var(--border)' }}>
                         <td style={{ padding: '8px 14px' }}>Chapter VI-A Deductions</td>
-                        <td style={{ textAlign: 'right', padding: '8px 14px', color: '#16a34a' }}>- {fmtInr(preview.oldRegime.chapterViaDeductions)}</td>
-                        <td style={{ textAlign: 'right', padding: '8px 14px', color: '#64748b' }}>- {fmtInr(preview.newRegime.chapterViaDeductions)}</td>
+                        <td style={{ textAlign: 'right', padding: '8px 14px', color: 'var(--success)' }}>- {fmtInr(preview.oldRegime.chapterViaDeductions)}</td>
+                        <td style={{ textAlign: 'right', padding: '8px 14px', color: 'var(--muted)' }}>- {fmtInr(preview.newRegime.chapterViaDeductions)}</td>
                       </tr>
-                      <tr style={{ borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
+                      <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--card-subtle)' }}>
                         <td style={{ padding: '8px 14px', fontWeight: 700 }}>Total Taxable Income</td>
                         <td style={{ textAlign: 'right', padding: '8px 14px', fontWeight: 700 }}>{fmtInr(preview.oldRegime.taxableIncome)}</td>
                         <td style={{ textAlign: 'right', padding: '8px 14px', fontWeight: 700 }}>{fmtInr(preview.newRegime.taxableIncome)}</td>
                       </tr>
-                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <tr style={{ borderBottom: '1px solid var(--border)' }}>
                         <td style={{ padding: '8px 14px' }}>Base Tax on Slabs</td>
                         <td style={{ textAlign: 'right', padding: '8px 14px' }}>{fmtInr(preview.oldRegime.baseTax)}</td>
                         <td style={{ textAlign: 'right', padding: '8px 14px' }}>{fmtInr(preview.newRegime.baseTax)}</td>
                       </tr>
-                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <tr style={{ borderBottom: '1px solid var(--border)' }}>
                         <td style={{ padding: '8px 14px' }}>Special Rate Tax (CG)</td>
                         <td style={{ textAlign: 'right', padding: '8px 14px' }}>{fmtInr(preview.oldRegime.specialRateTax)}</td>
                         <td style={{ textAlign: 'right', padding: '8px 14px' }}>{fmtInr(preview.newRegime.specialRateTax)}</td>
                       </tr>
-                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <tr style={{ borderBottom: '1px solid var(--border)' }}>
                         <td style={{ padding: '8px 14px' }}>Rebate u/s 87A</td>
-                        <td style={{ textAlign: 'right', padding: '8px 14px', color: '#16a34a' }}>- {fmtInr(preview.oldRegime.rebate87A)}</td>
-                        <td style={{ textAlign: 'right', padding: '8px 14px', color: '#16a34a' }}>- {fmtInr(preview.newRegime.rebate87A)}</td>
+                        <td style={{ textAlign: 'right', padding: '8px 14px', color: 'var(--success)' }}>- {fmtInr(preview.oldRegime.rebate87A)}</td>
+                        <td style={{ textAlign: 'right', padding: '8px 14px', color: 'var(--success)' }}>- {fmtInr(preview.newRegime.rebate87A)}</td>
                       </tr>
-                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <tr style={{ borderBottom: '1px solid var(--border)' }}>
                         <td style={{ padding: '8px 14px' }}>4% Health &amp; Education Cess</td>
                         <td style={{ textAlign: 'right', padding: '8px 14px' }}>+{fmtInr(preview.oldRegime.cess)}</td>
                         <td style={{ textAlign: 'right', padding: '8px 14px' }}>+{fmtInr(preview.newRegime.cess)}</td>
                       </tr>
-                      <tr style={{ borderBottom: '1px solid #e2e8f0', background: '#fef3c7' }}>
-                        <td style={{ padding: '10px 14px', fontWeight: 700, color: '#92400e' }}>Total Tax Liability</td>
-                        <td style={{ textAlign: 'right', padding: '10px 14px', fontWeight: 700, color: '#92400e' }}>{fmtInr(preview.oldRegime.totalTaxLiability)}</td>
-                        <td style={{ textAlign: 'right', padding: '10px 14px', fontWeight: 700, color: '#92400e' }}>{fmtInr(preview.newRegime.totalTaxLiability)}</td>
+                      <tr style={{ borderBottom: '1px solid var(--border)', background: 'rgba(217, 119, 6, 0.1)' }}>
+                        <td style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--warning)' }}>Total Tax Liability</td>
+                        <td style={{ textAlign: 'right', padding: '10px 14px', fontWeight: 700, color: 'var(--warning)' }}>{fmtInr(preview.oldRegime.totalTaxLiability)}</td>
+                        <td style={{ textAlign: 'right', padding: '10px 14px', fontWeight: 700, color: 'var(--warning)' }}>{fmtInr(preview.newRegime.totalTaxLiability)}</td>
                       </tr>
-                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <tr style={{ borderBottom: '1px solid var(--border)' }}>
                         <td style={{ padding: '8px 14px' }}>TDS / Advance Taxes Paid</td>
-                        <td style={{ textAlign: 'right', padding: '8px 14px', color: '#2563eb' }}>- {fmtInr(preview.oldRegime.prepaidTaxes)}</td>
-                        <td style={{ textAlign: 'right', padding: '8px 14px', color: '#2563eb' }}>- {fmtInr(preview.newRegime.prepaidTaxes)}</td>
+                        <td style={{ textAlign: 'right', padding: '8px 14px', color: 'var(--accent)' }}>- {fmtInr(preview.oldRegime.prepaidTaxes)}</td>
+                        <td style={{ textAlign: 'right', padding: '8px 14px', color: 'var(--accent)' }}>- {fmtInr(preview.newRegime.prepaidTaxes)}</td>
                       </tr>
-                      <tr style={{ background: '#f8fafc' }}>
+                      <tr style={{ background: 'var(--card-subtle)' }}>
                         <td style={{ padding: '10px 14px', fontWeight: 700 }}>Net Payable / (Refund)</td>
                         <td style={{
                           textAlign: 'right',
                           padding: '10px 14px',
                           fontWeight: 700,
-                          color: preview.oldRegime.netPayableOrRefund > 0 ? '#dc2626' : '#16a34a'
+                          color: preview.oldRegime.netPayableOrRefund > 0 ? 'var(--error)' : 'var(--success)'
                         }}>
                           {fmtInr(preview.oldRegime.netPayableOrRefund)}
                         </td>
@@ -715,7 +719,7 @@ export function TaxPage() {
                           textAlign: 'right',
                           padding: '10px 14px',
                           fontWeight: 700,
-                          color: preview.newRegime.netPayableOrRefund > 0 ? '#dc2626' : '#16a34a'
+                          color: preview.newRegime.netPayableOrRefund > 0 ? 'var(--error)' : 'var(--success)'
                         }}>
                           {fmtInr(preview.newRegime.netPayableOrRefund)}
                         </td>
@@ -731,14 +735,14 @@ export function TaxPage() {
 
       {/* Tab 2: Saved Computations Records */}
       {activeTab === 'history' && (
-        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px' }}>
+        <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h2 style={{ fontSize: '18px', fontWeight: 600, margin: 0 }}>Saved Client Tax Computations</h2>
+            <h2 style={{ fontSize: '18px', fontWeight: 600, margin: 0, color: 'var(--text)' }}>Saved Client Tax Computations</h2>
             <div style={{ display: 'flex', gap: '8px' }}>
               <select
                 value={filterAy}
                 onChange={e => setFilterAy(e.target.value)}
-                style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)', fontSize: '13px' }}
               >
                 <option value="all">All AYs</option>
                 <option value="2026-27">AY 2026-27</option>
@@ -747,7 +751,7 @@ export function TaxPage() {
               </select>
               <button
                 onClick={loadComputations}
-                style={{ padding: '6px 12px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '6px', cursor: 'pointer' }}
+                style={{ padding: '6px 12px', background: 'var(--card-subtle)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: '6px', cursor: 'pointer' }}
               >
                 Refresh
               </button>
@@ -755,15 +759,15 @@ export function TaxPage() {
           </div>
 
           {loading ? (
-            <div style={{ padding: '32px', textAlign: 'center', color: '#64748b' }}>Loading saved computations...</div>
+            <div style={{ padding: '32px', textAlign: 'center', color: 'var(--muted)' }}>Loading saved computations...</div>
           ) : computations.length === 0 ? (
-            <div style={{ padding: '48px', textAlign: 'center', color: '#64748b' }}>
+            <div style={{ padding: '48px', textAlign: 'center', color: 'var(--muted)' }}>
               No tax computations found for the selected filter.
             </div>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
               <thead>
-                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', textAlign: 'left' }}>
+                <tr style={{ background: 'var(--card-subtle)', borderBottom: '1px solid var(--border)', textAlign: 'left', color: 'var(--muted)' }}>
                   <th style={{ padding: '10px 12px' }}>Client Name</th>
                   <th style={{ padding: '10px 12px' }}>AY</th>
                   <th style={{ padding: '10px 12px' }}>Regime</th>
@@ -776,15 +780,15 @@ export function TaxPage() {
               </thead>
               <tbody>
                 {computations.map(c => (
-                  <tr key={c.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                  <tr key={c.id} style={{ borderBottom: '1px solid var(--border)' }}>
                     <td style={{ padding: '10px 12px', fontWeight: 500 }}>{c.clientName || 'Client ' + c.clientId.slice(0, 8)}</td>
                     <td style={{ padding: '10px 12px' }}>{c.assessmentYear}</td>
                     <td style={{ padding: '10px 12px' }}>
                       <span style={{
                         padding: '2px 8px',
                         borderRadius: '4px',
-                        background: c.optedRegime === 'new' ? '#eff6ff' : '#fef3c7',
-                        color: c.optedRegime === 'new' ? '#1d4ed8' : '#b45309',
+                        background: c.optedRegime === 'new' ? 'rgba(37, 99, 235, 0.12)' : 'rgba(217, 119, 6, 0.12)',
+                        color: c.optedRegime === 'new' ? 'var(--accent)' : 'var(--warning)',
                         fontWeight: 600,
                         fontSize: '11px'
                       }}>
@@ -797,7 +801,7 @@ export function TaxPage() {
                       padding: '10px 12px',
                       textAlign: 'right',
                       fontWeight: 600,
-                      color: c.netTaxPayableOrRefund > 0 ? '#dc2626' : '#16a34a'
+                      color: c.netTaxPayableOrRefund > 0 ? 'var(--error)' : 'var(--success)'
                     }}>
                       {fmtInr(c.netTaxPayableOrRefund)}
                     </td>
@@ -807,8 +811,8 @@ export function TaxPage() {
                         borderRadius: '12px',
                         fontSize: '11px',
                         fontWeight: 600,
-                        background: c.status === 'approved' ? '#dcfce7' : c.status === 'filed' ? '#e0e7ff' : '#f1f5f9',
-                        color: c.status === 'approved' ? '#15803d' : c.status === 'filed' ? '#4338ca' : '#475569'
+                        background: c.status === 'approved' ? 'rgba(22, 163, 74, 0.12)' : c.status === 'filed' ? 'rgba(37, 99, 235, 0.12)' : 'var(--card-subtle)',
+                        color: c.status === 'approved' ? 'var(--success)' : c.status === 'filed' ? 'var(--accent)' : 'var(--muted)'
                       }}>
                         {c.status.toUpperCase()}
                       </span>
@@ -818,7 +822,7 @@ export function TaxPage() {
                         {c.status === 'computed' && (
                           <button
                             onClick={() => handleStatusChange(c.id, 'approved')}
-                            style={{ padding: '4px 8px', fontSize: '11px', background: '#16a34a', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                            style={{ padding: '4px 8px', fontSize: '11px', background: 'var(--success)', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
                           >
                             Approve
                           </button>
@@ -826,7 +830,7 @@ export function TaxPage() {
                         {c.status === 'approved' && (
                           <button
                             onClick={() => handleStatusChange(c.id, 'filed')}
-                            style={{ padding: '4px 8px', fontSize: '11px', background: '#4f46e5', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                            style={{ padding: '4px 8px', fontSize: '11px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
                           >
                             Mark Filed
                           </button>
@@ -836,13 +840,13 @@ export function TaxPage() {
                             setItr1Export(null)
                             setSelectedComputation(c)
                           }}
-                          style={{ padding: '4px 8px', fontSize: '11px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer' }}
+                          style={{ padding: '4px 8px', fontSize: '11px', background: 'var(--card-subtle)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: '4px', cursor: 'pointer' }}
                         >
                           View / Export JSON
                         </button>
                         <button
                           onClick={() => handleDeleteComputation(c.id)}
-                          style={{ padding: '4px 8px', fontSize: '11px', background: '#fee2e2', color: '#dc2626', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                          style={{ padding: '4px 8px', fontSize: '11px', background: 'rgba(220, 38, 38, 0.12)', color: 'var(--error)', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
                         >
                           Delete
                         </button>
@@ -859,20 +863,20 @@ export function TaxPage() {
             <div style={{
               position: 'fixed',
               top: 0, left: 0, right: 0, bottom: 0,
-              background: 'rgba(0,0,0,0.5)',
+              background: 'rgba(15, 23, 42, 0.65)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               zIndex: 1000
             }}>
-              <div style={{ background: '#fff', borderRadius: '8px', width: '700px', maxHeight: '85vh', overflowY: 'auto', padding: '24px' }}>
+              <div style={{ background: 'var(--card)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '8px', width: '700px', maxHeight: '85vh', overflowY: 'auto', padding: '24px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                   <h3 style={{ margin: 0, fontSize: '18px' }}>
                     Computation Details: {selectedComputation.clientName} ({selectedComputation.assessmentYear})
                   </h3>
                   <button
                     onClick={() => setSelectedComputation(null)}
-                    style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer' }}
+                    style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: 'var(--muted)' }}
                   >
                     ✕
                   </button>
@@ -888,7 +892,7 @@ export function TaxPage() {
                   <p><strong>4% Cess:</strong> {fmtInr(selectedComputation.cess)}</p>
                   <p><strong>Total Tax Liability:</strong> {fmtInr(selectedComputation.totalTaxLiability)}</p>
                   <p><strong>TDS / Advance Tax:</strong> {fmtInr(selectedComputation.tdsTcsCredit + selectedComputation.advanceTaxPaid)}</p>
-                  <p style={{ fontSize: '15px', fontWeight: 'bold', color: selectedComputation.netTaxPayableOrRefund > 0 ? '#dc2626' : '#16a34a' }}>
+                  <p style={{ fontSize: '15px', fontWeight: 'bold', color: selectedComputation.netTaxPayableOrRefund > 0 ? 'var(--error)' : 'var(--success)' }}>
                     Net Payable / (Refund): {fmtInr(selectedComputation.netTaxPayableOrRefund)}
                   </p>
                 </div>
@@ -920,14 +924,14 @@ export function TaxPage() {
                       placeholder="Father's Name"
                       value={itr1Opts.fatherName || ''}
                       onChange={e => setItr1Opts(p => ({ ...p, fatherName: e.target.value }))}
-                      style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '12px' }}
+                      style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)', fontSize: '12px' }}
                     />
                     <input
                       type="text"
                       placeholder="City (e.g. Kochi)"
                       value={itr1Opts.city || ''}
                       onChange={e => setItr1Opts(p => ({ ...p, city: e.target.value }))}
-                      style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '12px' }}
+                      style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)', fontSize: '12px' }}
                     />
                     <input
                       type="text"
@@ -935,7 +939,7 @@ export function TaxPage() {
                       placeholder="PIN Code (e.g. 682001)"
                       value={itr1Opts.pinCode || ''}
                       onChange={e => setItr1Opts(p => ({ ...p, pinCode: e.target.value }))}
-                      style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '12px' }}
+                      style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)', fontSize: '12px' }}
                     />
                     <input
                       type="text"
@@ -943,14 +947,14 @@ export function TaxPage() {
                       placeholder="Refund IFSC (optional)"
                       value={itr1Opts.ifscCode || ''}
                       onChange={e => setItr1Opts(p => ({ ...p, ifscCode: e.target.value.toUpperCase() }))}
-                      style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '12px' }}
+                      style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)', fontSize: '12px' }}
                     />
                     <input
                       type="text"
                       placeholder="Bank A/c No. (optional)"
                       value={itr1Opts.bankAccountNo || ''}
                       onChange={e => setItr1Opts(p => ({ ...p, bankAccountNo: e.target.value }))}
-                      style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '12px' }}
+                      style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)', fontSize: '12px' }}
                     />
                   </div>
                 </JsonExportPanel>
@@ -958,7 +962,7 @@ export function TaxPage() {
                 <div style={{ marginTop: '20px', textAlign: 'right' }}>
                   <button
                     onClick={() => setSelectedComputation(null)}
-                    style={{ padding: '8px 16px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '6px', cursor: 'pointer' }}
+                    style={{ padding: '8px 16px', background: 'var(--card-subtle)', border: '1px solid var(--border)', color: 'var(--text)', borderRadius: '6px', cursor: 'pointer' }}
                   >
                     Close
                   </button>
@@ -971,26 +975,26 @@ export function TaxPage() {
 
       {/* AIS Import Modal */}
       {showAisModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-          <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '12px', width: '650px', maxWidth: '95%', maxHeight: '90vh', overflowY: 'auto' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.65)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+          <div style={{ background: 'var(--card)', color: 'var(--text)', border: '1px solid var(--border)', padding: '24px', borderRadius: '12px', width: '650px', maxWidth: '95%', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#111827' }}>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: 'var(--text)' }}>
                 Import Annual Information Statement (AIS / 26AS JSON)
               </h3>
-              <button onClick={() => setShowAisModal(false)} style={{ background: 'transparent', border: 'none', fontSize: '18px', cursor: 'pointer' }}>✕</button>
+              <button onClick={() => setShowAisModal(false)} style={{ background: 'transparent', border: 'none', fontSize: '18px', cursor: 'pointer', color: 'var(--muted)' }}>✕</button>
             </div>
 
-            <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#64748B' }}>
+            <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: 'var(--muted)' }}>
               Paste the official JSON exported from the Income Tax e-filing portal (AIS / TIS / Form 26AS). CaDesk automatically categorizes Salary, Savings Interest, FD Interest, Dividends, Capital Gains, and extracts Advance Tax challans.
             </p>
 
             <form onSubmit={handleImportAis}>
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>Client</label>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '4px' }}>Client</label>
                 <select
                   value={aisClientId}
                   onChange={e => setAisClientId(e.target.value)}
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '13px' }}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)', fontSize: '13px' }}
                   required
                 >
                   <option value="">-- Choose Client --</option>
@@ -1002,11 +1006,11 @@ export function TaxPage() {
 
               <div style={{ marginBottom: '20px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                  <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151' }}>AIS JSON Content</label>
+                  <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>AIS JSON Content</label>
                   <button
                     type="button"
                     onClick={loadSampleAisJson}
-                    style={{ background: 'transparent', border: 'none', color: '#4F46E5', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
+                    style={{ background: 'transparent', border: 'none', color: 'var(--accent)', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
                   >
                     Load Sample AIS JSON
                   </button>
@@ -1016,7 +1020,7 @@ export function TaxPage() {
                   value={aisJsonPayload}
                   onChange={e => setAisJsonPayload(e.target.value)}
                   placeholder="Paste AIS JSON exported from income-tax portal here..."
-                  style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '12px', fontFamily: 'monospace' }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)', fontSize: '12px', fontFamily: 'monospace' }}
                   required
                 />
               </div>
@@ -1025,14 +1029,14 @@ export function TaxPage() {
                 <button
                   type="button"
                   onClick={() => setShowAisModal(false)}
-                  style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #CBD5E1', background: '#FFFFFF', cursor: 'pointer' }}
+                  style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--card-subtle)', color: 'var(--text)', cursor: 'pointer' }}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={importingAis}
-                  style={{ padding: '8px 20px', borderRadius: '6px', border: 'none', background: '#4338CA', color: '#FFFFFF', fontWeight: 600, cursor: 'pointer' }}
+                  style={{ padding: '8px 20px', borderRadius: '6px', border: 'none', background: 'var(--accent)', color: '#FFFFFF', fontWeight: 600, cursor: 'pointer' }}
                 >
                   {importingAis ? 'Importing & Computing...' : 'Import & Compute Tax'}
                 </button>

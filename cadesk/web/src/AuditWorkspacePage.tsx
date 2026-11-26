@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { PdfActions } from './pdf/PdfActions'
 import {
   type AuditEngagementDto,
@@ -177,11 +177,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
     query: ''
   })
 
-  useEffect(() => {
-    loadData()
-  }, [])
-
-  async function loadData() {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true)
       const [sumRes, engRes, clRes] = await Promise.all([
@@ -193,15 +189,19 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
       setSummary(sumRes)
       setEngagements(engRes || [])
       setClients(clientList)
-      if (clientList.length > 0 && !engForm.clientId) {
-        setEngForm(prev => ({ ...prev, clientId: clientList[0].id }))
+      if (clientList.length > 0) {
+        setEngForm(prev => (prev.clientId ? prev : { ...prev, clientId: clientList[0].id }))
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load audit data.')
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
 
   async function loadEngagementDetails(engId: string) {
     try {
@@ -720,14 +720,14 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
   }
 
   return (
-    <div style={{ padding: '24px', maxWidth: '1440px', margin: '0 auto', color: '#1e293b' }}>
+    <div style={{ padding: '24px', maxWidth: '1440px', margin: '0 auto', color: 'var(--text)' }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 700, margin: '0 0 4px 0', color: '#0f172a' }}>
+          <h1 style={{ fontSize: '24px', fontWeight: 700, margin: '0 0 4px 0', color: 'var(--text)' }}>
             Digital Workpapers &amp; Engagement Quality Review (EQR) Desk
           </h1>
-          <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
+          <p style={{ fontSize: '13px', color: 'var(--muted)', margin: 0 }}>
             ICAI SQC 1 &amp; SA 220 compliant audit documentation, multi-tier review notes, Hot/Cold EQR reviews, and statutory 60-day archival lock.
           </p>
         </div>
@@ -736,7 +736,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
             onClick={() => setShowNewEngModal(true)}
             style={{
               padding: '10px 18px',
-              background: '#2563eb',
+              background: 'var(--accent)',
               color: '#fff',
               border: 'none',
               borderRadius: '6px',
@@ -751,7 +751,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
       </div>
 
       {error && (
-        <div style={{ padding: '12px 16px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', color: '#b91c1c', marginBottom: '20px', fontSize: '14px' }}>
+        <div style={{ padding: '12px 16px', background: 'rgba(220, 38, 38, 0.08)', border: '1px solid rgba(220, 38, 38, 0.35)', borderRadius: '6px', color: 'var(--error)', marginBottom: '20px', fontSize: '14px' }}>
           {error}
         </div>
       )}
@@ -759,32 +759,32 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
       {/* Summary KPI Cards */}
       {summary && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px', marginBottom: '24px' }}>
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px' }}>
-            <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Total Engagements</div>
-            <div style={{ fontSize: '24px', fontWeight: 700, color: '#0f172a', marginTop: '4px' }}>{summary.totalEngagements}</div>
-            <div style={{ fontSize: '12px', color: '#16a34a', marginTop: '2px' }}>{summary.signedOffCount} Signed Off</div>
+          <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '16px' }}>
+            <div style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase' }}>Total Engagements</div>
+            <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text)', marginTop: '4px' }}>{summary.totalEngagements}</div>
+            <div style={{ fontSize: '12px', color: 'var(--success)', marginTop: '2px' }}>{summary.signedOffCount} Signed Off</div>
           </div>
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px' }}>
-            <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>EQR Reviews (SA 220)</div>
-            <div style={{ fontSize: '24px', fontWeight: 700, color: '#7c3aed', marginTop: '4px' }}>{summary.eqrPendingCount}</div>
-            <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>Hot Reviews Pending</div>
+          <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '16px' }}>
+            <div style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase' }}>EQR Reviews (SA 220)</div>
+            <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--accent)', marginTop: '4px' }}>{summary.eqrPendingCount}</div>
+            <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>Hot Reviews Pending</div>
           </div>
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px' }}>
-            <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Audit Queries / Notes</div>
-            <div style={{ fontSize: '24px', fontWeight: 700, color: summary.openReviewNotesCount > 0 ? '#dc2626' : '#16a34a', marginTop: '4px' }}>
+          <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '16px' }}>
+            <div style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase' }}>Audit Queries / Notes</div>
+            <div style={{ fontSize: '24px', fontWeight: 700, color: summary.openReviewNotesCount > 0 ? 'var(--error)' : 'var(--success)', marginTop: '4px' }}>
               {summary.openReviewNotesCount}
             </div>
-            <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>Uncleared Gate Items</div>
+            <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>Uncleared Gate Items</div>
           </div>
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px' }}>
-            <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Working Papers</div>
-            <div style={{ fontSize: '24px', fontWeight: 700, color: '#0f172a', marginTop: '4px' }}>{summary.totalWorkingPapers}</div>
-            <div style={{ fontSize: '12px', color: '#eab308', marginTop: '2px' }}>{summary.exceptionsFlaggedCount} Exceptions Flagged</div>
+          <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '16px' }}>
+            <div style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase' }}>Working Papers</div>
+            <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text)', marginTop: '4px' }}>{summary.totalWorkingPapers}</div>
+            <div style={{ fontSize: '12px', color: 'var(--warning)', marginTop: '2px' }}>{summary.exceptionsFlaggedCount} Exceptions Flagged</div>
           </div>
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px' }}>
-            <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>SQC 1 Archival (60d)</div>
-            <div style={{ fontSize: '24px', fontWeight: 700, color: '#0369a1', marginTop: '4px' }}>{summary.archivedCount}</div>
-            <div style={{ fontSize: '12px', color: summary.archivalOverdueCount > 0 ? '#dc2626' : '#16a34a', marginTop: '2px', fontWeight: 600 }}>
+          <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '16px' }}>
+            <div style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase' }}>SQC 1 Archival (60d)</div>
+            <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--accent)', marginTop: '4px' }}>{summary.archivedCount}</div>
+            <div style={{ fontSize: '12px', color: summary.archivalOverdueCount > 0 ? 'var(--error)' : 'var(--success)', marginTop: '2px', fontWeight: 600 }}>
               {summary.archivalOverdueCount > 0 ? `${summary.archivalOverdueCount} Overdue!` : `${summary.archivalDueSoonCount} Due Soon`}
             </div>
           </div>
@@ -794,20 +794,20 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
       {/* Main Content Area */}
       {!selectedEng ? (
         /* Engagements List View */
-        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px' }}>
+        <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <h2 style={{ fontSize: '16px', fontWeight: 600, margin: 0 }}>Statutory Engagements Directory</h2>
-            <div style={{ fontSize: '12px', color: '#64748b' }}>Showing {engagements.length} engagements</div>
+            <div style={{ fontSize: '12px', color: 'var(--muted)' }}>Showing {engagements.length} engagements</div>
           </div>
 
           {loading ? (
-            <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Loading audit engagements...</div>
+            <div style={{ padding: '40px', textAlign: 'center', color: 'var(--muted)' }}>Loading audit engagements...</div>
           ) : engagements.length === 0 ? (
-            <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>No audit engagements found.</div>
+            <div style={{ padding: '40px', textAlign: 'center', color: 'var(--muted)' }}>No audit engagements found.</div>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
               <thead>
-                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', textAlign: 'left' }}>
+                <tr style={{ background: 'var(--card-subtle)', borderBottom: '1px solid var(--border)', textAlign: 'left' }}>
                   <th style={{ padding: '10px 12px' }}>Client / Engagement</th>
                   <th style={{ padding: '10px 12px' }}>FY</th>
                   <th style={{ padding: '10px 12px', textAlign: 'right' }}>Materiality</th>
@@ -820,13 +820,13 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
               </thead>
               <tbody>
                 {engagements.map(e => (
-                  <tr key={e.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                  <tr key={e.id} style={{ borderBottom: '1px solid var(--border)' }}>
                     <td style={{ padding: '10px 12px' }}>
-                      <div style={{ fontWeight: 600, color: '#0f172a' }}>{e.title}</div>
-                      <div style={{ fontSize: '12px', color: '#64748b' }}>{e.clientName}</div>
+                      <div style={{ fontWeight: 600, color: 'var(--text)' }}>{e.title}</div>
+                      <div style={{ fontSize: '12px', color: 'var(--muted)' }}>{e.clientName}</div>
                     </td>
                     <td style={{ padding: '10px 12px', fontWeight: 500 }}>{e.financialYear}</td>
-                    <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: '#0284c7' }}>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: 'var(--accent)' }}>
                       {fmtInr(e.overallMateriality)}
                     </td>
                     <td style={{ padding: '10px 12px' }}>
@@ -835,8 +835,8 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                         borderRadius: '12px',
                         fontSize: '11px',
                         fontWeight: 600,
-                        background: e.status === 'partner_signoff' ? '#dcfce7' : e.status === 'archived' ? '#f1f5f9' : e.status === 'review' ? '#fef3c7' : '#e0f2fe',
-                        color: e.status === 'partner_signoff' ? '#15803d' : e.status === 'archived' ? '#475569' : e.status === 'review' ? '#b45309' : '#0369a1'
+                        background: e.status === 'partner_signoff' ? 'rgba(22, 163, 74, 0.12)' : e.status === 'archived' ? 'var(--card-subtle)' : e.status === 'review' ? 'rgba(217, 119, 6, 0.12)' : 'rgba(37, 99, 235, 0.12)',
+                        color: e.status === 'partner_signoff' ? 'var(--success)' : e.status === 'archived' ? 'var(--text-secondary)' : e.status === 'review' ? 'var(--warning)' : 'var(--accent)'
                       }}>
                         {e.status.toUpperCase()}
                       </span>
@@ -848,35 +848,35 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                           borderRadius: '12px',
                           fontSize: '11px',
                           fontWeight: 600,
-                          background: e.eqrStatus === 'clearance_granted' ? '#dcfce7' : '#f3e8ff',
-                          color: e.eqrStatus === 'clearance_granted' ? '#15803d' : '#7c3aed'
+                          background: e.eqrStatus === 'clearance_granted' ? 'rgba(22, 163, 74, 0.12)' : 'rgba(37, 99, 235, 0.12)',
+                          color: e.eqrStatus === 'clearance_granted' ? 'var(--success)' : 'var(--accent)'
                         }}>
                           {e.eqrStatus === 'clearance_granted' ? 'EQR CLEARED' : 'HOT REVIEW'}
                         </span>
                       ) : (
-                        <span style={{ color: '#94a3b8', fontSize: '11px' }}>N/A</span>
+                        <span style={{ color: 'var(--muted)', fontSize: '11px' }}>N/A</span>
                       )}
                     </td>
                     <td style={{ padding: '10px 12px' }}>
                       <span style={{
                         fontSize: '11px',
                         fontWeight: 600,
-                        color: e.isArchived ? '#475569' : e.archivalStatus.includes('OVERDUE') ? '#dc2626' : '#0369a1'
+                        color: e.isArchived ? 'var(--text-secondary)' : e.archivalStatus.includes('OVERDUE') ? 'var(--error)' : 'var(--accent)'
                       }}>
-                        {e.isArchived ? '🔒 Sealed' : e.archivalStatus}
+                        {e.isArchived ? 'Sealed' : e.archivalStatus}
                       </span>
                     </td>
                     <td style={{ padding: '10px 12px' }}>
                       {e.openReviewNotesCount > 0 ? (
-                        <span style={{ color: '#dc2626', fontWeight: 600 }}>{e.openReviewNotesCount} Open</span>
+                        <span style={{ color: 'var(--error)', fontWeight: 600 }}>{e.openReviewNotesCount} Open</span>
                       ) : (
-                        <span style={{ color: '#16a34a', fontWeight: 500 }}>Cleared</span>
+                        <span style={{ color: 'var(--success)', fontWeight: 500 }}>Cleared</span>
                       )}
                     </td>
                     <td style={{ padding: '10px 12px', textAlign: 'right' }}>
                       <button
                         onClick={() => handleSelectEngagement(e)}
-                        style={{ padding: '5px 12px', fontSize: '12px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 500 }}
+                        style={{ padding: '5px 12px', fontSize: '12px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 500 }}
                       >
                         Open Desk →
                       </button>
@@ -891,34 +891,34 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
         /* Workspace Detail View with Tabs */
         <div>
           {/* Top Banner with SQC 1 Archival Lock & Sign-Off Actions */}
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px', marginBottom: '20px' }}>
+          <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '20px', marginBottom: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
                 <button
                   onClick={() => setSelectedEng(null)}
-                  style={{ background: 'none', border: 'none', color: '#2563eb', fontSize: '12px', cursor: 'pointer', padding: 0, marginBottom: '6px', fontWeight: 600 }}
+                  style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: '12px', cursor: 'pointer', padding: 0, marginBottom: '6px', fontWeight: 600 }}
                 >
                   ← Back to Engagements
                 </button>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ padding: '3px 8px', borderRadius: '4px', background: '#e0f2fe', color: '#0369a1', fontWeight: 600, fontSize: '12px' }}>
+                  <span style={{ padding: '3px 8px', borderRadius: '4px', background: 'rgba(37, 99, 235, 0.12)', color: 'var(--accent)', fontWeight: 600, fontSize: '12px' }}>
                     {selectedEng.auditType.toUpperCase()} • FY {selectedEng.financialYear}
                   </span>
                   {selectedEng.isArchived && (
-                    <span style={{ padding: '3px 8px', borderRadius: '4px', background: '#f1f5f9', color: '#334155', fontWeight: 700, fontSize: '12px' }}>
-                      🔒 ARCHIVED &amp; SEALED (ICAI SQC 1)
+                    <span style={{ padding: '3px 8px', borderRadius: '4px', background: 'var(--card-subtle)', color: 'var(--text-secondary)', fontWeight: 700, fontSize: '12px' }}>
+                      ARCHIVED &amp; SEALED (ICAI SQC 1)
                     </span>
                   )}
                   {selectedEng.status === 'partner_signoff' && (
-                    <span style={{ padding: '3px 8px', borderRadius: '4px', background: '#dcfce7', color: '#15803d', fontWeight: 700, fontSize: '12px' }}>
+                    <span style={{ padding: '3px 8px', borderRadius: '4px', background: 'rgba(22, 163, 74, 0.12)', color: 'var(--success)', fontWeight: 700, fontSize: '12px' }}>
                       SIGNED OFF • OPINION: {selectedEng.auditOpinion?.toUpperCase()}
                     </span>
                   )}
                 </div>
-                <h2 style={{ fontSize: '20px', fontWeight: 700, margin: '8px 0 4px 0', color: '#0f172a' }}>
+                <h2 style={{ fontSize: '20px', fontWeight: 700, margin: '8px 0 4px 0', color: 'var(--text)' }}>
                   {selectedEng.title}
                 </h2>
-                <div style={{ fontSize: '13px', color: '#64748b' }}>
+                <div style={{ fontSize: '13px', color: 'var(--muted)' }}>
                   Client: <strong>{selectedEng.clientName}</strong> | Lead Partner: <strong>{selectedEng.leadPartnerName || 'Unassigned'}</strong>
                 </div>
               </div>
@@ -930,7 +930,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                     onClick={() => setShowSignoffModal(true)}
                     style={{
                       padding: '8px 14px',
-                      background: selectedEng.canSignOff ? '#16a34a' : '#94a3b8',
+                      background: selectedEng.canSignOff ? 'var(--success)' : 'var(--muted)',
                       color: '#fff',
                       border: 'none',
                       borderRadius: '6px',
@@ -946,7 +946,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                 {!selectedEng.isArchived && selectedEng.status === 'partner_signoff' && (
                   <button
                     onClick={handleArchiveEngagement}
-                    style={{ padding: '8px 14px', background: '#0284c7', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', fontSize: '13px' }}
+                    style={{ padding: '8px 14px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', fontSize: '13px' }}
                   >
                     Seal &amp; Archive File (SQC 1)
                   </button>
@@ -955,57 +955,57 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
             </div>
 
             {/* Archival Countdown Meter */}
-            <div style={{ marginTop: '16px', padding: '12px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ marginTop: '16px', padding: '12px', background: 'var(--card-subtle)', borderRadius: '6px', border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <span style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>SQC 1 Archival Status (Para 74 - 60 Days): </span>
-                <span style={{ fontSize: '13px', fontWeight: 700, color: selectedEng.isArchived ? '#334155' : selectedEng.archivalStatus.includes('OVERDUE') ? '#dc2626' : '#0284c7' }}>
+                <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase' }}>SQC 1 Archival Status (Para 74 - 60 Days): </span>
+                <span style={{ fontSize: '13px', fontWeight: 700, color: selectedEng.isArchived ? 'var(--text-secondary)' : selectedEng.archivalStatus.includes('OVERDUE') ? 'var(--error)' : 'var(--accent)' }}>
                   {selectedEng.archivalStatus}
                 </span>
                 {selectedEng.auditReportDate && (
-                  <span style={{ fontSize: '12px', color: '#64748b', marginLeft: '12px' }}>
+                  <span style={{ fontSize: '12px', color: 'var(--muted)', marginLeft: '12px' }}>
                     (Report Date: {selectedEng.auditReportDate} • Deadline: {selectedEng.archivalDeadline})
                   </span>
                 )}
               </div>
               <div>
-                <span style={{ fontSize: '11px', fontWeight: 600, color: '#64748b' }}>Open Queries: </span>
-                <span style={{ fontSize: '12px', fontWeight: 700, color: selectedEng.openReviewNotesCount > 0 ? '#dc2626' : '#16a34a' }}>
+                <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--muted)' }}>Open Queries: </span>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: selectedEng.openReviewNotesCount > 0 ? 'var(--error)' : 'var(--success)' }}>
                   {selectedEng.openReviewNotesCount}
                 </span>
               </div>
             </div>
 
             {/* SA 320 Materiality Card */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', background: '#f8fafc', padding: '12px', borderRadius: '6px', marginTop: '12px', border: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', background: 'var(--card-subtle)', padding: '12px', borderRadius: '6px', marginTop: '12px', border: '1px solid var(--border)' }}>
               <div>
-                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>BENCHMARK ({selectedEng.benchmarkType.toUpperCase()})</div>
-                <div style={{ fontSize: '14px', fontWeight: 700, color: '#334155' }}>{fmtInr(selectedEng.benchmarkAmount)}</div>
+                <div style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 600 }}>BENCHMARK ({selectedEng.benchmarkType.toUpperCase()})</div>
+                <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-secondary)' }}>{fmtInr(selectedEng.benchmarkAmount)}</div>
               </div>
               <div>
-                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>OVERALL MATERIALITY</div>
-                <div style={{ fontSize: '14px', fontWeight: 700, color: '#0284c7' }}>{fmtInr(selectedEng.overallMateriality)}</div>
+                <div style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 600 }}>OVERALL MATERIALITY</div>
+                <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--accent)' }}>{fmtInr(selectedEng.overallMateriality)}</div>
               </div>
               <div>
-                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>PERFORMANCE MATERIALITY</div>
-                <div style={{ fontSize: '14px', fontWeight: 700, color: '#4f46e5' }}>{fmtInr(selectedEng.performanceMateriality)}</div>
+                <div style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 600 }}>PERFORMANCE MATERIALITY</div>
+                <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--accent)' }}>{fmtInr(selectedEng.performanceMateriality)}</div>
               </div>
               <div>
-                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>CLEARLY TRIVIAL (5%)</div>
-                <div style={{ fontSize: '14px', fontWeight: 700, color: '#64748b' }}>{fmtInr(selectedEng.trivialThreshold)}</div>
+                <div style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 600 }}>CLEARLY TRIVIAL (5%)</div>
+                <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--muted)' }}>{fmtInr(selectedEng.trivialThreshold)}</div>
               </div>
             </div>
           </div>
 
           {/* Sub Navigation Tabs */}
-          <div style={{ display: 'flex', gap: '8px', borderBottom: '2px solid #e2e8f0', marginBottom: '20px' }}>
+          <div style={{ display: 'flex', gap: '8px', borderBottom: '2px solid var(--border)', marginBottom: '20px' }}>
             <button
               onClick={() => setActiveTab('workpapers')}
               style={{
                 padding: '10px 18px',
                 border: 'none',
                 background: 'none',
-                borderBottom: activeTab === 'workpapers' ? '2px solid #2563eb' : '2px solid transparent',
-                color: activeTab === 'workpapers' ? '#2563eb' : '#64748b',
+                borderBottom: activeTab === 'workpapers' ? '2px solid var(--accent)' : '2px solid transparent',
+                color: activeTab === 'workpapers' ? 'var(--accent)' : 'var(--muted)',
                 fontWeight: 600,
                 fontSize: '14px',
                 cursor: 'pointer',
@@ -1020,8 +1020,8 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                 padding: '10px 18px',
                 border: 'none',
                 background: 'none',
-                borderBottom: activeTab === 'lead_schedules' ? '2px solid #2563eb' : '2px solid transparent',
-                color: activeTab === 'lead_schedules' ? '#2563eb' : '#64748b',
+                borderBottom: activeTab === 'lead_schedules' ? '2px solid var(--accent)' : '2px solid transparent',
+                color: activeTab === 'lead_schedules' ? 'var(--accent)' : 'var(--muted)',
                 fontWeight: 600,
                 fontSize: '14px',
                 cursor: 'pointer',
@@ -1036,8 +1036,8 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                 padding: '1px 6px',
                 borderRadius: '10px',
                 fontSize: '10px',
-                background: '#e0f2fe',
-                color: '#0369a1'
+                background: 'rgba(37, 99, 235, 0.12)',
+                color: 'var(--accent)'
               }}>
                 {leadSchedules.length}
               </span>
@@ -1048,8 +1048,8 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                 padding: '10px 18px',
                 border: 'none',
                 background: 'none',
-                borderBottom: activeTab === 'dossier_vault' ? '2px solid #2563eb' : '2px solid transparent',
-                color: activeTab === 'dossier_vault' ? '#2563eb' : '#64748b',
+                borderBottom: activeTab === 'dossier_vault' ? '2px solid var(--accent)' : '2px solid transparent',
+                color: activeTab === 'dossier_vault' ? 'var(--accent)' : 'var(--muted)',
                 fontWeight: 600,
                 fontSize: '14px',
                 cursor: 'pointer',
@@ -1059,13 +1059,13 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                 gap: '6px'
               }}
             >
-              <span>📑 SA 230 Dossier Vault</span>
+              <span>SA 230 Dossier Vault</span>
               <span style={{
                 padding: '1px 6px',
                 borderRadius: '10px',
                 fontSize: '10px',
-                background: dossier?.status === 'sealed_sqc1' ? '#dcfce7' : (dossier ? '#fef3c7' : '#f1f5f9'),
-                color: dossier?.status === 'sealed_sqc1' ? '#15803d' : (dossier ? '#92400e' : '#64748b')
+                background: dossier?.status === 'sealed_sqc1' ? 'rgba(22, 163, 74, 0.12)' : (dossier ? 'rgba(217, 119, 6, 0.12)' : 'var(--card-subtle)'),
+                color: dossier?.status === 'sealed_sqc1' ? 'var(--success)' : (dossier ? 'var(--warning)' : 'var(--muted)')
               }}>
                 {dossier ? (dossier.status === 'sealed_sqc1' ? 'SEALED' : 'COMPILED') : 'READY'}
               </span>
@@ -1079,8 +1079,8 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                 padding: '10px 18px',
                 border: 'none',
                 background: 'none',
-                borderBottom: activeTab === 'confirmations' ? '2px solid #2563eb' : '2px solid transparent',
-                color: activeTab === 'confirmations' ? '#2563eb' : '#64748b',
+                borderBottom: activeTab === 'confirmations' ? '2px solid var(--accent)' : '2px solid transparent',
+                color: activeTab === 'confirmations' ? 'var(--accent)' : 'var(--muted)',
                 fontWeight: 600,
                 fontSize: '14px',
                 cursor: 'pointer',
@@ -1095,8 +1095,8 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                 padding: '1px 6px',
                 borderRadius: '10px',
                 fontSize: '10px',
-                background: '#e0e7ff',
-                color: '#4338ca'
+                background: 'rgba(37, 99, 235, 0.12)',
+                color: 'var(--accent)'
               }}>
                 {confirmationRequests.length}
               </span>
@@ -1107,8 +1107,8 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                 padding: '10px 18px',
                 border: 'none',
                 background: 'none',
-                borderBottom: activeTab === 'auditor_report' ? '2px solid #2563eb' : '2px solid transparent',
-                color: activeTab === 'auditor_report' ? '#2563eb' : '#64748b',
+                borderBottom: activeTab === 'auditor_report' ? '2px solid var(--accent)' : '2px solid transparent',
+                color: activeTab === 'auditor_report' ? 'var(--accent)' : 'var(--muted)',
                 fontWeight: 600,
                 fontSize: '14px',
                 cursor: 'pointer',
@@ -1118,13 +1118,13 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                 gap: '6px'
               }}
             >
-              <span>📜 Auditor's Report &amp; Notes</span>
+              <span>Auditor's Report &amp; Notes</span>
               <span style={{
                 padding: '1px 6px',
                 borderRadius: '10px',
                 fontSize: '10px',
-                background: auditorReport?.udin ? '#dcfce7' : (auditorReport ? '#fef3c7' : '#f1f5f9'),
-                color: auditorReport?.udin ? '#15803d' : (auditorReport ? '#92400e' : '#64748b')
+                background: auditorReport?.udin ? 'rgba(22, 163, 74, 0.12)' : (auditorReport ? 'rgba(217, 119, 6, 0.12)' : 'var(--card-subtle)'),
+                color: auditorReport?.udin ? 'var(--success)' : (auditorReport ? 'var(--warning)' : 'var(--muted)')
               }}>
                 {auditorReport?.udin ? 'UDIN ISSUED' : (auditorReport ? auditorReport.opinionType.toUpperCase() : 'READY')}
               </span>
@@ -1135,8 +1135,8 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                 padding: '10px 18px',
                 border: 'none',
                 background: 'none',
-                borderBottom: activeTab === 'eqr' ? '2px solid #2563eb' : '2px solid transparent',
-                color: activeTab === 'eqr' ? '#2563eb' : '#64748b',
+                borderBottom: activeTab === 'eqr' ? '2px solid var(--accent)' : '2px solid transparent',
+                color: activeTab === 'eqr' ? 'var(--accent)' : 'var(--muted)',
                 fontWeight: 600,
                 fontSize: '14px',
                 cursor: 'pointer',
@@ -1152,8 +1152,8 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                   padding: '1px 6px',
                   borderRadius: '10px',
                   fontSize: '10px',
-                  background: eqrReview?.reviewStatus === 'clearance_granted' ? '#dcfce7' : '#f3e8ff',
-                  color: eqrReview?.reviewStatus === 'clearance_granted' ? '#15803d' : '#7c3aed'
+                  background: eqrReview?.reviewStatus === 'clearance_granted' ? 'rgba(22, 163, 74, 0.12)' : 'rgba(37, 99, 235, 0.12)',
+                  color: eqrReview?.reviewStatus === 'clearance_granted' ? 'var(--success)' : 'var(--accent)'
                 }}>
                   {eqrReview?.reviewStatus === 'clearance_granted' ? 'CLEARED' : 'PENDING'}
                 </span>
@@ -1165,8 +1165,8 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                 padding: '10px 18px',
                 border: 'none',
                 background: 'none',
-                borderBottom: activeTab === 'review_notes' ? '2px solid #2563eb' : '2px solid transparent',
-                color: activeTab === 'review_notes' ? '#2563eb' : '#64748b',
+                borderBottom: activeTab === 'review_notes' ? '2px solid var(--accent)' : '2px solid transparent',
+                color: activeTab === 'review_notes' ? 'var(--accent)' : 'var(--muted)',
                 fontWeight: 600,
                 fontSize: '14px',
                 cursor: 'pointer',
@@ -1181,8 +1181,8 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                 padding: '1px 6px',
                 borderRadius: '10px',
                 fontSize: '10px',
-                background: selectedEng.openReviewNotesCount > 0 ? '#fee2e2' : '#f1f5f9',
-                color: selectedEng.openReviewNotesCount > 0 ? '#dc2626' : '#64748b'
+                background: selectedEng.openReviewNotesCount > 0 ? 'rgba(220, 38, 38, 0.12)' : 'var(--card-subtle)',
+                color: selectedEng.openReviewNotesCount > 0 ? 'var(--error)' : 'var(--muted)'
               }}>
                 {reviewNotes.length} ({selectedEng.openReviewNotesCount} open)
               </span>
@@ -1191,13 +1191,13 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
 
           {/* TAB 1: Digital Workpapers */}
           {activeTab === 'workpapers' && (
-            <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px' }}>
+            <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <h3 style={{ fontSize: '16px', fontWeight: 600, margin: 0 }}>Working Papers Directory</h3>
                 {!selectedEng.isArchived && (
                   <button
                     onClick={() => setShowNewWpModal(true)}
-                    style={{ padding: '6px 12px', background: '#16a34a', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 600, fontSize: '12px', cursor: 'pointer' }}
+                    style={{ padding: '6px 12px', background: 'var(--success)', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 600, fontSize: '12px', cursor: 'pointer' }}
                   >
                     + Add Workpaper
                   </button>
@@ -1205,13 +1205,13 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
               </div>
 
               {loadingWps ? (
-                <div style={{ padding: '32px', textAlign: 'center', color: '#64748b' }}>Loading working papers...</div>
+                <div style={{ padding: '32px', textAlign: 'center', color: 'var(--muted)' }}>Loading working papers...</div>
               ) : workingPapers.length === 0 ? (
-                <div style={{ padding: '32px', textAlign: 'center', color: '#64748b' }}>No working papers found.</div>
+                <div style={{ padding: '32px', textAlign: 'center', color: 'var(--muted)' }}>No working papers found.</div>
               ) : (
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                   <thead>
-                    <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', textAlign: 'left' }}>
+                    <tr style={{ background: 'var(--card-subtle)', borderBottom: '1px solid var(--border)', textAlign: 'left' }}>
                       <th style={{ padding: '10px 12px' }}>Ref / Area</th>
                       <th style={{ padding: '10px 12px' }}>Working Paper Title</th>
                       <th style={{ padding: '10px 12px' }}>Assertion</th>
@@ -1224,40 +1224,40 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                   </thead>
                   <tbody>
                     {workingPapers.map(wp => (
-                      <tr key={wp.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <tr key={wp.id} style={{ borderBottom: '1px solid var(--border)' }}>
                         <td style={{ padding: '10px 12px' }}>
-                          <span style={{ fontWeight: 700, color: '#0369a1' }}>{wp.refCode}</span>
-                          <div style={{ fontSize: '11px', color: '#64748b' }}>{wp.area}</div>
+                          <span style={{ fontWeight: 700, color: 'var(--accent)' }}>{wp.refCode}</span>
+                          <div style={{ fontSize: '11px', color: 'var(--muted)' }}>{wp.area}</div>
                         </td>
                         <td style={{ padding: '10px 12px', maxWidth: '300px' }}>
-                          <div style={{ fontWeight: 600, color: '#0f172a' }}>{wp.title}</div>
-                          <div style={{ fontSize: '11px', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          <div style={{ fontWeight: 600, color: 'var(--text)' }}>{wp.title}</div>
+                          <div style={{ fontSize: '11px', color: 'var(--muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {wp.objective}
                           </div>
                         </td>
                         <td style={{ padding: '10px 12px' }}>
-                          <span style={{ padding: '2px 6px', background: '#f1f5f9', borderRadius: '4px', fontSize: '11px', textTransform: 'uppercase' }}>
+                          <span style={{ padding: '2px 6px', background: 'var(--card-subtle)', borderRadius: '4px', fontSize: '11px', textTransform: 'uppercase' }}>
                             {wp.assertion}
                           </span>
                         </td>
                         <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'monospace' }}>
                           <div>{fmtInr(wp.sampleValue)}</div>
-                          <div style={{ fontSize: '10px', color: '#94a3b8' }}>Pop: {fmtInr(wp.populationValue)}</div>
+                          <div style={{ fontSize: '10px', color: 'var(--muted)' }}>Pop: {fmtInr(wp.populationValue)}</div>
                         </td>
                         <td style={{ padding: '10px 12px' }}>
                           <span style={{
                             fontSize: '11px',
                             fontWeight: 600,
-                            color: wp.conclusion === 'satisfactory' ? '#16a34a' : '#ea580c'
+                            color: wp.conclusion === 'satisfactory' ? 'var(--success)' : 'var(--warning)'
                           }}>
                             {wp.conclusion.toUpperCase()}
                           </span>
                         </td>
                         <td style={{ padding: '10px 12px' }}>
                           {wp.openReviewNotesCount > 0 ? (
-                            <span style={{ color: '#dc2626', fontWeight: 700, fontSize: '11px' }}>{wp.openReviewNotesCount} Open</span>
+                            <span style={{ color: 'var(--error)', fontWeight: 700, fontSize: '11px' }}>{wp.openReviewNotesCount} Open</span>
                           ) : (
-                            <span style={{ color: '#94a3b8', fontSize: '11px' }}>{wp.reviewNotesCount} Notes</span>
+                            <span style={{ color: 'var(--muted)', fontSize: '11px' }}>{wp.reviewNotesCount} Notes</span>
                           )}
                         </td>
                         <td style={{ padding: '10px 12px' }}>
@@ -1266,8 +1266,8 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                             borderRadius: '12px',
                             fontSize: '11px',
                             fontWeight: 600,
-                            background: wp.status === 'reviewed' ? '#dcfce7' : '#fef3c7',
-                            color: wp.status === 'reviewed' ? '#15803d' : '#b45309'
+                            background: wp.status === 'reviewed' ? 'rgba(22, 163, 74, 0.12)' : 'rgba(217, 119, 6, 0.12)',
+                            color: wp.status === 'reviewed' ? 'var(--success)' : 'var(--warning)'
                           }}>
                             {wp.status.toUpperCase()}
                           </span>
@@ -1280,7 +1280,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                                   setNoteForm({ workingPaperId: wp.id, raisedByRole: 'manager', category: 'documentation_gap', priority: 'medium', query: '' })
                                   setShowNewNoteModal(true)
                                 }}
-                                style={{ padding: '3px 8px', fontSize: '11px', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer' }}
+                                style={{ padding: '3px 8px', fontSize: '11px', background: 'var(--card-subtle)', border: '1px solid var(--border)', borderRadius: '4px', cursor: 'pointer' }}
                               >
                                 + Query
                               </button>
@@ -1289,13 +1289,13 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                                   setReviewingWp(wp)
                                   setReviewForm({ status: wp.status, reviewNotes: wp.reviewNotes || '' })
                                 }}
-                                style={{ padding: '3px 8px', fontSize: '11px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer' }}
+                                style={{ padding: '3px 8px', fontSize: '11px', background: 'var(--card-subtle)', border: '1px solid var(--border)', borderRadius: '4px', cursor: 'pointer' }}
                               >
                                 Review
                               </button>
                               <button
                                 onClick={() => handleDeleteWorkingPaper(wp.id)}
-                                style={{ padding: '3px 6px', fontSize: '11px', background: '#fff', border: '1px solid #fecaca', color: '#dc2626', borderRadius: '4px', cursor: 'pointer' }}
+                                style={{ padding: '3px 6px', fontSize: '11px', background: 'var(--card)', border: '1px solid rgba(220, 38, 38, 0.35)', color: 'var(--error)', borderRadius: '4px', cursor: 'pointer' }}
                               >
                                 ✕
                               </button>
@@ -1312,18 +1312,18 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
 
           {/* TAB 2: Lead Schedules (A to Q) */}
           {activeTab === 'lead_schedules' && (
-            <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
+            <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid var(--border)', paddingBottom: '12px' }}>
                 <div>
                   <h3 style={{ fontSize: '16px', fontWeight: 600, margin: 0 }}>Lead Schedules Directory (A–Q)</h3>
-                  <p style={{ fontSize: '12px', color: '#64748b', margin: '4px 0 0 0' }}>
+                  <p style={{ fontSize: '12px', color: 'var(--muted)', margin: '4px 0 0 0' }}>
                     Substantive Analytical Groupings mapped to ICAI Standards on Auditing (SA 500 / SA 520) &amp; Schedule III
                   </p>
                 </div>
                 {!selectedEng.isArchived && (
                   <button
                     onClick={handleGenerateLeadSchedules}
-                    style={{ padding: '8px 16px', background: '#0284c7', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 600, fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                    style={{ padding: '8px 16px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 600, fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
                   >
                     🔄 Ingest / Sync from Trial Balance
                   </button>
@@ -1331,11 +1331,11 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
               </div>
 
               {leadSchedules.length === 0 ? (
-                <div style={{ padding: '36px', textAlign: 'center', color: '#64748b' }}>
+                <div style={{ padding: '36px', textAlign: 'center', color: 'var(--muted)' }}>
                   <p style={{ margin: '0 0 12px 0', fontSize: '14px' }}>No lead schedules generated yet for this engagement.</p>
                   <button
                     onClick={handleGenerateLeadSchedules}
-                    style={{ padding: '8px 18px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}
+                    style={{ padding: '8px 18px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}
                   >
                     Generate Standard A–Q Lead Schedules from Trial Balance
                   </button>
@@ -1344,7 +1344,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
                     <thead>
-                      <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                      <tr style={{ background: 'var(--card-subtle)', borderBottom: '2px solid var(--border)' }}>
                         <th style={{ padding: '10px 8px', textAlign: 'left' }}>Code</th>
                         <th style={{ padding: '10px 8px', textAlign: 'left' }}>Lead Schedule Title</th>
                         <th style={{ padding: '10px 8px', textAlign: 'left' }}>Category</th>
@@ -1360,35 +1360,35 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                     </thead>
                     <tbody>
                       {leadSchedules.map(ls => (
-                        <tr key={ls.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                          <td style={{ padding: '10px 8px', fontWeight: 700, color: '#0f172a' }}>{ls.leadCode}</td>
+                        <tr key={ls.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                          <td style={{ padding: '10px 8px', fontWeight: 700, color: 'var(--text)' }}>{ls.leadCode}</td>
                           <td style={{ padding: '10px 8px' }}>
-                            <div style={{ fontWeight: 600, color: '#1e293b' }}>{ls.leadTitle}</div>
-                            {ls.auditProceduresSummary && <div style={{ fontSize: '11px', color: '#64748b' }}>{ls.auditProceduresSummary}</div>}
-                            {ls.exceptionsNoted && <div style={{ fontSize: '11px', color: '#dc2626', fontWeight: 600 }}>⚠️ {ls.exceptionsNoted}</div>}
+                            <div style={{ fontWeight: 600, color: 'var(--text)' }}>{ls.leadTitle}</div>
+                            {ls.auditProceduresSummary && <div style={{ fontSize: '11px', color: 'var(--muted)' }}>{ls.auditProceduresSummary}</div>}
+                            {ls.exceptionsNoted && <div style={{ fontSize: '11px', color: 'var(--error)', fontWeight: 600 }}>{ls.exceptionsNoted}</div>}
                           </td>
                           <td style={{ padding: '10px 8px' }}>
-                            <span style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 600, background: ls.scheduleCategory === 'Asset' ? '#e0f2fe' : ls.scheduleCategory === 'Liability' ? '#fef3c7' : ls.scheduleCategory === 'Income' ? '#dcfce7' : '#fee2e2', color: '#334155' }}>
+                            <span style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 600, background: ls.scheduleCategory === 'Asset' ? 'rgba(37, 99, 235, 0.12)' : ls.scheduleCategory === 'Liability' ? 'rgba(217, 119, 6, 0.12)' : ls.scheduleCategory === 'Income' ? 'rgba(22, 163, 74, 0.12)' : 'rgba(220, 38, 38, 0.12)', color: 'var(--text-secondary)' }}>
                               {ls.scheduleCategory}
                             </span>
                           </td>
                           <td style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 500 }}>{fmtInr(ls.unadjustedBookBalance)}</td>
-                          <td style={{ padding: '10px 8px', textAlign: 'right', color: ls.auditAdjustmentsDebit > 0 ? '#16a34a' : '#94a3b8' }}>
+                          <td style={{ padding: '10px 8px', textAlign: 'right', color: ls.auditAdjustmentsDebit > 0 ? 'var(--success)' : 'var(--muted)' }}>
                             {ls.auditAdjustmentsDebit > 0 ? fmtInr(ls.auditAdjustmentsDebit) : '-'}
                           </td>
-                          <td style={{ padding: '10px 8px', textAlign: 'right', color: ls.auditAdjustmentsCredit > 0 ? '#dc2626' : '#94a3b8' }}>
+                          <td style={{ padding: '10px 8px', textAlign: 'right', color: ls.auditAdjustmentsCredit > 0 ? 'var(--error)' : 'var(--muted)' }}>
                             {ls.auditAdjustmentsCredit > 0 ? fmtInr(ls.auditAdjustmentsCredit) : '-'}
                           </td>
-                          <td style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 700, color: '#0f172a' }}>{fmtInr(ls.auditedBalance)}</td>
-                          <td style={{ padding: '10px 8px', textAlign: 'right', color: '#64748b' }}>{fmtInr(ls.priorYearBalance)}</td>
+                          <td style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 700, color: 'var(--text)' }}>{fmtInr(ls.auditedBalance)}</td>
+                          <td style={{ padding: '10px 8px', textAlign: 'right', color: 'var(--muted)' }}>{fmtInr(ls.priorYearBalance)}</td>
                           <td style={{ padding: '10px 8px', textAlign: 'right' }}>
-                            <span style={{ fontWeight: 600, color: ls.isMaterialVariance ? '#dc2626' : '#64748b' }}>
+                            <span style={{ fontWeight: 600, color: ls.isMaterialVariance ? 'var(--error)' : 'var(--muted)' }}>
                               {ls.variancePercentage > 0 ? `+${ls.variancePercentage}%` : `${ls.variancePercentage}%`}
                             </span>
-                            {ls.isMaterialVariance && <span title="Material variance (>20% or > Materiality)" style={{ marginLeft: '4px', color: '#dc2626', fontSize: '11px' }}>⚠️</span>}
+                            {ls.isMaterialVariance && <span title="Material variance (>20% or > Materiality)" style={{ marginLeft: '4px', color: 'var(--error)', fontSize: '11px' }}>!</span>}
                           </td>
                           <td style={{ padding: '10px 8px', textAlign: 'center' }}>
-                            <span style={{ padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 600, background: ls.status === 'Approved' ? '#dcfce7' : '#f1f5f9', color: ls.status === 'Approved' ? '#15803d' : '#475569' }}>
+                            <span style={{ padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 600, background: ls.status === 'Approved' ? 'rgba(22, 163, 74, 0.12)' : 'var(--card-subtle)', color: ls.status === 'Approved' ? 'var(--success)' : 'var(--text-secondary)' }}>
                               {ls.status}
                             </span>
                           </td>
@@ -1396,7 +1396,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                             {!selectedEng.isArchived && (
                               <button
                                 onClick={() => handleStartEditSchedule(ls)}
-                                style={{ padding: '4px 10px', fontSize: '11px', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer', fontWeight: 600, color: '#2563eb' }}
+                                style={{ padding: '4px 10px', fontSize: '11px', background: 'var(--card-subtle)', border: '1px solid var(--border)', borderRadius: '4px', cursor: 'pointer', fontWeight: 600, color: 'var(--accent)' }}
                               >
                                 Edit / Adjust
                               </button>
@@ -1415,11 +1415,15 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
           {activeTab === 'dossier_vault' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               {/* Hero Banner */}
-              <div style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', color: '#fff', padding: '24px', borderRadius: '10px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+              <div style={{ background: 'linear-gradient(135deg, #09152e 0%, #102a5c 100%)', color: '#fff', padding: '24px', borderRadius: '10px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-                      <span style={{ fontSize: '24px' }}>🛡️</span>
+                      <span style={{ display: 'inline-flex', padding: '6px', borderRadius: '8px', background: 'rgba(56, 189, 248, 0.14)', color: '#38bdf8' }}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="m9 12 2 2 4-4" />
+                        </svg>
+                      </span>
                       <h2 style={{ fontSize: '20px', fontWeight: 700, margin: 0, color: '#f8fafc' }}>
                         ICAI SA 230 Digital Audit File &amp; Peer Review Vault
                       </h2>
@@ -1432,17 +1436,17 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                     <button
                       onClick={handleCompileDossier}
                       disabled={compilingDossier || selectedEng.isArchived}
-                      style={{ padding: '10px 18px', background: '#0284c7', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 600, fontSize: '13px', cursor: compilingDossier ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                      style={{ padding: '10px 18px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 600, fontSize: '13px', cursor: compilingDossier ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
                     >
-                      {compilingDossier ? '⏳ Compiling...' : '⚡ 1-Click Compile Audit Dossier'}
+                      {compilingDossier ? 'Compiling...' : '1-Click Compile Audit Dossier'}
                     </button>
                     {dossier && (
                       <>
                         <button
                           onClick={handleExportHtml}
-                          style={{ padding: '10px 18px', background: '#334155', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 600, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                          style={{ padding: '10px 18px', background: 'rgba(255,255,255,0.12)', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 600, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
                         >
-                          🖨️ Export / Print Dossier
+                          Export / Print Dossier
                         </button>
                         <PdfActions
                           title={`Audit dossier - ${selectedEng.clientName ?? 'Client'} - FY ${selectedEng.financialYear}`}
@@ -1455,9 +1459,9 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                         {dossier.status !== 'sealed_sqc1' && !selectedEng.isArchived && (
                           <button
                             onClick={() => setShowSealModal(true)}
-                            style={{ padding: '10px 18px', background: '#16a34a', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 600, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                            style={{ padding: '10px 18px', background: 'var(--success)', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 600, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
                           >
-                            🔒 Seal &amp; Lock File (SQC 1)
+                            Seal &amp; Lock File (SQC 1)
                           </button>
                         )}
                       </>
@@ -1466,17 +1470,17 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                 </div>
 
                 {/* Key Status Row */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginTop: '20px', borderTop: '1px solid #334155', paddingTop: '16px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginTop: '20px', borderTop: '1px solid rgba(255,255,255,0.14)', paddingTop: '16px' }}>
                   <div>
                     <div style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600 }}>Dossier Status</div>
-                    <div style={{ fontSize: '15px', fontWeight: 700, color: dossier?.status === 'sealed_sqc1' ? '#4ade80' : dossier ? '#fbbf24' : '#cbd5e1' }}>
+                    <div style={{ fontSize: '15px', fontWeight: 700, color: dossier?.status === 'sealed_sqc1' ? '#4ade80' : dossier ? '#fbbf24' : '#e2e8f0' }}>
                       {dossier ? (dossier.status === 'sealed_sqc1' ? 'SEALED & ARCHIVED (SQC 1)' : 'COMPILED (READY)') : 'UNCOMPILED'}
                     </div>
                   </div>
                   <div>
                     <div style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600 }}>NFRA Inspection Readiness</div>
                     <div style={{ fontSize: '15px', fontWeight: 700, color: dossier?.nfraInspectionReady ? '#4ade80' : '#f87171' }}>
-                      {dossier?.nfraInspectionReady ? '✓ INSPECTION READY' : '⚠️ ACTIONS PENDING'}
+                      {dossier?.nfraInspectionReady ? '✓ INSPECTION READY' : 'ACTIONS PENDING'}
                     </div>
                   </div>
                   <div>
@@ -1487,7 +1491,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                   </div>
                   <div>
                     <div style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600 }}>SQC 1 Archival Deadline</div>
-                    <div style={{ fontSize: '15px', fontWeight: 700, color: selectedEng.isArchived ? '#4ade80' : '#cbd5e1' }}>
+                    <div style={{ fontSize: '15px', fontWeight: 700, color: selectedEng.isArchived ? '#4ade80' : '#e2e8f0' }}>
                       {selectedEng.archivalStatus}
                     </div>
                   </div>
@@ -1497,10 +1501,10 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                 {dossier && (
                   <div style={{ marginTop: '16px', background: 'rgba(255,255,255,0.06)', borderRadius: '6px', padding: '12px 16px', border: '1px solid rgba(255,255,255,0.1)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span style={{ fontSize: '12px', color: '#38bdf8', fontWeight: 600 }}>🔒 Cryptographic Integrity Digest (SHA-256)</span>
+                      <span style={{ fontSize: '12px', color: '#38bdf8', fontWeight: 600 }}>Cryptographic Integrity Digest (SHA-256)</span>
                       <span style={{ fontSize: '11px', color: '#94a3b8' }}>Version {dossier.version} • Compiled {new Date(dossier.compiledAt).toLocaleDateString()}</span>
                     </div>
-                    <div style={{ fontFamily: 'monospace', fontSize: '13px', color: '#f1f5f9', wordBreak: 'break-all', marginTop: '4px' }}>
+                    <div style={{ fontFamily: 'monospace', fontSize: '13px', color: '#f8fafc', wordBreak: 'break-all', marginTop: '4px' }}>
                       {dossier.integritySha256}
                     </div>
                   </div>
@@ -1508,32 +1512,32 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
               </div>
 
               {/* 9-Section ICAI Peer Review Index */}
-              <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px' }}>
+              <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '20px' }}>
                 <h3 style={{ fontSize: '16px', fontWeight: 600, margin: '0 0 16px 0' }}>
                   ICAI Peer Review &amp; NFRA Inspection 9-Section Master Index
                 </h3>
                 {(!dossier || !dossier.indexSections || dossier.indexSections.length === 0) ? (
-                  <div style={{ textAlign: 'center', padding: '24px', color: '#64748b' }}>
-                    Click <strong>"⚡ 1-Click Compile Audit Dossier"</strong> above to generate the structured 9-section master index.
+                  <div style={{ textAlign: 'center', padding: '24px', color: 'var(--muted)' }}>
+                    Click <strong>"1-Click Compile Audit Dossier"</strong> above to generate the structured 9-section master index.
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     {dossier.indexSections.map(sec => (
-                      <div key={sec.indexCode} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: '6px', border: '1px solid #e2e8f0', background: sec.status === 'Complete' ? '#f0fdf4' : '#fffbeb' }}>
+                      <div key={sec.indexCode} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: '6px', border: '1px solid var(--border)', background: sec.status === 'Complete' ? 'rgba(22, 163, 74, 0.08)' : 'rgba(217, 119, 6, 0.08)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <span style={{ fontWeight: 700, fontSize: '13px', padding: '3px 8px', borderRadius: '4px', background: '#e2e8f0', color: '#0f172a' }}>
+                          <span style={{ fontWeight: 700, fontSize: '13px', padding: '3px 8px', borderRadius: '4px', background: 'var(--border)', color: 'var(--text)' }}>
                             {sec.indexCode}
                           </span>
                           <div>
-                            <div style={{ fontWeight: 600, fontSize: '13px', color: '#1e293b' }}>{sec.sectionTitle}</div>
-                            <div style={{ fontSize: '11px', color: '#64748b' }}>
-                              Standard: <code style={{ color: '#0284c7' }}>{sec.saStandard}</code> • {sec.summaryNotes}
+                            <div style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text)' }}>{sec.sectionTitle}</div>
+                            <div style={{ fontSize: '11px', color: 'var(--muted)' }}>
+                              Standard: <code style={{ color: 'var(--accent)' }}>{sec.saStandard}</code> • {sec.summaryNotes}
                             </div>
                           </div>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 500 }}>{sec.itemsCount} Items</span>
-                          <span style={{ padding: '3px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: 700, background: sec.status === 'Complete' ? '#dcfce7' : '#fef3c7', color: sec.status === 'Complete' ? '#15803d' : '#b45309' }}>
+                          <span style={{ fontSize: '12px', color: 'var(--muted)', fontWeight: 500 }}>{sec.itemsCount} Items</span>
+                          <span style={{ padding: '3px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: 700, background: sec.status === 'Complete' ? 'rgba(22, 163, 74, 0.12)' : 'rgba(217, 119, 6, 0.12)', color: sec.status === 'Complete' ? 'var(--success)' : 'var(--warning)' }}>
                             {sec.status === 'Complete' ? '✓ VERIFIED' : 'PENDING'}
                           </span>
                         </div>
@@ -1549,54 +1553,54 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
           {activeTab === 'confirmations' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               {/* Campaign Selector & Actions Bar */}
-              <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px' }}>
+              <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '20px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px', marginBottom: '16px' }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <span style={{ fontSize: '20px' }}>✉️</span>
-                      <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#1e3a8a' }}>
+                      <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: 'var(--accent)' }}>
                         SA 505 Automated External Confirmations Desk
                       </h3>
-                      <span style={{ fontSize: '11px', background: '#e0e7ff', color: '#4338ca', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>
+                      <span style={{ fontSize: '11px', background: 'rgba(37, 99, 235, 0.12)', color: 'var(--accent)', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>
                         Independent Third-Party Evidence
                       </span>
                     </div>
-                    <p style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: '13px' }}>
+                    <p style={{ margin: '4px 0 0 0', color: 'var(--muted)', fontSize: '13px' }}>
                       Direct external circularization for Trade Debtors, Creditors, Banks, and Loans with tokenized digital verification links, dispute capture, and alternative audit procedures.
                     </p>
                   </div>
                   <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                     <button
                       onClick={() => setShowNewCampaignModal(true)}
-                      style={{ padding: '8px 14px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: '13px' }}
+                      style={{ padding: '8px 14px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--card)', cursor: 'pointer', fontWeight: 600, fontSize: '13px' }}
                     >
                       + New Campaign
                     </button>
                     <button
                       onClick={handleAutoPopulateConfirmations}
                       disabled={!selectedCampaignId || loadingConfirmations}
-                      style={{ padding: '8px 14px', borderRadius: '6px', border: '1px solid #0284c7', background: '#f0f9ff', color: '#0284c7', cursor: 'pointer', fontWeight: 600, fontSize: '13px' }}
+                      style={{ padding: '8px 14px', borderRadius: '6px', border: '1px solid var(--accent)', background: 'rgba(37, 99, 235, 0.08)', color: 'var(--accent)', cursor: 'pointer', fontWeight: 600, fontSize: '13px' }}
                     >
-                      ⚡ Auto-Populate from TB
+                      Auto-Populate from TB
                     </button>
                     <button
                       onClick={() => setShowNewReqModal(true)}
                       disabled={!selectedCampaignId}
-                      style={{ padding: '8px 14px', borderRadius: '6px', border: 'none', background: '#2563eb', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: '13px' }}
+                      style={{ padding: '8px 14px', borderRadius: '6px', border: 'none', background: 'var(--accent)', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: '13px' }}
                     >
                       + Add Party
                     </button>
                     <button
                       onClick={handleSendConfirmationRequests}
                       disabled={!selectedCampaignId || confirmationRequests.filter(r => r.status === 'Draft').length === 0}
-                      style={{ padding: '8px 14px', borderRadius: '6px', border: 'none', background: '#16a34a', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: '13px' }}
+                      style={{ padding: '8px 14px', borderRadius: '6px', border: 'none', background: 'var(--success)', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: '13px' }}
                     >
                       📤 Send Draft Confirmations ({confirmationRequests.filter(r => r.status === 'Draft').length})
                     </button>
                     <button
                       onClick={handleExportConfirmationSummaryHtml}
                       disabled={!selectedCampaignId}
-                      style={{ padding: '8px 14px', borderRadius: '6px', border: '1px solid #475569', background: '#334155', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: '13px' }}
+                      style={{ padding: '8px 14px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--card-subtle)', color: 'var(--text)', cursor: 'pointer', fontWeight: 600, fontSize: '13px' }}
                     >
                       🖨️ Export SA 505 Summary
                     </button>
@@ -1605,15 +1609,15 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
 
                 {/* Campaign Selection Row */}
                 {confirmationCampaigns.length > 0 && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: '#f8fafc', padding: '10px 14px', borderRadius: '6px' }}>
-                    <span style={{ fontSize: '13px', fontWeight: 600, color: '#334155' }}>Active Campaign:</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'var(--card-subtle)', padding: '10px 14px', borderRadius: '6px' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>Active Campaign:</span>
                     <select
                       value={selectedCampaignId}
                       onChange={e => {
                         setSelectedCampaignId(e.target.value)
                         loadConfirmationRequests(e.target.value)
                       }}
-                      style={{ padding: '6px 12px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '13px', flex: 1, maxWidth: '420px' }}
+                      style={{ padding: '6px 12px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)', fontSize: '13px', flex: 1, maxWidth: '420px' }}
                     >
                       {confirmationCampaigns.map(c => (
                         <option key={c.id} value={c.id}>
@@ -1628,52 +1632,52 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
               {/* KPI Highlights for Active Campaign */}
               {selectedCampaignId && (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-                  <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px' }}>
-                    <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Total Circularized</div>
-                    <div style={{ fontSize: '24px', fontWeight: 800, marginTop: '4px', color: '#0f172a' }}>
+                  <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '16px' }}>
+                    <div style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase' }}>Total Circularized</div>
+                    <div style={{ fontSize: '24px', fontWeight: 800, marginTop: '4px', color: 'var(--text)' }}>
                       {confirmationRequests.length} Parties
                     </div>
-                    <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                    <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>
                       Book Bal: {fmtInr(confirmationRequests.reduce((sum, r) => sum + r.bookBalanceAmount, 0))}
                     </div>
                   </div>
 
-                  <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px' }}>
-                    <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Confirmed &amp; Agreed</div>
-                    <div style={{ fontSize: '24px', fontWeight: 800, marginTop: '4px', color: '#16a34a' }}>
+                  <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '16px' }}>
+                    <div style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase' }}>Confirmed &amp; Agreed</div>
+                    <div style={{ fontSize: '24px', fontWeight: 800, marginTop: '4px', color: 'var(--success)' }}>
                       {confirmationRequests.filter(r => r.status === 'ConfirmedAgreed').length}
                     </div>
-                    <div style={{ fontSize: '12px', color: '#15803d', marginTop: '2px' }}>
+                    <div style={{ fontSize: '12px', color: 'var(--success)', marginTop: '2px' }}>
                       {fmtInr(confirmationRequests.filter(r => r.status === 'ConfirmedAgreed').reduce((sum, r) => sum + (r.confirmedBalanceAmount || r.bookBalanceAmount), 0))} verified
                     </div>
                   </div>
 
-                  <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px' }}>
-                    <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Disputed / Differences</div>
-                    <div style={{ fontSize: '24px', fontWeight: 800, marginTop: '4px', color: '#dc2626' }}>
+                  <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '16px' }}>
+                    <div style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase' }}>Disputed / Differences</div>
+                    <div style={{ fontSize: '24px', fontWeight: 800, marginTop: '4px', color: 'var(--error)' }}>
                       {confirmationRequests.filter(r => r.status === 'Disputed').length}
                     </div>
-                    <div style={{ fontSize: '12px', color: '#b91c1c', marginTop: '2px' }}>
+                    <div style={{ fontSize: '12px', color: 'var(--error)', marginTop: '2px' }}>
                       Variance: {fmtInr(confirmationRequests.filter(r => r.status === 'Disputed').reduce((sum, r) => sum + Math.abs(r.varianceAmount || 0), 0))}
                     </div>
                   </div>
 
-                  <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px' }}>
-                    <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Pending / In Transit</div>
-                    <div style={{ fontSize: '24px', fontWeight: 800, marginTop: '4px', color: '#0284c7' }}>
+                  <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '16px' }}>
+                    <div style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase' }}>Pending / In Transit</div>
+                    <div style={{ fontSize: '24px', fontWeight: 800, marginTop: '4px', color: 'var(--accent)' }}>
                       {confirmationRequests.filter(r => r.status === 'Sent' || r.status === 'Draft').length}
                     </div>
-                    <div style={{ fontSize: '12px', color: '#0369a1', marginTop: '2px' }}>
+                    <div style={{ fontSize: '12px', color: 'var(--accent)', marginTop: '2px' }}>
                       {confirmationRequests.filter(r => r.status === 'Sent').length} Sent • {confirmationRequests.filter(r => r.status === 'Draft').length} Draft
                     </div>
                   </div>
 
-                  <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px' }}>
-                    <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Alt Procedures (SA 505 p12)</div>
-                    <div style={{ fontSize: '24px', fontWeight: 800, marginTop: '4px', color: '#d97706' }}>
+                  <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '16px' }}>
+                    <div style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase' }}>Alt Procedures (SA 505 p12)</div>
+                    <div style={{ fontSize: '24px', fontWeight: 800, marginTop: '4px', color: 'var(--warning)' }}>
                       {confirmationRequests.filter(r => r.status === 'NonResponseAlternativeDone').length}
                     </div>
-                    <div style={{ fontSize: '12px', color: '#b45309', marginTop: '2px' }}>
+                    <div style={{ fontSize: '12px', color: 'var(--warning)', marginTop: '2px' }}>
                       Subsequent cash/docs verified
                     </div>
                   </div>
@@ -1681,14 +1685,14 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
               )}
 
               {/* Confirmations Register & Filtering */}
-              <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px' }}>
+              <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '20px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
                   <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                     <span style={{ fontSize: '13px', fontWeight: 600 }}>Filter Category:</span>
                     <select
                       value={filterPartyType}
                       onChange={e => setFilterPartyType(e.target.value)}
-                      style={{ padding: '6px 10px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                      style={{ padding: '6px 10px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)', fontSize: '13px' }}
                     >
                       <option value="All">All Categories</option>
                       <option value="TradeDebtor">Trade Debtors (Receivables)</option>
@@ -1702,7 +1706,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                     <select
                       value={filterConfStatus}
                       onChange={e => setFilterConfStatus(e.target.value)}
-                      style={{ padding: '6px 10px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                      style={{ padding: '6px 10px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)', fontSize: '13px' }}
                     >
                       <option value="All">All Statuses</option>
                       <option value="ConfirmedAgreed">Confirmed &amp; Agreed</option>
@@ -1714,7 +1718,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                     </select>
                   </div>
 
-                  <div style={{ fontSize: '13px', color: '#64748b' }}>
+                  <div style={{ fontSize: '13px', color: 'var(--muted)' }}>
                     Showing <strong>{
                       confirmationRequests.filter(r => {
                         const matchType = filterPartyType === 'All' || r.partyType === filterPartyType
@@ -1728,7 +1732,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                 {/* Table */}
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                   <thead>
-                    <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', textAlign: 'left' }}>
+                    <tr style={{ background: 'var(--card-subtle)', borderBottom: '2px solid var(--border)', textAlign: 'left' }}>
                       <th style={{ padding: '10px 8px' }}>Party Name</th>
                       <th style={{ padding: '10px 8px' }}>Type / Sched</th>
                       <th style={{ padding: '10px 8px', textAlign: 'right' }}>Book Balance</th>
@@ -1742,8 +1746,8 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                   <tbody>
                     {confirmationRequests.length === 0 ? (
                       <tr>
-                        <td colSpan={8} style={{ padding: '36px', textAlign: 'center', color: '#64748b' }}>
-                          No confirmation requests circularized in this campaign. Click <strong>"⚡ Auto-Populate from TB"</strong> or <strong>"+ Add Party"</strong> to begin.
+                        <td colSpan={8} style={{ padding: '36px', textAlign: 'center', color: 'var(--muted)' }}>
+                          No confirmation requests circularized in this campaign. Click <strong>"Auto-Populate from TB"</strong> or <strong>"+ Add Party"</strong> to begin.
                         </td>
                       </tr>
                     ) : (
@@ -1754,13 +1758,13 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                           return matchType && matchStat
                         })
                         .map(r => (
-                          <tr key={r.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <tr key={r.id} style={{ borderBottom: '1px solid var(--border)' }}>
                             <td style={{ padding: '10px 8px' }}>
-                              <div style={{ fontWeight: 600, color: '#0f172a' }}>{r.partyName}</div>
-                              <div style={{ fontSize: '11px', color: '#64748b' }}>{r.partyContactEmail || 'No email registered'}</div>
+                              <div style={{ fontWeight: 600, color: 'var(--text)' }}>{r.partyName}</div>
+                              <div style={{ fontSize: '11px', color: 'var(--muted)' }}>{r.partyContactEmail || 'No email registered'}</div>
                             </td>
                             <td style={{ padding: '10px 8px' }}>
-                              <span style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '11px', background: '#f1f5f9', color: '#334155', fontWeight: 600 }}>
+                              <span style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '11px', background: 'var(--card-subtle)', color: 'var(--text-secondary)', fontWeight: 600 }}>
                                 {r.partyType} ({r.leadScheduleRef})
                               </span>
                             </td>
@@ -1768,13 +1772,13 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                               {fmtInr(r.bookBalanceAmount)}
                             </td>
                             <td style={{ padding: '10px 8px', textAlign: 'right' }}>
-                              {r.confirmedBalanceAmount != null ? fmtInr(r.confirmedBalanceAmount) : <span style={{ color: '#94a3b8' }}>—</span>}
+                              {r.confirmedBalanceAmount != null ? fmtInr(r.confirmedBalanceAmount) : <span style={{ color: 'var(--muted)' }}>—</span>}
                             </td>
                             <td style={{
                               padding: '10px 8px',
                               textAlign: 'right',
                               fontWeight: 700,
-                              color: r.varianceAmount && r.varianceAmount !== 0 ? '#dc2626' : '#16a34a'
+                              color: r.varianceAmount && r.varianceAmount !== 0 ? 'var(--error)' : 'var(--success)'
                             }}>
                               {r.varianceAmount != null ? (r.varianceAmount === 0 ? '₹0.00' : fmtInr(r.varianceAmount)) : '—'}
                             </td>
@@ -1784,30 +1788,30 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                                 borderRadius: '12px',
                                 fontSize: '11px',
                                 fontWeight: 700,
-                                background: r.status === 'ConfirmedAgreed' ? '#dcfce7' : r.status === 'Disputed' ? '#fee2e2' : r.status === 'Sent' ? '#e0f2fe' : r.status === 'NonResponseAlternativeDone' ? '#fef3c7' : '#f1f5f9',
-                                color: r.status === 'ConfirmedAgreed' ? '#15803d' : r.status === 'Disputed' ? '#b91c1c' : r.status === 'Sent' ? '#0369a1' : r.status === 'NonResponseAlternativeDone' ? '#b45309' : '#475569'
+                                background: r.status === 'ConfirmedAgreed' ? 'rgba(22, 163, 74, 0.12)' : r.status === 'Disputed' ? 'rgba(220, 38, 38, 0.12)' : r.status === 'Sent' ? 'rgba(37, 99, 235, 0.12)' : r.status === 'NonResponseAlternativeDone' ? 'rgba(217, 119, 6, 0.12)' : 'var(--card-subtle)',
+                                color: r.status === 'ConfirmedAgreed' ? 'var(--success)' : r.status === 'Disputed' ? 'var(--error)' : r.status === 'Sent' ? 'var(--accent)' : r.status === 'NonResponseAlternativeDone' ? 'var(--warning)' : 'var(--text-secondary)'
                               }}>
                                 {r.status}
                               </span>
                             </td>
                             <td style={{ padding: '10px 8px', fontSize: '12px' }}>
                               {r.disputeReason !== 'None' && (
-                                <div style={{ color: '#b91c1c', fontWeight: 600 }}>
+                                <div style={{ color: 'var(--error)', fontWeight: 600 }}>
                                   Reason: {r.disputeReason}
                                 </div>
                               )}
                               {r.thirdPartyRemarks && (
-                                <div style={{ color: '#475569', fontSize: '11px', fontStyle: 'italic' }}>
+                                <div style={{ color: 'var(--text-secondary)', fontSize: '11px', fontStyle: 'italic' }}>
                                   "{r.thirdPartyRemarks}"
                                 </div>
                               )}
                               {r.alternativeProceduresPerformed && (
-                                <div style={{ color: '#b45309', fontSize: '11px', marginTop: '2px' }}>
+                                <div style={{ color: 'var(--warning)', fontSize: '11px', marginTop: '2px' }}>
                                   <strong>Alt Proc:</strong> {r.alternativeProceduresPerformed}
                                 </div>
                               )}
                               {r.auditorConclusion && r.auditorConclusion !== 'PendingVerification' && (
-                                <div style={{ color: '#0369a1', fontSize: '11px', marginTop: '2px' }}>
+                                <div style={{ color: 'var(--accent)', fontSize: '11px', marginTop: '2px' }}>
                                   <strong>Conclusion:</strong> {r.auditorConclusion}
                                 </div>
                               )}
@@ -1820,17 +1824,17 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                                     navigator.clipboard.writeText(link)
                                     alert(`Digital verification link copied to clipboard!\n\n${link}`)
                                   }}
-                                  style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', background: '#fff', fontSize: '11px', cursor: 'pointer' }}
+                                  style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', fontSize: '11px', cursor: 'pointer' }}
                                   title="Copy Direct Digital Confirmation Link"
                                 >
                                   🔗 Copy Link
                                 </button>
                                 <button
                                   onClick={() => handleExportConfirmationLetterHtml(r.id)}
-                                  style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', background: '#fff', fontSize: '11px', cursor: 'pointer' }}
+                                  style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', fontSize: '11px', cursor: 'pointer' }}
                                   title="Print Formal Confirmation Letter"
                                 >
-                                  📄 Letter
+                                  Letter
                                 </button>
                                 <button
                                   onClick={() => {
@@ -1843,9 +1847,9 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                                       auditorNotes: r.auditorNotes || ''
                                     })
                                   }}
-                                  style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #2563eb', background: '#eff6ff', color: '#2563eb', fontWeight: 600, fontSize: '11px', cursor: 'pointer' }}
+                                  style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--accent)', background: 'rgba(37, 99, 235, 0.08)', color: 'var(--accent)', fontWeight: 600, fontSize: '11px', cursor: 'pointer' }}
                                 >
-                                  ⚖️ Evaluate
+                                  Evaluate
                                 </button>
                               </div>
                             </td>
@@ -1862,36 +1866,36 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
           {activeTab === 'auditor_report' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               {/* Header Bar */}
-              <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px' }}>
+              <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '20px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px', marginBottom: '16px' }}>
                   <div>
-                    <h3 style={{ fontSize: '18px', fontWeight: 700, margin: 0, color: '#0f172a' }}>
-                      📜 ICAI Independent Auditor's Report &amp; Schedule III Notes
+                    <h3 style={{ fontSize: '18px', fontWeight: 700, margin: 0, color: 'var(--text)' }}>
+                      ICAI Independent Auditor's Report &amp; Schedule III Notes
                     </h3>
-                    <p style={{ fontSize: '12px', color: '#64748b', margin: '4px 0 0 0' }}>
+                    <p style={{ fontSize: '12px', color: 'var(--muted)', margin: '4px 0 0 0' }}>
                       Standards on Auditing (SA 700/701/705/706), Section 143(3), Rule 11(g) Audit Trail &amp; Schedule III Ratios
                     </p>
                   </div>
                   <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                     <button
                       onClick={() => setShowGenerateReportModal(true)}
-                      style={{ padding: '8px 14px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 600, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                      style={{ padding: '8px 14px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 600, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
                     >
-                      <span>⚡ 1-Click Generate Report</span>
+                      <span>1-Click Generate Report</span>
                     </button>
                     <button
                       onClick={handleGenerateNotesToAccounts}
                       disabled={loadingReport}
-                      style={{ padding: '8px 14px', background: '#0284c7', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 600, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                      style={{ padding: '8px 14px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 600, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
                     >
-                      <span>📊 Generate Notes to Accounts</span>
+                      <span>Generate Notes to Accounts</span>
                     </button>
                     <button
                       onClick={() => setShowUdinModal(true)}
                       disabled={!auditorReport || !!auditorReport.udin}
                       style={{
                         padding: '8px 14px',
-                        background: auditorReport?.udin ? '#10b981' : (auditorReport ? '#047857' : '#94a3b8'),
+                        background: auditorReport?.udin ? 'var(--success)' : (auditorReport ? 'var(--success)' : 'var(--muted)'),
                         color: '#fff',
                         border: 'none',
                         borderRadius: '6px',
@@ -1903,41 +1907,41 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                         gap: '6px'
                       }}
                     >
-                      <span>{auditorReport?.udin ? '✅ UDIN Active' : '🔏 Issue UDIN'}</span>
+                      <span>{auditorReport?.udin ? '✓ UDIN Active' : 'Issue UDIN'}</span>
                     </button>
                     <button
                       onClick={handleExportAuditorReportHtml}
                       disabled={!auditorReport}
-                      style={{ padding: '8px 14px', background: '#fff', border: '1px solid #cbd5e1', color: auditorReport ? '#0f172a' : '#94a3b8', borderRadius: '6px', fontWeight: 600, fontSize: '13px', cursor: auditorReport ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', gap: '6px' }}
+                      style={{ padding: '8px 14px', background: 'var(--card)', border: '1px solid var(--border)', color: auditorReport ? 'var(--text)' : 'var(--muted)', borderRadius: '6px', fontWeight: 600, fontSize: '13px', cursor: auditorReport ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', gap: '6px' }}
                     >
-                      <span>📄 Export Report HTML</span>
+                      <span>Export Report HTML</span>
                     </button>
                     <button
                       onClick={handleExportNotesHtml}
                       disabled={!notesToAccounts}
-                      style={{ padding: '8px 14px', background: '#fff', border: '1px solid #cbd5e1', color: notesToAccounts ? '#0f172a' : '#94a3b8', borderRadius: '6px', fontWeight: 600, fontSize: '13px', cursor: notesToAccounts ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', gap: '6px' }}
+                      style={{ padding: '8px 14px', background: 'var(--card)', border: '1px solid var(--border)', color: notesToAccounts ? 'var(--text)' : 'var(--muted)', borderRadius: '6px', fontWeight: 600, fontSize: '13px', cursor: notesToAccounts ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', gap: '6px' }}
                     >
-                      <span>📑 Export Notes HTML</span>
+                      <span>Export Notes HTML</span>
                     </button>
                   </div>
                 </div>
 
                 {/* Sub Tab Switcher */}
-                <div style={{ display: 'flex', gap: '10px', borderTop: '1px solid #f1f5f9', paddingTop: '14px' }}>
+                <div style={{ display: 'flex', gap: '10px', borderTop: '1px solid var(--border)', paddingTop: '14px' }}>
                   <button
                     onClick={() => setReportSubTab('report')}
                     style={{
                       padding: '6px 14px',
                       borderRadius: '6px',
                       border: 'none',
-                      background: reportSubTab === 'report' ? '#e0e7ff' : '#f8fafc',
-                      color: reportSubTab === 'report' ? '#3730a3' : '#64748b',
+                      background: reportSubTab === 'report' ? 'rgba(37, 99, 235, 0.12)' : 'var(--card-subtle)',
+                      color: reportSubTab === 'report' ? 'var(--accent)' : 'var(--muted)',
                       fontWeight: 600,
                       fontSize: '13px',
                       cursor: 'pointer'
                     }}
                   >
-                    📜 Independent Auditor's Report (SA 700 / 705 / 706)
+                    Independent Auditor's Report (SA 700 / 705 / 706)
                   </button>
                   <button
                     onClick={() => setReportSubTab('notes')}
@@ -1945,14 +1949,14 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                       padding: '6px 14px',
                       borderRadius: '6px',
                       border: 'none',
-                      background: reportSubTab === 'notes' ? '#e0e7ff' : '#f8fafc',
-                      color: reportSubTab === 'notes' ? '#3730a3' : '#64748b',
+                      background: reportSubTab === 'notes' ? 'rgba(37, 99, 235, 0.12)' : 'var(--card-subtle)',
+                      color: reportSubTab === 'notes' ? 'var(--accent)' : 'var(--muted)',
                       fontWeight: 600,
                       fontSize: '13px',
                       cursor: 'pointer'
                     }}
                   >
-                    📑 Schedule III Notes &amp; 11 Financial Ratios
+                    Schedule III Notes &amp; 11 Financial Ratios
                   </button>
                 </div>
               </div>
@@ -1961,116 +1965,116 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
               {reportSubTab === 'report' && (
                 <>
                   {!auditorReport ? (
-                    <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '40px', textAlign: 'center' }}>
-                      <div style={{ fontSize: '42px', marginBottom: '12px' }}>⚖️</div>
-                      <h4 style={{ fontSize: '16px', fontWeight: 600, margin: '0 0 6px 0', color: '#1e293b' }}>
+                    <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '40px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '42px', marginBottom: '12px' }}></div>
+                      <h4 style={{ fontSize: '16px', fontWeight: 600, margin: '0 0 6px 0', color: 'var(--text)' }}>
                         No Independent Auditor's Report Generated Yet
                       </h4>
-                      <p style={{ fontSize: '13px', color: '#64748b', maxWidth: '540px', margin: '0 auto 20px auto' }}>
+                      <p style={{ fontSize: '13px', color: 'var(--muted)', maxWidth: '540px', margin: '0 auto 20px auto' }}>
                         Produce a formal statutory audit opinion under ICAI Standards on Auditing, with Key Audit Matters (SA 701), Companies Act Section 143(3) reporting, and Rule 11(g) software audit trail edit log verification.
                       </p>
                       <button
                         onClick={() => setShowGenerateReportModal(true)}
-                        style={{ padding: '10px 20px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}
+                        style={{ padding: '10px 20px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}
                       >
-                        ⚡ Generate SA 700 Audit Report Now
+                        Generate SA 700 Audit Report Now
                       </button>
                     </div>
                   ) : (
                     <>
                       {/* Executive Badges Grid */}
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
-                        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px', borderLeft: '4px solid #2563eb' }}>
-                          <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Audit Opinion</div>
-                          <div style={{ fontSize: '18px', fontWeight: 700, color: auditorReport.opinionType === 'Unmodified' ? '#16a34a' : (auditorReport.opinionType === 'Qualified' ? '#d97706' : '#dc2626'), marginTop: '4px' }}>
+                        <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '16px', borderLeft: '4px solid var(--accent)' }}>
+                          <div style={{ fontSize: '12px', color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase' }}>Audit Opinion</div>
+                          <div style={{ fontSize: '18px', fontWeight: 700, color: auditorReport.opinionType === 'Unmodified' ? 'var(--success)' : (auditorReport.opinionType === 'Qualified' ? 'var(--warning)' : 'var(--error)'), marginTop: '4px' }}>
                             {auditorReport.opinionType} Opinion
                           </div>
-                          <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>Standard on Auditing (SA 700/705)</div>
+                          <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '2px' }}>Standard on Auditing (SA 700/705)</div>
                         </div>
 
-                        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px', borderLeft: '4px solid #059669' }}>
-                          <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>ICAI UDIN</div>
-                          <div style={{ fontSize: '16px', fontWeight: 700, color: auditorReport.udin ? '#047857' : '#9a3412', marginTop: '4px', fontFamily: 'monospace' }}>
+                        <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '16px', borderLeft: '4px solid var(--success)' }}>
+                          <div style={{ fontSize: '12px', color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase' }}>ICAI UDIN</div>
+                          <div style={{ fontSize: '16px', fontWeight: 700, color: auditorReport.udin ? 'var(--success)' : 'var(--warning)', marginTop: '4px', fontFamily: 'monospace' }}>
                             {auditorReport.udin || 'PENDING ISSUANCE'}
                           </div>
-                          <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
+                          <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '2px' }}>
                             {auditorReport.udin ? 'Verified 18-char Alphanumeric' : 'Click "Issue UDIN" to bind'}
                           </div>
                         </div>
 
-                        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px', borderLeft: '4px solid #7c3aed' }}>
-                          <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Rule 11(g) Audit Trail</div>
-                          <div style={{ fontSize: '15px', fontWeight: 700, color: '#7c3aed', marginTop: '4px' }}>
+                        <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '16px', borderLeft: '4px solid var(--accent)' }}>
+                          <div style={{ fontSize: '12px', color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase' }}>Rule 11(g) Audit Trail</div>
+                          <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--accent)', marginTop: '4px' }}>
                             {auditorReport.rule11_g_AuditTrailStatus === 'CompliedOperatedWithoutTampering' ? 'Complied & Un-tampered' : auditorReport.rule11_g_AuditTrailStatus}
                           </div>
-                          <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>MCA Edit Log Requirement</div>
+                          <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '2px' }}>MCA Edit Log Requirement</div>
                         </div>
 
-                        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px', borderLeft: '4px solid #0284c7' }}>
-                          <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Annexures &amp; Scope</div>
-                          <div style={{ fontSize: '15px', fontWeight: 700, color: '#0369a1', marginTop: '4px' }}>
+                        <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '16px', borderLeft: '4px solid var(--accent)' }}>
+                          <div style={{ fontSize: '12px', color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase' }}>Annexures &amp; Scope</div>
+                          <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--accent)', marginTop: '4px' }}>
                             {auditorReport.hasCaro2020Annexure ? 'CARO 2020 Attached' : 'CARO Exempt'}
                           </div>
-                          <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
+                          <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '2px' }}>
                             {auditorReport.keyAuditMatters?.length || 0} Key Audit Matters (SA 701)
                           </div>
                         </div>
                       </div>
 
                       {/* Section 143(3) Statutory Affirmations Grid */}
-                      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px' }}>
-                        <h4 style={{ fontSize: '15px', fontWeight: 600, margin: '0 0 12px 0', color: '#0f172a' }}>
-                          ⚖️ Section 143(3) Companies Act, 2013 Statutory Compliance Matrix
+                      <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '20px' }}>
+                        <h4 style={{ fontSize: '15px', fontWeight: 600, margin: '0 0 12px 0', color: 'var(--text)' }}>
+                          Section 143(3) Companies Act, 2013 Statutory Compliance Matrix
                         </h4>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '12px' }}>
-                          <div style={{ padding: '10px 12px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '12px' }}>
-                            <strong>Sec 143(3)(a):</strong> Information &amp; Explanations {auditorReport.clause143_3_a_InformationObtained ? <span style={{ color: '#16a34a', fontWeight: 700 }}>✅ Obtained</span> : <span style={{ color: '#dc2626' }}>❌ Incomplete</span>}
+                          <div style={{ padding: '10px 12px', background: 'var(--card-subtle)', borderRadius: '6px', border: '1px solid var(--border)', fontSize: '12px' }}>
+                            <strong>Sec 143(3)(a):</strong> Information &amp; Explanations {auditorReport.clause143_3_a_InformationObtained ? <span style={{ color: 'var(--success)', fontWeight: 700 }}>✓ Obtained</span> : <span style={{ color: 'var(--error)' }}>✗ Incomplete</span>}
                           </div>
-                          <div style={{ padding: '10px 12px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '12px' }}>
-                            <strong>Sec 143(3)(b):</strong> Proper Books of Account {auditorReport.clause143_3_b_ProperBooksKept ? <span style={{ color: '#16a34a', fontWeight: 700 }}>✅ Kept by Co.</span> : <span style={{ color: '#dc2626' }}>❌ Deficient</span>}
+                          <div style={{ padding: '10px 12px', background: 'var(--card-subtle)', borderRadius: '6px', border: '1px solid var(--border)', fontSize: '12px' }}>
+                            <strong>Sec 143(3)(b):</strong> Proper Books of Account {auditorReport.clause143_3_b_ProperBooksKept ? <span style={{ color: 'var(--success)', fontWeight: 700 }}>✓ Kept by Co.</span> : <span style={{ color: 'var(--error)' }}>✗ Deficient</span>}
                           </div>
-                          <div style={{ padding: '10px 12px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '12px' }}>
-                            <strong>Sec 143(3)(c):</strong> Financials Agree with Books {auditorReport.clause143_3_c_AgreementWithBooks ? <span style={{ color: '#16a34a', fontWeight: 700 }}>✅ In Agreement</span> : <span style={{ color: '#dc2626' }}>❌ Disagreement</span>}
+                          <div style={{ padding: '10px 12px', background: 'var(--card-subtle)', borderRadius: '6px', border: '1px solid var(--border)', fontSize: '12px' }}>
+                            <strong>Sec 143(3)(c):</strong> Financials Agree with Books {auditorReport.clause143_3_c_AgreementWithBooks ? <span style={{ color: 'var(--success)', fontWeight: 700 }}>✓ In Agreement</span> : <span style={{ color: 'var(--error)' }}>✗ Disagreement</span>}
                           </div>
-                          <div style={{ padding: '10px 12px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '12px' }}>
-                            <strong>Sec 143(3)(d):</strong> Accounting Standards (AS/Ind AS) {auditorReport.clause143_3_d_ComplianceWithAS ? <span style={{ color: '#16a34a', fontWeight: 700 }}>✅ Complied</span> : <span style={{ color: '#dc2626' }}>❌ Non-Compliant</span>}
+                          <div style={{ padding: '10px 12px', background: 'var(--card-subtle)', borderRadius: '6px', border: '1px solid var(--border)', fontSize: '12px' }}>
+                            <strong>Sec 143(3)(d):</strong> Accounting Standards (AS/Ind AS) {auditorReport.clause143_3_d_ComplianceWithAS ? <span style={{ color: 'var(--success)', fontWeight: 700 }}>✓ Complied</span> : <span style={{ color: 'var(--error)' }}>✗ Non-Compliant</span>}
                           </div>
-                          <div style={{ padding: '10px 12px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '12px' }}>
-                            <strong>Sec 143(3)(f):</strong> Director Disqualification u/s 164(2) {!auditorReport.clause143_3_f_DirectorsDisqualified ? <span style={{ color: '#16a34a', fontWeight: 700 }}>✅ None Disqualified</span> : <span style={{ color: '#dc2626' }}>❌ Disqualification Found</span>}
+                          <div style={{ padding: '10px 12px', background: 'var(--card-subtle)', borderRadius: '6px', border: '1px solid var(--border)', fontSize: '12px' }}>
+                            <strong>Sec 143(3)(f):</strong> Director Disqualification u/s 164(2) {!auditorReport.clause143_3_f_DirectorsDisqualified ? <span style={{ color: 'var(--success)', fontWeight: 700 }}>✓ None Disqualified</span> : <span style={{ color: 'var(--error)' }}>✗ Disqualification Found</span>}
                           </div>
-                          <div style={{ padding: '10px 12px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0', fontSize: '12px' }}>
-                            <strong>Sec 143(3)(h):</strong> Internal Financial Controls (IFCoFR) {auditorReport.clause143_3_h_InternalFinancialControlsAnnexure ? <span style={{ color: '#16a34a', fontWeight: 700 }}>✅ Annexure Attached</span> : <span style={{ color: '#64748b' }}>Exempt</span>}
+                          <div style={{ padding: '10px 12px', background: 'var(--card-subtle)', borderRadius: '6px', border: '1px solid var(--border)', fontSize: '12px' }}>
+                            <strong>Sec 143(3)(h):</strong> Internal Financial Controls (IFCoFR) {auditorReport.clause143_3_h_InternalFinancialControlsAnnexure ? <span style={{ color: 'var(--success)', fontWeight: 700 }}>✓ Annexure Attached</span> : <span style={{ color: 'var(--muted)' }}>Exempt</span>}
                           </div>
                         </div>
-                        <div style={{ marginTop: '12px', padding: '10px 12px', background: '#eff6ff', borderRadius: '6px', border: '1px solid #bfdbfe', fontSize: '12px', color: '#1e3a8a' }}>
+                        <div style={{ marginTop: '12px', padding: '10px 12px', background: 'rgba(37, 99, 235, 0.08)', borderRadius: '6px', border: '1px solid rgba(37, 99, 235, 0.3)', fontSize: '12px', color: 'var(--accent)' }}>
                           <strong>Rule 11(g) Audit Trail Finding:</strong> {auditorReport.rule11_g_AuditTrailRemarks}
                         </div>
                       </div>
 
                       {/* SA 701 Key Audit Matters Panel */}
                       {auditorReport.includeKeyAuditMatters && (
-                        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px' }}>
-                          <h4 style={{ fontSize: '15px', fontWeight: 600, margin: '0 0 4px 0', color: '#0f172a' }}>
-                            🔍 Key Audit Matters (SA 701)
+                        <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '20px' }}>
+                          <h4 style={{ fontSize: '15px', fontWeight: 600, margin: '0 0 4px 0', color: 'var(--text)' }}>
+                            Key Audit Matters (SA 701)
                           </h4>
-                          <p style={{ fontSize: '12px', color: '#64748b', margin: '0 0 16px 0' }}>
+                          <p style={{ fontSize: '12px', color: 'var(--muted)', margin: '0 0 16px 0' }}>
                             Matters of most significance in the audit of financial statements for the current period:
                           </p>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                             {auditorReport.keyAuditMatters?.map(kam => (
-                              <div key={kam.id} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderLeft: '4px solid #1e3a8a', borderRadius: '6px', padding: '14px' }}>
+                              <div key={kam.id} style={{ background: 'var(--card-subtle)', border: '1px solid var(--border)', borderLeft: '4px solid var(--accent)', borderRadius: '6px', padding: '14px' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                                  <h5 style={{ margin: 0, fontSize: '14px', color: '#1e3a8a', fontWeight: 700 }}>{kam.title}</h5>
-                                  <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '10px', background: '#e0e7ff', color: '#3730a3', fontWeight: 600 }}>{kam.category}</span>
+                                  <h5 style={{ margin: 0, fontSize: '14px', color: 'var(--accent)', fontWeight: 700 }}>{kam.title}</h5>
+                                  <span style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '10px', background: 'rgba(37, 99, 235, 0.12)', color: 'var(--accent)', fontWeight: 600 }}>{kam.category}</span>
                                 </div>
-                                <div style={{ fontSize: '12px', color: '#334155', marginBottom: '8px' }}>
+                                <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
                                   <strong>The Key Audit Matter:</strong> {kam.descriptionOfMatter} {kam.whyConsideredSignificant}
                                 </div>
-                                <div style={{ fontSize: '12px', color: '#0f172a' }}>
+                                <div style={{ fontSize: '12px', color: 'var(--text)' }}>
                                   <strong>How Addressed in Audit:</strong> {kam.howAddressedInAudit}
                                 </div>
                                 {kam.keyDocumentationRef && (
-                                  <div style={{ marginTop: '6px', fontSize: '11px', color: '#64748b' }}>
+                                  <div style={{ marginTop: '6px', fontSize: '11px', color: 'var(--muted)' }}>
                                     <em>Working paper reference: {kam.keyDocumentationRef}</em>
                                   </div>
                                 )}
@@ -2150,53 +2154,53 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
               {reportSubTab === 'notes' && (
                 <>
                   {!notesToAccounts ? (
-                    <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '40px', textAlign: 'center' }}>
+                    <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '40px', textAlign: 'center' }}>
                       <div style={{ fontSize: '42px', marginBottom: '12px' }}>📑</div>
-                      <h4 style={{ fontSize: '16px', fontWeight: 600, margin: '0 0 6px 0', color: '#1e293b' }}>
+                      <h4 style={{ fontSize: '16px', fontWeight: 600, margin: '0 0 6px 0', color: 'var(--text)' }}>
                         No Notes to Accounts Generated Yet
                       </h4>
-                      <p style={{ fontSize: '13px', color: '#64748b', maxWidth: '540px', margin: '0 auto 20px auto' }}>
+                      <p style={{ fontSize: '13px', color: 'var(--muted)', maxWidth: '540px', margin: '0 auto 20px auto' }}>
                         Produce Schedule III Notes to Accounts including corporate background, significant accounting policies, the 11 mandatory financial ratios with &gt;25% variance alerts, and regulatory disclosures.
                       </p>
                       <button
                         onClick={handleGenerateNotesToAccounts}
                         disabled={loadingReport}
-                        style={{ padding: '10px 20px', background: '#0284c7', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}
+                        style={{ padding: '10px 20px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}
                       >
-                        📊 Generate Schedule III Notes Now
+                        Generate Schedule III Notes Now
                       </button>
                     </div>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                       {/* Note 1 & 2 */}
-                      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px' }}>
-                        <h4 style={{ fontSize: '15px', fontWeight: 600, margin: '0 0 8px 0', color: '#1e3a8a' }}>
+                      <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '20px' }}>
+                        <h4 style={{ fontSize: '15px', fontWeight: 600, margin: '0 0 8px 0', color: 'var(--accent)' }}>
                           Note 1: Corporate Information
                         </h4>
-                        <p style={{ fontSize: '13px', lineHeight: 1.6, color: '#334155', margin: '0 0 16px 0' }}>
+                        <p style={{ fontSize: '13px', lineHeight: 1.6, color: 'var(--text-secondary)', margin: '0 0 16px 0' }}>
                           {notesToAccounts.note1CorporateInformation}
                         </p>
 
-                        <h4 style={{ fontSize: '15px', fontWeight: 600, margin: '16px 0 8px 0', color: '#1e3a8a' }}>
+                        <h4 style={{ fontSize: '15px', fontWeight: 600, margin: '16px 0 8px 0', color: 'var(--accent)' }}>
                           Note 2: Significant Accounting Policies (Indian GAAP / Ind AS)
                         </h4>
-                        <p style={{ fontSize: '13px', lineHeight: 1.6, color: '#334155', margin: 0 }}>
+                        <p style={{ fontSize: '13px', lineHeight: 1.6, color: 'var(--text-secondary)', margin: 0 }}>
                           {notesToAccounts.note2AccountingPolicies}
                         </p>
                       </div>
 
                       {/* Note 3: Schedule III Mandatory Financial Ratios Table */}
-                      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px' }}>
+                      <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '20px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
                           <div>
-                            <h4 style={{ fontSize: '15px', fontWeight: 600, margin: 0, color: '#1e3a8a' }}>
+                            <h4 style={{ fontSize: '15px', fontWeight: 600, margin: 0, color: 'var(--accent)' }}>
                               Note 23: Schedule III Mandatory 11 Financial Ratios
                             </h4>
-                            <p style={{ fontSize: '12px', color: '#64748b', margin: '4px 0 0 0' }}>
+                            <p style={{ fontSize: '12px', color: 'var(--muted)', margin: '4px 0 0 0' }}>
                               Companies Act 2013 Schedule III Division I/II requirement. Any variance &gt; 25% requires mandatory reason disclosure.
                             </p>
                           </div>
-                          <span style={{ fontSize: '11px', padding: '3px 8px', borderRadius: '12px', background: '#dcfce7', color: '#15803d', fontWeight: 600 }}>
+                          <span style={{ fontSize: '11px', padding: '3px 8px', borderRadius: '12px', background: 'rgba(22, 163, 74, 0.12)', color: 'var(--success)', fontWeight: 600 }}>
                             All 11 Ratios Reconciled
                           </span>
                         </div>
@@ -2204,7 +2208,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                         <div style={{ overflowX: 'auto' }}>
                           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
                             <thead>
-                              <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', color: '#475569', textAlign: 'left' }}>
+                              <tr style={{ background: 'var(--card-subtle)', borderBottom: '2px solid var(--border)', color: 'var(--text-secondary)', textAlign: 'left' }}>
                                 <th style={{ padding: '8px 10px' }}>Ratio Name</th>
                                 <th style={{ padding: '8px 10px' }}>Formula (Numerator / Denominator)</th>
                                 <th style={{ padding: '8px 10px', textAlign: 'right' }}>Current Year</th>
@@ -2214,93 +2218,93 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                               </tr>
                             </thead>
                             <tbody>
-                              <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                              <tr style={{ borderBottom: '1px solid var(--border)' }}>
                                 <td style={{ padding: '8px 10px', fontWeight: 600 }}>(a) Current Ratio</td>
-                                <td style={{ padding: '8px 10px', color: '#64748b' }}>Current Assets / Current Liabilities</td>
+                                <td style={{ padding: '8px 10px', color: 'var(--muted)' }}>Current Assets / Current Liabilities</td>
                                 <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600 }}>1.85</td>
                                 <td style={{ padding: '8px 10px', textAlign: 'right' }}>1.72</td>
-                                <td style={{ padding: '8px 10px', textAlign: 'right', color: '#16a34a', fontWeight: 600 }}>+7.6%</td>
-                                <td style={{ padding: '8px 10px', color: '#64748b' }}>Within normal operational range</td>
+                                <td style={{ padding: '8px 10px', textAlign: 'right', color: 'var(--success)', fontWeight: 600 }}>+7.6%</td>
+                                <td style={{ padding: '8px 10px', color: 'var(--muted)' }}>Within normal operational range</td>
                               </tr>
-                              <tr style={{ borderBottom: '1px solid #f1f5f9', background: '#fffbeb' }}>
+                              <tr style={{ borderBottom: '1px solid var(--border)', background: 'rgba(217, 119, 6, 0.08)' }}>
                                 <td style={{ padding: '8px 10px', fontWeight: 600 }}>(b) Debt-Equity Ratio</td>
-                                <td style={{ padding: '8px 10px', color: '#64748b' }}>Total Debt / Shareholder's Equity</td>
+                                <td style={{ padding: '8px 10px', color: 'var(--muted)' }}>Total Debt / Shareholder's Equity</td>
                                 <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600 }}>0.45</td>
                                 <td style={{ padding: '8px 10px', textAlign: 'right' }}>0.62</td>
-                                <td style={{ padding: '8px 10px', textAlign: 'right', color: '#b45309', fontWeight: 700 }}>-27.4% ⚠️</td>
-                                <td style={{ padding: '8px 10px', color: '#92400e', fontWeight: 600 }}>Repayment of long-term term loan from operating cash flows</td>
+                                <td style={{ padding: '8px 10px', textAlign: 'right', color: 'var(--warning)', fontWeight: 700 }}>-27.4% !</td>
+                                <td style={{ padding: '8px 10px', color: 'var(--warning)', fontWeight: 600 }}>Repayment of long-term term loan from operating cash flows</td>
                               </tr>
-                              <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                              <tr style={{ borderBottom: '1px solid var(--border)' }}>
                                 <td style={{ padding: '8px 10px', fontWeight: 600 }}>(c) Debt Service Coverage Ratio (DSCR)</td>
-                                <td style={{ padding: '8px 10px', color: '#64748b' }}>EBITDA / Debt Service</td>
+                                <td style={{ padding: '8px 10px', color: 'var(--muted)' }}>EBITDA / Debt Service</td>
                                 <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600 }}>3.20</td>
                                 <td style={{ padding: '8px 10px', textAlign: 'right' }}>2.85</td>
-                                <td style={{ padding: '8px 10px', textAlign: 'right', color: '#16a34a', fontWeight: 600 }}>+12.3%</td>
-                                <td style={{ padding: '8px 10px', color: '#64748b' }}>Enhanced operating EBITDA margins</td>
+                                <td style={{ padding: '8px 10px', textAlign: 'right', color: 'var(--success)', fontWeight: 600 }}>+12.3%</td>
+                                <td style={{ padding: '8px 10px', color: 'var(--muted)' }}>Enhanced operating EBITDA margins</td>
                               </tr>
-                              <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                              <tr style={{ borderBottom: '1px solid var(--border)' }}>
                                 <td style={{ padding: '8px 10px', fontWeight: 600 }}>(d) Return on Equity (ROE)</td>
-                                <td style={{ padding: '8px 10px', color: '#64748b' }}>PAT / Average Net Worth</td>
+                                <td style={{ padding: '8px 10px', color: 'var(--muted)' }}>PAT / Average Net Worth</td>
                                 <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600 }}>14.2%</td>
                                 <td style={{ padding: '8px 10px', textAlign: 'right' }}>12.8%</td>
-                                <td style={{ padding: '8px 10px', textAlign: 'right', color: '#16a34a', fontWeight: 600 }}>+10.9%</td>
-                                <td style={{ padding: '8px 10px', color: '#64748b' }}>Improved capacity utilization</td>
+                                <td style={{ padding: '8px 10px', textAlign: 'right', color: 'var(--success)', fontWeight: 600 }}>+10.9%</td>
+                                <td style={{ padding: '8px 10px', color: 'var(--muted)' }}>Improved capacity utilization</td>
                               </tr>
-                              <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                              <tr style={{ borderBottom: '1px solid var(--border)' }}>
                                 <td style={{ padding: '8px 10px', fontWeight: 600 }}>(e) Inventory Turnover Ratio</td>
-                                <td style={{ padding: '8px 10px', color: '#64748b' }}>COGS / Average Inventory</td>
+                                <td style={{ padding: '8px 10px', color: 'var(--muted)' }}>COGS / Average Inventory</td>
                                 <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600 }}>6.40</td>
                                 <td style={{ padding: '8px 10px', textAlign: 'right' }}>5.90</td>
-                                <td style={{ padding: '8px 10px', textAlign: 'right', color: '#16a34a', fontWeight: 600 }}>+8.5%</td>
-                                <td style={{ padding: '8px 10px', color: '#64748b' }}>Optimized inventory turnover</td>
+                                <td style={{ padding: '8px 10px', textAlign: 'right', color: 'var(--success)', fontWeight: 600 }}>+8.5%</td>
+                                <td style={{ padding: '8px 10px', color: 'var(--muted)' }}>Optimized inventory turnover</td>
                               </tr>
-                              <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                              <tr style={{ borderBottom: '1px solid var(--border)' }}>
                                 <td style={{ padding: '8px 10px', fontWeight: 600 }}>(f) Trade Receivables Turnover</td>
-                                <td style={{ padding: '8px 10px', color: '#64748b' }}>Credit Sales / Average Receivables</td>
+                                <td style={{ padding: '8px 10px', color: 'var(--muted)' }}>Credit Sales / Average Receivables</td>
                                 <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600 }}>8.10</td>
                                 <td style={{ padding: '8px 10px', textAlign: 'right' }}>7.80</td>
-                                <td style={{ padding: '8px 10px', textAlign: 'right', color: '#16a34a', fontWeight: 600 }}>+3.8%</td>
-                                <td style={{ padding: '8px 10px', color: '#64748b' }}>Disciplined collection cycles</td>
+                                <td style={{ padding: '8px 10px', textAlign: 'right', color: 'var(--success)', fontWeight: 600 }}>+3.8%</td>
+                                <td style={{ padding: '8px 10px', color: 'var(--muted)' }}>Disciplined collection cycles</td>
                               </tr>
-                              <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                              <tr style={{ borderBottom: '1px solid var(--border)' }}>
                                 <td style={{ padding: '8px 10px', fontWeight: 600 }}>(g) Trade Payables Turnover</td>
-                                <td style={{ padding: '8px 10px', color: '#64748b' }}>Credit Purchases / Average Payables</td>
+                                <td style={{ padding: '8px 10px', color: 'var(--muted)' }}>Credit Purchases / Average Payables</td>
                                 <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600 }}>7.20</td>
                                 <td style={{ padding: '8px 10px', textAlign: 'right' }}>7.50</td>
-                                <td style={{ padding: '8px 10px', textAlign: 'right', color: '#64748b' }}>-4.0%</td>
-                                <td style={{ padding: '8px 10px', color: '#64748b' }}>Adherence to MSMED 45-day payment cycle</td>
+                                <td style={{ padding: '8px 10px', textAlign: 'right', color: 'var(--muted)' }}>-4.0%</td>
+                                <td style={{ padding: '8px 10px', color: 'var(--muted)' }}>Adherence to MSMED 45-day payment cycle</td>
                               </tr>
-                              <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                              <tr style={{ borderBottom: '1px solid var(--border)' }}>
                                 <td style={{ padding: '8px 10px', fontWeight: 600 }}>(h) Net Capital Turnover Ratio</td>
-                                <td style={{ padding: '8px 10px', color: '#64748b' }}>Revenue / Working Capital</td>
+                                <td style={{ padding: '8px 10px', color: 'var(--muted)' }}>Revenue / Working Capital</td>
                                 <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600 }}>4.50</td>
                                 <td style={{ padding: '8px 10px', textAlign: 'right' }}>4.20</td>
-                                <td style={{ padding: '8px 10px', textAlign: 'right', color: '#16a34a', fontWeight: 600 }}>+7.1%</td>
-                                <td style={{ padding: '8px 10px', color: '#64748b' }}>Effective working capital recycling</td>
+                                <td style={{ padding: '8px 10px', textAlign: 'right', color: 'var(--success)', fontWeight: 600 }}>+7.1%</td>
+                                <td style={{ padding: '8px 10px', color: 'var(--muted)' }}>Effective working capital recycling</td>
                               </tr>
-                              <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                              <tr style={{ borderBottom: '1px solid var(--border)' }}>
                                 <td style={{ padding: '8px 10px', fontWeight: 600 }}>(i) Net Profit Ratio</td>
-                                <td style={{ padding: '8px 10px', color: '#64748b' }}>Net Profit / Revenue</td>
+                                <td style={{ padding: '8px 10px', color: 'var(--muted)' }}>Net Profit / Revenue</td>
                                 <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600 }}>8.6%</td>
                                 <td style={{ padding: '8px 10px', textAlign: 'right' }}>7.9%</td>
-                                <td style={{ padding: '8px 10px', textAlign: 'right', color: '#16a34a', fontWeight: 600 }}>+8.9%</td>
-                                <td style={{ padding: '8px 10px', color: '#64748b' }}>Margin improvement and lower finance charges</td>
+                                <td style={{ padding: '8px 10px', textAlign: 'right', color: 'var(--success)', fontWeight: 600 }}>+8.9%</td>
+                                <td style={{ padding: '8px 10px', color: 'var(--muted)' }}>Margin improvement and lower finance charges</td>
                               </tr>
-                              <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                              <tr style={{ borderBottom: '1px solid var(--border)' }}>
                                 <td style={{ padding: '8px 10px', fontWeight: 600 }}>(j) Return on Capital Employed (ROCE)</td>
-                                <td style={{ padding: '8px 10px', color: '#64748b' }}>EBIT / Capital Employed</td>
+                                <td style={{ padding: '8px 10px', color: 'var(--muted)' }}>EBIT / Capital Employed</td>
                                 <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600 }}>18.4%</td>
                                 <td style={{ padding: '8px 10px', textAlign: 'right' }}>16.2%</td>
-                                <td style={{ padding: '8px 10px', textAlign: 'right', color: '#16a34a', fontWeight: 600 }}>+13.6%</td>
-                                <td style={{ padding: '8px 10px', color: '#64748b' }}>Productivity gains</td>
+                                <td style={{ padding: '8px 10px', textAlign: 'right', color: 'var(--success)', fontWeight: 600 }}>+13.6%</td>
+                                <td style={{ padding: '8px 10px', color: 'var(--muted)' }}>Productivity gains</td>
                               </tr>
                               <tr>
                                 <td style={{ padding: '8px 10px', fontWeight: 600 }}>(k) Return on Investment (ROI)</td>
-                                <td style={{ padding: '8px 10px', color: '#64748b' }}>Income from Investments / Invested Funds</td>
+                                <td style={{ padding: '8px 10px', color: 'var(--muted)' }}>Income from Investments / Invested Funds</td>
                                 <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600 }}>6.8%</td>
                                 <td style={{ padding: '8px 10px', textAlign: 'right' }}>6.4%</td>
-                                <td style={{ padding: '8px 10px', textAlign: 'right', color: '#16a34a', fontWeight: 600 }}>+6.3%</td>
-                                <td style={{ padding: '8px 10px', color: '#64748b' }}>Yield on high quality treasury liquid mutual funds</td>
+                                <td style={{ padding: '8px 10px', textAlign: 'right', color: 'var(--success)', fontWeight: 600 }}>+6.3%</td>
+                                <td style={{ padding: '8px 10px', color: 'var(--muted)' }}>Yield on high quality treasury liquid mutual funds</td>
                               </tr>
                             </tbody>
                           </table>
@@ -2308,11 +2312,11 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                       </div>
 
                       {/* Note 4: Additional Regulatory Disclosures */}
-                      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px' }}>
-                        <h4 style={{ fontSize: '15px', fontWeight: 600, margin: '0 0 10px 0', color: '#1e3a8a' }}>
+                      <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '20px' }}>
+                        <h4 style={{ fontSize: '15px', fontWeight: 600, margin: '0 0 10px 0', color: 'var(--accent)' }}>
                           Note 24: Additional Regulatory Disclosures (Schedule III)
                         </h4>
-                        <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '6px', border: '1px solid #e2e8f0', whiteSpace: 'pre-line', fontSize: '12px', lineHeight: 1.7, color: '#334155' }}>
+                        <div style={{ background: 'var(--card-subtle)', padding: '14px', borderRadius: '6px', border: '1px solid var(--border)', whiteSpace: 'pre-line', fontSize: '12px', lineHeight: 1.7, color: 'var(--text-secondary)' }}>
                           {notesToAccounts.additionalRegulatoryDisclosures}
                         </div>
                       </div>
@@ -2325,18 +2329,18 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
 
           {/* TAB 4: EQR Review Desk */}
           {activeTab === 'eqr' && (
-            <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
+            <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid var(--border)', paddingBottom: '12px' }}>
                 <div>
                   <h3 style={{ fontSize: '16px', fontWeight: 600, margin: 0 }}>Engagement Quality Control Review (ICAI SA 220)</h3>
-                  <p style={{ fontSize: '12px', color: '#64748b', margin: '4px 0 0 0' }}>
+                  <p style={{ fontSize: '12px', color: 'var(--muted)', margin: '4px 0 0 0' }}>
                     Reviewer: <strong>{eqrReview?.eqrPartnerName || 'Assigned EQR Partner'}</strong> • Mode: <strong>{eqrReview?.reviewType.toUpperCase()}</strong>
                   </p>
                 </div>
                 {!selectedEng.isArchived && eqrReview && eqrReview.reviewStatus !== 'clearance_granted' && (
                   <button
                     onClick={handleClearEqr}
-                    style={{ padding: '8px 16px', background: '#7c3aed', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}
+                    style={{ padding: '8px 16px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}
                   >
                     Grant EQR Clearance (Hot Review)
                   </button>
@@ -2344,7 +2348,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
               </div>
 
               {!eqrReview ? (
-                <div style={{ padding: '32px', textAlign: 'center', color: '#64748b' }}>No EQR review initialized for this engagement.</div>
+                <div style={{ padding: '32px', textAlign: 'center', color: 'var(--muted)' }}>No EQR review initialized for this engagement.</div>
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '24px' }}>
                   {/* Left: Pre-Issuance Quality Checklist */}
@@ -2352,10 +2356,10 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                     <h4 style={{ fontSize: '14px', fontWeight: 600, margin: '0 0 12px 0' }}>
                       Pre-Issuance Quality Checklist (10 Mandatory SA Controls)
                     </h4>
-                    <div style={{ border: '1px solid #e2e8f0', borderRadius: '6px', overflow: 'hidden' }}>
+                    <div style={{ border: '1px solid var(--border)', borderRadius: '6px', overflow: 'hidden' }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
                         <thead>
-                          <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', textAlign: 'left' }}>
+                          <tr style={{ background: 'var(--card-subtle)', borderBottom: '1px solid var(--border)', textAlign: 'left' }}>
                             <th style={{ padding: '8px 10px', width: '32px' }}>Status</th>
                             <th style={{ padding: '8px 10px' }}>Standard</th>
                             <th style={{ padding: '8px 10px' }}>Requirement Description</th>
@@ -2363,7 +2367,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                         </thead>
                         <tbody>
                           {eqrReview.preIssuanceChecklist.map(c => (
-                            <tr key={c.code} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                            <tr key={c.code} style={{ borderBottom: '1px solid var(--border)' }}>
                               <td style={{ padding: '8px 10px', textAlign: 'center' }}>
                                 <input
                                   type="checkbox"
@@ -2373,10 +2377,10 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                                   style={{ cursor: 'pointer' }}
                                 />
                               </td>
-                              <td style={{ padding: '8px 10px', fontWeight: 700, color: '#0369a1' }}>{c.code}</td>
-                              <td style={{ padding: '8px 10px', color: c.isVerified ? '#15803d' : '#334155' }}>
+                              <td style={{ padding: '8px 10px', fontWeight: 700, color: 'var(--accent)' }}>{c.code}</td>
+                              <td style={{ padding: '8px 10px', color: c.isVerified ? 'var(--success)' : 'var(--text-secondary)' }}>
                                 {c.description}
-                                {c.comments && <div style={{ fontSize: '11px', color: '#64748b' }}>Note: {c.comments}</div>}
+                                {c.comments && <div style={{ fontSize: '11px', color: 'var(--muted)' }}>Note: {c.comments}</div>}
                               </td>
                             </tr>
                           ))}
@@ -2387,29 +2391,29 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
 
                   {/* Right: Significant Risk & Opinion Evaluations */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '12px' }}>
-                      <div style={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>SA 320 Materiality Concurrence</div>
-                      <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
+                    <div style={{ background: 'var(--card-subtle)', border: '1px solid var(--border)', borderRadius: '6px', padding: '12px' }}>
+                      <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>SA 320 Materiality Concurrence</div>
+                      <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '4px' }}>
                         Benchmark verified at {fmtInr(selectedEng.benchmarkAmount)} ({selectedEng.benchmarkType}). Overall materiality evaluated as appropriate.
                       </div>
                     </div>
-                    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '12px' }}>
-                      <div style={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>SA 570 Going Concern Evaluation</div>
-                      <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
+                    <div style={{ background: 'var(--card-subtle)', border: '1px solid var(--border)', borderRadius: '6px', padding: '12px' }}>
+                      <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>SA 570 Going Concern Evaluation</div>
+                      <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '4px' }}>
                         Management assessment for 12 months reviewed. No material uncertainty identified.
                       </div>
                     </div>
-                    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '12px' }}>
-                      <div style={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>SA 700 Audit Opinion Appropriateness</div>
-                      <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
+                    <div style={{ background: 'var(--card-subtle)', border: '1px solid var(--border)', borderRadius: '6px', padding: '12px' }}>
+                      <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)' }}>SA 700 Audit Opinion Appropriateness</div>
+                      <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '4px' }}>
                         Draft opinion: <strong>{selectedEng.auditOpinion?.toUpperCase() || 'UNMODIFIED'}</strong>. Concurred with audit team conclusions.
                       </div>
                     </div>
                     {eqrReview.eqrConclusionRemarks && (
-                      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '12px' }}>
-                        <div style={{ fontSize: '12px', fontWeight: 700, color: '#166534' }}>EQR Sign-Off Remarks</div>
-                        <div style={{ fontSize: '12px', color: '#15803d', marginTop: '4px' }}>{eqrReview.eqrConclusionRemarks}</div>
-                        <div style={{ fontSize: '10px', color: '#166534', marginTop: '4px' }}>Signed: {eqrReview.eqrSignoffDate}</div>
+                      <div style={{ background: 'rgba(22, 163, 74, 0.08)', border: '1px solid rgba(22, 163, 74, 0.35)', borderRadius: '6px', padding: '12px' }}>
+                        <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--success)' }}>EQR Sign-Off Remarks</div>
+                        <div style={{ fontSize: '12px', color: 'var(--success)', marginTop: '4px' }}>{eqrReview.eqrConclusionRemarks}</div>
+                        <div style={{ fontSize: '10px', color: 'var(--success)', marginTop: '4px' }}>Signed: {eqrReview.eqrSignoffDate}</div>
                       </div>
                     )}
                   </div>
@@ -2420,7 +2424,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
 
           {/* TAB 3: Review Notes & Queries */}
           {activeTab === 'review_notes' && (
-            <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px' }}>
+            <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <h3 style={{ fontSize: '16px', fontWeight: 600, margin: 0 }}>Audit Review Notes &amp; Query Resolution</h3>
                 {!selectedEng.isArchived && (
@@ -2429,7 +2433,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                       setNoteForm({ workingPaperId: '', raisedByRole: 'manager', category: 'documentation_gap', priority: 'medium', query: '' })
                       setShowNewNoteModal(true)
                     }}
-                    style={{ padding: '6px 12px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 600, fontSize: '12px', cursor: 'pointer' }}
+                    style={{ padding: '6px 12px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 600, fontSize: '12px', cursor: 'pointer' }}
                   >
                     + Raise Audit Query
                   </button>
@@ -2437,22 +2441,21 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
               </div>
 
               {reviewNotes.length === 0 ? (
-                <div style={{ padding: '32px', textAlign: 'center', color: '#64748b' }}>No review notes or queries logged.</div>
+                <div style={{ padding: '32px', textAlign: 'center', color: 'var(--muted)' }}>No review notes or queries logged.</div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   {reviewNotes.map(n => (
                     <div
                       key={n.id}
                       style={{
-                        border: '1px solid #e2e8f0',
+                        border: '1px solid var(--border)',
                         borderRadius: '6px',
                         padding: '14px',
-                        background: n.status === 'cleared' ? '#f8fafc' : '#fff',
-                        borderLeft: `4px solid ${
-                          n.status === 'cleared' ? '#16a34a' :
-                          n.priority === 'critical' ? '#dc2626' :
-                          n.priority === 'high' ? '#ea580c' : '#2563eb'
-                        }`
+                        background: n.status === 'cleared' ? 'var(--card-subtle)' : 'var(--card)',
+                        borderLeft: `4px solid ${n.status === 'cleared' ? 'var(--success)' :
+                          n.priority === 'critical' ? 'var(--error)' :
+                            n.priority === 'high' ? 'var(--warning)' : 'var(--accent)'
+                          }`
                       }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -2464,18 +2467,18 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                               fontSize: '10px',
                               fontWeight: 700,
                               textTransform: 'uppercase',
-                              background: n.priority === 'critical' ? '#fee2e2' : n.priority === 'high' ? '#ffedd5' : '#e0f2fe',
-                              color: n.priority === 'critical' ? '#dc2626' : n.priority === 'high' ? '#ea580c' : '#0369a1'
+                              background: n.priority === 'critical' ? 'rgba(220, 38, 38, 0.12)' : n.priority === 'high' ? 'rgba(234, 88, 12, 0.12)' : 'rgba(37, 99, 235, 0.12)',
+                              color: n.priority === 'critical' ? 'var(--error)' : n.priority === 'high' ? 'var(--warning)' : 'var(--accent)'
                             }}>
                               {n.priority}
                             </span>
-                            <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>{n.category.toUpperCase()}</span>
+                            <span style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 600 }}>{n.category.toUpperCase()}</span>
                             {n.workingPaperRef && (
-                              <span style={{ fontSize: '11px', color: '#0369a1', fontWeight: 600 }}>• {n.workingPaperRef}</span>
+                              <span style={{ fontSize: '11px', color: 'var(--accent)', fontWeight: 600 }}>• {n.workingPaperRef}</span>
                             )}
                           </div>
-                          <div style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', marginTop: '6px' }}>{n.query}</div>
-                          <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>
+                          <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', marginTop: '6px' }}>{n.query}</div>
+                          <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '2px' }}>
                             Raised by {n.raisedByName || 'Auditor'} ({n.raisedByRole.toUpperCase()}) on {n.createdAt}
                           </div>
                         </div>
@@ -2489,7 +2492,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                                   setRespondingNote(n)
                                   setNoteResponseText(n.response || '')
                                 }}
-                                style={{ padding: '4px 8px', fontSize: '11px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer' }}
+                                style={{ padding: '4px 8px', fontSize: '11px', background: 'var(--card-subtle)', border: '1px solid var(--border)', borderRadius: '4px', cursor: 'pointer' }}
                               >
                                 {n.response ? 'Edit Response' : 'Provide Response'}
                               </button>
@@ -2497,7 +2500,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                             {n.status !== 'cleared' && (
                               <button
                                 onClick={() => handleClearReviewNote(n.id)}
-                                style={{ padding: '4px 8px', fontSize: '11px', background: '#dcfce7', color: '#15803d', border: '1px solid #bbf7d0', borderRadius: '4px', cursor: 'pointer', fontWeight: 600 }}
+                                style={{ padding: '4px 8px', fontSize: '11px', background: 'rgba(22, 163, 74, 0.12)', color: 'var(--success)', border: '1px solid rgba(22, 163, 74, 0.35)', borderRadius: '4px', cursor: 'pointer', fontWeight: 600 }}
                               >
                                 Clear Query ✓
                               </button>
@@ -2505,7 +2508,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                             {n.status === 'cleared' && (
                               <button
                                 onClick={() => handleReopenReviewNote(n.id)}
-                                style={{ padding: '4px 8px', fontSize: '11px', background: '#fff', border: '1px solid #cbd5e1', color: '#64748b', borderRadius: '4px', cursor: 'pointer' }}
+                                style={{ padding: '4px 8px', fontSize: '11px', background: 'var(--card)', border: '1px solid var(--border)', color: 'var(--muted)', borderRadius: '4px', cursor: 'pointer' }}
                               >
                                 Reopen Query ↺
                               </button>
@@ -2516,9 +2519,9 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
 
                       {/* Response section */}
                       {n.response && (
-                        <div style={{ marginTop: '10px', padding: '10px', background: '#f0fdf4', borderRadius: '4px', border: '1px solid #bbf7d0', fontSize: '12px' }}>
-                          <span style={{ fontWeight: 600, color: '#166534' }}>Response ({n.responseByName || 'Preparer'}): </span>
-                          <span style={{ color: '#15803d' }}>{n.response}</span>
+                        <div style={{ marginTop: '10px', padding: '10px', background: 'rgba(22, 163, 74, 0.08)', borderRadius: '4px', border: '1px solid rgba(22, 163, 74, 0.35)', fontSize: '12px' }}>
+                          <span style={{ fontWeight: 600, color: 'var(--success)' }}>Response ({n.responseByName || 'Preparer'}): </span>
+                          <span style={{ color: 'var(--success)' }}>{n.response}</span>
                         </div>
                       )}
                     </div>
@@ -2532,15 +2535,15 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
 
       {/* Modal: New Audit Engagement */}
       {showNewEngModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: '#fff', borderRadius: '8px', width: '520px', padding: '24px' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: 'var(--card)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '8px', width: '520px', padding: '24px' }}>
             <h3 style={{ margin: '0 0 16px 0', fontSize: '18px' }}>Create Statutory Audit Engagement</h3>
             <div style={{ marginBottom: '12px' }}>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>Client *</label>
               <select
                 value={engForm.clientId}
                 onChange={e => setEngForm({ ...engForm, clientId: e.target.value })}
-                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
               >
                 {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
@@ -2552,7 +2555,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                   type="text"
                   value={engForm.financialYear}
                   onChange={e => setEngForm({ ...engForm, financialYear: e.target.value })}
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
                 />
               </div>
               <div>
@@ -2560,7 +2563,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                 <select
                   value={engForm.auditType}
                   onChange={e => setEngForm({ ...engForm, auditType: e.target.value })}
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
                 >
                   <option value="statutory">Statutory Audit (Companies Act)</option>
                   <option value="tax_audit_44ab">Tax Audit u/s 44AB</option>
@@ -2575,7 +2578,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                 type="text"
                 value={engForm.title}
                 onChange={e => setEngForm({ ...engForm, title: e.target.value })}
-                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
               />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
@@ -2584,7 +2587,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                 <select
                   value={engForm.benchmarkType}
                   onChange={e => setEngForm({ ...engForm, benchmarkType: e.target.value })}
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
                 >
                   <option value="revenue">Gross Revenue / Turnover (1%)</option>
                   <option value="profit_before_tax">Profit Before Tax (5%)</option>
@@ -2598,7 +2601,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                   type="number"
                   value={engForm.benchmarkAmount}
                   onChange={e => setEngForm({ ...engForm, benchmarkAmount: parseFloat(e.target.value) || 0 })}
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
                 />
               </div>
             </div>
@@ -2614,8 +2617,8 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
               </label>
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-              <button onClick={() => setShowNewEngModal(false)} style={{ padding: '8px 16px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer' }}>Cancel</button>
-              <button onClick={handleCreateEngagement} style={{ padding: '8px 16px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 600, cursor: 'pointer' }}>Create Engagement</button>
+              <button onClick={() => setShowNewEngModal(false)} style={{ padding: '8px 16px', background: 'var(--card-subtle)', border: '1px solid var(--border)', borderRadius: '4px', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={handleCreateEngagement} style={{ padding: '8px 16px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 600, cursor: 'pointer' }}>Create Engagement</button>
             </div>
           </div>
         </div>
@@ -2623,8 +2626,8 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
 
       {/* Modal: Add Working Paper */}
       {showNewWpModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: '#fff', borderRadius: '8px', width: '560px', padding: '24px', maxHeight: '90vh', overflowY: 'auto' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: 'var(--card)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '8px', width: '560px', padding: '24px', maxHeight: '90vh', overflowY: 'auto' }}>
             <h3 style={{ margin: '0 0 16px 0', fontSize: '18px' }}>Add Audit Working Paper</h3>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '12px', marginBottom: '12px' }}>
               <div>
@@ -2633,7 +2636,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                   type="text"
                   value={wpForm.refCode}
                   onChange={e => setWpForm({ ...wpForm, refCode: e.target.value })}
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
                 />
               </div>
               <div>
@@ -2642,7 +2645,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                   type="text"
                   value={wpForm.area}
                   onChange={e => setWpForm({ ...wpForm, area: e.target.value })}
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
                 />
               </div>
             </div>
@@ -2652,7 +2655,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                 type="text"
                 value={wpForm.title}
                 onChange={e => setWpForm({ ...wpForm, title: e.target.value })}
-                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
               />
             </div>
             <div style={{ marginBottom: '12px' }}>
@@ -2661,7 +2664,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                 value={wpForm.objective}
                 onChange={e => setWpForm({ ...wpForm, objective: e.target.value })}
                 rows={2}
-                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
               />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
@@ -2671,7 +2674,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                   type="number"
                   value={wpForm.sampleValue}
                   onChange={e => setWpForm({ ...wpForm, sampleValue: parseFloat(e.target.value) || 0 })}
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
                 />
               </div>
               <div>
@@ -2680,13 +2683,13 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                   type="number"
                   value={wpForm.populationValue}
                   onChange={e => setWpForm({ ...wpForm, populationValue: parseFloat(e.target.value) || 0 })}
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
                 />
               </div>
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-              <button onClick={() => setShowNewWpModal(false)} style={{ padding: '8px 16px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer' }}>Cancel</button>
-              <button onClick={handleCreateWorkingPaper} style={{ padding: '8px 16px', background: '#16a34a', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 600, cursor: 'pointer' }}>Save Workpaper</button>
+              <button onClick={() => setShowNewWpModal(false)} style={{ padding: '8px 16px', background: 'var(--card-subtle)', border: '1px solid var(--border)', borderRadius: '4px', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={handleCreateWorkingPaper} style={{ padding: '8px 16px', background: 'var(--success)', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 600, cursor: 'pointer' }}>Save Workpaper</button>
             </div>
           </div>
         </div>
@@ -2694,15 +2697,15 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
 
       {/* Modal: Review Working Paper */}
       {reviewingWp && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: '#fff', borderRadius: '8px', width: '480px', padding: '24px' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: 'var(--card)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '8px', width: '480px', padding: '24px' }}>
             <h3 style={{ margin: '0 0 16px 0', fontSize: '18px' }}>Review Working Paper: {reviewingWp.refCode}</h3>
             <div style={{ marginBottom: '12px' }}>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>Review Status</label>
               <select
                 value={reviewForm.status}
                 onChange={e => setReviewForm({ ...reviewForm, status: e.target.value })}
-                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
               >
                 <option value="draft">Draft</option>
                 <option value="ready_for_review">Ready for Review</option>
@@ -2716,12 +2719,12 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                 value={reviewForm.reviewNotes}
                 onChange={e => setReviewForm({ ...reviewForm, reviewNotes: e.target.value })}
                 rows={3}
-                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
               />
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-              <button onClick={() => setReviewingWp(null)} style={{ padding: '8px 16px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer' }}>Cancel</button>
-              <button onClick={handleReviewWorkingPaper} style={{ padding: '8px 16px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 600, cursor: 'pointer' }}>Submit Review</button>
+              <button onClick={() => setReviewingWp(null)} style={{ padding: '8px 16px', background: 'var(--card-subtle)', border: '1px solid var(--border)', borderRadius: '4px', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={handleReviewWorkingPaper} style={{ padding: '8px 16px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 600, cursor: 'pointer' }}>Submit Review</button>
             </div>
           </div>
         </div>
@@ -2729,17 +2732,17 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
 
       {/* Modal: Sign Off Audit Report (SA 700) */}
       {showSignoffModal && selectedEng && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: '#fff', borderRadius: '8px', width: '500px', padding: '24px' }}>
-            <h3 style={{ margin: '0 0 12px 0', fontSize: '18px', color: '#0f172a' }}>Sign Off Audit Report (SA 700 / SA 220)</h3>
-            <p style={{ fontSize: '12px', color: '#64748b', margin: '0 0 16px 0' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: 'var(--card)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '8px', width: '500px', padding: '24px' }}>
+            <h3 style={{ margin: '0 0 12px 0', fontSize: '18px', color: 'var(--text)' }}>Sign Off Audit Report (SA 700 / SA 220)</h3>
+            <p style={{ fontSize: '12px', color: 'var(--muted)', margin: '0 0 16px 0' }}>
               This issues the auditor's report and triggers the mandatory statutory 60-day archival countdown under ICAI SQC 1 (Para 74).
             </p>
 
             {/* Gate check warning */}
             {!selectedEng.canSignOff && (
-              <div style={{ padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', color: '#b91c1c', fontSize: '12px', marginBottom: '14px' }}>
-                ⚠️ <strong>Gate-Check Blocking Sign-Off:</strong> {selectedEng.signOffValidationMessage}
+              <div style={{ padding: '10px 14px', background: 'rgba(220, 38, 38, 0.08)', border: '1px solid rgba(220, 38, 38, 0.35)', borderRadius: '6px', color: 'var(--error)', fontSize: '12px', marginBottom: '14px' }}>
+                <strong>Gate-Check Blocking Sign-Off:</strong> {selectedEng.signOffValidationMessage}
               </div>
             )}
 
@@ -2749,7 +2752,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                 type="date"
                 value={signoffForm.auditReportDate}
                 onChange={e => setSignoffForm({ ...signoffForm, auditReportDate: e.target.value })}
-                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
               />
             </div>
             <div style={{ marginBottom: '12px' }}>
@@ -2757,7 +2760,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
               <select
                 value={signoffForm.auditOpinion}
                 onChange={e => setSignoffForm({ ...signoffForm, auditOpinion: e.target.value })}
-                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
               >
                 <option value="unmodified">Unmodified (Clean Opinion)</option>
                 <option value="qualified">Qualified Opinion (Except for...)</option>
@@ -2771,17 +2774,17 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                 value={signoffForm.notes}
                 onChange={e => setSignoffForm({ ...signoffForm, notes: e.target.value })}
                 rows={2}
-                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
               />
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-              <button onClick={() => setShowSignoffModal(false)} style={{ padding: '8px 16px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={() => setShowSignoffModal(false)} style={{ padding: '8px 16px', background: 'var(--card-subtle)', border: '1px solid var(--border)', borderRadius: '4px', cursor: 'pointer' }}>Cancel</button>
               <button
                 onClick={handleSignOffAudit}
                 disabled={!selectedEng.canSignOff}
                 style={{
                   padding: '8px 16px',
-                  background: selectedEng.canSignOff ? '#16a34a' : '#94a3b8',
+                  background: selectedEng.canSignOff ? 'var(--success)' : 'var(--muted)',
                   color: '#fff',
                   border: 'none',
                   borderRadius: '4px',
@@ -2798,8 +2801,8 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
 
       {/* Modal: New Review Note / Query */}
       {showNewNoteModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: '#fff', borderRadius: '8px', width: '480px', padding: '24px' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: 'var(--card)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '8px', width: '480px', padding: '24px' }}>
             <h3 style={{ margin: '0 0 16px 0', fontSize: '18px' }}>Raise Audit Review Query</h3>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
               <div>
@@ -2807,7 +2810,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                 <select
                   value={noteForm.priority}
                   onChange={e => setNoteForm({ ...noteForm, priority: e.target.value })}
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
                 >
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>
@@ -2820,7 +2823,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                 <select
                   value={noteForm.category}
                   onChange={e => setNoteForm({ ...noteForm, category: e.target.value })}
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
                 >
                   <option value="documentation_gap">Documentation Gap</option>
                   <option value="insufficient_testing">Insufficient Testing</option>
@@ -2836,7 +2839,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
               <select
                 value={noteForm.workingPaperId}
                 onChange={e => setNoteForm({ ...noteForm, workingPaperId: e.target.value })}
-                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
               >
                 <option value="">General Engagement Query</option>
                 {workingPapers.map(w => <option key={w.id} value={w.id}>{w.refCode} - {w.title}</option>)}
@@ -2849,12 +2852,12 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                 onChange={e => setNoteForm({ ...noteForm, query: e.target.value })}
                 rows={3}
                 placeholder="State the audit finding, documentation requirement, or missing evidence..."
-                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
               />
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-              <button onClick={() => setShowNewNoteModal(false)} style={{ padding: '8px 16px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer' }}>Cancel</button>
-              <button onClick={handleCreateReviewNote} style={{ padding: '8px 16px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 600, cursor: 'pointer' }}>Raise Query</button>
+              <button onClick={() => setShowNewNoteModal(false)} style={{ padding: '8px 16px', background: 'var(--card-subtle)', border: '1px solid var(--border)', borderRadius: '4px', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={handleCreateReviewNote} style={{ padding: '8px 16px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 600, cursor: 'pointer' }}>Raise Query</button>
             </div>
           </div>
         </div>
@@ -2862,10 +2865,10 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
 
       {/* Modal: Respond to Review Note */}
       {respondingNote && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: '#fff', borderRadius: '8px', width: '480px', padding: '24px' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: 'var(--card)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '8px', width: '480px', padding: '24px' }}>
             <h3 style={{ margin: '0 0 12px 0', fontSize: '18px' }}>Respond to Audit Query</h3>
-            <div style={{ padding: '10px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0', marginBottom: '14px', fontSize: '12px' }}>
+            <div style={{ padding: '10px', background: 'var(--card-subtle)', borderRadius: '6px', border: '1px solid var(--border)', marginBottom: '14px', fontSize: '12px' }}>
               <strong>Query:</strong> {respondingNote.query}
             </div>
             <div style={{ marginBottom: '16px' }}>
@@ -2875,12 +2878,12 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                 onChange={e => setNoteResponseText(e.target.value)}
                 rows={4}
                 placeholder="Explain testing performed, attach evidence reference, or explain accounting treatment..."
-                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
               />
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-              <button onClick={() => setRespondingNote(null)} style={{ padding: '8px 16px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer' }}>Cancel</button>
-              <button onClick={handleRespondReviewNote} style={{ padding: '8px 16px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 600, cursor: 'pointer' }}>Submit Response</button>
+              <button onClick={() => setRespondingNote(null)} style={{ padding: '8px 16px', background: 'var(--card-subtle)', border: '1px solid var(--border)', borderRadius: '4px', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={handleRespondReviewNote} style={{ padding: '8px 16px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 600, cursor: 'pointer' }}>Submit Response</button>
             </div>
           </div>
         </div>
@@ -2888,18 +2891,18 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
 
       {/* Modal: Edit / Adjust Lead Schedule */}
       {editingSchedule && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: '#fff', borderRadius: '8px', width: '560px', maxHeight: '90vh', overflowY: 'auto', padding: '24px' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: 'var(--card)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '8px', width: '560px', maxHeight: '90vh', overflowY: 'auto', padding: '24px' }}>
             <h3 style={{ margin: '0 0 4px 0', fontSize: '18px' }}>
               Lead Schedule [{editingSchedule.leadCode}] Audit Adjustment
             </h3>
-            <p style={{ margin: '0 0 16px 0', fontSize: '12px', color: '#64748b' }}>
+            <p style={{ margin: '0 0 16px 0', fontSize: '12px', color: 'var(--muted)' }}>
               {editingSchedule.leadTitle} ({editingSchedule.scheduleCategory})
             </p>
 
-            <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '6px', border: '1px solid #e2e8f0', marginBottom: '16px' }}>
-              <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600 }}>UNADJUSTED TRIAL BALANCE FIGURE</div>
-              <div style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a' }}>{fmtInr(editingSchedule.unadjustedBookBalance)}</div>
+            <div style={{ background: 'var(--card-subtle)', padding: '12px', borderRadius: '6px', border: '1px solid var(--border)', marginBottom: '16px' }}>
+              <div style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 600 }}>UNADJUSTED TRIAL BALANCE FIGURE</div>
+              <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text)' }}>{fmtInr(editingSchedule.unadjustedBookBalance)}</div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
@@ -2909,7 +2912,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                   type="number"
                   value={leadScheduleForm.auditAdjustmentsDebit}
                   onChange={e => setLeadScheduleForm({ ...leadScheduleForm, auditAdjustmentsDebit: parseFloat(e.target.value) || 0 })}
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
                 />
               </div>
               <div>
@@ -2918,7 +2921,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                   type="number"
                   value={leadScheduleForm.auditAdjustmentsCredit}
                   onChange={e => setLeadScheduleForm({ ...leadScheduleForm, auditAdjustmentsCredit: parseFloat(e.target.value) || 0 })}
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
                 />
               </div>
             </div>
@@ -2929,7 +2932,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                 type="number"
                 value={leadScheduleForm.priorYearBalance}
                 onChange={e => setLeadScheduleForm({ ...leadScheduleForm, priorYearBalance: parseFloat(e.target.value) || 0 })}
-                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
               />
             </div>
 
@@ -2940,7 +2943,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                 onChange={e => setLeadScheduleForm({ ...leadScheduleForm, auditProceduresSummary: e.target.value })}
                 rows={3}
                 placeholder="Document testing performed, verification against third-party ledgers, and sampling results..."
-                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
               />
             </div>
 
@@ -2951,7 +2954,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                 value={leadScheduleForm.exceptionsNoted}
                 onChange={e => setLeadScheduleForm({ ...leadScheduleForm, exceptionsNoted: e.target.value })}
                 placeholder="Leave blank or 'None' if clean"
-                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
               />
             </div>
 
@@ -2961,7 +2964,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                 <select
                   value={leadScheduleForm.status}
                   onChange={e => setLeadScheduleForm({ ...leadScheduleForm, status: e.target.value })}
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
                 >
                   <option value="Draft">Draft</option>
                   <option value="InReview">In Review</option>
@@ -2981,8 +2984,8 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-              <button onClick={() => setEditingSchedule(null)} style={{ padding: '8px 16px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer' }}>Cancel</button>
-              <button onClick={handleSaveLeadSchedule} style={{ padding: '8px 16px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 600, cursor: 'pointer' }}>Save Adjustments</button>
+              <button onClick={() => setEditingSchedule(null)} style={{ padding: '8px 16px', background: 'var(--card-subtle)', border: '1px solid var(--border)', borderRadius: '4px', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={handleSaveLeadSchedule} style={{ padding: '8px 16px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 600, cursor: 'pointer' }}>Save Adjustments</button>
             </div>
           </div>
         </div>
@@ -2990,10 +2993,10 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
 
       {/* Modal: Seal & Lock Audit File under SQC 1 */}
       {showSealModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: '#fff', borderRadius: '8px', width: '500px', padding: '24px' }}>
-            <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', color: '#0f172a' }}>🔒 Seal &amp; Lock Audit File (ICAI SQC 1)</h3>
-            <div style={{ padding: '12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', marginBottom: '16px', fontSize: '12px', color: '#991b1b' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: 'var(--card)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '8px', width: '500px', padding: '24px' }}>
+            <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', color: 'var(--text)' }}>Seal &amp; Lock Audit File (ICAI SQC 1)</h3>
+            <div style={{ padding: '12px', background: 'rgba(220, 38, 38, 0.08)', border: '1px solid rgba(220, 38, 38, 0.35)', borderRadius: '6px', marginBottom: '16px', fontSize: '12px', color: 'var(--error)' }}>
               <strong>Caution:</strong> Sealing this audit file generates an immutable cryptographic SHA-256 integrity seal under <strong>SQC 1 Paragraph 74</strong> (60-day archival lock). Once sealed, lead schedules and working papers cannot be modified.
             </div>
 
@@ -3003,13 +3006,13 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                 value={sealRemarks}
                 onChange={e => setSealRemarks(e.target.value)}
                 rows={4}
-                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
               />
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-              <button onClick={() => setShowSealModal(false)} style={{ padding: '8px 16px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer' }}>Cancel</button>
-              <button onClick={handleSealDossier} style={{ padding: '8px 16px', background: '#dc2626', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 600, cursor: 'pointer' }}>Confirm Seal &amp; Lock</button>
+              <button onClick={() => setShowSealModal(false)} style={{ padding: '8px 16px', background: 'var(--card-subtle)', border: '1px solid var(--border)', borderRadius: '4px', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={handleSealDossier} style={{ padding: '8px 16px', background: 'var(--error)', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 600, cursor: 'pointer' }}>Confirm Seal &amp; Lock</button>
             </div>
           </div>
         </div>
@@ -3017,9 +3020,9 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
 
       {/* Modal: New Confirmation Campaign */}
       {showNewCampaignModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: '#fff', borderRadius: '8px', width: '500px', padding: '24px' }}>
-            <h3 style={{ margin: '0 0 12px 0', fontSize: '18px', color: '#1e3a8a' }}>New SA 505 Confirmation Campaign</h3>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: 'var(--card)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '8px', width: '500px', padding: '24px' }}>
+            <h3 style={{ margin: '0 0 12px 0', fontSize: '18px', color: 'var(--accent)' }}>New SA 505 Confirmation Campaign</h3>
             <div style={{ marginBottom: '12px' }}>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>Campaign Title *</label>
               <input
@@ -3027,7 +3030,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                 value={campaignForm.title}
                 onChange={e => setCampaignForm({ ...campaignForm, title: e.target.value })}
                 required
-                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
               />
             </div>
             <div style={{ marginBottom: '12px' }}>
@@ -3036,7 +3039,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                 rows={2}
                 value={campaignForm.description || ''}
                 onChange={e => setCampaignForm({ ...campaignForm, description: e.target.value })}
-                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
               />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
@@ -3047,7 +3050,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                   value={campaignForm.asOfDate}
                   onChange={e => setCampaignForm({ ...campaignForm, asOfDate: e.target.value })}
                   required
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
                 />
               </div>
               <div>
@@ -3057,13 +3060,13 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                   value={campaignForm.cutoffDate}
                   onChange={e => setCampaignForm({ ...campaignForm, cutoffDate: e.target.value })}
                   required
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
                 />
               </div>
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-              <button onClick={() => setShowNewCampaignModal(false)} style={{ padding: '8px 16px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer' }}>Cancel</button>
-              <button onClick={handleCreateCampaign} style={{ padding: '8px 16px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 600, cursor: 'pointer' }}>Create Campaign</button>
+              <button onClick={() => setShowNewCampaignModal(false)} style={{ padding: '8px 16px', background: 'var(--card-subtle)', border: '1px solid var(--border)', borderRadius: '4px', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={handleCreateCampaign} style={{ padding: '8px 16px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 600, cursor: 'pointer' }}>Create Campaign</button>
             </div>
           </div>
         </div>
@@ -3071,9 +3074,9 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
 
       {/* Modal: New Confirmation Request */}
       {showNewReqModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: '#fff', borderRadius: '8px', width: '560px', padding: '24px' }}>
-            <h3 style={{ margin: '0 0 12px 0', fontSize: '18px', color: '#1e3a8a' }}>Add Third-Party Confirmation Request</h3>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: 'var(--card)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '8px', width: '560px', padding: '24px' }}>
+            <h3 style={{ margin: '0 0 12px 0', fontSize: '18px', color: 'var(--accent)' }}>Add Third-Party Confirmation Request</h3>
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px', marginBottom: '12px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>Party Name *</label>
@@ -3083,7 +3086,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                   onChange={e => setReqForm({ ...reqForm, partyName: e.target.value })}
                   placeholder="e.g. Acme Industries Ltd / HDFC Bank"
                   required
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
                 />
               </div>
               <div>
@@ -3091,7 +3094,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                 <select
                   value={reqForm.partyType}
                   onChange={e => setReqForm({ ...reqForm, partyType: e.target.value })}
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
                 >
                   <option value="TradeDebtor">Trade Debtor</option>
                   <option value="TradeCreditor">Trade Creditor</option>
@@ -3113,7 +3116,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                   onChange={e => setReqForm({ ...reqForm, partyContactEmail: e.target.value })}
                   placeholder="finance@party.com"
                   required
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
                 />
               </div>
               <div>
@@ -3123,7 +3126,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                   value={reqForm.partyPanGstin || ''}
                   onChange={e => setReqForm({ ...reqForm, partyPanGstin: e.target.value })}
                   placeholder="27AABCT1234F1Z5"
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
                 />
               </div>
             </div>
@@ -3137,7 +3140,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                   value={reqForm.bookBalanceAmount}
                   onChange={e => setReqForm({ ...reqForm, bookBalanceAmount: parseFloat(e.target.value) || 0 })}
                   required
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
                 />
               </div>
               <div>
@@ -3145,7 +3148,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                 <select
                   value={reqForm.confirmationType}
                   onChange={e => setReqForm({ ...reqForm, confirmationType: e.target.value })}
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
                 >
                   <option value="PositiveStatedBalance">Positive (Stated Balance)</option>
                   <option value="PositiveBlankBalance">Positive (Blank Balance)</option>
@@ -3155,8 +3158,8 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '16px' }}>
-              <button onClick={() => setShowNewReqModal(false)} style={{ padding: '8px 16px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer' }}>Cancel</button>
-              <button onClick={handleCreateRequest} style={{ padding: '8px 16px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 600, cursor: 'pointer' }}>Create Request</button>
+              <button onClick={() => setShowNewReqModal(false)} style={{ padding: '8px 16px', background: 'var(--card-subtle)', border: '1px solid var(--border)', borderRadius: '4px', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={handleCreateRequest} style={{ padding: '8px 16px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 600, cursor: 'pointer' }}>Create Request</button>
             </div>
           </div>
         </div>
@@ -3164,24 +3167,24 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
 
       {/* Modal: Auditor Evaluation & Alternative Procedures (SA 505) */}
       {evaluatingReq && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: '#fff', borderRadius: '8px', width: '600px', maxHeight: '90vh', overflowY: 'auto', padding: '24px' }}>
-            <h3 style={{ margin: '0 0 12px 0', fontSize: '18px', color: '#1e3a8a' }}>Auditor Evaluation &amp; Alternative Procedures (SA 505)</h3>
-            <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '6px', border: '1px solid #e2e8f0', marginBottom: '16px', fontSize: '13px' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: 'var(--card)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '8px', width: '600px', maxHeight: '90vh', overflowY: 'auto', padding: '24px' }}>
+            <h3 style={{ margin: '0 0 12px 0', fontSize: '18px', color: 'var(--accent)' }}>Auditor Evaluation &amp; Alternative Procedures (SA 505)</h3>
+            <div style={{ background: 'var(--card-subtle)', padding: '12px', borderRadius: '6px', border: '1px solid var(--border)', marginBottom: '16px', fontSize: '13px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                 <strong>{evaluatingReq.partyName}</strong>
-                <span style={{ color: '#64748b' }}>{evaluatingReq.partyType} ({evaluatingReq.leadScheduleRef})</span>
+                <span style={{ color: 'var(--muted)' }}>{evaluatingReq.partyType} ({evaluatingReq.leadScheduleRef})</span>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginTop: '8px' }}>
                 <div>Book Balance: <strong>{fmtInr(evaluatingReq.bookBalanceAmount)}</strong></div>
                 <div>Confirmed: <strong>{evaluatingReq.confirmedBalanceAmount != null ? fmtInr(evaluatingReq.confirmedBalanceAmount) : '—'}</strong></div>
-                <div>Variance: <strong style={{ color: evaluatingReq.varianceAmount && evaluatingReq.varianceAmount !== 0 ? '#dc2626' : '#16a34a' }}>{evaluatingReq.varianceAmount != null ? fmtInr(evaluatingReq.varianceAmount) : '—'}</strong></div>
+                <div>Variance: <strong style={{ color: evaluatingReq.varianceAmount && evaluatingReq.varianceAmount !== 0 ? 'var(--error)' : 'var(--success)' }}>{evaluatingReq.varianceAmount != null ? fmtInr(evaluatingReq.varianceAmount) : '—'}</strong></div>
               </div>
               {evaluatingReq.disputeReason !== 'None' && (
-                <div style={{ color: '#b91c1c', marginTop: '6px' }}>Third Party Difference Reason: <strong>{evaluatingReq.disputeReason}</strong></div>
+                <div style={{ color: 'var(--error)', marginTop: '6px' }}>Third Party Difference Reason: <strong>{evaluatingReq.disputeReason}</strong></div>
               )}
               {evaluatingReq.thirdPartyRemarks && (
-                <div style={{ color: '#475569', fontStyle: 'italic', marginTop: '4px' }}>Remarks: "{evaluatingReq.thirdPartyRemarks}"</div>
+                <div style={{ color: 'var(--text-secondary)', fontStyle: 'italic', marginTop: '4px' }}>Remarks: "{evaluatingReq.thirdPartyRemarks}"</div>
               )}
             </div>
 
@@ -3190,7 +3193,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
               <select
                 value={evaluationForm.status}
                 onChange={e => setEvaluationForm({ ...evaluationForm, status: e.target.value })}
-                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
               >
                 <option value="ConfirmedAgreed">Confirmed &amp; Agreed (Zero Variance)</option>
                 <option value="Disputed">Disputed / Exception (Timing/Ledger Difference)</option>
@@ -3208,7 +3211,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                 value={evaluationForm.alternativeProceduresPerformed || ''}
                 onChange={e => setEvaluationForm({ ...evaluationForm, alternativeProceduresPerformed: e.target.value })}
                 placeholder="e.g. Subsequent payment of ₹4,50,000 verified from April 2025 bank statement; dispatch lorry receipt and customer delivery acknowledgment examined."
-                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
               />
             </div>
 
@@ -3218,7 +3221,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                 <select
                   value={evaluationForm.auditorConclusion}
                   onChange={e => setEvaluationForm({ ...evaluationForm, auditorConclusion: e.target.value })}
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
                 >
                   <option value="ReconciledSatisfactory">Reconciled Satisfactorily</option>
                   <option value="TimingDifferenceAcceptable">Timing Difference Acceptable</option>
@@ -3233,7 +3236,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                   step="0.01"
                   value={evaluationForm.proposedAdjustmentAmount || 0}
                   onChange={e => setEvaluationForm({ ...evaluationForm, proposedAdjustmentAmount: parseFloat(e.target.value) || 0 })}
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
                 />
               </div>
             </div>
@@ -3245,13 +3248,13 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                 value={evaluationForm.auditorNotes || ''}
                 onChange={e => setEvaluationForm({ ...evaluationForm, auditorNotes: e.target.value })}
                 placeholder="Reference to supporting vouchers or e-way bills..."
-                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
               />
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-              <button onClick={() => setEvaluatingReq(null)} style={{ padding: '8px 16px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer' }}>Cancel</button>
-              <button onClick={handleUpdateEvaluation} style={{ padding: '8px 16px', background: '#1e3a8a', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 600, cursor: 'pointer' }}>Save Evaluation</button>
+              <button onClick={() => setEvaluatingReq(null)} style={{ padding: '8px 16px', background: 'var(--card-subtle)', border: '1px solid var(--border)', borderRadius: '4px', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={handleUpdateEvaluation} style={{ padding: '8px 16px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 600, cursor: 'pointer' }}>Save Evaluation</button>
             </div>
           </div>
         </div>
@@ -3259,12 +3262,12 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
 
       {/* Modal: Generate Independent Auditor's Report (SA 700) */}
       {showGenerateReportModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: '#fff', borderRadius: '8px', width: '560px', maxHeight: '90vh', overflowY: 'auto', padding: '24px' }}>
-            <h3 style={{ margin: '0 0 12px 0', fontSize: '18px', color: '#1e3a8a' }}>
-              ⚡ 1-Click Generate ICAI Independent Auditor's Report
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: 'var(--card)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '8px', width: '560px', maxHeight: '90vh', overflowY: 'auto', padding: '24px' }}>
+            <h3 style={{ margin: '0 0 12px 0', fontSize: '18px', color: 'var(--accent)' }}>
+              1-Click Generate ICAI Independent Auditor's Report
             </h3>
-            <p style={{ fontSize: '12px', color: '#64748b', margin: '0 0 16px 0' }}>
+            <p style={{ fontSize: '12px', color: 'var(--muted)', margin: '0 0 16px 0' }}>
               Select audit opinion type and reporting options under SA 700 / 701 / 705 / 706.
             </p>
 
@@ -3273,7 +3276,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
               <select
                 value={reportGenForm.opinionType}
                 onChange={e => setReportGenForm({ ...reportGenForm, opinionType: e.target.value })}
-                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
               >
                 <option value="Unmodified">Unmodified (Clean Opinion - SA 700)</option>
                 <option value="Qualified">Qualified Opinion (SA 705)</option>
@@ -3288,7 +3291,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                 type="text"
                 value={reportGenForm.placeOfSignature || 'Mumbai'}
                 onChange={e => setReportGenForm({ ...reportGenForm, placeOfSignature: e.target.value })}
-                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
               />
             </div>
 
@@ -3313,7 +3316,7 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                   value={reportGenForm.qualificationDetails || ''}
                   onChange={e => setReportGenForm({ ...reportGenForm, qualificationDetails: e.target.value })}
                   placeholder="e.g. Non-provisioning of long-outstanding trade receivables of ₹32.50 Lakhs resulting in overstatement of profits..."
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
                 />
               </div>
             )}
@@ -3325,13 +3328,13 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                 value={reportGenForm.emphasisOfMatter || ''}
                 onChange={e => setReportGenForm({ ...reportGenForm, emphasisOfMatter: e.target.value })}
                 placeholder="e.g. Note 32 regarding the outcome of pending Goods & Services Tax litigation..."
-                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
               />
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-              <button onClick={() => setShowGenerateReportModal(false)} style={{ padding: '8px 16px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer' }}>Cancel</button>
-              <button onClick={handleGenerateAuditorReport} disabled={loadingReport} style={{ padding: '8px 16px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 600, cursor: 'pointer' }}>
+              <button onClick={() => setShowGenerateReportModal(false)} style={{ padding: '8px 16px', background: 'var(--card-subtle)', border: '1px solid var(--border)', borderRadius: '4px', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={handleGenerateAuditorReport} disabled={loadingReport} style={{ padding: '8px 16px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 600, cursor: 'pointer' }}>
                 {loadingReport ? 'Generating...' : 'Generate Report'}
               </button>
             </div>
@@ -3341,18 +3344,18 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
 
       {/* Modal: Issue ICAI UDIN */}
       {showUdinModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: '#fff', borderRadius: '8px', width: '500px', padding: '24px' }}>
-            <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', color: '#047857' }}>
-              🔏 Issue &amp; Cryptographically Bind ICAI UDIN
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: 'var(--card)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '8px', width: '500px', padding: '24px' }}>
+            <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', color: 'var(--success)' }}>
+              Issue &amp; Cryptographically Bind ICAI UDIN
             </h3>
-            <p style={{ fontSize: '12px', color: '#64748b', margin: '0 0 16px 0' }}>
+            <p style={{ fontSize: '12px', color: 'var(--muted)', margin: '0 0 16px 0' }}>
               Unique Document Identification Number (UDIN) is mandatory for all attestations and audit reports under ICAI regulations.
             </p>
 
-            <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '12px', marginBottom: '16px', fontSize: '12px', color: '#166534' }}>
+            <div style={{ background: 'rgba(22, 163, 74, 0.08)', border: '1px solid rgba(22, 163, 74, 0.35)', borderRadius: '6px', padding: '12px', marginBottom: '16px', fontSize: '12px', color: 'var(--success)' }}>
               <div><strong>Format:</strong> 18 alphanumeric characters</div>
-              <div style={{ marginTop: '2px', color: '#15803d' }}>
+              <div style={{ marginTop: '2px', color: 'var(--success)' }}>
                 <code>[2-digit FY][6-digit M.No.][4-digit DocCode][6-digit Hash]</code> (e.g. <code>25123456AAAA123456</code>)
               </div>
             </div>
@@ -3365,10 +3368,10 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                 value={udinCode}
                 onChange={e => setUdinCode(e.target.value.toUpperCase())}
                 placeholder="25123456AAAA123456"
-                style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #cbd5e1', fontFamily: 'monospace', fontSize: '14px', letterSpacing: '1px' }}
+                style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)', fontFamily: 'monospace', fontSize: '14px', letterSpacing: '1px' }}
               />
-              <div style={{ marginTop: '4px', fontSize: '11px', color: udinCode.length === 18 && /^[0-9]{2}[0-9]{6}[A-Z0-9]{4}[A-Z0-9]{6}$/.test(udinCode) ? '#16a34a' : (udinCode.length > 0 ? '#dc2626' : '#64748b') }}>
-                {udinCode.length === 18 && /^[0-9]{2}[0-9]{6}[A-Z0-9]{4}[A-Z0-9]{6}$/.test(udinCode) ? '✅ Valid 18-character ICAI UDIN format' : `${udinCode.length}/18 characters entered`}
+              <div style={{ marginTop: '4px', fontSize: '11px', color: udinCode.length === 18 && /^[0-9]{2}[0-9]{6}[A-Z0-9]{4}[A-Z0-9]{6}$/.test(udinCode) ? 'var(--success)' : (udinCode.length > 0 ? 'var(--error)' : 'var(--muted)') }}>
+                {udinCode.length === 18 && /^[0-9]{2}[0-9]{6}[A-Z0-9]{4}[A-Z0-9]{6}$/.test(udinCode) ? '✓ Valid 18-character ICAI UDIN format' : `${udinCode.length}/18 characters entered`}
               </div>
             </div>
 
@@ -3378,16 +3381,16 @@ export function AuditWorkspacePage({ me }: { me: UserProfile | null }) {
                 type="date"
                 value={udinDate}
                 onChange={e => setUdinDate(e.target.value)}
-                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
               />
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-              <button onClick={() => setShowUdinModal(false)} style={{ padding: '8px 16px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={() => setShowUdinModal(false)} style={{ padding: '8px 16px', background: 'var(--card-subtle)', border: '1px solid var(--border)', borderRadius: '4px', cursor: 'pointer' }}>Cancel</button>
               <button
                 onClick={handleIssueUdin}
                 disabled={loadingReport || udinCode.trim().length !== 18}
-                style={{ padding: '8px 16px', background: udinCode.trim().length === 18 ? '#047857' : '#94a3b8', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 600, cursor: udinCode.trim().length === 18 ? 'pointer' : 'not-allowed' }}
+                style={{ padding: '8px 16px', background: udinCode.trim().length === 18 ? 'var(--success)' : 'var(--muted)', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 600, cursor: udinCode.trim().length === 18 ? 'pointer' : 'not-allowed' }}
               >
                 {loadingReport ? 'Validating...' : 'Sign & Issue UDIN'}
               </button>

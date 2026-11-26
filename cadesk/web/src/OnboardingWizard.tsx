@@ -81,21 +81,21 @@ export function OnboardingWizard({ onSignedIn, onCancel }: OnboardingWizardProps
   }
 
   return (
-    <div style={{ maxWidth: '640px', margin: '40px auto', background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '12px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.08)', overflow: 'hidden' }}>
+    <div style={{ maxWidth: '640px', margin: '40px auto', background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '14px', boxShadow: '0 20px 30px -10px rgba(9, 21, 46, 0.14)', overflow: 'hidden' }}>
       {/* Wizard Header */}
-      <div style={{ padding: '24px', background: '#16191d', color: '#fff' }}>
+      <div style={{ padding: '24px', background: 'linear-gradient(135deg, #09152e 0%, #102a5c 60%, #1d4ed8 100%)', color: '#fff' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-          <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: '#5eead4' }}>
+          <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#7dd3fc' }}>
             CA Desk • Firm Onboarding Wizard
           </div>
-          <button onClick={onCancel} style={{ background: 'none', border: 'none', color: '#a0a6ae', fontSize: '18px', cursor: 'pointer' }}>✕</button>
+          <button onClick={onCancel} style={{ background: 'none', border: 'none', color: 'rgba(255, 255, 255, 0.72)', fontSize: '18px', cursor: 'pointer' }}>✕</button>
         </div>
         <h2 style={{ fontSize: '20px', fontWeight: 700, margin: '0 0 6px 0' }}>
           {step === 1 && 'Step 1 of 3: Chartered Accountant Firm Profile'}
           {step === 2 && 'Step 2 of 3: Managing Partner & Signing Authority'}
           {step === 3 && 'Step 3 of 3: Practice Customization & Instant Demo Workspace'}
         </h2>
-        <p style={{ fontSize: '13px', color: '#a0a6ae', margin: 0 }}>
+        <p style={{ fontSize: '13px', color: 'rgba(255, 255, 255, 0.78)', margin: 0 }}>
           {step === 1 && 'Register your CA firm with ICAI Firm Registration details to establish two-lock isolated tenancy.'}
           {step === 2 && 'Set up your primary partner account for signing audit workpapers, UDIN reports, and tax filings.'}
           {step === 3 && 'Tailor your workspace modules and pre-load sample audit clients for an instant test drive.'}
@@ -103,17 +103,17 @@ export function OnboardingWizard({ onSignedIn, onCancel }: OnboardingWizardProps
 
         {/* Step Indicator Bar */}
         <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
-          <div style={{ flex: 1, height: '4px', borderRadius: '2px', background: step >= 1 ? 'var(--accent)' : '#2b3038' }} />
-          <div style={{ flex: 1, height: '4px', borderRadius: '2px', background: step >= 2 ? 'var(--accent)' : '#2b3038' }} />
-          <div style={{ flex: 1, height: '4px', borderRadius: '2px', background: step >= 3 ? 'var(--accent)' : '#2b3038' }} />
+          <div style={{ flex: 1, height: '4px', borderRadius: '2px', background: step >= 1 ? '#38bdf8' : 'rgba(255, 255, 255, 0.2)' }} />
+          <div style={{ flex: 1, height: '4px', borderRadius: '2px', background: step >= 2 ? '#38bdf8' : 'rgba(255, 255, 255, 0.2)' }} />
+          <div style={{ flex: 1, height: '4px', borderRadius: '2px', background: step >= 3 ? '#38bdf8' : 'rgba(255, 255, 255, 0.2)' }} />
         </div>
       </div>
 
       {/* Wizard Body */}
-      <div style={{ padding: '28px' }}>
+      <div style={{ padding: '28px', color: 'var(--text)' }}>
         {error && (
-          <div style={{ padding: '12px 16px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', color: '#991b1b', fontSize: '13px', marginBottom: '20px' }}>
-            ⚠️ {error}
+          <div style={{ padding: '12px 16px', background: 'rgba(220, 38, 38, 0.08)', border: '1px solid rgba(220, 38, 38, 0.35)', borderRadius: '6px', color: 'var(--error)', fontSize: '13px', marginBottom: '20px' }}>
+            {error}
           </div>
         )}
 
@@ -121,7 +121,7 @@ export function OnboardingWizard({ onSignedIn, onCancel }: OnboardingWizardProps
         {step === 1 && (
           <div>
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '4px' }}>
                 Full Legal Name of CA Firm: *
               </label>
               <input
@@ -130,13 +130,13 @@ export function OnboardingWizard({ onSignedIn, onCancel }: OnboardingWizardProps
                 value={firmName}
                 onChange={e => setFirmName(e.target.value)}
                 placeholder="e.g. M/s K. S. Sharma &amp; Associates, Chartered Accountants"
-                style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)', fontSize: '13px' }}
               />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '16px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '4px' }}>
                   ICAI Firm Registration No (FRN): *
                 </label>
                 <input
@@ -145,11 +145,11 @@ export function OnboardingWizard({ onSignedIn, onCancel }: OnboardingWizardProps
                   value={frn}
                   onChange={e => setFrn(e.target.value.toUpperCase())}
                   placeholder="e.g. 104523W or 012345N"
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', fontFamily: 'monospace' }}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)', fontSize: '13px', fontFamily: 'monospace' }}
                 />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '4px' }}>
                   Firm PAN (Permanent Account No): *
                 </label>
                 <input
@@ -159,14 +159,14 @@ export function OnboardingWizard({ onSignedIn, onCancel }: OnboardingWizardProps
                   value={firmPan}
                   onChange={e => setFirmPan(e.target.value.toUpperCase())}
                   placeholder="e.g. AAAFR1234A"
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', fontFamily: 'monospace' }}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)', fontSize: '13px', fontFamily: 'monospace' }}
                 />
               </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '14px', marginBottom: '24px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '4px' }}>
                   City / Location:
                 </label>
                 <input
@@ -174,11 +174,11 @@ export function OnboardingWizard({ onSignedIn, onCancel }: OnboardingWizardProps
                   value={city}
                   onChange={e => setCity(e.target.value)}
                   placeholder="e.g. Mumbai, New Delhi"
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)', fontSize: '13px' }}
                 />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '4px' }}>
                   State / Jurisdiction:
                 </label>
                 <input
@@ -186,11 +186,11 @@ export function OnboardingWizard({ onSignedIn, onCancel }: OnboardingWizardProps
                   value={state}
                   onChange={e => setState(e.target.value)}
                   placeholder="e.g. Maharashtra"
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)', fontSize: '13px' }}
                 />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '4px' }}>
                   Firm GSTIN (Optional):
                 </label>
                 <input
@@ -199,7 +199,7 @@ export function OnboardingWizard({ onSignedIn, onCancel }: OnboardingWizardProps
                   value={firmGstin}
                   onChange={e => setFirmGstin(e.target.value.toUpperCase())}
                   placeholder="e.g. 27AAAFR1234A1Z5"
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', fontFamily: 'monospace' }}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)', fontSize: '13px', fontFamily: 'monospace' }}
                 />
               </div>
             </div>
@@ -224,7 +224,7 @@ export function OnboardingWizard({ onSignedIn, onCancel }: OnboardingWizardProps
           <div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '14px', marginBottom: '16px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '4px' }}>
                   Partner Full Name: *
                 </label>
                 <input
@@ -233,11 +233,11 @@ export function OnboardingWizard({ onSignedIn, onCancel }: OnboardingWizardProps
                   value={partnerName}
                   onChange={e => setPartnerName(e.target.value)}
                   placeholder="e.g. CA Rajesh Kumar"
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)', fontSize: '13px' }}
                 />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '4px' }}>
                   ICAI Membership Number: *
                 </label>
                 <input
@@ -246,17 +246,17 @@ export function OnboardingWizard({ onSignedIn, onCancel }: OnboardingWizardProps
                   value={membershipNo}
                   onChange={e => setMembershipNo(e.target.value)}
                   placeholder="e.g. 054321 (FCA / ACA)"
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)', fontSize: '13px' }}
                 />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '4px' }}>
                   Partner Designation:
                 </label>
                 <select
                   value={designation}
                   onChange={e => setDesignation(e.target.value)}
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)', fontSize: '13px' }}
                 >
                   <option value="Senior Partner">Senior Partner</option>
                   <option value="Managing Partner">Managing Partner</option>
@@ -267,7 +267,7 @@ export function OnboardingWizard({ onSignedIn, onCancel }: OnboardingWizardProps
             </div>
 
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '4px' }}>
                 Official Work Email Address: *
               </label>
               <input
@@ -276,13 +276,13 @@ export function OnboardingWizard({ onSignedIn, onCancel }: OnboardingWizardProps
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="rajesh@yourfirm.in"
-                style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)', fontSize: '13px' }}
               />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '24px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '4px' }}>
                   Account Password: *
                 </label>
                 <input
@@ -291,11 +291,11 @@ export function OnboardingWizard({ onSignedIn, onCancel }: OnboardingWizardProps
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   placeholder="••••••••••••"
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)', fontSize: '13px' }}
                 />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '4px' }}>
                   Mobile (For OTP &amp; Alerts):
                 </label>
                 <input
@@ -303,7 +303,7 @@ export function OnboardingWizard({ onSignedIn, onCancel }: OnboardingWizardProps
                   value={mobile}
                   onChange={e => setMobile(e.target.value)}
                   placeholder="+91 98765 43210"
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)', fontSize: '13px' }}
                 />
               </div>
             </div>
@@ -312,7 +312,7 @@ export function OnboardingWizard({ onSignedIn, onCancel }: OnboardingWizardProps
               <button
                 type="button"
                 onClick={() => setStep(1)}
-                style={{ padding: '8px 18px', background: 'none', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '13px', fontWeight: 600, color: '#475569', cursor: 'pointer' }}
+                style={{ padding: '8px 18px', background: 'none', border: '1px solid var(--border)', borderRadius: '6px', fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', cursor: 'pointer' }}
               >
                 ← Back
               </button>
@@ -337,7 +337,7 @@ export function OnboardingWizard({ onSignedIn, onCancel }: OnboardingWizardProps
         {step === 3 && (
           <form onSubmit={handleCompleteRegistration}>
             <div style={{ marginBottom: '18px' }}>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '8px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '8px' }}>
                 Firm Scale &amp; Practice Structure:
               </label>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
@@ -359,13 +359,13 @@ export function OnboardingWizard({ onSignedIn, onCancel }: OnboardingWizardProps
             </div>
 
             <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '8px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '8px' }}>
                 Primary Practice Domain:
               </label>
               <select
                 value={primaryFocus}
                 onChange={e => setPrimaryFocus(e.target.value)}
-                style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)', fontSize: '13px' }}
               >
                 <option value="StatutoryAudit">Statutory Audit &amp; CARO 2020 Focus (Companies Act / ICAI)</option>
                 <option value="TaxPractice">Direct Tax, Form 3CD &amp; TDS Practice (Income Tax Act)</option>
@@ -375,7 +375,7 @@ export function OnboardingWizard({ onSignedIn, onCancel }: OnboardingWizardProps
             </div>
 
             {/* Instant Demo Firm Pre-loader Toggle */}
-            <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '8px', padding: '16px', marginBottom: '24px' }}>
+            <div style={{ background: 'rgba(22, 163, 74, 0.08)', border: '1px solid rgba(22, 163, 74, 0.35)', borderRadius: '8px', padding: '16px', marginBottom: '24px' }}>
               <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer' }}>
                 <input
                   type="checkbox"
@@ -384,10 +384,10 @@ export function OnboardingWizard({ onSignedIn, onCancel }: OnboardingWizardProps
                   style={{ marginTop: '3px' }}
                 />
                 <div>
-                  <span style={{ fontWeight: 700, color: '#166534', fontSize: '13px' }}>
-                    ⚡ Pre-load Sample CA Firm Workspace (Recommended for New Signups)
+                  <span style={{ fontWeight: 700, color: 'var(--success)', fontSize: '13px' }}>
+                    Pre-load Sample CA Firm Workspace (Recommended for New Signups)
                   </span>
-                  <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#15803d', lineHeight: 1.5 }}>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                     Instantly populates your workspace with 3 realistic client entities (Apex Global Technologies ₹46.5 Cr turnover, Bharat Steel ₹18.2 Cr with bank forensics, Vanguard Healthcare) with active statutory audits, lead schedules, and bank statement anomaly logs so you can explore immediately. You can clear them in 1-click at any time.
                   </p>
                 </div>
@@ -416,7 +416,7 @@ export function OnboardingWizard({ onSignedIn, onCancel }: OnboardingWizardProps
                 disabled={busy || !agreed}
                 style={{ padding: '10px 28px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 700, fontSize: '14px', cursor: 'pointer', opacity: busy || !agreed ? 0.6 : 1 }}
               >
-                {busy ? 'Creating Your CA Workspace...' : '🚀 Launch My 14-Day Free Trial'}
+                {busy ? 'Creating Your CA Workspace...' : 'Launch My 14-Day Free Trial'}
               </button>
             </div>
           </form>

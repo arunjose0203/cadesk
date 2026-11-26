@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { toError,
   gstr9Api,
   api,
@@ -114,15 +114,7 @@ export const Gstr9Page: React.FC = () => {
     drc03PaymentMode: 'CashLedger'
   })
 
-  useEffect(() => {
-    loadClients()
-  }, [])
-
-  useEffect(() => {
-    loadData()
-  }, [selectedFy, selectedClientId])
-
-  const loadClients = async () => {
+  const loadClients = useCallback(async () => {
     try {
       const data = await api<ClientPage>('/api/clients?take=200')
       setClients(data.items || [])
@@ -130,9 +122,9 @@ export const Gstr9Page: React.FC = () => {
       const err = toError(caught)
       console.error('Failed to load clients:', err)
     }
-  }
+  }, [])
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -148,7 +140,15 @@ export const Gstr9Page: React.FC = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [selectedClientId, selectedFy])
+
+  useEffect(() => {
+    loadClients()
+  }, [loadClients])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
 
   const handleOpenCompileModal = () => {
     setCompileForm({

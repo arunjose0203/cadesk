@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, type FormEvent } from 'react'
+import { useState, useEffect, useMemo, useCallback, type FormEvent } from 'react'
 import {
   taxLitigationApi,
   api,
@@ -132,45 +132,46 @@ export function TaxLitigationDeskPage() {
     dinOrAckNumber: `ACK/ITAT/2026/${Math.floor(100000 + Math.random() * 900000)}`
   })
 
+  const loadClients = useCallback(async () => {
+    try {
+      const res = await api<ClientPage>('/api/clients?take=100')
+      setClients(res.items || [])
+      if (res.items && res.items.length > 0) {
+        const firstId = res.items[0].id
+        setSelectedClientId(prev => prev || firstId)
+        setAppealForm(prev => (prev.clientId ? prev : { ...prev, clientId: firstId }))
+      }
+    } catch (err: unknown) {
+      console.error('Failed to load clients', err)
+    }
+  }, [])
+
+  const loadAppeals = useCallback(async () => {
+    try {
+      const res = await taxLitigationApi.getAppeals(selectedClientId || undefined)
+      setAppeals(res || [])
+      if (res && res.length > 0) {
+        setSelectedAppealId(prev => prev || res[0].id)
+      }
+    } catch (err: unknown) {
+      console.error('Failed to load appeals', err)
+    }
+  }, [selectedClientId])
+
   // Initial Load
   useEffect(() => {
     loadClients()
-  }, [])
+  }, [loadClients])
 
   useEffect(() => {
     loadAppeals()
-  }, [selectedClientId])
+  }, [loadAppeals])
 
   useEffect(() => {
     if (selectedAppealId) {
       loadAppealDetail(selectedAppealId)
     }
   }, [selectedAppealId])
-
-  const loadClients = async () => {
-    try {
-      const res = await api<ClientPage>('/api/clients?take=100')
-      setClients(res.items || [])
-      if (res.items && res.items.length > 0 && !selectedClientId) {
-        setSelectedClientId(res.items[0].id)
-        setAppealForm(prev => ({ ...prev, clientId: res.items[0].id }))
-      }
-    } catch (err: unknown) {
-      console.error('Failed to load clients', err)
-    }
-  }
-
-  const loadAppeals = async () => {
-    try {
-      const res = await taxLitigationApi.getAppeals(selectedClientId || undefined)
-      setAppeals(res || [])
-      if (res && res.length > 0 && !selectedAppealId) {
-        setSelectedAppealId(res[0].id)
-      }
-    } catch (err: unknown) {
-      console.error('Failed to load appeals', err)
-    }
-  }
 
   const loadAppealDetail = async (id: string) => {
     setLoading(true)

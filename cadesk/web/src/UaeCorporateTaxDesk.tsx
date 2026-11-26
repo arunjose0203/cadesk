@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, type FormEvent } from 'react'
+import { useState, useEffect, useMemo, useCallback, type FormEvent } from 'react'
 import {
   uaeTaxApi,
   errorMessage,
@@ -120,12 +120,7 @@ export function UaeCorporateTaxDesk() {
   // Search and filter
   const [profileSearch, setProfileSearch] = useState('')
 
-  // Load Initial Data
-  useEffect(() => {
-    loadData()
-  }, [])
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true)
     setErrorMsg(null)
     try {
@@ -135,15 +130,20 @@ export function UaeCorporateTaxDesk() {
       ])
       setProfiles(profilesData)
       setClients(clientsRes.items || [])
-      if (profilesData.length > 0 && !selectedProfileId) {
-        setSelectedProfileId(profilesData[0].id)
+      if (profilesData.length > 0) {
+        setSelectedProfileId(prev => prev || profilesData[0].id)
       }
     } catch (err: unknown) {
       setErrorMsg(errorMessage(err, 'Failed to load UAE Tax data.'))
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  // Load Initial Data
+  useEffect(() => {
+    loadData()
+  }, [loadData])
 
   // Load returns whenever selected profile changes
   useEffect(() => {
@@ -174,15 +174,7 @@ export function UaeCorporateTaxDesk() {
     }
   }
 
-  // Trigger real-time calculation whenever calcForm changes
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      recomputeTax()
-    }, 200)
-    return () => clearTimeout(timer)
-  }, [calcForm])
-
-  const recomputeTax = async () => {
+  const recomputeTax = useCallback(async () => {
     try {
       setCalculating(true)
       const netProfit = calcForm.grossRevenue - calcForm.costOfSales - calcForm.operatingExpenses
@@ -197,7 +189,15 @@ export function UaeCorporateTaxDesk() {
     } finally {
       setCalculating(false)
     }
-  }
+  }, [calcForm])
+
+  // Trigger real-time calculation whenever calcForm changes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      recomputeTax()
+    }, 200)
+    return () => clearTimeout(timer)
+  }, [recomputeTax])
 
   // Handle Profile Save
   const handleSaveProfile = async (e: FormEvent) => {
@@ -388,15 +388,15 @@ export function UaeCorporateTaxDesk() {
 
       {/* Loading & Notifications */}
       {loading && (
-        <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span>⏳</span> Loading UAE tax profiles and client records...
         </div>
       )}
       {notice && (
         <div style={{
-          backgroundColor: '#e6f7ef',
-          color: '#087443',
-          border: '1px solid #a3e6c5',
+          backgroundColor: 'var(--success-bg)',
+          color: 'var(--success-text)',
+          border: '1px solid var(--success-border)',
           borderRadius: '8px',
           padding: '12px 16px',
           marginBottom: '20px',
@@ -405,14 +405,14 @@ export function UaeCorporateTaxDesk() {
           alignItems: 'center'
         }}>
           <span>✓ {notice}</span>
-          <button onClick={() => setNotice(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#087443', fontWeight: 'bold' }}>✕</button>
+          <button onClick={() => setNotice(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--success-text)', fontWeight: 'bold' }}>✕</button>
         </div>
       )}
       {errorMsg && (
         <div style={{
-          backgroundColor: '#fde8e8',
-          color: '#9b1c1c',
-          border: '1px solid #f8b4b4',
+          backgroundColor: 'var(--error-bg)',
+          color: 'var(--error-text)',
+          border: '1px solid var(--error-border)',
           borderRadius: '8px',
           padding: '12px 16px',
           marginBottom: '20px',
@@ -421,12 +421,12 @@ export function UaeCorporateTaxDesk() {
           alignItems: 'center'
         }}>
           <span>⚠ {errorMsg}</span>
-          <button onClick={() => setErrorMsg(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9b1c1c', fontWeight: 'bold' }}>✕</button>
+          <button onClick={() => setErrorMsg(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--error-text)', fontWeight: 'bold' }}>✕</button>
         </div>
       )}
 
       {/* Main Navigation Tabs */}
-      <div style={{ display: 'flex', borderBottom: '2px solid #e2e8f0', marginBottom: '24px', gap: '8px' }}>
+      <div style={{ display: 'flex', borderBottom: '2px solid var(--border)', marginBottom: '24px', gap: '8px' }}>
         <button
           onClick={() => setActiveTab('profiles')}
           style={{
@@ -436,8 +436,8 @@ export function UaeCorporateTaxDesk() {
             border: 'none',
             background: 'none',
             cursor: 'pointer',
-            borderBottom: activeTab === 'profiles' ? '3px solid #134074' : '3px solid transparent',
-            color: activeTab === 'profiles' ? '#134074' : '#64748b'
+            borderBottom: activeTab === 'profiles' ? '3px solid var(--accent)' : '3px solid transparent',
+            color: activeTab === 'profiles' ? 'var(--accent)' : 'var(--muted)'
           }}
         >
           🏢 Taxpayer Profiles &amp; FTA TRN ({profiles.length})
@@ -451,8 +451,8 @@ export function UaeCorporateTaxDesk() {
             border: 'none',
             background: 'none',
             cursor: 'pointer',
-            borderBottom: activeTab === 'calculator' ? '3px solid #134074' : '3px solid transparent',
-            color: activeTab === 'calculator' ? '#134074' : '#64748b'
+            borderBottom: activeTab === 'calculator' ? '3px solid var(--accent)' : '3px solid transparent',
+            color: activeTab === 'calculator' ? 'var(--accent)' : 'var(--muted)'
           }}
         >
           🧮 Corporate Tax Studio &amp; Form CT01 Calculator
@@ -466,8 +466,8 @@ export function UaeCorporateTaxDesk() {
             border: 'none',
             background: 'none',
             cursor: 'pointer',
-            borderBottom: activeTab === 'returns' ? '3px solid #134074' : '3px solid transparent',
-            color: activeTab === 'returns' ? '#134074' : '#64748b'
+            borderBottom: activeTab === 'returns' ? '3px solid var(--accent)' : '3px solid transparent',
+            color: activeTab === 'returns' ? 'var(--accent)' : 'var(--muted)'
           }}
         >
           🏛️ Returns, Partner Attestation &amp; EmaraTax Export ({returns.length})
@@ -476,8 +476,8 @@ export function UaeCorporateTaxDesk() {
 
       {/* Profile Selector Toolbar */}
       <div style={{
-        backgroundColor: '#f8fafc',
-        border: '1px solid #e2e8f0',
+        backgroundColor: 'var(--card-subtle)',
+        border: '1px solid var(--border)',
         borderRadius: '8px',
         padding: '12px 18px',
         marginBottom: '20px',
@@ -488,15 +488,15 @@ export function UaeCorporateTaxDesk() {
         gap: '12px'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <label style={{ fontWeight: 600, color: '#334155', fontSize: '14px' }}>Active UAE Client:</label>
+          <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '14px' }}>Active UAE Client:</label>
           <select
             value={selectedProfileId}
             onChange={(e) => setSelectedProfileId(e.target.value)}
             style={{
               padding: '8px 12px',
               borderRadius: '6px',
-              border: '1px solid #cbd5e1',
-              backgroundColor: '#ffffff',
+              border: '1px solid var(--border-subtle)',
+              backgroundColor: 'var(--card)',
               fontSize: '14px',
               fontWeight: 500,
               minWidth: '280px'
@@ -512,7 +512,7 @@ export function UaeCorporateTaxDesk() {
         </div>
 
         {selectedProfile && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '13px', color: '#475569' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '13px', color: 'var(--text-secondary)' }}>
             <span><strong>Emirate:</strong> {selectedProfile.emirate}</span>
             <span><strong>Zone:</strong> {selectedProfile.freeZoneName}</span>
             <span><strong>Accounting:</strong> {selectedProfile.accountingStandard}</span>
@@ -520,8 +520,8 @@ export function UaeCorporateTaxDesk() {
               padding: '2px 8px',
               borderRadius: '12px',
               fontWeight: 600,
-              backgroundColor: selectedProfile.category === 'QualifyingFreeZonePerson' ? '#dbeafe' : '#f1f5f9',
-              color: selectedProfile.category === 'QualifyingFreeZonePerson' ? '#1e40af' : '#475569'
+              backgroundColor: selectedProfile.category === 'QualifyingFreeZonePerson' ? 'var(--accent-subtle)' : 'var(--card-subtle)',
+              color: selectedProfile.category === 'QualifyingFreeZonePerson' ? 'var(--accent)' : 'var(--text-secondary)'
             }}>
               {selectedProfile.category}
             </span>
@@ -541,26 +541,26 @@ export function UaeCorporateTaxDesk() {
               style={{
                 padding: '10px 14px',
                 borderRadius: '6px',
-                border: '1px solid #cbd5e1',
+                border: '1px solid var(--border-subtle)',
                 width: '360px',
                 fontSize: '14px'
               }}
             />
-            <span style={{ fontSize: '13px', color: '#64748b' }}>
+            <span style={{ fontSize: '13px', color: 'var(--muted)' }}>
               Showing {filteredProfiles.length} of {profiles.length} profiles
             </span>
           </div>
 
           <div style={{
-            backgroundColor: '#ffffff',
+            backgroundColor: 'var(--card)',
             borderRadius: '8px',
-            border: '1px solid #e2e8f0',
+            border: '1px solid var(--border)',
             overflow: 'hidden',
             boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
           }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
               <thead>
-                <tr style={{ backgroundColor: '#f1f5f9', color: '#334155', borderBottom: '1px solid #e2e8f0' }}>
+                <tr style={{ backgroundColor: 'var(--card-subtle)', color: 'var(--text-secondary)', borderBottom: '1px solid var(--border)' }}>
                   <th style={{ padding: '12px 16px', fontWeight: 600 }}>Client Name &amp; Code</th>
                   <th style={{ padding: '12px 16px', fontWeight: 600 }}>FTA Corporate Tax TRN</th>
                   <th style={{ padding: '12px 16px', fontWeight: 600 }}>Taxpayer Category</th>
@@ -573,7 +573,7 @@ export function UaeCorporateTaxDesk() {
               <tbody>
                 {filteredProfiles.length === 0 ? (
                   <tr>
-                    <td colSpan={7} style={{ padding: '32px', textAlign: 'center', color: '#64748b' }}>
+                    <td colSpan={7} style={{ padding: '32px', textAlign: 'center', color: 'var(--muted)' }}>
                       No UAE Tax Profiles registered yet. Click "+ Register UAE Taxpayer" above to onboard a client.
                     </td>
                   </tr>
@@ -582,17 +582,17 @@ export function UaeCorporateTaxDesk() {
                     <tr
                       key={p.id}
                       style={{
-                        borderBottom: '1px solid #f1f5f9',
+                        borderBottom: '1px solid var(--border)',
                         backgroundColor: selectedProfileId === p.id ? '#f0f9ff' : 'transparent',
                         cursor: 'pointer'
                       }}
                       onClick={() => setSelectedProfileId(p.id)}
                     >
-                      <td style={{ padding: '12px 16px', fontWeight: 600, color: '#0f172a' }}>
+                      <td style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text)' }}>
                         {p.clientName}
-                        <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 400 }}>Code: {p.clientCode}</div>
+                        <div style={{ fontSize: '12px', color: 'var(--muted)', fontWeight: 400 }}>Code: {p.clientCode}</div>
                       </td>
-                      <td style={{ padding: '12px 16px', fontFamily: 'monospace', fontWeight: 600, color: '#0284c7' }}>
+                      <td style={{ padding: '12px 16px', fontFamily: 'monospace', fontWeight: 600, color: 'var(--accent)' }}>
                         {p.corporateTaxTrn}
                       </td>
                       <td style={{ padding: '12px 16px' }}>
@@ -602,25 +602,25 @@ export function UaeCorporateTaxDesk() {
                           borderRadius: '12px',
                           fontSize: '12px',
                           fontWeight: 600,
-                          backgroundColor: p.category === 'QualifyingFreeZonePerson' ? '#ecfdf5' : '#f8fafc',
-                          color: p.category === 'QualifyingFreeZonePerson' ? '#065f46' : '#334155',
-                          border: p.category === 'QualifyingFreeZonePerson' ? '1px solid #a7f3d0' : '1px solid #e2e8f0'
+                          backgroundColor: p.category === 'QualifyingFreeZonePerson' ? 'var(--success-bg)' : 'var(--card-subtle)',
+                          color: p.category === 'QualifyingFreeZonePerson' ? 'var(--success-text)' : 'var(--text-secondary)',
+                          border: p.category === 'QualifyingFreeZonePerson' ? '1px solid var(--success-border)' : '1px solid var(--border)'
                         }}>
                           {p.category}
                         </span>
                       </td>
                       <td style={{ padding: '12px 16px' }}>
                         <div style={{ fontWeight: 500 }}>{p.emirate}</div>
-                        <div style={{ fontSize: '12px', color: '#64748b' }}>{p.freeZoneName}</div>
+                        <div style={{ fontSize: '12px', color: 'var(--muted)' }}>{p.freeZoneName}</div>
                       </td>
-                      <td style={{ padding: '12px 16px', color: '#475569' }}>
+                      <td style={{ padding: '12px 16px', color: 'var(--text-secondary)' }}>
                         Month {p.financialYearStartMonth} ({p.financialYearStartMonth === 1 ? 'Jan - Dec' : 'Apr - Mar'})
                       </td>
                       <td style={{ padding: '12px 16px' }}>
                         {p.isMneGroupConstituent ? (
-                          <span style={{ color: '#b45309', fontWeight: 600, fontSize: '12px' }}>Yes (≥ AED 3.15B)</span>
+                          <span style={{ color: 'var(--warning)', fontWeight: 600, fontSize: '12px' }}>Yes (≥ AED 3.15B)</span>
                         ) : (
-                          <span style={{ color: '#64748b', fontSize: '12px' }}>No</span>
+                          <span style={{ color: 'var(--muted)', fontSize: '12px' }}>No</span>
                         )}
                       </td>
                       <td style={{ padding: '12px 16px' }}>
@@ -660,51 +660,51 @@ export function UaeCorporateTaxDesk() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             {/* Return Period & Metadata */}
             <div style={{
-              backgroundColor: '#ffffff',
+              backgroundColor: 'var(--card)',
               borderRadius: '8px',
-              border: '1px solid #e2e8f0',
+              border: '1px solid var(--border)',
               padding: '20px',
               boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
             }}>
-              <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', color: '#1e293b', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', color: 'var(--text)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span>📅</span> Tax Period &amp; Currency Settings (IAS 21)
               </h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
                 <div>
-                  <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '4px', fontWeight: 500 }}>Return Year</label>
+                  <label style={{ fontSize: '12px', color: 'var(--muted)', display: 'block', marginBottom: '4px', fontWeight: 500 }}>Return Year</label>
                   <input
                     type="number"
                     value={returnMeta.returnYear}
                     onChange={(e) => setReturnMeta({ ...returnMeta, returnYear: Number(e.target.value) })}
-                    style={{ width: '100%', padding: '8px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                    style={{ width: '100%', padding: '8px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '4px', fontWeight: 500 }}>Period Start</label>
+                  <label style={{ fontSize: '12px', color: 'var(--muted)', display: 'block', marginBottom: '4px', fontWeight: 500 }}>Period Start</label>
                   <input
                     type="date"
                     value={returnMeta.taxPeriodStart}
                     onChange={(e) => setReturnMeta({ ...returnMeta, taxPeriodStart: e.target.value })}
-                    style={{ width: '100%', padding: '8px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                    style={{ width: '100%', padding: '8px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '4px', fontWeight: 500 }}>Period End</label>
+                  <label style={{ fontSize: '12px', color: 'var(--muted)', display: 'block', marginBottom: '4px', fontWeight: 500 }}>Period End</label>
                   <input
                     type="date"
                     value={returnMeta.taxPeriodEnd}
                     onChange={(e) => setReturnMeta({ ...returnMeta, taxPeriodEnd: e.target.value })}
-                    style={{ width: '100%', padding: '8px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                    style={{ width: '100%', padding: '8px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '4px', fontWeight: 500 }}>AED / INR Rate</label>
+                  <label style={{ fontSize: '12px', color: 'var(--muted)', display: 'block', marginBottom: '4px', fontWeight: 500 }}>AED / INR Rate</label>
                   <input
                     type="number"
                     step="0.01"
                     value={calcForm.exchangeRateToInr}
                     onChange={(e) => setCalcForm({ ...calcForm, exchangeRateToInr: Number(e.target.value) })}
-                    style={{ width: '100%', padding: '8px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                    style={{ width: '100%', padding: '8px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}
                   />
                 </div>
               </div>
@@ -712,37 +712,37 @@ export function UaeCorporateTaxDesk() {
 
             {/* Section 1: Commercial P&L */}
             <div style={{
-              backgroundColor: '#ffffff',
+              backgroundColor: 'var(--card)',
               borderRadius: '8px',
-              border: '1px solid #e2e8f0',
+              border: '1px solid var(--border)',
               padding: '20px',
               boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
             }}>
-              <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', color: '#1e293b', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', color: 'var(--text)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span>📊</span> 1. Commercial Profit &amp; Loss (IFRS Accounting Net Income)
               </h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '16px' }}>
                 <div>
-                  <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '4px', fontWeight: 500 }}>Gross Revenue (AED)</label>
+                  <label style={{ fontSize: '12px', color: 'var(--muted)', display: 'block', marginBottom: '4px', fontWeight: 500 }}>Gross Revenue (AED)</label>
                   <input
                     type="number"
                     value={calcForm.grossRevenue}
                     onChange={(e) => setCalcForm({ ...calcForm, grossRevenue: Number(e.target.value) })}
-                    style={{ width: '100%', padding: '8px', border: '1px solid #cbd5e1', borderRadius: '4px', fontWeight: 600 }}
+                    style={{ width: '100%', padding: '8px', border: '1px solid var(--border-subtle)', borderRadius: '4px', fontWeight: 600 }}
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '4px', fontWeight: 500 }}>Cost of Sales (AED)</label>
+                  <label style={{ fontSize: '12px', color: 'var(--muted)', display: 'block', marginBottom: '4px', fontWeight: 500 }}>Cost of Sales (AED)</label>
                   <input
                     type="number"
                     value={calcForm.costOfSales}
                     onChange={(e) => setCalcForm({ ...calcForm, costOfSales: Number(e.target.value) })}
-                    style={{ width: '100%', padding: '8px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                    style={{ width: '100%', padding: '8px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '4px', fontWeight: 500 }}>Gross Profit (AED)</label>
-                  <div style={{ padding: '8px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '4px', fontWeight: 600, color: '#0f172a' }}>
+                  <label style={{ fontSize: '12px', color: 'var(--muted)', display: 'block', marginBottom: '4px', fontWeight: 500 }}>Gross Profit (AED)</label>
+                  <div style={{ padding: '8px', backgroundColor: 'var(--card-subtle)', border: '1px solid var(--border)', borderRadius: '4px', fontWeight: 600, color: 'var(--text)' }}>
                     {(calcForm.grossRevenue - calcForm.costOfSales).toLocaleString()} AED
                   </div>
                 </div>
@@ -750,23 +750,23 @@ export function UaeCorporateTaxDesk() {
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
                 <div>
-                  <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '4px', fontWeight: 500 }}>Operating Expenses (AED)</label>
+                  <label style={{ fontSize: '12px', color: 'var(--muted)', display: 'block', marginBottom: '4px', fontWeight: 500 }}>Operating Expenses (AED)</label>
                   <input
                     type="number"
                     value={calcForm.operatingExpenses}
                     onChange={(e) => setCalcForm({ ...calcForm, operatingExpenses: Number(e.target.value) })}
-                    style={{ width: '100%', padding: '8px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                    style={{ width: '100%', padding: '8px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '4px', fontWeight: 500 }}>Net Accounting Profit / Loss (AED)</label>
+                  <label style={{ fontSize: '12px', color: 'var(--muted)', display: 'block', marginBottom: '4px', fontWeight: 500 }}>Net Accounting Profit / Loss (AED)</label>
                   <div style={{
                     padding: '8px',
-                    backgroundColor: (calcForm.grossRevenue - calcForm.costOfSales - calcForm.operatingExpenses) >= 0 ? '#ecfdf5' : '#fef2f2',
-                    border: '1px solid #e2e8f0',
+                    backgroundColor: (calcForm.grossRevenue - calcForm.costOfSales - calcForm.operatingExpenses) >= 0 ? 'var(--success-bg)' : 'var(--error-bg)',
+                    border: '1px solid var(--border)',
                     borderRadius: '4px',
                     fontWeight: 700,
-                    color: (calcForm.grossRevenue - calcForm.costOfSales - calcForm.operatingExpenses) >= 0 ? '#065f46' : '#991b1b'
+                    color: (calcForm.grossRevenue - calcForm.costOfSales - calcForm.operatingExpenses) >= 0 ? 'var(--success-text)' : 'var(--error-text)'
                   }}>
                     {(calcForm.grossRevenue - calcForm.costOfSales - calcForm.operatingExpenses).toLocaleString()} AED
                   </div>
@@ -776,33 +776,33 @@ export function UaeCorporateTaxDesk() {
 
             {/* Section 2: Small Business Relief (MD 73/2023) */}
             <div style={{
-              backgroundColor: '#ffffff',
+              backgroundColor: 'var(--card)',
               borderRadius: '8px',
-              border: '1px solid #e2e8f0',
+              border: '1px solid var(--border)',
               padding: '20px',
               boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                <h3 style={{ margin: 0, fontSize: '16px', color: '#1e293b', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h3 style={{ margin: 0, fontSize: '16px', color: 'var(--text)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span>🛡️</span> 2. Small Business Relief (Ministerial Decision No. 73 of 2023)
                 </h3>
                 {liveCalcResult?.sbrEligible && (
-                  <span style={{ backgroundColor: '#ecfdf5', color: '#065f46', border: '1px solid #a7f3d0', padding: '3px 8px', borderRadius: '12px', fontSize: '12px', fontWeight: 600 }}>
+                  <span style={{ backgroundColor: 'var(--success-bg)', color: 'var(--success-text)', border: '1px solid var(--success-border)', padding: '3px 8px', borderRadius: '12px', fontSize: '12px', fontWeight: 600 }}>
                     ✓ SBR Qualified (≤ AED 3M)
                   </span>
                 )}
               </div>
-              <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#64748b' }}>
+              <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: 'var(--muted)' }}>
                 Eligible resident businesses with gross revenue not exceeding AED 3,000,000 in current and prior periods can elect for SBR to treat taxable income as AED 0.
               </p>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
                 <div>
-                  <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '4px', fontWeight: 500 }}>SBR Election Status</label>
+                  <label style={{ fontSize: '12px', color: 'var(--muted)', display: 'block', marginBottom: '4px', fontWeight: 500 }}>SBR Election Status</label>
                   <select
                     value={calcForm.smallBusinessReliefElection}
                     onChange={(e) => setCalcForm({ ...calcForm, smallBusinessReliefElection: e.target.value as SmallBusinessReliefStatus })}
-                    style={{ width: '100%', padding: '8px', border: '1px solid #cbd5e1', borderRadius: '4px', backgroundColor: '#ffffff' }}
+                    style={{ width: '100%', padding: '8px', border: '1px solid var(--border-subtle)', borderRadius: '4px', backgroundColor: 'var(--card)' }}
                   >
                     <option value="NotEligible">Not Eligible</option>
                     <option value="EligibleNotElected">Eligible (Do Not Elect)</option>
@@ -810,21 +810,21 @@ export function UaeCorporateTaxDesk() {
                   </select>
                 </div>
                 <div>
-                  <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '4px', fontWeight: 500 }}>Prior Year 1 Revenue (AED)</label>
+                  <label style={{ fontSize: '12px', color: 'var(--muted)', display: 'block', marginBottom: '4px', fontWeight: 500 }}>Prior Year 1 Revenue (AED)</label>
                   <input
                     type="number"
                     value={calcForm.priorYear1Revenue}
                     onChange={(e) => setCalcForm({ ...calcForm, priorYear1Revenue: Number(e.target.value) })}
-                    style={{ width: '100%', padding: '8px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                    style={{ width: '100%', padding: '8px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '4px', fontWeight: 500 }}>Prior Year 2 Revenue (AED)</label>
+                  <label style={{ fontSize: '12px', color: 'var(--muted)', display: 'block', marginBottom: '4px', fontWeight: 500 }}>Prior Year 2 Revenue (AED)</label>
                   <input
                     type="number"
                     value={calcForm.priorYear2Revenue}
                     onChange={(e) => setCalcForm({ ...calcForm, priorYear2Revenue: Number(e.target.value) })}
-                    style={{ width: '100%', padding: '8px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                    style={{ width: '100%', padding: '8px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}
                   />
                 </div>
               </div>
@@ -832,21 +832,21 @@ export function UaeCorporateTaxDesk() {
 
             {/* Section 3: Free Zone Persons (Cabinet Decision No. 55/2023) */}
             <div style={{
-              backgroundColor: '#ffffff',
+              backgroundColor: 'var(--card)',
               borderRadius: '8px',
-              border: calcForm.category === 'QualifyingFreeZonePerson' ? '2px solid #0284c7' : '1px solid #e2e8f0',
+              border: calcForm.category === 'QualifyingFreeZonePerson' ? '2px solid var(--accent)' : '1px solid var(--border)',
               padding: '20px',
               boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                <h3 style={{ margin: 0, fontSize: '16px', color: '#1e293b', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h3 style={{ margin: 0, fontSize: '16px', color: 'var(--text)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span>🏝️</span> 3. Free Zone Regime &amp; De Minimis Test (CD 55/2023 &amp; MD 139/2023)
                 </h3>
                 {calcForm.category === 'QualifyingFreeZonePerson' && (
                   <span style={{
-                    backgroundColor: liveCalcResult?.qfzpDeMinimisPassed ? '#ecfdf5' : '#fef2f2',
-                    color: liveCalcResult?.qfzpDeMinimisPassed ? '#065f46' : '#991b1b',
-                    border: liveCalcResult?.qfzpDeMinimisPassed ? '1px solid #a7f3d0' : '1px solid #fecaca',
+                    backgroundColor: liveCalcResult?.qfzpDeMinimisPassed ? 'var(--success-bg)' : 'var(--error-bg)',
+                    color: liveCalcResult?.qfzpDeMinimisPassed ? 'var(--success-text)' : 'var(--error-text)',
+                    border: liveCalcResult?.qfzpDeMinimisPassed ? '1px solid var(--success-border)' : '1px solid var(--error-border)',
                     padding: '3px 8px',
                     borderRadius: '12px',
                     fontSize: '12px',
@@ -856,20 +856,20 @@ export function UaeCorporateTaxDesk() {
                   </span>
                 )}
               </div>
-              <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#64748b' }}>
+              <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: 'var(--muted)' }}>
                 Non-qualifying revenue must not exceed the lower of 5% of total revenue or AED 5,000,000.
                 {liveCalcResult && liveCalcResult.deMinimisThresholdAed > 0 && (
-                  <strong style={{ color: '#0284c7' }}> Current Threshold: {liveCalcResult.deMinimisThresholdAed.toLocaleString()} AED.</strong>
+                  <strong style={{ color: 'var(--accent)' }}> Current Threshold: {liveCalcResult.deMinimisThresholdAed.toLocaleString()} AED.</strong>
                 )}
               </p>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
                 <div>
-                  <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '4px', fontWeight: 500 }}>Taxpayer Category</label>
+                  <label style={{ fontSize: '12px', color: 'var(--muted)', display: 'block', marginBottom: '4px', fontWeight: 500 }}>Taxpayer Category</label>
                   <select
                     value={calcForm.category}
                     onChange={(e) => setCalcForm({ ...calcForm, category: e.target.value as UaeTaxpayerCategory })}
-                    style={{ width: '100%', padding: '8px', border: '1px solid #cbd5e1', borderRadius: '4px', backgroundColor: '#ffffff' }}
+                    style={{ width: '100%', padding: '8px', border: '1px solid var(--border-subtle)', borderRadius: '4px', backgroundColor: 'var(--card)' }}
                   >
                     <option value="ResidentJuridicalPerson">Resident Mainland Juridical Person</option>
                     <option value="QualifyingFreeZonePerson">Qualifying Free Zone Person (QFZP)</option>
@@ -878,22 +878,22 @@ export function UaeCorporateTaxDesk() {
                   </select>
                 </div>
                 <div>
-                  <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '4px', fontWeight: 500 }}>Qualifying Revenue (0% Rate)</label>
+                  <label style={{ fontSize: '12px', color: 'var(--muted)', display: 'block', marginBottom: '4px', fontWeight: 500 }}>Qualifying Revenue (0% Rate)</label>
                   <input
                     type="number"
                     value={calcForm.qualifyingRevenue}
                     onChange={(e) => setCalcForm({ ...calcForm, qualifyingRevenue: Number(e.target.value) })}
-                    style={{ width: '100%', padding: '8px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                    style={{ width: '100%', padding: '8px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}
                     disabled={calcForm.category !== 'QualifyingFreeZonePerson'}
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '4px', fontWeight: 500 }}>Non-Qualifying Revenue (9% Rate)</label>
+                  <label style={{ fontSize: '12px', color: 'var(--muted)', display: 'block', marginBottom: '4px', fontWeight: 500 }}>Non-Qualifying Revenue (9% Rate)</label>
                   <input
                     type="number"
                     value={calcForm.nonQualifyingRevenue}
                     onChange={(e) => setCalcForm({ ...calcForm, nonQualifyingRevenue: Number(e.target.value) })}
-                    style={{ width: '100%', padding: '8px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                    style={{ width: '100%', padding: '8px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}
                     disabled={calcForm.category !== 'QualifyingFreeZonePerson'}
                   />
                 </div>
@@ -902,87 +902,87 @@ export function UaeCorporateTaxDesk() {
 
             {/* Section 4: Statutory Tax Adjustments */}
             <div style={{
-              backgroundColor: '#ffffff',
+              backgroundColor: 'var(--card)',
               borderRadius: '8px',
-              border: '1px solid #e2e8f0',
+              border: '1px solid var(--border)',
               padding: '20px',
               boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
             }}>
-              <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', color: '#1e293b', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', color: 'var(--text)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span>⚖️</span> 4. Statutory Tax Adjustments (Additions &amp; Deductions)
               </h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '16px' }}>
                 <div>
-                  <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '4px', fontWeight: 500 }}>
+                  <label style={{ fontSize: '12px', color: 'var(--muted)', display: 'block', marginBottom: '4px', fontWeight: 500 }}>
                     Entertainment Expenses (Art. 32)
                   </label>
                   <input
                     type="number"
                     value={calcForm.entertainmentExpenditureTotal}
                     onChange={(e) => setCalcForm({ ...calcForm, entertainmentExpenditureTotal: Number(e.target.value) })}
-                    style={{ width: '100%', padding: '8px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                    style={{ width: '100%', padding: '8px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}
                   />
-                  <span style={{ fontSize: '11px', color: '#b45309' }}>50% disallowed: {(calcForm.entertainmentExpenditureTotal * 0.5).toLocaleString()} AED</span>
+                  <span style={{ fontSize: '11px', color: 'var(--warning)' }}>50% disallowed: {(calcForm.entertainmentExpenditureTotal * 0.5).toLocaleString()} AED</span>
                 </div>
                 <div>
-                  <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '4px', fontWeight: 500 }}>
+                  <label style={{ fontSize: '12px', color: 'var(--muted)', display: 'block', marginBottom: '4px', fontWeight: 500 }}>
                     Fines &amp; Penalties (Art. 33 - 100%)
                   </label>
                   <input
                     type="number"
                     value={calcForm.finesAndPenaltiesDisallowed}
                     onChange={(e) => setCalcForm({ ...calcForm, finesAndPenaltiesDisallowed: Number(e.target.value) })}
-                    style={{ width: '100%', padding: '8px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                    style={{ width: '100%', padding: '8px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}
                   />
-                  <span style={{ fontSize: '11px', color: '#b45309' }}>100% disallowed</span>
+                  <span style={{ fontSize: '11px', color: 'var(--warning)' }}>100% disallowed</span>
                 </div>
                 <div>
-                  <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '4px', fontWeight: 500 }}>
+                  <label style={{ fontSize: '12px', color: 'var(--muted)', display: 'block', marginBottom: '4px', fontWeight: 500 }}>
                     Recoverable VAT Disallowed
                   </label>
                   <input
                     type="number"
                     value={calcForm.recoverableVatDisallowed}
                     onChange={(e) => setCalcForm({ ...calcForm, recoverableVatDisallowed: Number(e.target.value) })}
-                    style={{ width: '100%', padding: '8px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                    style={{ width: '100%', padding: '8px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}
                   />
-                  <span style={{ fontSize: '11px', color: '#b45309' }}>100% disallowed</span>
+                  <span style={{ fontSize: '11px', color: 'var(--warning)' }}>100% disallowed</span>
                 </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
                 <div>
-                  <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '4px', fontWeight: 500 }}>
+                  <label style={{ fontSize: '12px', color: 'var(--muted)', display: 'block', marginBottom: '4px', fontWeight: 500 }}>
                     Unapproved Donations (AED)
                   </label>
                   <input
                     type="number"
                     value={calcForm.donationsToUnapprovedEntitiesDisallowed}
                     onChange={(e) => setCalcForm({ ...calcForm, donationsToUnapprovedEntitiesDisallowed: Number(e.target.value) })}
-                    style={{ width: '100%', padding: '8px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                    style={{ width: '100%', padding: '8px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '4px', fontWeight: 500 }}>
+                  <label style={{ fontSize: '12px', color: 'var(--muted)', display: 'block', marginBottom: '4px', fontWeight: 500 }}>
                     Exempt Income (Dividends/PE)
                   </label>
                   <input
                     type="number"
                     value={calcForm.exemptIncome}
                     onChange={(e) => setCalcForm({ ...calcForm, exemptIncome: Number(e.target.value) })}
-                    style={{ width: '100%', padding: '8px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                    style={{ width: '100%', padding: '8px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}
                   />
-                  <span style={{ fontSize: '11px', color: '#065f46' }}>Statutory deduction</span>
+                  <span style={{ fontSize: '11px', color: 'var(--success-text)' }}>Statutory deduction</span>
                 </div>
                 <div>
-                  <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '4px', fontWeight: 500 }}>
+                  <label style={{ fontSize: '12px', color: 'var(--muted)', display: 'block', marginBottom: '4px', fontWeight: 500 }}>
                     Unrealized Gains/Losses Adj.
                   </label>
                   <input
                     type="number"
                     value={calcForm.unrealizedGainsLossesAdjustment}
                     onChange={(e) => setCalcForm({ ...calcForm, unrealizedGainsLossesAdjustment: Number(e.target.value) })}
-                    style={{ width: '100%', padding: '8px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                    style={{ width: '100%', padding: '8px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}
                   />
                 </div>
               </div>
@@ -990,47 +990,47 @@ export function UaeCorporateTaxDesk() {
 
             {/* Section 5: Interest Limitation & Losses */}
             <div style={{
-              backgroundColor: '#ffffff',
+              backgroundColor: 'var(--card)',
               borderRadius: '8px',
-              border: '1px solid #e2e8f0',
+              border: '1px solid var(--border)',
               padding: '20px',
               boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
             }}>
-              <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', color: '#1e293b', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', color: 'var(--text)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span>📉</span> 5. Interest Capping (Art. 30 GIDLR) &amp; Tax Losses (Art. 37)
               </h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
                 <div>
-                  <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '4px', fontWeight: 500 }}>Net Interest Expense (AED)</label>
+                  <label style={{ fontSize: '12px', color: 'var(--muted)', display: 'block', marginBottom: '4px', fontWeight: 500 }}>Net Interest Expense (AED)</label>
                   <input
                     type="number"
                     value={calcForm.netInterestExpense}
                     onChange={(e) => setCalcForm({ ...calcForm, netInterestExpense: Number(e.target.value) })}
-                    style={{ width: '100%', padding: '8px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                    style={{ width: '100%', padding: '8px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}
                   />
                   {liveCalcResult && liveCalcResult.disallowedInterestAed > 0 && (
-                    <span style={{ fontSize: '11px', color: '#b45309' }}>Disallowed: {liveCalcResult.disallowedInterestAed.toLocaleString()} AED</span>
+                    <span style={{ fontSize: '11px', color: 'var(--warning)' }}>Disallowed: {liveCalcResult.disallowedInterestAed.toLocaleString()} AED</span>
                   )}
                 </div>
                 <div>
-                  <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '4px', fontWeight: 500 }}>Adjusted EBITDA (AED)</label>
+                  <label style={{ fontSize: '12px', color: 'var(--muted)', display: 'block', marginBottom: '4px', fontWeight: 500 }}>Adjusted EBITDA (AED)</label>
                   <input
                     type="number"
                     value={calcForm.adjustedEbitda}
                     onChange={(e) => setCalcForm({ ...calcForm, adjustedEbitda: Number(e.target.value) })}
-                    style={{ width: '100%', padding: '8px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                    style={{ width: '100%', padding: '8px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}
                   />
-                  <span style={{ fontSize: '11px', color: '#64748b' }}>Cap: Max(AED 12M, 30% EBITDA)</span>
+                  <span style={{ fontSize: '11px', color: 'var(--muted)' }}>Cap: Max(AED 12M, 30% EBITDA)</span>
                 </div>
                 <div>
-                  <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '4px', fontWeight: 500 }}>Brought Forward Tax Losses (AED)</label>
+                  <label style={{ fontSize: '12px', color: 'var(--muted)', display: 'block', marginBottom: '4px', fontWeight: 500 }}>Brought Forward Tax Losses (AED)</label>
                   <input
                     type="number"
                     value={calcForm.broughtForwardTaxLosses}
                     onChange={(e) => setCalcForm({ ...calcForm, broughtForwardTaxLosses: Number(e.target.value) })}
-                    style={{ width: '100%', padding: '8px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                    style={{ width: '100%', padding: '8px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}
                   />
-                  <span style={{ fontSize: '11px', color: '#64748b' }}>Max 75% offset under Art. 37</span>
+                  <span style={{ fontSize: '11px', color: 'var(--muted)' }}>Max 75% offset under Art. 37</span>
                 </div>
               </div>
             </div>
@@ -1039,9 +1039,9 @@ export function UaeCorporateTaxDesk() {
           {/* Right Column: Live Tax Computation Summary Card */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{
-              backgroundColor: '#ffffff',
+              backgroundColor: 'var(--card)',
               borderRadius: '12px',
-              border: '2px solid #134074',
+              border: '2px solid var(--accent)',
               padding: '24px',
               boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
               position: 'sticky',
@@ -1051,45 +1051,45 @@ export function UaeCorporateTaxDesk() {
                 <h3 style={{ margin: 0, fontSize: '18px', color: '#0b2545', fontWeight: 700 }}>
                   🇦🇪 Tax Computation Summary
                 </h3>
-                {calculating && <span style={{ fontSize: '12px', color: '#0284c7' }}>Recalculating...</span>}
+                {calculating && <span style={{ fontSize: '12px', color: 'var(--accent)' }}>Recalculating...</span>}
               </div>
 
               {liveCalcResult ? (
                 <div>
-                  <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '12px', marginBottom: '12px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#64748b', marginBottom: '6px' }}>
+                  <div style={{ borderBottom: '1px solid var(--border)', paddingBottom: '12px', marginBottom: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--muted)', marginBottom: '6px' }}>
                       <span>Net Accounting Profit (IFRS):</span>
-                      <span style={{ fontWeight: 600, color: '#0f172a' }}>
+                      <span style={{ fontWeight: 600, color: 'var(--text)' }}>
                         {(calcForm.grossRevenue - calcForm.costOfSales - calcForm.operatingExpenses).toLocaleString()} AED
                       </span>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#64748b', marginBottom: '6px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--muted)', marginBottom: '6px' }}>
                       <span>Total Statutory Additions:</span>
-                      <span style={{ fontWeight: 600, color: '#b45309' }}>
+                      <span style={{ fontWeight: 600, color: 'var(--warning)' }}>
                         + {liveCalcResult.totalAdditionsAed.toLocaleString()} AED
                       </span>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#64748b', marginBottom: '6px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--muted)', marginBottom: '6px' }}>
                       <span>Total Statutory Deductions:</span>
-                      <span style={{ fontWeight: 600, color: '#065f46' }}>
+                      <span style={{ fontWeight: 600, color: 'var(--success-text)' }}>
                         - {liveCalcResult.totalDeductionsAed.toLocaleString()} AED
                       </span>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', fontWeight: 600, color: '#0f172a' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', fontWeight: 600, color: 'var(--text)' }}>
                       <span>Adjusted Taxable Income:</span>
                       <span>{liveCalcResult.adjustedTaxableIncomeAed.toLocaleString()} AED</span>
                     </div>
                   </div>
 
                   {/* Losses and SBR */}
-                  <div style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: '12px', marginBottom: '12px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#64748b', marginBottom: '6px' }}>
+                  <div style={{ borderBottom: '1px solid var(--border)', paddingBottom: '12px', marginBottom: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--muted)', marginBottom: '6px' }}>
                       <span>Tax Losses Utilized (Art. 37):</span>
-                      <span style={{ fontWeight: 600, color: '#065f46' }}>
+                      <span style={{ fontWeight: 600, color: 'var(--success-text)' }}>
                         - {liveCalcResult.taxLossesUtilizedAed.toLocaleString()} AED
                       </span>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#64748b' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--muted)' }}>
                       <span>Remaining Losses Carried Forward:</span>
                       <span style={{ fontWeight: 500 }}>
                         {liveCalcResult.remainingTaxLossesAed.toLocaleString()} AED
@@ -1098,16 +1098,16 @@ export function UaeCorporateTaxDesk() {
                   </div>
 
                   {/* Tier Breakdown */}
-                  <div style={{ backgroundColor: '#f8fafc', padding: '12px', borderRadius: '8px', marginBottom: '16px' }}>
+                  <div style={{ backgroundColor: 'var(--card-subtle)', padding: '12px', borderRadius: '8px', marginBottom: '16px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '6px' }}>
-                      <span style={{ color: '#475569' }}>0% Tier (Exempt / Threshold / QFZP):</span>
-                      <span style={{ fontWeight: 600, color: '#065f46' }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>0% Tier (Exempt / Threshold / QFZP):</span>
+                      <span style={{ fontWeight: 600, color: 'var(--success-text)' }}>
                         {liveCalcResult.incomeSubjectToZeroPctAed.toLocaleString()} AED
                       </span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                      <span style={{ color: '#475569' }}>9% Tier (Taxable Mainland/Non-Qualifying):</span>
-                      <span style={{ fontWeight: 600, color: '#1e40af' }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>9% Tier (Taxable Mainland/Non-Qualifying):</span>
+                      <span style={{ fontWeight: 600, color: 'var(--accent)' }}>
                         {liveCalcResult.incomeSubjectToNinePctAed.toLocaleString()} AED
                       </span>
                     </div>
@@ -1115,14 +1115,14 @@ export function UaeCorporateTaxDesk() {
 
                   {/* Foreign Tax Credit */}
                   <div style={{ marginBottom: '16px' }}>
-                    <label style={{ fontSize: '12px', color: '#64748b', display: 'block', marginBottom: '4px' }}>
+                    <label style={{ fontSize: '12px', color: 'var(--muted)', display: 'block', marginBottom: '4px' }}>
                       Foreign Tax Credit Relief (AED)
                     </label>
                     <input
                       type="number"
                       value={calcForm.foreignTaxCreditReliefAed}
                       onChange={(e) => setCalcForm({ ...calcForm, foreignTaxCreditReliefAed: Number(e.target.value) })}
-                      style={{ width: '100%', padding: '8px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                      style={{ width: '100%', padding: '8px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}
                     />
                   </div>
 
@@ -1169,7 +1169,7 @@ export function UaeCorporateTaxDesk() {
                   </button>
                 </div>
               ) : (
-                <div style={{ textAlign: 'center', color: '#64748b', padding: '32px 0' }}>
+                <div style={{ textAlign: 'center', color: 'var(--muted)', padding: '32px 0' }}>
                   Calculating statutory tax matrix...
                 </div>
               )}
@@ -1183,20 +1183,20 @@ export function UaeCorporateTaxDesk() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: '24px' }}>
           {/* Left Column: Returns List */}
           <div style={{
-            backgroundColor: '#ffffff',
+            backgroundColor: 'var(--card)',
             borderRadius: '8px',
-            border: '1px solid #e2e8f0',
+            border: '1px solid var(--border)',
             overflow: 'hidden',
             boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
           }}>
-            <div style={{ padding: '16px', borderBottom: '1px solid #e2e8f0', backgroundColor: '#f8fafc' }}>
-              <h3 style={{ margin: 0, fontSize: '16px', color: '#1e293b', fontWeight: 600 }}>
+            <div style={{ padding: '16px', borderBottom: '1px solid var(--border)', backgroundColor: 'var(--card-subtle)' }}>
+              <h3 style={{ margin: 0, fontSize: '16px', color: 'var(--text)', fontWeight: 600 }}>
                 Filed &amp; Draft Returns for Selected Profile ({returns.length})
               </h3>
             </div>
 
             {returns.length === 0 ? (
-              <div style={{ padding: '32px', textAlign: 'center', color: '#64748b' }}>
+              <div style={{ padding: '32px', textAlign: 'center', color: 'var(--muted)' }}>
                 No returns compiled for this taxpayer yet. Go to the "Corporate Tax Studio" tab to calculate and save a return.
               </div>
             ) : (
@@ -1207,32 +1207,32 @@ export function UaeCorporateTaxDesk() {
                     onClick={() => setSelectedReturn(ret)}
                     style={{
                       padding: '16px',
-                      borderBottom: '1px solid #f1f5f9',
+                      borderBottom: '1px solid var(--border)',
                       cursor: 'pointer',
                       backgroundColor: selectedReturn?.id === ret.id ? '#f0f9ff' : 'transparent',
                       transition: 'background 0.2s'
                     }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                      <span style={{ fontWeight: 700, color: '#0f172a' }}>{ret.returnReference}</span>
+                      <span style={{ fontWeight: 700, color: 'var(--text)' }}>{ret.returnReference}</span>
                       <span style={{
                         padding: '2px 8px',
                         borderRadius: '12px',
                         fontSize: '11px',
                         fontWeight: 600,
-                        backgroundColor: ret.status === 'Approved' ? '#ecfdf5' : ret.status === 'Exported' ? '#eff6ff' : '#fef3c7',
-                        color: ret.status === 'Approved' ? '#065f46' : ret.status === 'Exported' ? '#1e40af' : '#92400e'
+                        backgroundColor: ret.status === 'Approved' ? 'var(--success-bg)' : ret.status === 'Exported' ? 'var(--accent-subtle)' : 'var(--warning-bg)',
+                        color: ret.status === 'Approved' ? 'var(--success-text)' : ret.status === 'Exported' ? 'var(--accent)' : 'var(--warning-text)'
                       }}>
                         {ret.status}
                       </span>
                     </div>
 
-                    <div style={{ fontSize: '13px', color: '#475569', marginBottom: '4px' }}>
+                    <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
                       Period: {ret.taxPeriodStart} to {ret.taxPeriodEnd} (Due: {ret.dueDate})
                     </div>
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginTop: '8px' }}>
-                      <span style={{ color: '#64748b' }}>Tax Payable:</span>
+                      <span style={{ color: 'var(--muted)' }}>Tax Payable:</span>
                       <span style={{ fontWeight: 700, color: '#0b2545' }}>
                         {ret.netTaxPayableAed.toLocaleString()} AED (₹ {ret.netTaxPayableInr.toLocaleString()})
                       </span>
@@ -1246,19 +1246,19 @@ export function UaeCorporateTaxDesk() {
           {/* Right Column: Selected Return Detail & Actions */}
           {selectedReturn ? (
             <div style={{
-              backgroundColor: '#ffffff',
+              backgroundColor: 'var(--card)',
               borderRadius: '8px',
-              border: '1px solid #e2e8f0',
+              border: '1px solid var(--border)',
               padding: '24px',
               boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
                 <div>
-                  <h2 style={{ margin: '0 0 4px 0', fontSize: '20px', color: '#0f172a', fontWeight: 700 }}>
+                  <h2 style={{ margin: '0 0 4px 0', fontSize: '20px', color: 'var(--text)', fontWeight: 700 }}>
                     Form CT01: {selectedReturn.returnReference}
                   </h2>
-                  <div style={{ fontSize: '13px', color: '#64748b' }}>
-                    Taxpayer: <strong>{selectedReturn.clientName}</strong> | TRN: <strong style={{ color: '#0284c7' }}>{selectedReturn.corporateTaxTrn}</strong>
+                  <div style={{ fontSize: '13px', color: 'var(--muted)' }}>
+                    Taxpayer: <strong>{selectedReturn.clientName}</strong> | TRN: <strong style={{ color: 'var(--accent)' }}>{selectedReturn.corporateTaxTrn}</strong>
                   </div>
                 </div>
 
@@ -1304,13 +1304,13 @@ export function UaeCorporateTaxDesk() {
               {/* Status and Sign-off Banner */}
               {selectedReturn.approvedByName && (
                 <div style={{
-                  backgroundColor: '#ecfdf5',
-                  border: '1px solid #a7f3d0',
+                  backgroundColor: 'var(--success-bg)',
+                  border: '1px solid var(--success-border)',
                   borderRadius: '6px',
                   padding: '12px 16px',
                   marginBottom: '20px',
                   fontSize: '13px',
-                  color: '#065f46'
+                  color: 'var(--success-text)'
                 }}>
                   <div style={{ fontWeight: 600, marginBottom: '2px' }}>
                     ✓ Partner Approved by {selectedReturn.approvedByName} on {new Date(selectedReturn.approvedAt!).toLocaleString()}
@@ -1325,26 +1325,26 @@ export function UaeCorporateTaxDesk() {
 
               {/* Grid Breakdown */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', marginBottom: '20px' }}>
-                <div style={{ backgroundColor: '#f8fafc', padding: '12px', borderRadius: '6px' }}>
-                  <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>Gross Revenue</div>
-                  <div style={{ fontSize: '16px', fontWeight: 600, color: '#0f172a' }}>{selectedReturn.grossRevenue.toLocaleString()} AED</div>
+                <div style={{ backgroundColor: 'var(--card-subtle)', padding: '12px', borderRadius: '6px' }}>
+                  <div style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '4px' }}>Gross Revenue</div>
+                  <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text)' }}>{selectedReturn.grossRevenue.toLocaleString()} AED</div>
                 </div>
-                <div style={{ backgroundColor: '#f8fafc', padding: '12px', borderRadius: '6px' }}>
-                  <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>Net Accounting Profit</div>
-                  <div style={{ fontSize: '16px', fontWeight: 600, color: '#0f172a' }}>{selectedReturn.netAccountingProfitLoss.toLocaleString()} AED</div>
+                <div style={{ backgroundColor: 'var(--card-subtle)', padding: '12px', borderRadius: '6px' }}>
+                  <div style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '4px' }}>Net Accounting Profit</div>
+                  <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text)' }}>{selectedReturn.netAccountingProfitLoss.toLocaleString()} AED</div>
                 </div>
-                <div style={{ backgroundColor: '#f8fafc', padding: '12px', borderRadius: '6px' }}>
-                  <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>Adjusted Taxable Income</div>
-                  <div style={{ fontSize: '16px', fontWeight: 600, color: '#0f172a' }}>{selectedReturn.adjustedTaxableIncome.toLocaleString()} AED</div>
+                <div style={{ backgroundColor: 'var(--card-subtle)', padding: '12px', borderRadius: '6px' }}>
+                  <div style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '4px' }}>Adjusted Taxable Income</div>
+                  <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text)' }}>{selectedReturn.adjustedTaxableIncome.toLocaleString()} AED</div>
                 </div>
-                <div style={{ backgroundColor: '#f8fafc', padding: '12px', borderRadius: '6px' }}>
-                  <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>Tax Losses Utilized (Art. 37)</div>
-                  <div style={{ fontSize: '16px', fontWeight: 600, color: '#065f46' }}>{selectedReturn.taxLossesUtilized.toLocaleString()} AED</div>
+                <div style={{ backgroundColor: 'var(--card-subtle)', padding: '12px', borderRadius: '6px' }}>
+                  <div style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '4px' }}>Tax Losses Utilized (Art. 37)</div>
+                  <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--success-text)' }}>{selectedReturn.taxLossesUtilized.toLocaleString()} AED</div>
                 </div>
               </div>
 
               {/* Tax Tiers & Net Due */}
-              <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px', marginBottom: '20px' }}>
+              <div style={{ border: '1px solid var(--border)', borderRadius: '8px', padding: '16px', marginBottom: '20px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '8px' }}>
                   <span>0% Income Tier:</span>
                   <span style={{ fontWeight: 600 }}>{selectedReturn.taxableIncomeSubjectToZeroPct.toLocaleString()} AED</span>
@@ -1359,14 +1359,14 @@ export function UaeCorporateTaxDesk() {
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '12px' }}>
                   <span>Foreign Tax Credit Relief:</span>
-                  <span style={{ fontWeight: 600, color: '#065f46' }}>- {selectedReturn.foreignTaxCreditReliefAed.toLocaleString()} AED</span>
+                  <span style={{ fontWeight: 600, color: 'var(--success-text)' }}>- {selectedReturn.foreignTaxCreditReliefAed.toLocaleString()} AED</span>
                 </div>
                 <div style={{
                   display: 'flex',
                   justifyContent: 'space-between',
                   fontSize: '16px',
                   fontWeight: 700,
-                  borderTop: '2px solid #e2e8f0',
+                  borderTop: '2px solid var(--border)',
                   paddingTop: '12px',
                   color: '#0b2545'
                 }}>
@@ -1377,12 +1377,12 @@ export function UaeCorporateTaxDesk() {
             </div>
           ) : (
             <div style={{
-              backgroundColor: '#ffffff',
+              backgroundColor: 'var(--card)',
               borderRadius: '8px',
-              border: '1px solid #e2e8f0',
+              border: '1px solid var(--border)',
               padding: '48px 24px',
               textAlign: 'center',
-              color: '#64748b'
+              color: 'var(--muted)'
             }}>
               Select a return from the list on the left to view detailed statutory breakdown and sign-off options.
             </div>
@@ -1405,7 +1405,7 @@ export function UaeCorporateTaxDesk() {
           zIndex: 1000
         }}>
           <div style={{
-            backgroundColor: '#ffffff',
+            backgroundColor: 'var(--card)',
             borderRadius: '12px',
             width: '600px',
             maxWidth: '95vw',
@@ -1415,19 +1415,19 @@ export function UaeCorporateTaxDesk() {
             boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#0f172a' }}>
+              <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: 'var(--text)' }}>
                 🇦🇪 Register UAE Corporate Tax Profile
               </h2>
-              <button onClick={() => setShowProfileModal(false)} style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: '#64748b' }}>✕</button>
+              <button onClick={() => setShowProfileModal(false)} style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: 'var(--muted)' }}>✕</button>
             </div>
 
             <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
-                <label style={{ fontSize: '13px', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>Client</label>
+                <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>Client</label>
                 <select
                   value={profileForm.clientId}
                   onChange={(e) => setProfileForm({ ...profileForm, clientId: e.target.value })}
-                  style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}
                   required
                 >
                   <option value="">-- Select Client --</option>
@@ -1438,7 +1438,7 @@ export function UaeCorporateTaxDesk() {
               </div>
 
               <div>
-                <label style={{ fontSize: '13px', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
                   FTA Corporate Tax TRN (15 Digits starting with 100)
                 </label>
                 <div style={{ position: 'relative' }}>
@@ -1452,7 +1452,7 @@ export function UaeCorporateTaxDesk() {
                       width: '100%',
                       padding: '10px',
                       borderRadius: '6px',
-                      border: isTrnValid ? '2px solid #00a86b' : '2px solid #e2e8f0',
+                      border: isTrnValid ? '2px solid #00a86b' : '2px solid var(--border)',
                       fontFamily: 'monospace',
                       fontWeight: 600
                     }}
@@ -1464,7 +1464,7 @@ export function UaeCorporateTaxDesk() {
                     top: '12px',
                     fontSize: '12px',
                     fontWeight: 600,
-                    color: isTrnValid ? '#00a86b' : '#94a3b8'
+                    color: isTrnValid ? '#00a86b' : 'var(--muted)'
                   }}>
                     {isTrnValid ? '✓ Valid FTA TRN' : `${profileForm.corporateTaxTrn.length}/15 digits`}
                   </span>
@@ -1473,11 +1473,11 @@ export function UaeCorporateTaxDesk() {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
-                  <label style={{ fontSize: '13px', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>Emirate</label>
+                  <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>Emirate</label>
                   <select
                     value={profileForm.emirate}
                     onChange={(e) => setProfileForm({ ...profileForm, emirate: e.target.value })}
-                    style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}
                   >
                     {EMIRATES.map(em => (
                       <option key={em} value={em}>{em}</option>
@@ -1485,11 +1485,11 @@ export function UaeCorporateTaxDesk() {
                   </select>
                 </div>
                 <div>
-                  <label style={{ fontSize: '13px', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>Taxpayer Category</label>
+                  <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>Taxpayer Category</label>
                   <select
                     value={profileForm.category}
                     onChange={(e) => setProfileForm({ ...profileForm, category: e.target.value as UaeTaxpayerCategory })}
-                    style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}
                   >
                     <option value="ResidentJuridicalPerson">Resident Mainland Juridical Person</option>
                     <option value="QualifyingFreeZonePerson">Qualifying Free Zone Person (QFZP)</option>
@@ -1501,11 +1501,11 @@ export function UaeCorporateTaxDesk() {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
-                  <label style={{ fontSize: '13px', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>Free Zone Jurisdiction</label>
+                  <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>Free Zone Jurisdiction</label>
                   <select
                     value={profileForm.freeZoneName}
                     onChange={(e) => setProfileForm({ ...profileForm, freeZoneName: e.target.value })}
-                    style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}
                   >
                     {FREE_ZONES.map(fz => (
                       <option key={fz} value={fz}>{fz}</option>
@@ -1513,11 +1513,11 @@ export function UaeCorporateTaxDesk() {
                   </select>
                 </div>
                 <div>
-                  <label style={{ fontSize: '13px', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '4px' }}>Accounting Standard</label>
+                  <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>Accounting Standard</label>
                   <select
                     value={profileForm.accountingStandard}
                     onChange={(e) => setProfileForm({ ...profileForm, accountingStandard: e.target.value })}
-                    style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}
                   >
                     <option value="IFRS">Full IFRS</option>
                     <option value="IFRS for SMEs">IFRS for SMEs (Revenue &lt; AED 50M)</option>
@@ -1526,7 +1526,7 @@ export function UaeCorporateTaxDesk() {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#334155', cursor: 'pointer' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-secondary)', cursor: 'pointer' }}>
                   <input
                     type="checkbox"
                     checked={profileForm.isMneGroupConstituent}
@@ -1534,7 +1534,7 @@ export function UaeCorporateTaxDesk() {
                   />
                   <span>Constituent entity of an MNE Group with consolidated revenue ≥ AED 3.15 Billion</span>
                 </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#334155', cursor: 'pointer' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-secondary)', cursor: 'pointer' }}>
                   <input
                     type="checkbox"
                     checked={profileForm.auditedFinancialsAvailable}
@@ -1548,7 +1548,7 @@ export function UaeCorporateTaxDesk() {
                 <button
                   type="button"
                   onClick={() => setShowProfileModal(false)}
-                  style={{ padding: '10px 16px', border: '1px solid #cbd5e1', borderRadius: '6px', background: '#ffffff', cursor: 'pointer' }}
+                  style={{ padding: '10px 16px', border: '1px solid var(--border-subtle)', borderRadius: '6px', background: 'var(--card)', cursor: 'pointer' }}
                 >
                   Cancel
                 </button>
@@ -1588,22 +1588,22 @@ export function UaeCorporateTaxDesk() {
           zIndex: 1000
         }}>
           <div style={{
-            backgroundColor: '#ffffff',
+            backgroundColor: 'var(--card)',
             borderRadius: '12px',
             width: '500px',
             padding: '24px',
             boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)'
           }}>
-            <h2 style={{ margin: '0 0 12px 0', fontSize: '18px', fontWeight: 700, color: '#0f172a' }}>
+            <h2 style={{ margin: '0 0 12px 0', fontSize: '18px', fontWeight: 700, color: 'var(--text)' }}>
               🏛️ Partner Sign-Off &amp; EmaraTax Attestation
             </h2>
-            <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#64748b' }}>
+            <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: 'var(--muted)' }}>
               You are certifying this UAE Corporate Tax Return for <strong>{selectedReturn?.clientName}</strong> (Ref: {selectedReturn?.returnReference}).
             </p>
 
             <form onSubmit={handleApproveReturn}>
               <div style={{ marginBottom: '16px' }}>
-                <label style={{ fontSize: '13px', fontWeight: 600, color: '#334155', display: 'block', marginBottom: '6px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
                   Partner Review Notes &amp; Statutory Representation
                 </label>
                 <textarea
@@ -1611,7 +1611,7 @@ export function UaeCorporateTaxDesk() {
                   value={partnerNotes}
                   onChange={(e) => setPartnerNotes(e.target.value)}
                   placeholder="Verified audited trial balance, QFZP de minimis calculation, and statutory add-backs under Federal Decree-Law No. 47 of 2022..."
-                  style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid var(--border-subtle)', fontSize: '13px' }}
                   required
                 />
               </div>
@@ -1620,7 +1620,7 @@ export function UaeCorporateTaxDesk() {
                 <button
                   type="button"
                   onClick={() => setShowApproveModal(false)}
-                  style={{ padding: '8px 14px', border: '1px solid #cbd5e1', borderRadius: '6px', background: '#ffffff', cursor: 'pointer' }}
+                  style={{ padding: '8px 14px', border: '1px solid var(--border-subtle)', borderRadius: '6px', background: 'var(--card)', cursor: 'pointer' }}
                 >
                   Cancel
                 </button>
@@ -1659,7 +1659,7 @@ export function UaeCorporateTaxDesk() {
           zIndex: 1000
         }}>
           <div style={{
-            backgroundColor: '#ffffff',
+            backgroundColor: 'var(--card)',
             borderRadius: '12px',
             width: '850px',
             maxWidth: '95vw',
@@ -1669,19 +1669,19 @@ export function UaeCorporateTaxDesk() {
             overflow: 'hidden',
             boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)'
           }}>
-            <div style={{ padding: '20px 24px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <h2 style={{ margin: '0 0 4px 0', fontSize: '18px', fontWeight: 700, color: '#0f172a' }}>
+                <h2 style={{ margin: '0 0 4px 0', fontSize: '18px', fontWeight: 700, color: 'var(--text)' }}>
                   📤 FTA EmaraTax Form CT01 Submission Package
                 </h2>
-                <div style={{ fontSize: '13px', color: '#64748b' }}>
+                <div style={{ fontSize: '13px', color: 'var(--muted)' }}>
                   Reference: <strong>{exportPackage.returnReference}</strong> | TRN: <strong>{exportPackage.corporateTaxTrn}</strong> | Standard Version: <strong>{exportPackage.formVersion}</strong>
                 </div>
               </div>
-              <button onClick={() => setShowExportModal(false)} style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: '#64748b' }}>✕</button>
+              <button onClick={() => setShowExportModal(false)} style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: 'var(--muted)' }}>✕</button>
             </div>
 
-            <div style={{ padding: '12px 24px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc' }}>
+            <div style={{ padding: '12px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--card-subtle)' }}>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button
                   onClick={() => setExportFormatTab('xml')}
@@ -1691,8 +1691,8 @@ export function UaeCorporateTaxDesk() {
                     border: 'none',
                     fontWeight: 600,
                     fontSize: '13px',
-                    backgroundColor: exportFormatTab === 'xml' ? '#134074' : '#e2e8f0',
-                    color: exportFormatTab === 'xml' ? '#ffffff' : '#475569',
+                    backgroundColor: exportFormatTab === 'xml' ? '#134074' : 'var(--bg-subtle)',
+                    color: exportFormatTab === 'xml' ? '#ffffff' : 'var(--text-secondary)',
                     cursor: 'pointer'
                   }}
                 >
@@ -1706,8 +1706,8 @@ export function UaeCorporateTaxDesk() {
                     border: 'none',
                     fontWeight: 600,
                     fontSize: '13px',
-                    backgroundColor: exportFormatTab === 'json' ? '#134074' : '#e2e8f0',
-                    color: exportFormatTab === 'json' ? '#ffffff' : '#475569',
+                    backgroundColor: exportFormatTab === 'json' ? '#134074' : 'var(--bg-subtle)',
+                    color: exportFormatTab === 'json' ? '#ffffff' : 'var(--text-secondary)',
                     cursor: 'pointer'
                   }}
                 >

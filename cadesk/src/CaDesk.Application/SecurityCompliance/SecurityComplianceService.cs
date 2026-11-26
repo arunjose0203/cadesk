@@ -9,7 +9,6 @@ namespace CaDesk.Application.SecurityCompliance;
 
 public sealed class SecurityComplianceService(
     IAppDbContext db,
-    ISettings settings,
     ITenantContext tenant,
     TimeProvider clock,
     Microsoft.Extensions.Configuration.IConfiguration config

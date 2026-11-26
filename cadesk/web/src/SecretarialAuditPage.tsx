@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { toError,
   api,
   secretarialAuditApi,
@@ -130,19 +130,7 @@ export const SecretarialAuditPage: React.FC = () => {
   })
   const [editingMeetingId, setEditingMeetingId] = useState<string | null>(null)
 
-  // Initial Load
-  useEffect(() => {
-    loadData()
-  }, [])
-
-  // When selected engagement changes, reload its tabs
-  useEffect(() => {
-    if (selectedEngId) {
-      loadEngagementDetails(selectedEngId)
-    }
-  }, [selectedEngId, activeTab, statuteFilter, statusFilter])
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -155,8 +143,8 @@ export const SecretarialAuditPage: React.FC = () => {
       setEngagements(engsData)
       setClients(clsData.items || [])
 
-      if (engsData.length > 0 && !selectedEngId) {
-        setSelectedEngId(engsData[0].id)
+      if (engsData.length > 0) {
+        setSelectedEngId(prev => prev || engsData[0].id)
       }
     } catch (caught) {
       const err = toError(caught)
@@ -164,9 +152,9 @@ export const SecretarialAuditPage: React.FC = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  const loadEngagementDetails = async (id: string) => {
+  const loadEngagementDetails = useCallback(async (id: string) => {
     try {
       const eng = await secretarialAuditApi.getEngagement(id)
       setCurrentEng(eng)
@@ -185,7 +173,19 @@ export const SecretarialAuditPage: React.FC = () => {
       const err = toError(caught)
       setError(err?.message || 'Failed to load engagement details.')
     }
-  }
+  }, [activeTab, statuteFilter, statusFilter])
+
+  // Initial Load
+  useEffect(() => {
+    loadData()
+  }, [loadData])
+
+  // When selected engagement changes, reload its tabs
+  useEffect(() => {
+    if (selectedEngId) {
+      loadEngagementDetails(selectedEngId)
+    }
+  }, [selectedEngId, loadEngagementDetails])
 
   const handleTestApplicability = async () => {
     try {

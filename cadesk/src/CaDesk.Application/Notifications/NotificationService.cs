@@ -310,7 +310,7 @@ public sealed class NotificationService(IAppDbContext db, ISettings settings, IT
         var row = await db.NotificationTemplates.FirstOrDefaultAsync(t => t.FirmId != null && t.Key == key && t.Channel == channel, ct);
         if (row is null) db.NotificationTemplates.Add(row = new NotificationTemplate { FirmId = tenant.FirmId, Key = key, Channel = channel });
         row.Subject = channel == Channels.Email ? r.Subject!.Trim() : null;
-        row.Body = r.Body.Trim();
+        row.Body = r.Body!.Trim();
         row.WaTemplate = channel == Channels.WhatsApp ? r.WaTemplate : null;
         row.WaParams = channel == Channels.WhatsApp ? r.WaParams?.ToList() ?? [] : null;
         await db.SaveChangesAsync(ct);

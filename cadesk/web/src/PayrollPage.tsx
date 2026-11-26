@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { toError,
   payrollApi,
   api,
@@ -71,33 +71,39 @@ export const PayrollPage: React.FC<PayrollPageProps> = ({ can }) => {
     notes: ''
   })
 
+  const selectedRunIdRef = useRef<string | null>(null)
   useEffect(() => {
-    loadClients()
-  }, [])
+    selectedRunIdRef.current = selectedRun?.id ?? null
+  }, [selectedRun])
 
-  useEffect(() => {
-    if (selectedClientId) {
-      loadClientData(selectedClientId)
-    }
-  }, [selectedClientId])
-
-  const loadClients = async () => {
+  const loadClients = useCallback(async () => {
     try {
       const res = await api<ClientPage>('/api/clients?take=200')
       const items = res.items || []
       setClients(items)
       if (items.length > 0) {
-        setSelectedClientId(items[0].id)
-        setEmployeeForm(prev => ({ ...prev, clientId: items[0].id }))
-        setRunForm(prev => ({ ...prev, clientId: items[0].id }))
+        const firstId = items[0].id
+        setSelectedClientId(prev => prev || firstId)
+        setEmployeeForm(prev => (prev.clientId ? prev : { ...prev, clientId: firstId }))
+        setRunForm(prev => (prev.clientId ? prev : { ...prev, clientId: firstId }))
       }
     } catch (caught) {
       const e = toError(caught)
       setError(e.message || 'Failed to load clients')
     }
-  }
+  }, [])
 
-  const loadClientData = async (cId: string) => {
+  const loadPayslips = useCallback(async (runId: string) => {
+    try {
+      const list = await payrollApi.getPayslips(runId)
+      setPayslips(list)
+    } catch (caught) {
+      const e = toError(caught)
+      setError(e.message || 'Failed to load payslips')
+    }
+  }, [])
+
+  const loadClientData = useCallback(async (cId: string) => {
     setLoading(true)
     setError(null)
     try {
@@ -110,7 +116,8 @@ export const PayrollPage: React.FC<PayrollPageProps> = ({ can }) => {
       setEmployees(empList)
       setRuns(rList)
 
-      if (rList.length > 0 && !selectedRun) {
+      if (rList.length > 0 && !selectedRunIdRef.current) {
+        selectedRunIdRef.current = rList[0].id
         setSelectedRun(rList[0])
         loadPayslips(rList[0].id)
       }
@@ -120,17 +127,17 @@ export const PayrollPage: React.FC<PayrollPageProps> = ({ can }) => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [loadPayslips])
 
-  const loadPayslips = async (runId: string) => {
-    try {
-      const list = await payrollApi.getPayslips(runId)
-      setPayslips(list)
-    } catch (caught) {
-      const e = toError(caught)
-      setError(e.message || 'Failed to load payslips')
+  useEffect(() => {
+    loadClients()
+  }, [loadClients])
+
+  useEffect(() => {
+    if (selectedClientId) {
+      loadClientData(selectedClientId)
     }
-  }
+  }, [selectedClientId, loadClientData])
 
   const handleSelectRun = async (r: PayrollRunDto) => {
     setSelectedRun(r)
@@ -248,7 +255,7 @@ export const PayrollPage: React.FC<PayrollPageProps> = ({ can }) => {
           <h1 style={{ margin: '0 0 6px 0', fontSize: '24px', fontWeight: 700 }}>
             Payroll, Salary TDS & Statutory PF / ESIC Desk
           </h1>
-          <p style={{ margin: 0, color: 'var(--muted, #666)', fontSize: '14px' }}>
+          <p style={{ margin: 0, color: 'var(--muted)', fontSize: '14px' }}>
             Client Employee Master, EPF/ESIC Auto-Splits, State PT Slabs, Monthly Salary Runs & EPFO ECR Export (Sprint 23)
           </p>
         </div>
@@ -316,12 +323,12 @@ export const PayrollPage: React.FC<PayrollPageProps> = ({ can }) => {
 
       {/* Notifications */}
       {error && (
-        <div style={{ padding: '12px', background: '#ffebee', color: '#c62828', borderRadius: '6px', marginBottom: '16px' }}>
+        <div style={{ padding: '12px', background: 'var(--error-bg)', color: 'var(--error)', borderRadius: '6px', marginBottom: '16px' }}>
           {error}
         </div>
       )}
       {success && (
-        <div style={{ padding: '12px', background: '#e8f5e9', color: '#2e7d32', borderRadius: '6px', marginBottom: '16px' }}>
+        <div style={{ padding: '12px', background: 'var(--success-bg)', color: 'var(--success)', borderRadius: '6px', marginBottom: '16px' }}>
           {success}
         </div>
       )}
@@ -329,46 +336,46 @@ export const PayrollPage: React.FC<PayrollPageProps> = ({ can }) => {
       {/* KPI Summary Cards */}
       {summary && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-          <div style={{ padding: '16px', background: 'var(--card-bg, #fff)', border: '1px solid var(--border, #e0e0e0)', borderRadius: '8px' }}>
-            <div style={{ fontSize: '12px', color: 'var(--muted, #666)', textTransform: 'uppercase', fontWeight: 600 }}>Employees</div>
+          <div style={{ padding: '16px', background: 'var(--card-bg, #fff)', border: '1px solid var(--border)', borderRadius: '8px' }}>
+            <div style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase', fontWeight: 600 }}>Employees</div>
             <div style={{ fontSize: '24px', fontWeight: 700, marginTop: '4px' }}>{summary.activeEmployees}</div>
-            <div style={{ fontSize: '12px', color: '#555', marginTop: '4px' }}>Active ({summary.totalEmployees} total)</div>
+            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>Active ({summary.totalEmployees} total)</div>
           </div>
 
-          <div style={{ padding: '16px', background: 'var(--card-bg, #fff)', border: '1px solid var(--border, #e0e0e0)', borderRadius: '8px' }}>
-            <div style={{ fontSize: '12px', color: 'var(--muted, #666)', textTransform: 'uppercase', fontWeight: 600 }}>Monthly Gross Pay</div>
+          <div style={{ padding: '16px', background: 'var(--card-bg, #fff)', border: '1px solid var(--border)', borderRadius: '8px' }}>
+            <div style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase', fontWeight: 600 }}>Monthly Gross Pay</div>
             <div style={{ fontSize: '22px', fontWeight: 700, marginTop: '4px', color: '#1565c0' }}>{formatCurrency(summary.totalMonthlyGross)}</div>
-            <div style={{ fontSize: '12px', color: '#555', marginTop: '4px' }}>Combined payroll</div>
+            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>Combined payroll</div>
           </div>
 
-          <div style={{ padding: '16px', background: 'var(--card-bg, #fff)', border: '1px solid var(--border, #e0e0e0)', borderRadius: '8px' }}>
-            <div style={{ fontSize: '12px', color: 'var(--muted, #666)', textTransform: 'uppercase', fontWeight: 600 }}>EPF Liability</div>
-            <div style={{ fontSize: '22px', fontWeight: 700, marginTop: '4px', color: '#2e7d32' }}>{formatCurrency(summary.totalMonthlyPfLiability)}</div>
-            <div style={{ fontSize: '12px', color: '#555', marginTop: '4px' }}>EE 12% + ER 12% (EPS/EPF)</div>
+          <div style={{ padding: '16px', background: 'var(--card-bg, #fff)', border: '1px solid var(--border)', borderRadius: '8px' }}>
+            <div style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase', fontWeight: 600 }}>EPF Liability</div>
+            <div style={{ fontSize: '22px', fontWeight: 700, marginTop: '4px', color: 'var(--success)' }}>{formatCurrency(summary.totalMonthlyPfLiability)}</div>
+            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>EE 12% + ER 12% (EPS/EPF)</div>
           </div>
 
-          <div style={{ padding: '16px', background: 'var(--card-bg, #fff)', border: '1px solid var(--border, #e0e0e0)', borderRadius: '8px' }}>
-            <div style={{ fontSize: '12px', color: 'var(--muted, #666)', textTransform: 'uppercase', fontWeight: 600 }}>ESIC Liability</div>
+          <div style={{ padding: '16px', background: 'var(--card-bg, #fff)', border: '1px solid var(--border)', borderRadius: '8px' }}>
+            <div style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase', fontWeight: 600 }}>ESIC Liability</div>
             <div style={{ fontSize: '22px', fontWeight: 700, marginTop: '4px', color: '#6a1b9a' }}>{formatCurrency(summary.totalMonthlyEsiLiability)}</div>
-            <div style={{ fontSize: '12px', color: '#555', marginTop: '4px' }}>EE 0.75% + ER 3.25%</div>
+            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>EE 0.75% + ER 3.25%</div>
           </div>
 
-          <div style={{ padding: '16px', background: 'var(--card-bg, #fff)', border: '1px solid var(--border, #e0e0e0)', borderRadius: '8px' }}>
-            <div style={{ fontSize: '12px', color: 'var(--muted, #666)', textTransform: 'uppercase', fontWeight: 600 }}>Professional Tax</div>
-            <div style={{ fontSize: '22px', fontWeight: 700, marginTop: '4px', color: '#e65100' }}>{formatCurrency(summary.totalMonthlyPt)}</div>
-            <div style={{ fontSize: '12px', color: '#555', marginTop: '4px' }}>State PT collections</div>
+          <div style={{ padding: '16px', background: 'var(--card-bg, #fff)', border: '1px solid var(--border)', borderRadius: '8px' }}>
+            <div style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase', fontWeight: 600 }}>Professional Tax</div>
+            <div style={{ fontSize: '22px', fontWeight: 700, marginTop: '4px', color: 'var(--warning-text)' }}>{formatCurrency(summary.totalMonthlyPt)}</div>
+            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>State PT collections</div>
           </div>
 
-          <div style={{ padding: '16px', background: 'var(--card-bg, #fff)', border: '1px solid var(--border, #e0e0e0)', borderRadius: '8px' }}>
-            <div style={{ fontSize: '12px', color: 'var(--muted, #666)', textTransform: 'uppercase', fontWeight: 600 }}>Sec 192 Salary TDS</div>
+          <div style={{ padding: '16px', background: 'var(--card-bg, #fff)', border: '1px solid var(--border)', borderRadius: '8px' }}>
+            <div style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase', fontWeight: 600 }}>Sec 192 Salary TDS</div>
             <div style={{ fontSize: '22px', fontWeight: 700, marginTop: '4px', color: '#d32f2f' }}>{formatCurrency(summary.totalMonthlyTds)}</div>
-            <div style={{ fontSize: '12px', color: '#555', marginTop: '4px' }}>Form 24Q withholding</div>
+            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>Form 24Q withholding</div>
           </div>
         </div>
       )}
 
       {/* Tabs */}
-      <div style={{ display: 'flex', borderBottom: '2px solid var(--border, #e0e0e0)', marginBottom: '20px' }}>
+      <div style={{ display: 'flex', borderBottom: '2px solid var(--border)', marginBottom: '20px' }}>
         <button
           onClick={() => setActiveTab('employees')}
           style={{
@@ -429,10 +436,10 @@ export const PayrollPage: React.FC<PayrollPageProps> = ({ can }) => {
 
       {/* Tab 1: Employees & Salaries */}
       {activeTab === 'employees' && (
-        <div style={{ background: 'var(--card-bg, #fff)', border: '1px solid var(--border, #e0e0e0)', borderRadius: '8px', overflowX: 'auto' }}>
+        <div style={{ background: 'var(--card-bg, #fff)', border: '1px solid var(--border)', borderRadius: '8px', overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
             <thead>
-              <tr style={{ background: 'var(--table-header, #f9f9f9)', borderBottom: '1px solid var(--border, #e0e0e0)' }}>
+              <tr style={{ background: 'var(--table-header, #f9f9f9)', borderBottom: '1px solid var(--border)' }}>
                 <th style={{ padding: '12px' }}>Emp Code & Name</th>
                 <th style={{ padding: '12px' }}>Designation / Dept</th>
                 <th style={{ padding: '12px' }}>PAN / UAN</th>
@@ -449,15 +456,15 @@ export const PayrollPage: React.FC<PayrollPageProps> = ({ can }) => {
                 <tr key={emp.id} style={{ borderBottom: '1px solid var(--border, #f0f0f0)' }}>
                   <td style={{ padding: '12px' }}>
                     <div style={{ fontWeight: 600 }}>{emp.name}</div>
-                    <div style={{ fontSize: '11px', color: 'var(--muted, #666)' }}>{emp.employeeCode} | Joined {emp.dateOfJoining}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--muted)' }}>{emp.employeeCode} | Joined {emp.dateOfJoining}</div>
                   </td>
                   <td style={{ padding: '12px' }}>
                     <div>{emp.designation}</div>
-                    <div style={{ fontSize: '11px', color: '#666' }}>{emp.department || '-'} | {emp.state}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--muted)' }}>{emp.department || '-'} | {emp.state}</div>
                   </td>
                   <td style={{ padding: '12px' }}>
                     <div style={{ fontFamily: 'monospace', fontSize: '12px' }}>{emp.pan || '-'}</div>
-                    <div style={{ fontSize: '11px', color: '#666', fontFamily: 'monospace' }}>UAN: {emp.uan || '-'}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--muted)', fontFamily: 'monospace' }}>UAN: {emp.uan || '-'}</div>
                   </td>
                   <td style={{ padding: '12px', textAlign: 'right', fontWeight: 600 }}>
                     {formatCurrency(emp.basicSalary)}
@@ -472,8 +479,8 @@ export const PayrollPage: React.FC<PayrollPageProps> = ({ can }) => {
                         borderRadius: '3px',
                         fontSize: '10px',
                         fontWeight: 700,
-                        background: emp.isPfEligible ? '#e8f5e9' : '#f5f5f5',
-                        color: emp.isPfEligible ? '#2e7d32' : '#999'
+                        background: emp.isPfEligible ? 'var(--success-bg)' : 'var(--card-subtle)',
+                        color: emp.isPfEligible ? 'var(--success)' : 'var(--muted)'
                       }}>
                         PF: {emp.isPfEligible ? 'YES' : 'NO'}
                       </span>
@@ -482,8 +489,8 @@ export const PayrollPage: React.FC<PayrollPageProps> = ({ can }) => {
                         borderRadius: '3px',
                         fontSize: '10px',
                         fontWeight: 700,
-                        background: emp.isEsiEligible && emp.grossSalary <= 21000 ? '#ede7f6' : '#f5f5f5',
-                        color: emp.isEsiEligible && emp.grossSalary <= 21000 ? '#4527a0' : '#999'
+                        background: emp.isEsiEligible && emp.grossSalary <= 21000 ? '#ede7f6' : 'var(--card-subtle)',
+                        color: emp.isEsiEligible && emp.grossSalary <= 21000 ? '#4527a0' : 'var(--muted)'
                       }}>
                         ESI: {emp.isEsiEligible && emp.grossSalary <= 21000 ? 'YES' : 'EXEMPT'}
                       </span>
@@ -492,20 +499,20 @@ export const PayrollPage: React.FC<PayrollPageProps> = ({ can }) => {
                         borderRadius: '3px',
                         fontSize: '10px',
                         fontWeight: 700,
-                        background: '#e3f2fd',
+                        background: 'var(--accent-subtle)',
                         color: '#1565c0'
                       }}>
                         {emp.taxRegime === 'NewRegime' ? 'New 115BAC' : 'Old'}
                       </span>
                     </div>
                   </td>
-                  <td style={{ padding: '12px', textAlign: 'right', color: '#c62828' }}>
+                  <td style={{ padding: '12px', textAlign: 'right', color: 'var(--error)' }}>
                     {formatCurrency(emp.estimatedPf + emp.estimatedEsi + emp.estimatedPt + emp.estimatedTds)}
-                    <div style={{ fontSize: '10px', color: '#666' }}>
+                    <div style={{ fontSize: '10px', color: 'var(--muted)' }}>
                       PF:{emp.estimatedPf} | ESI:{emp.estimatedEsi} | PT:{emp.estimatedPt}
                     </div>
                   </td>
-                  <td style={{ padding: '12px', textAlign: 'right', fontWeight: 700, color: '#2e7d32' }}>
+                  <td style={{ padding: '12px', textAlign: 'right', fontWeight: 700, color: 'var(--success)' }}>
                     {formatCurrency(emp.estimatedNet)}
                   </td>
                   <td style={{ padding: '12px', textAlign: 'center' }}>
@@ -521,7 +528,7 @@ export const PayrollPage: React.FC<PayrollPageProps> = ({ can }) => {
               ))}
               {employees.length === 0 && (
                 <tr>
-                  <td colSpan={9} style={{ padding: '24px', textAlign: 'center', color: '#777' }}>
+                  <td colSpan={9} style={{ padding: '24px', textAlign: 'center', color: 'var(--muted)' }}>
                     No employees registered for this client. Click "+ Add Employee" above.
                   </td>
                 </tr>
@@ -533,10 +540,10 @@ export const PayrollPage: React.FC<PayrollPageProps> = ({ can }) => {
 
       {/* Tab 2: Monthly Payroll Runs */}
       {activeTab === 'runs' && (
-        <div style={{ background: 'var(--card-bg, #fff)', border: '1px solid var(--border, #e0e0e0)', borderRadius: '8px', overflowX: 'auto' }}>
+        <div style={{ background: 'var(--card-bg, #fff)', border: '1px solid var(--border)', borderRadius: '8px', overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
             <thead>
-              <tr style={{ background: 'var(--table-header, #f9f9f9)', borderBottom: '1px solid var(--border, #e0e0e0)' }}>
+              <tr style={{ background: 'var(--table-header, #f9f9f9)', borderBottom: '1px solid var(--border)' }}>
                 <th style={{ padding: '12px' }}>Period</th>
                 <th style={{ padding: '12px' }}>Employees</th>
                 <th style={{ padding: '12px', textAlign: 'right' }}>Total Gross Pay</th>
@@ -553,13 +560,13 @@ export const PayrollPage: React.FC<PayrollPageProps> = ({ can }) => {
                 <tr key={r.id} style={{ borderBottom: '1px solid var(--border, #f0f0f0)' }}>
                   <td style={{ padding: '12px', fontWeight: 700 }}>
                     {r.payrollPeriod}
-                    <div style={{ fontSize: '11px', color: '#666' }}>Processed {new Date(r.processedAt).toLocaleDateString()}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--muted)' }}>Processed {new Date(r.processedAt).toLocaleDateString()}</div>
                   </td>
                   <td style={{ padding: '12px' }}>{r.totalEmployees} staff</td>
                   <td style={{ padding: '12px', textAlign: 'right', fontWeight: 600 }}>
                     {formatCurrency(r.totalGrossPay)}
                   </td>
-                  <td style={{ padding: '12px', textAlign: 'right', fontWeight: 700, color: '#2e7d32' }}>
+                  <td style={{ padding: '12px', textAlign: 'right', fontWeight: 700, color: 'var(--success)' }}>
                     {formatCurrency(r.totalNetPay)}
                   </td>
                   <td style={{ padding: '12px', textAlign: 'right', color: '#1565c0' }}>
@@ -577,8 +584,8 @@ export const PayrollPage: React.FC<PayrollPageProps> = ({ can }) => {
                       borderRadius: '12px',
                       fontSize: '11px',
                       fontWeight: 600,
-                      background: r.status === 'Disbursed' ? '#e8f5e9' : (r.status === 'Approved' ? '#e3f2fd' : '#fff3e0'),
-                      color: r.status === 'Disbursed' ? '#2e7d32' : (r.status === 'Approved' ? '#1565c0' : '#e65100')
+                      background: r.status === 'Disbursed' ? 'var(--success-bg)' : (r.status === 'Approved' ? 'var(--accent-subtle)' : 'var(--warning-bg)'),
+                      color: r.status === 'Disbursed' ? 'var(--success)' : (r.status === 'Approved' ? '#1565c0' : 'var(--warning-text)')
                     }}>
                       {r.status}
                     </span>
@@ -614,7 +621,7 @@ export const PayrollPage: React.FC<PayrollPageProps> = ({ can }) => {
               ))}
               {runs.length === 0 && (
                 <tr>
-                  <td colSpan={9} style={{ padding: '24px', textAlign: 'center', color: '#777' }}>
+                  <td colSpan={9} style={{ padding: '24px', textAlign: 'center', color: 'var(--muted)' }}>
                     No payroll runs recorded yet. Click "⚡ Process Salary Run" to calculate one.
                   </td>
                 </tr>
@@ -645,10 +652,10 @@ export const PayrollPage: React.FC<PayrollPageProps> = ({ can }) => {
             )}
           </div>
 
-          <div style={{ background: 'var(--card-bg, #fff)', border: '1px solid var(--border, #e0e0e0)', borderRadius: '8px', overflowX: 'auto' }}>
+          <div style={{ background: 'var(--card-bg, #fff)', border: '1px solid var(--border)', borderRadius: '8px', overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
               <thead>
-                <tr style={{ background: 'var(--table-header, #f9f9f9)', borderBottom: '1px solid var(--border, #e0e0e0)' }}>
+                <tr style={{ background: 'var(--table-header, #f9f9f9)', borderBottom: '1px solid var(--border)' }}>
                   <th style={{ padding: '12px' }}>Employee</th>
                   <th style={{ padding: '12px' }}>Days</th>
                   <th style={{ padding: '12px', textAlign: 'right' }}>Basic Salary</th>
@@ -667,7 +674,7 @@ export const PayrollPage: React.FC<PayrollPageProps> = ({ can }) => {
                   <tr key={p.id} style={{ borderBottom: '1px solid var(--border, #f0f0f0)' }}>
                     <td style={{ padding: '12px' }}>
                       <div style={{ fontWeight: 600 }}>{p.employeeName}</div>
-                      <div style={{ fontSize: '11px', color: '#666' }}>{p.employeeCode} | UAN: {p.uan || '-'}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--muted)' }}>{p.employeeCode} | UAN: {p.uan || '-'}</div>
                     </td>
                     <td style={{ padding: '12px' }}>
                       {p.daysWorked}/{p.daysInMonth}
@@ -693,17 +700,17 @@ export const PayrollPage: React.FC<PayrollPageProps> = ({ can }) => {
                     <td style={{ padding: '12px', textAlign: 'right', color: '#d32f2f' }}>
                       {formatCurrency(p.salaryTds)}
                     </td>
-                    <td style={{ padding: '12px', textAlign: 'right', color: '#c62828', fontWeight: 600 }}>
+                    <td style={{ padding: '12px', textAlign: 'right', color: 'var(--error)', fontWeight: 600 }}>
                       {formatCurrency(p.totalDeductions)}
                     </td>
-                    <td style={{ padding: '12px', textAlign: 'right', fontWeight: 700, color: '#2e7d32' }}>
+                    <td style={{ padding: '12px', textAlign: 'right', fontWeight: 700, color: 'var(--success)' }}>
                       {formatCurrency(p.netSalary)}
                     </td>
                   </tr>
                 ))}
                 {payslips.length === 0 && (
                   <tr>
-                    <td colSpan={11} style={{ padding: '24px', textAlign: 'center', color: '#777' }}>
+                    <td colSpan={11} style={{ padding: '24px', textAlign: 'center', color: 'var(--muted)' }}>
                       No payslips found for this run.
                     </td>
                   </tr>
@@ -716,11 +723,11 @@ export const PayrollPage: React.FC<PayrollPageProps> = ({ can }) => {
 
       {/* Tab 4: EPFO ECR Export */}
       {activeTab === 'ecr' && (
-        <div style={{ background: 'var(--card-bg, #fff)', border: '1px solid var(--border, #e0e0e0)', borderRadius: '8px', padding: '20px' }}>
+        <div style={{ background: 'var(--card-bg, #fff)', border: '1px solid var(--border)', borderRadius: '8px', padding: '20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <div>
               <h3 style={{ margin: '0 0 4px 0' }}>EPFO Electronic Challan cum Return (ECR)</h3>
-              <p style={{ margin: 0, color: '#666', fontSize: '13px' }}>
+              <p style={{ margin: 0, color: 'var(--muted)', fontSize: '13px' }}>
                 Standard #~# delimited return file ready for direct upload on the Unified EPFO Employer Portal.
               </p>
             </div>
@@ -755,7 +762,7 @@ export const PayrollPage: React.FC<PayrollPageProps> = ({ can }) => {
 
           {ecrData ? (
             <div>
-              <div style={{ display: 'flex', gap: '20px', background: '#f5f5f5', padding: '12px 16px', borderRadius: '6px', marginBottom: '16px', fontSize: '13px' }}>
+              <div style={{ display: 'flex', gap: '20px', background: 'var(--card-subtle)', padding: '12px 16px', borderRadius: '6px', marginBottom: '16px', fontSize: '13px' }}>
                 <div><strong>Period:</strong> {ecrData.payrollPeriod}</div>
                 <div><strong>Member Count:</strong> {ecrData.employeeCount}</div>
                 <div><strong>Total Wages:</strong> {formatCurrency(ecrData.totalWages)}</div>
@@ -774,13 +781,13 @@ export const PayrollPage: React.FC<PayrollPageProps> = ({ can }) => {
                   fontSize: '12px',
                   padding: '12px',
                   borderRadius: '6px',
-                  border: '1px solid #ccc',
-                  background: '#fafafa'
+                  border: '1px solid var(--border-subtle)',
+                  background: 'var(--card-subtle)'
                 }}
               />
             </div>
           ) : (
-            <div style={{ textAlign: 'center', padding: '30px', color: '#777' }}>
+            <div style={{ textAlign: 'center', padding: '30px', color: 'var(--muted)' }}>
               Select a payroll run from the "Monthly Payroll Runs" tab and click "📥 ECR" to generate the return file.
             </div>
           )}
@@ -790,7 +797,7 @@ export const PayrollPage: React.FC<PayrollPageProps> = ({ can }) => {
       {/* Modal 1: Add / Edit Employee */}
       {showEmployeeModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: '#fff', padding: '24px', borderRadius: '8px', maxWidth: '650px', width: '90%', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div style={{ background: 'var(--card)', padding: '24px', borderRadius: '8px', maxWidth: '650px', width: '90%', maxHeight: '90vh', overflowY: 'auto' }}>
             <h2 style={{ marginTop: 0 }}>{editingEmployeeId ? 'Edit Employee Details' : 'Register New Employee'}</h2>
             <form onSubmit={handleSaveEmployee}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
@@ -801,7 +808,7 @@ export const PayrollPage: React.FC<PayrollPageProps> = ({ can }) => {
                     value={employeeForm.employeeCode}
                     onChange={e => setEmployeeForm({ ...employeeForm, employeeCode: e.target.value })}
                     required
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
                 <div>
@@ -811,7 +818,7 @@ export const PayrollPage: React.FC<PayrollPageProps> = ({ can }) => {
                     value={employeeForm.name}
                     onChange={e => setEmployeeForm({ ...employeeForm, name: e.target.value })}
                     required
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
               </div>
@@ -825,7 +832,7 @@ export const PayrollPage: React.FC<PayrollPageProps> = ({ can }) => {
                     onChange={e => setEmployeeForm({ ...employeeForm, pan: e.target.value.toUpperCase() })}
                     placeholder="ABCDE1234F"
                     maxLength={10}
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
                 <div>
@@ -836,7 +843,7 @@ export const PayrollPage: React.FC<PayrollPageProps> = ({ can }) => {
                     onChange={e => setEmployeeForm({ ...employeeForm, uan: e.target.value })}
                     placeholder="100XXXXXXXXX"
                     maxLength={12}
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
               </div>
@@ -849,7 +856,7 @@ export const PayrollPage: React.FC<PayrollPageProps> = ({ can }) => {
                     value={employeeForm.designation}
                     onChange={e => setEmployeeForm({ ...employeeForm, designation: e.target.value })}
                     required
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
                 <div>
@@ -857,7 +864,7 @@ export const PayrollPage: React.FC<PayrollPageProps> = ({ can }) => {
                   <select
                     value={employeeForm.state}
                     onChange={e => setEmployeeForm({ ...employeeForm, state: e.target.value })}
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   >
                     <option value="Maharashtra">Maharashtra (₹200/₹300 Feb)</option>
                     <option value="Karnataka">Karnataka (₹200 &gt; ₹15k)</option>
@@ -876,7 +883,7 @@ export const PayrollPage: React.FC<PayrollPageProps> = ({ can }) => {
                     value={employeeForm.dateOfJoining}
                     onChange={e => setEmployeeForm({ ...employeeForm, dateOfJoining: e.target.value })}
                     required
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
                 <div>
@@ -884,7 +891,7 @@ export const PayrollPage: React.FC<PayrollPageProps> = ({ can }) => {
                   <select
                     value={employeeForm.taxRegime}
                     onChange={e => setEmployeeForm({ ...employeeForm, taxRegime: e.target.value as (typeof employeeForm)['taxRegime'] })}
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   >
                     <option value="NewRegime">New Regime (Sec 115BAC - Default)</option>
                     <option value="OldRegime">Old Regime (With Deductions)</option>
@@ -893,7 +900,7 @@ export const PayrollPage: React.FC<PayrollPageProps> = ({ can }) => {
               </div>
 
               {/* Salary Structure */}
-              <div style={{ background: '#f9f9f9', padding: '12px', borderRadius: '6px', marginBottom: '14px' }}>
+              <div style={{ background: 'var(--card-subtle)', padding: '12px', borderRadius: '6px', marginBottom: '14px' }}>
                 <div style={{ fontWeight: 700, fontSize: '13px', marginBottom: '10px' }}>Monthly Salary Components (₹)</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
                   <div>
@@ -903,7 +910,7 @@ export const PayrollPage: React.FC<PayrollPageProps> = ({ can }) => {
                       value={employeeForm.basicSalary}
                       onChange={e => setEmployeeForm({ ...employeeForm, basicSalary: parseFloat(e.target.value) || 0 })}
                       required
-                      style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #ccc' }}
+                      style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                     />
                   </div>
                   <div>
@@ -912,7 +919,7 @@ export const PayrollPage: React.FC<PayrollPageProps> = ({ can }) => {
                       type="number"
                       value={employeeForm.hra}
                       onChange={e => setEmployeeForm({ ...employeeForm, hra: parseFloat(e.target.value) || 0 })}
-                      style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #ccc' }}
+                      style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                     />
                   </div>
                   <div>
@@ -921,7 +928,7 @@ export const PayrollPage: React.FC<PayrollPageProps> = ({ can }) => {
                       type="number"
                       value={employeeForm.specialAllowance}
                       onChange={e => setEmployeeForm({ ...employeeForm, specialAllowance: parseFloat(e.target.value) || 0 })}
-                      style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #ccc' }}
+                      style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                     />
                   </div>
                 </div>
@@ -969,9 +976,9 @@ export const PayrollPage: React.FC<PayrollPageProps> = ({ can }) => {
       {/* Modal 2: Process Monthly Payroll */}
       {showProcessModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: '#fff', padding: '24px', borderRadius: '8px', maxWidth: '450px', width: '90%' }}>
+          <div style={{ background: 'var(--card)', padding: '24px', borderRadius: '8px', maxWidth: '450px', width: '90%' }}>
             <h2 style={{ marginTop: 0 }}>Process Monthly Payroll Run</h2>
-            <p style={{ color: '#666', fontSize: '13px' }}>
+            <p style={{ color: 'var(--muted)', fontSize: '13px' }}>
               Calculates monthly wages, pro-rata attendance, EPF, ESIC, PT, and Section 192 Salary TDS for active employees.
             </p>
             <form onSubmit={handleProcessRun}>
@@ -983,7 +990,7 @@ export const PayrollPage: React.FC<PayrollPageProps> = ({ can }) => {
                     value={runForm.year}
                     onChange={e => setRunForm({ ...runForm, year: parseInt(e.target.value) || 2024 })}
                     required
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
                 <div>
@@ -991,7 +998,7 @@ export const PayrollPage: React.FC<PayrollPageProps> = ({ can }) => {
                   <select
                     value={runForm.month}
                     onChange={e => setRunForm({ ...runForm, month: parseInt(e.target.value) || 1 })}
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   >
                     {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(m => (
                       <option key={m} value={m}>
@@ -1009,7 +1016,7 @@ export const PayrollPage: React.FC<PayrollPageProps> = ({ can }) => {
                   value={runForm.notes || ''}
                   onChange={e => setRunForm({ ...runForm, notes: e.target.value })}
                   placeholder="e.g. Regular monthly payroll run"
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
 

@@ -134,17 +134,17 @@ export default function CommunicationsGatewayPage() {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
             <span style={{ fontSize: '24px' }}>💬</span>
-            <h1 style={{ fontSize: '24px', fontWeight: 800, margin: 0, color: '#0f172a' }}>
+            <h1 style={{ fontSize: '24px', fontWeight: 800, margin: 0, color: 'var(--text)' }}>
               Communications &amp; Real-Time Automation Gateway
             </h1>
-            <span style={{ fontSize: '11px', background: '#dcfce7', color: '#15803d', padding: '3px 8px', borderRadius: '4px', fontWeight: 700 }}>
+            <span style={{ fontSize: '11px', background: 'var(--success-bg)', color: 'var(--success)', padding: '3px 8px', borderRadius: '4px', fontWeight: 700 }}>
               META GRAPH API v21.0
             </span>
-            <span style={{ fontSize: '11px', background: '#e0e7ff', color: '#3730a3', padding: '3px 8px', borderRadius: '4px', fontWeight: 700 }}>
+            <span style={{ fontSize: '11px', background: 'var(--accent-subtle)', color: 'var(--accent)', padding: '3px 8px', borderRadius: '4px', fontWeight: 700 }}>
               TRANSACTIONAL GATEWAY
             </span>
           </div>
-          <p style={{ margin: 0, color: '#64748b', fontSize: '14px' }}>
+          <p style={{ margin: 0, color: 'var(--muted)', fontSize: '14px' }}>
             Multi-channel client communication hub for Indian CA firms. Automated WhatsApp filing alerts, SA 505 external confirmation links, client portal OTPs, and SendGrid/SES invoice delivery.
           </p>
         </div>
@@ -152,7 +152,7 @@ export default function CommunicationsGatewayPage() {
         <button
           onClick={loadOverview}
           disabled={loading || busy}
-          style={{ padding: '8px 16px', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '13px', fontWeight: 600, color: '#334155', cursor: 'pointer' }}
+          style={{ padding: '8px 16px', background: 'var(--card-subtle)', border: '1px solid var(--border-subtle)', borderRadius: '6px', fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', cursor: 'pointer' }}
         >
           🔄 Refresh Status
         </button>
@@ -160,67 +160,67 @@ export default function CommunicationsGatewayPage() {
 
       {/* Global Alerts */}
       {actionMessage && (
-        <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#166534', padding: '12px 16px', borderRadius: '6px', marginBottom: '20px', fontSize: '13px', display: 'flex', justifyContent: 'space-between' }}>
+        <div style={{ background: 'var(--success-bg)', border: '1px solid var(--success-border)', color: 'var(--success-text)', padding: '12px 16px', borderRadius: '6px', marginBottom: '20px', fontSize: '13px', display: 'flex', justifyContent: 'space-between' }}>
           <span>✓ {actionMessage}</span>
-          <button onClick={() => setActionMessage(null)} style={{ background: 'none', border: 'none', color: '#166534', cursor: 'pointer', fontWeight: 700 }}>✕</button>
+          <button onClick={() => setActionMessage(null)} style={{ background: 'none', border: 'none', color: 'var(--success-text)', cursor: 'pointer', fontWeight: 700 }}>✕</button>
         </div>
       )}
 
       {error && (
-        <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', padding: '12px 16px', borderRadius: '6px', marginBottom: '20px', fontSize: '13px', display: 'flex', justifyContent: 'space-between' }}>
+        <div style={{ background: 'var(--error-bg)', border: '1px solid var(--error-border)', color: 'var(--error-text)', padding: '12px 16px', borderRadius: '6px', marginBottom: '20px', fontSize: '13px', display: 'flex', justifyContent: 'space-between' }}>
           <span>⚠️ {error}</span>
-          <button onClick={() => setError(null)} style={{ background: 'none', border: 'none', color: '#991b1b', cursor: 'pointer', fontWeight: 700 }}>✕</button>
+          <button onClick={() => setError(null)} style={{ background: 'none', border: 'none', color: 'var(--error-text)', cursor: 'pointer', fontWeight: 700 }}>✕</button>
         </div>
       )}
 
       {/* KPI Overview Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
-        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px' }}>
-          <div style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: '4px' }}>WhatsApp Cloud Status</div>
+        <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '16px' }}>
+          <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--muted)', marginBottom: '4px' }}>WhatsApp Cloud Status</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: overview?.whatsAppStatus.isConnected ? '#22c55e' : '#f59e0b' }}></span>
-            <span style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>
+            <span style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text)' }}>
               {overview?.whatsAppStatus.isConnected ? 'Connected (Live)' : 'Simulator Mode'}
             </span>
           </div>
-          <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '6px' }}>
+          <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '6px' }}>
             WABA: {overview?.whatsAppStatus.wabaId || '—'} · Lang: {overview?.whatsAppStatus.templateLanguage || 'en'}
           </div>
         </div>
 
-        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px' }}>
-          <div style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: '4px' }}>Email Gateway Provider</div>
-          <div style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>
+        <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '16px' }}>
+          <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--muted)', marginBottom: '4px' }}>Email Gateway Provider</div>
+          <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text)' }}>
             {overview?.emailStatus.provider || 'SendGrid / AWS SES'}
           </div>
-          <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '6px' }}>
+          <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '6px' }}>
             From: {overview?.emailStatus.fromAddress || 'notifications@cadesk.in'}
           </div>
         </div>
 
-        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px' }}>
-          <div style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: '4px' }}>Total Messages Dispatched</div>
-          <div style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>
+        <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '16px' }}>
+          <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--muted)', marginBottom: '4px' }}>Total Messages Dispatched</div>
+          <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text)' }}>
             {overview?.totalDispatched ?? 0}
           </div>
-          <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '6px' }}>
+          <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '6px' }}>
             WhatsApp: {overview?.whatsAppStatus.sentCount ?? 0} · Email: {overview?.emailStatus.sentCount ?? 0}
           </div>
         </div>
 
-        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px' }}>
-          <div style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: '4px' }}>Delivery Success Rate</div>
+        <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '16px' }}>
+          <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--muted)', marginBottom: '4px' }}>Delivery Success Rate</div>
           <div style={{ fontSize: '18px', fontWeight: 800, color: '#16a34a' }}>
             {overview?.deliverySuccessRate ?? 100}%
           </div>
-          <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '6px' }}>
+          <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '6px' }}>
             {overview?.whatsAppStatus.failedCount ?? 0} failed / undelivered
           </div>
         </div>
       </div>
 
       {/* Tabs Navigation */}
-      <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid #e2e8f0', marginBottom: '24px' }}>
+      <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid var(--border)', marginBottom: '24px' }}>
         {[
           { id: 'status', label: '⚙️ Gateway Status & Test Console' },
           { id: 'deadlines', label: '📅 Statutory Deadlines Campaign (GST/Tax/ITR)' },
@@ -234,10 +234,10 @@ export default function CommunicationsGatewayPage() {
             style={{
               padding: '10px 18px',
               border: 'none',
-              borderBottom: activeTab === t.id ? '2px solid #2563eb' : '2px solid transparent',
+              borderBottom: activeTab === t.id ? '2px solid var(--accent)' : '2px solid transparent',
               background: 'none',
               fontWeight: activeTab === t.id ? 700 : 500,
-              color: activeTab === t.id ? '#2563eb' : '#64748b',
+              color: activeTab === t.id ? 'var(--accent)' : 'var(--muted)',
               fontSize: '13px',
               cursor: 'pointer'
             }}
@@ -251,17 +251,17 @@ export default function CommunicationsGatewayPage() {
       {activeTab === 'status' && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
           {/* Meta WhatsApp Test Card */}
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px' }}>
+          <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
               <span style={{ fontSize: '20px' }}>📱</span>
-              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>Meta WhatsApp Cloud API Test</h3>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>Meta WhatsApp Cloud API Test</h3>
             </div>
-            <p style={{ fontSize: '12px', color: '#64748b', marginBottom: '16px' }}>
+            <p style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '16px' }}>
               Send a test WhatsApp message using approved Meta templates or live simulation to verify your webhook and recipient formatting.
             </p>
 
             <div style={{ marginBottom: '14px' }}>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '4px' }}>
                 Recipient Mobile Number (+91 India):
               </label>
               <input
@@ -269,12 +269,12 @@ export default function CommunicationsGatewayPage() {
                 value={testPhone}
                 onChange={e => setTestPhone(e.target.value)}
                 placeholder="e.g. 9876543210"
-                style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-subtle)', fontSize: '13px' }}
               />
             </div>
 
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '4px' }}>
                 Custom Message / Remarks:
               </label>
               <textarea
@@ -282,7 +282,7 @@ export default function CommunicationsGatewayPage() {
                 value={testWaText}
                 onChange={e => setTestWaText(e.target.value)}
                 placeholder="Optional custom preview text..."
-                style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-subtle)', fontSize: '13px' }}
               />
             </div>
 
@@ -296,17 +296,17 @@ export default function CommunicationsGatewayPage() {
           </div>
 
           {/* Transactional Email Test Card */}
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px' }}>
+          <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
               <span style={{ fontSize: '20px' }}>📧</span>
-              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>Transactional Email Gateway Test</h3>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>Transactional Email Gateway Test</h3>
             </div>
-            <p style={{ fontSize: '12px', color: '#64748b', marginBottom: '16px' }}>
+            <p style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '16px' }}>
               Dispatch a test email via SendGrid v3 API / Amazon SES / SMTP relay to confirm SPF, DKIM, and deliverability.
             </p>
 
             <div style={{ marginBottom: '14px' }}>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '4px' }}>
                 Recipient Email Address:
               </label>
               <input
@@ -314,31 +314,31 @@ export default function CommunicationsGatewayPage() {
                 value={testEmail}
                 onChange={e => setTestEmail(e.target.value)}
                 placeholder="partner@yourfirm.in"
-                style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-subtle)', fontSize: '13px' }}
               />
             </div>
 
             <div style={{ marginBottom: '14px' }}>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '4px' }}>
                 Email Subject:
               </label>
               <input
                 type="text"
                 value={testEmailSubject}
                 onChange={e => setTestEmailSubject(e.target.value)}
-                style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-subtle)', fontSize: '13px' }}
               />
             </div>
 
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '4px' }}>
                 Email Body:
               </label>
               <textarea
                 rows={2}
                 value={testEmailBody}
                 onChange={e => setTestEmailBody(e.target.value)}
-                style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-subtle)', fontSize: '13px' }}
               />
             </div>
 
@@ -352,32 +352,32 @@ export default function CommunicationsGatewayPage() {
           </div>
 
           {/* Client Portal OTP Simulator */}
-          <div style={{ gridColumn: 'span 2', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px' }}>
+          <div style={{ gridColumn: 'span 2', background: 'var(--card-subtle)', border: '1px solid var(--border)', borderRadius: '8px', padding: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
               <span style={{ fontSize: '18px' }}>🔐</span>
-              <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#0f172a' }}>Client Portal OTP &amp; 2-Factor Authentication Simulator</h3>
+              <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: 'var(--text)' }}>Client Portal OTP &amp; 2-Factor Authentication Simulator</h3>
             </div>
-            <p style={{ fontSize: '12px', color: '#64748b', marginBottom: '14px' }}>
+            <p style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '14px' }}>
               Test instant 6-digit cryptographic TOTP / OTP delivery over WhatsApp Cloud API and Email for portal client logins and DSC approvals.
             </p>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '12px', alignItems: 'flex-end' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>Destination (Phone or Email):</label>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '4px' }}>Destination (Phone or Email):</label>
                 <input
                   type="text"
                   value={otpDestination}
                   onChange={e => setOtpDestination(e.target.value)}
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-subtle)', fontSize: '13px' }}
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>Dispatch Channel:</label>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '4px' }}>Dispatch Channel:</label>
                 <select
                   value={otpChannel}
                   onChange={e => setOtpChannel(e.target.value as 'whatsapp' | 'email')}
-                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-subtle)', fontSize: '13px' }}
                 >
                   <option value="whatsapp">📱 WhatsApp Cloud API (Template: portal_otp)</option>
                   <option value="email">📧 Transactional Email</option>
@@ -398,23 +398,23 @@ export default function CommunicationsGatewayPage() {
 
       {/* TAB 2: STATUTORY DEADLINES CAMPAIGN */}
       {activeTab === 'deadlines' && (
-        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '24px' }}>
+        <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '24px' }}>
           <div style={{ marginBottom: '20px' }}>
-            <h3 style={{ fontSize: '16px', fontWeight: 700, margin: '0 0 6px 0', color: '#0f172a' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: 700, margin: '0 0 6px 0', color: 'var(--text)' }}>
               Automated Statutory Filing Deadline Campaign Engine
             </h3>
-            <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>
+            <p style={{ margin: 0, fontSize: '13px', color: 'var(--muted)' }}>
               Automatically scans upcoming deadlines across your client portfolio, compiles filing details, and dispatches batch alerts via WhatsApp and Email to prevent Section 47 late fees and interest under Section 234A/B/C.
             </p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', background: '#f8fafc', padding: '16px', borderRadius: '6px', marginBottom: '20px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', background: 'var(--card-subtle)', padding: '16px', borderRadius: '6px', marginBottom: '20px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>Statutory Regime:</label>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '4px' }}>Statutory Regime:</label>
               <select
                 value={selectedRegime}
                 onChange={e => setSelectedRegime(e.target.value as typeof selectedRegime)}
-                style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-subtle)', fontSize: '13px' }}
               >
                 <option value="GST">GST (GSTR-1, GSTR-3B, GSTR-9)</option>
                 <option value="AdvanceTax">Advance Tax (Sec 211 / 234C)</option>
@@ -424,11 +424,11 @@ export default function CommunicationsGatewayPage() {
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>Days Horizon:</label>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '4px' }}>Days Horizon:</label>
               <select
                 value={horizonDays}
                 onChange={e => setHorizonDays(Number(e.target.value))}
-                style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-subtle)', fontSize: '13px' }}
               >
                 <option value={7}>Next 7 Days (Urgent)</option>
                 <option value={15}>Next 15 Days</option>
@@ -438,7 +438,7 @@ export default function CommunicationsGatewayPage() {
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>Dispatch Channels:</label>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '4px' }}>Dispatch Channels:</label>
               <div style={{ display: 'flex', gap: '12px', paddingTop: '6px' }}>
                 <label style={{ fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
                   <input type="checkbox" checked={statutorySendWa} onChange={e => setStatutorySendWa(e.target.checked)} />
@@ -463,9 +463,9 @@ export default function CommunicationsGatewayPage() {
           </div>
 
           {statutoryResult && (
-            <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', padding: '16px', marginTop: '16px' }}>
-              <div style={{ fontWeight: 700, color: '#166534', marginBottom: '8px' }}>Campaign Execution Summary:</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', fontSize: '13px', color: '#14532d', marginBottom: '12px' }}>
+            <div style={{ background: 'var(--success-bg)', border: '1px solid var(--success-border)', borderRadius: '6px', padding: '16px', marginTop: '16px' }}>
+              <div style={{ fontWeight: 700, color: 'var(--success-text)', marginBottom: '8px' }}>Campaign Execution Summary:</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', fontSize: '13px', color: 'var(--success-text)', marginBottom: '12px' }}>
                 <div>Deadlines Checked: <b>{statutoryResult.deadlinesEvaluated}</b></div>
                 <div>Clients Notified: <b>{statutoryResult.clientsNotified}</b></div>
                 <div>WhatsApp Sent: <b>{statutoryResult.whatsAppMessagesQueued}</b></div>
@@ -473,8 +473,8 @@ export default function CommunicationsGatewayPage() {
               </div>
               {statutoryResult.dispatchedItems.length > 0 && (
                 <div>
-                  <div style={{ fontSize: '12px', fontWeight: 700, color: '#166534', marginBottom: '4px' }}>Sample Dispatched Notices:</div>
-                  <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '12px', color: '#14532d' }}>
+                  <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--success-text)', marginBottom: '4px' }}>Sample Dispatched Notices:</div>
+                  <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '12px', color: 'var(--success-text)' }}>
                     {statutoryResult.dispatchedItems.map((item, idx) => (
                       <li key={idx}>{item}</li>
                     ))}
@@ -488,25 +488,25 @@ export default function CommunicationsGatewayPage() {
 
       {/* TAB 3: SA 505 CONFIRMATION WHATSAPP LINKS */}
       {activeTab === 'sa505' && (
-        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '24px' }}>
+        <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '24px' }}>
           <div style={{ marginBottom: '20px' }}>
-            <h3 style={{ fontSize: '16px', fontWeight: 700, margin: '0 0 6px 0', color: '#0f172a' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: 700, margin: '0 0 6px 0', color: 'var(--text)' }}>
               SA 505 Automated External Confirmation WhatsApp Circularization
             </h3>
-            <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>
+            <p style={{ margin: 0, fontSize: '13px', color: 'var(--muted)' }}>
               Directly circulates tokenized digital confirmation links to third-party debtors, creditors, and banks via WhatsApp with 1-click verification buttons and transactional email letters.
             </p>
           </div>
 
-          <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '6px', padding: '16px', marginBottom: '20px', fontSize: '13px', color: '#1e40af' }}>
+          <div style={{ background: 'var(--accent-subtle)', border: '1px solid var(--accent)', borderRadius: '6px', padding: '16px', marginBottom: '20px', fontSize: '13px', color: 'var(--accent)' }}>
             <div style={{ fontWeight: 700, marginBottom: '6px' }}>Meta WhatsApp Interactive Button Preview:</div>
-            <div style={{ background: '#fff', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '12px', maxWidth: '440px', color: '#0f172a' }}>
+            <div style={{ background: 'var(--card)', border: '1px solid var(--border-subtle)', borderRadius: '6px', padding: '12px', maxWidth: '440px', color: 'var(--text)' }}>
               <div style={{ fontSize: '12px', marginBottom: '8px' }}>
                 Dear <b>Apex Enterprises Ltd</b>,<br /><br />
                 We are conducting the statutory audit of <b>Bharat Manufacturing Ltd</b> for FY ended 31 Mar 2025. Their books reflect a balance of <b>₹1,45,20,000 Dr</b> with your organization.<br /><br />
                 Please verify and confirm this balance via your secure link below.
               </div>
-              <div style={{ textAlign: 'center', background: '#f8fafc', border: '1px solid #cbd5e1', padding: '8px', borderRadius: '4px', color: '#0284c7', fontWeight: 700, fontSize: '12px' }}>
+              <div style={{ textAlign: 'center', background: 'var(--card-subtle)', border: '1px solid var(--border-subtle)', padding: '8px', borderRadius: '4px', color: 'var(--accent)', fontWeight: 700, fontSize: '12px' }}>
                 🔗 Review &amp; Digitally Confirm Balance
               </div>
             </div>
@@ -514,7 +514,7 @@ export default function CommunicationsGatewayPage() {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '16px', alignItems: 'flex-end' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#334155', marginBottom: '4px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '4px' }}>
                 Campaign Reference / ID:
               </label>
               <input
@@ -522,7 +522,7 @@ export default function CommunicationsGatewayPage() {
                 value={sa505CampaignId}
                 onChange={e => setSa505CampaignId(e.target.value)}
                 placeholder="Enter or select Confirmation Campaign ID..."
-                style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-subtle)', fontSize: '13px' }}
               />
             </div>
 
@@ -555,9 +555,9 @@ export default function CommunicationsGatewayPage() {
           </div>
 
           {sa505Result && (
-            <div style={{ marginTop: '20px', background: '#f0fdf4', padding: '16px', borderRadius: '6px', border: '1px solid #bbf7d0' }}>
-              <div style={{ fontWeight: 700, color: '#166534', marginBottom: '6px' }}>SA 505 Circularization Dispatched:</div>
-              <div style={{ fontSize: '13px', color: '#14532d' }}>
+            <div style={{ marginTop: '20px', background: 'var(--success-bg)', padding: '16px', borderRadius: '6px', border: '1px solid var(--success-border)' }}>
+              <div style={{ fontWeight: 700, color: 'var(--success-text)', marginBottom: '6px' }}>SA 505 Circularization Dispatched:</div>
+              <div style={{ fontSize: '13px', color: 'var(--success-text)' }}>
                 Total Requests: {sa505Result.totalProcessed} · WhatsApp: {sa505Result.whatsAppSent} · Email: {sa505Result.emailSent}
               </div>
             </div>
@@ -567,20 +567,20 @@ export default function CommunicationsGatewayPage() {
 
       {/* TAB 4: INVOICES & SAC 998311 DELIVERY */}
       {activeTab === 'invoices' && (
-        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '24px' }}>
+        <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '24px' }}>
           <div style={{ marginBottom: '20px' }}>
-            <h3 style={{ fontSize: '16px', fontWeight: 700, margin: '0 0 6px 0', color: '#0f172a' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: 700, margin: '0 0 6px 0', color: 'var(--text)' }}>
               Transactional Invoice Delivery (SAC 998311)
             </h3>
-            <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>
+            <p style={{ margin: 0, fontSize: '13px', color: 'var(--muted)' }}>
               Dispatches statutory tax invoices with PDF attachments via SendGrid / AWS SES, along with instant WhatsApp summary alerts and client payment portal links.
             </p>
           </div>
 
-          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ background: 'var(--card-subtle)', border: '1px solid var(--border)', borderRadius: '6px', padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <div style={{ fontWeight: 700, fontSize: '14px', color: '#0f172a' }}>Demo Invoice: INV-2025-001 (Bharat Manufacturing Ltd)</div>
-              <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
+              <div style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text)' }}>Demo Invoice: INV-2025-001 (Bharat Manufacturing Ltd)</div>
+              <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '4px' }}>
                 Professional Accounting &amp; Audit Services (SAC 998311) · Amount: ₹59,000 (Incl. 18% GST)
               </div>
             </div>
@@ -599,12 +599,12 @@ export default function CommunicationsGatewayPage() {
 
       {/* TAB 5: LIVE OUTBOX & AUDIT LOG */}
       {activeTab === 'logs' && (
-        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px' }}>
+        <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h3 style={{ fontSize: '16px', fontWeight: 700, margin: 0, color: '#0f172a' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: 700, margin: 0, color: 'var(--text)' }}>
               Recent Communications &amp; Outbound Dispatches
             </h3>
-            <span style={{ fontSize: '12px', color: '#64748b' }}>
+            <span style={{ fontSize: '12px', color: 'var(--muted)' }}>
               Showing latest {overview?.recentDispatches.length ?? 0} messages
             </span>
           </div>
@@ -612,19 +612,19 @@ export default function CommunicationsGatewayPage() {
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
               <thead>
-                <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', textAlign: 'left' }}>
-                  <th style={{ padding: '10px 12px', color: '#475569' }}>Timestamp</th>
-                  <th style={{ padding: '10px 12px', color: '#475569' }}>Channel</th>
-                  <th style={{ padding: '10px 12px', color: '#475569' }}>Recipient</th>
-                  <th style={{ padding: '10px 12px', color: '#475569' }}>Template / Subject</th>
-                  <th style={{ padding: '10px 12px', color: '#475569' }}>Status</th>
+                <tr style={{ background: 'var(--card-subtle)', borderBottom: '1px solid var(--border)', textAlign: 'left' }}>
+                  <th style={{ padding: '10px 12px', color: 'var(--text-secondary)' }}>Timestamp</th>
+                  <th style={{ padding: '10px 12px', color: 'var(--text-secondary)' }}>Channel</th>
+                  <th style={{ padding: '10px 12px', color: 'var(--text-secondary)' }}>Recipient</th>
+                  <th style={{ padding: '10px 12px', color: 'var(--text-secondary)' }}>Template / Subject</th>
+                  <th style={{ padding: '10px 12px', color: 'var(--text-secondary)' }}>Status</th>
                 </tr>
               </thead>
               <tbody>
                 {overview?.recentDispatches && overview.recentDispatches.length > 0 ? (
                   overview.recentDispatches.map((n: NotificationItem) => (
-                    <tr key={n.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ padding: '10px 12px', color: '#64748b', whiteSpace: 'nowrap' }}>
+                    <tr key={n.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                      <td style={{ padding: '10px 12px', color: 'var(--muted)', whiteSpace: 'nowrap' }}>
                         {new Date(n.sentAt ?? n.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                       </td>
                       <td style={{ padding: '10px 12px' }}>
@@ -633,19 +633,19 @@ export default function CommunicationsGatewayPage() {
                           borderRadius: '4px',
                           fontSize: '11px',
                           fontWeight: 700,
-                          background: n.channel === 'whatsapp' ? '#dcfce7' : '#e0e7ff',
-                          color: n.channel === 'whatsapp' ? '#15803d' : '#3730a3'
+                          background: n.channel === 'whatsapp' ? 'var(--success-bg)' : 'var(--accent-subtle)',
+                          color: n.channel === 'whatsapp' ? 'var(--success)' : 'var(--accent)'
                         }}>
                           {n.channel === 'whatsapp' ? '📱 WhatsApp' : '📧 Email'}
                         </span>
                       </td>
                       <td style={{ padding: '10px 12px' }}>
-                        <div style={{ fontWeight: 600, color: '#0f172a' }}>{n.recipientName}</div>
-                        <div style={{ fontSize: '11px', color: '#94a3b8' }}>{n.toAddress}</div>
+                        <div style={{ fontWeight: 600, color: 'var(--text)' }}>{n.recipientName}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--muted)' }}>{n.toAddress}</div>
                       </td>
                       <td style={{ padding: '10px 12px' }}>
-                        <div style={{ fontWeight: 600, color: '#334155' }}>{n.templateKey}</div>
-                        <div style={{ fontSize: '11px', color: '#64748b', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <div style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>{n.templateKey}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--muted)', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {n.subject || n.body}
                         </div>
                       </td>
@@ -655,8 +655,8 @@ export default function CommunicationsGatewayPage() {
                           borderRadius: '4px',
                           fontSize: '11px',
                           fontWeight: 700,
-                          background: n.status === 'sent' ? '#f0fdf4' : n.status === 'failed' ? '#fef2f2' : '#f8fafc',
-                          color: n.status === 'sent' ? '#16a34a' : n.status === 'failed' ? '#dc2626' : '#64748b'
+                          background: n.status === 'sent' ? 'var(--success-bg)' : n.status === 'failed' ? 'var(--error-bg)' : 'var(--card-subtle)',
+                          color: n.status === 'sent' ? '#16a34a' : n.status === 'failed' ? 'var(--error)' : 'var(--muted)'
                         }}>
                           {n.status.toUpperCase()}
                         </span>
@@ -665,7 +665,7 @@ export default function CommunicationsGatewayPage() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={5} style={{ padding: '24px', textAlign: 'center', color: '#94a3b8' }}>
+                    <td colSpan={5} style={{ padding: '24px', textAlign: 'center', color: 'var(--muted)' }}>
                       No communications dispatched yet. Use the Test Console or Deadline Campaign to initiate messages.
                     </td>
                   </tr>

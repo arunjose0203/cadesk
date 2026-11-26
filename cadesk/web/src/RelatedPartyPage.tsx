@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, type FormEvent } from 'react'
+import { useState, useEffect, useMemo, useCallback, type FormEvent } from 'react'
 import {
   relatedPartyApi,
   api,
@@ -113,8 +113,8 @@ export function RelatedPartyPage() {
       try {
         const res = await api<ClientPage>('/api/clients?pageSize=100').catch(() => ({ items: [], total: 0 }))
         setClients(res.items || [])
-        if (res.items && res.items.length > 0 && !selectedClientId) {
-          setSelectedClientId(res.items[0].id)
+        if (res.items && res.items.length > 0) {
+          setSelectedClientId(prev => prev || res.items[0].id)
         }
       } catch (err: unknown) {
         console.error(err)
@@ -124,7 +124,7 @@ export function RelatedPartyPage() {
   }, [])
 
   // Load module data
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     if (!selectedClientId) return
     try {
       setLoading(true)
@@ -152,11 +152,11 @@ export function RelatedPartyPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [selectedClientId, selectedFy])
 
   useEffect(() => {
     fetchData()
-  }, [selectedClientId, selectedFy])
+  }, [fetchData])
 
   // Filtered transactions
   const filteredTxs = useMemo(() => {

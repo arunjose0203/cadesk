@@ -152,13 +152,13 @@ public sealed class SendGridEmailChannel(HttpClient http, EmailOptions o) : INot
 }
 
 /// <summary>Transactional Email through AWS Simple Email Service (SES) v2 REST API.</summary>
-public sealed class AwsSesEmailChannel(HttpClient http, EmailOptions o) : INotificationChannel
+public sealed class AwsSesEmailChannel(EmailOptions o) : INotificationChannel
 {
     public string Channel => Channels.Email;
 
     public async Task<SendResult> SendAsync(OutgoingMessage m, CancellationToken ct)
     {
-        // When AWS SES credentials or SMTP relay is configured
+        // Require either SMTP relay host or SES credentials
         if (string.IsNullOrWhiteSpace(o.Host) && string.IsNullOrWhiteSpace(o.SesAccessKey))
             return SendResult.Skip("AWS SES endpoint or credentials are not configured.");
 
@@ -169,7 +169,7 @@ public sealed class AwsSesEmailChannel(HttpClient http, EmailOptions o) : INotif
             return await smtpChannel.SendAsync(m, ct);
         }
 
-        return SendResult.Sent($"ses-{m.Id}");
+        return SendResult.GiveUp("AWS SES requires an SMTP relay host (Notifications:Email:Host) to send email.");
     }
 }
 

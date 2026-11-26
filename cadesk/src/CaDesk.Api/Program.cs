@@ -18,6 +18,11 @@ using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 var config = builder.Configuration;
+var isDevOrTest = builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Testing");
+static bool HasPlaceholder(string? value) =>
+    string.IsNullOrWhiteSpace(value) ||
+    value.Contains("REPLACE_WITH_", StringComparison.OrdinalIgnoreCase) ||
+    value.Contains("CHANGE_ME", StringComparison.OrdinalIgnoreCase);
 
 // ---- structured logging: JSON formatting in Production / Container environments
 if (builder.Environment.IsProduction() || config.GetValue<string>("Logging:Console:FormatterName") == "json")
@@ -32,12 +37,18 @@ if (builder.Environment.IsProduction() || config.GetValue<string>("Logging:Conso
 }
 
 // ---- database + tenancy
+var appConnectionString = config.GetConnectionString("App")
+    ?? throw new InvalidOperationException("ConnectionStrings:App is missing.");
+var ownerConnectionString = config.GetConnectionString("Owner")
+    ?? throw new InvalidOperationException("ConnectionStrings:Owner is missing.");
+if (!isDevOrTest && (HasPlaceholder(appConnectionString) || HasPlaceholder(ownerConnectionString)))
+    throw new InvalidOperationException(
+        "ConnectionStrings:App and ConnectionStrings:Owner must use real credentials outside Development/Testing.");
+
 builder.Services.AddInfrastructure(new DatabaseOptions
 {
-    AppConnectionString = config.GetConnectionString("App")
-        ?? throw new InvalidOperationException("ConnectionStrings:App is missing."),
-    OwnerConnectionString = config.GetConnectionString("Owner")
-        ?? throw new InvalidOperationException("ConnectionStrings:Owner is missing."),
+    AppConnectionString = appConnectionString,
+    OwnerConnectionString = ownerConnectionString,
     MigrateOnStartup = config.GetValue("Database:MigrateOnStartup", true),
 });
 
@@ -71,9 +82,7 @@ else if (emailOptions.Mode.Equals("SendGrid", StringComparison.OrdinalIgnoreCase
 else if (emailOptions.Mode.Equals("Ses", StringComparison.OrdinalIgnoreCase))
 {
     builder.Services.AddSingleton(emailOptions);
-    builder.Services.AddHttpClient<CaDesk.Api.Notifications.AwsSesEmailChannel>();
-    builder.Services.AddTransient<CaDesk.Application.Notifications.INotificationChannel>(sp =>
-        sp.GetRequiredService<CaDesk.Api.Notifications.AwsSesEmailChannel>());
+    builder.Services.AddSingleton<CaDesk.Application.Notifications.INotificationChannel, CaDesk.Api.Notifications.AwsSesEmailChannel>();
 }
 else
 {
@@ -219,6 +228,8 @@ else if (!builder.Environment.IsDevelopment() && !builder.Environment.IsEnvironm
 var jwt = config.GetSection("Jwt").Get<JwtOptions>() ?? new JwtOptions();
 if (jwt.SigningKey.Length < 32)
     throw new InvalidOperationException("Jwt:SigningKey must be at least 32 characters.");
+if (!isDevOrTest && (HasPlaceholder(jwt.SigningKey) || jwt.SigningKey.Contains("dev-only-signing-key", StringComparison.OrdinalIgnoreCase)))
+    throw new InvalidOperationException("Jwt:SigningKey must not use the default development key outside Development/Testing.");
 builder.Services.AddSingleton(jwt);
 builder.Services.AddSingleton<TokenIssuer>();
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
   type Schedule3AssessmentDto,
   type Schedule3SummaryDto,
@@ -95,12 +95,7 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
     auditorRemarks: ''
   })
 
-  useEffect(() => {
-    loadData()
-    loadClients()
-  }, [filterFy, filterStatus])
-
-  async function loadData() {
+  const loadData = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -110,25 +105,27 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
       ])
       setAssessments(list)
       setSummary(sum)
-      if (selectedAssessment) {
-        const refreshed = list.find(a => a.id === selectedAssessment.id)
-        if (refreshed) setSelectedAssessment(refreshed)
-      }
+      setSelectedAssessment(prev => (prev ? (list.find(a => a.id === prev.id) ?? prev) : null))
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load Schedule III assessments.')
     } finally {
       setLoading(false)
     }
-  }
+  }, [filterFy, filterStatus])
 
-  async function loadClients() {
+  const loadClients = useCallback(async () => {
     try {
       const res = await api<ClientPage>('/api/clients?pageSize=100')
       setClients(res.items || [])
     } catch {
       // ignore
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    loadData()
+    loadClients()
+  }, [loadData, loadClients])
 
   async function handleSelectAssessment(id: string) {
     setLoading(true)
@@ -264,10 +261,10 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: '26px', fontWeight: '700', color: '#0f172a' }}>
+          <h1 style={{ margin: 0, fontSize: '26px', fontWeight: '700', color: 'var(--text)' }}>
             Schedule III Financial Ratios & Disclosures Engine
           </h1>
-          <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: '14px' }}>
+          <p style={{ margin: '4px 0 0', color: 'var(--muted)', fontSize: '14px' }}>
             Companies Act 2013 Schedule III mandatory 11 ratios, &gt; 25% variance alerts, ageing schedules, and rounding off compliance.
           </p>
         </div>
@@ -276,9 +273,9 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
             onClick={() => setShowRoundingGuide(true)}
             style={{
               padding: '10px 16px',
-              backgroundColor: '#f1f5f9',
-              color: '#334155',
-              border: '1px solid #cbd5e1',
+              backgroundColor: 'var(--card-subtle)',
+              color: 'var(--text-secondary)',
+              border: '1px solid var(--border-subtle)',
               borderRadius: '6px',
               cursor: 'pointer',
               fontWeight: '600',
@@ -309,57 +306,57 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
       </div>
 
       {error && (
-        <div style={{ padding: '14px', backgroundColor: '#fee2e2', border: '1px solid #ef4444', color: '#991b1b', borderRadius: '8px', marginBottom: '20px', fontSize: '14px' }}>
+        <div style={{ padding: '14px', backgroundColor: 'var(--error-bg)', border: '1px solid #ef4444', color: 'var(--error-text)', borderRadius: '8px', marginBottom: '20px', fontSize: '14px' }}>
           {error}
         </div>
       )}
 
       {/* KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-        <div style={{ backgroundColor: '#fff', padding: '18px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-          <div style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase' }}>Assessments Total</div>
-          <div style={{ fontSize: '24px', fontWeight: '700', color: '#0f172a', marginTop: '6px' }}>{summary?.totalAssessments ?? 0}</div>
-          <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
+        <div style={{ backgroundColor: 'var(--card)', padding: '18px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+          <div style={{ fontSize: '12px', fontWeight: '600', color: 'var(--muted)', textTransform: 'uppercase' }}>Assessments Total</div>
+          <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--text)', marginTop: '6px' }}>{summary?.totalAssessments ?? 0}</div>
+          <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '4px' }}>
             {summary?.inReviewCount ?? 0} In Review | {summary?.finalizedCount ?? 0} Finalized
           </div>
         </div>
 
-        <div style={{ backgroundColor: '#fff', padding: '18px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-          <div style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase' }}>Significant Variances</div>
-          <div style={{ fontSize: '24px', fontWeight: '700', color: '#d97706', marginTop: '6px' }}>
+        <div style={{ backgroundColor: 'var(--card)', padding: '18px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+          <div style={{ fontSize: '12px', fontWeight: '600', color: 'var(--muted)', textTransform: 'uppercase' }}>Significant Variances</div>
+          <div style={{ fontSize: '24px', fontWeight: '700', color: 'var(--warning)', marginTop: '6px' }}>
             {summary?.totalSignificantVariances ?? 0}
           </div>
-          <div style={{ fontSize: '12px', color: '#d97706', marginTop: '4px' }}>Variance &ge; 25% (Explanation required)</div>
+          <div style={{ fontSize: '12px', color: 'var(--warning)', marginTop: '4px' }}>Variance &ge; 25% (Explanation required)</div>
         </div>
 
-        <div style={{ backgroundColor: '#fff', padding: '18px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-          <div style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase' }}>Missing Explanations</div>
-          <div style={{ fontSize: '24px', fontWeight: '700', color: (summary?.totalMissingExplanations ?? 0) > 0 ? '#b91c1c' : '#16a34a', marginTop: '6px' }}>
+        <div style={{ backgroundColor: 'var(--card)', padding: '18px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+          <div style={{ fontSize: '12px', fontWeight: '600', color: 'var(--muted)', textTransform: 'uppercase' }}>Missing Explanations</div>
+          <div style={{ fontSize: '24px', fontWeight: '700', color: (summary?.totalMissingExplanations ?? 0) > 0 ? 'var(--error)' : '#16a34a', marginTop: '6px' }}>
             {summary?.totalMissingExplanations ?? 0}
           </div>
-          <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>Mandatory Schedule III compliance gaps</div>
+          <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '4px' }}>Mandatory Schedule III compliance gaps</div>
         </div>
 
-        <div style={{ backgroundColor: '#fff', padding: '18px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-          <div style={{ fontSize: '12px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase' }}>Rounding Rule Compliant</div>
+        <div style={{ backgroundColor: 'var(--card)', padding: '18px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+          <div style={{ fontSize: '12px', fontWeight: '600', color: 'var(--muted)', textTransform: 'uppercase' }}>Rounding Rule Compliant</div>
           <div style={{ fontSize: '24px', fontWeight: '700', color: '#16a34a', marginTop: '6px' }}>
             {summary?.roundingCompliantCount ?? 0} / {summary?.totalAssessments ?? 0}
           </div>
-          <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>₹100 Cr threshold rules validated</div>
+          <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '4px' }}>₹100 Cr threshold rules validated</div>
         </div>
       </div>
 
       {/* Main Grid: Left side Assessment Selector, Right side Workbench */}
       <div style={{ display: 'grid', gridTemplateColumns: selectedAssessment ? '360px 1fr' : '1fr', gap: '20px' }}>
         {/* Left Column: List */}
-        <div style={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0', padding: '16px' }}>
+        <div style={{ backgroundColor: 'var(--card)', borderRadius: '8px', border: '1px solid var(--border)', padding: '16px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-            <h2 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: '#1e293b' }}>Ratio Assessments</h2>
+            <h2 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: 'var(--text)' }}>Ratio Assessments</h2>
             <div style={{ display: 'flex', gap: '8px' }}>
               <select
                 value={filterFy}
                 onChange={e => setFilterFy(e.target.value)}
-                style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '12px' }}
+                style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border-subtle)', fontSize: '12px' }}
               >
                 <option value="2024-25">FY 2024-25</option>
                 <option value="2023-24">FY 2023-24</option>
@@ -367,7 +364,7 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
               <select
                 value={filterStatus}
                 onChange={e => setFilterStatus(e.target.value)}
-                style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '12px' }}
+                style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border-subtle)', fontSize: '12px' }}
               >
                 <option value="all">All</option>
                 <option value="draft">Draft</option>
@@ -378,9 +375,9 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
           </div>
 
           {loading && assessments.length === 0 ? (
-            <div style={{ padding: '24px', textAlign: 'center', color: '#64748b' }}>Loading assessments...</div>
+            <div style={{ padding: '24px', textAlign: 'center', color: 'var(--muted)' }}>Loading assessments...</div>
           ) : assessments.length === 0 ? (
-            <div style={{ padding: '24px', textAlign: 'center', color: '#64748b', fontSize: '14px' }}>
+            <div style={{ padding: '24px', textAlign: 'center', color: 'var(--muted)', fontSize: '14px' }}>
               No Schedule III assessments found. Create one to begin.
             </div>
           ) : (
@@ -394,14 +391,14 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                     style={{
                       padding: '12px',
                       borderRadius: '6px',
-                      border: isSelected ? '2px solid #2563eb' : '1px solid #e2e8f0',
-                      backgroundColor: isSelected ? '#eff6ff' : '#f8fafc',
+                      border: isSelected ? '2px solid var(--accent)' : '1px solid var(--border)',
+                      backgroundColor: isSelected ? 'var(--accent-subtle)' : 'var(--card-subtle)',
                       cursor: 'pointer',
                       transition: 'all 0.15s ease'
                     }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <div style={{ fontWeight: '700', fontSize: '14px', color: '#0f172a' }}>{a.clientName || 'Company'}</div>
+                      <div style={{ fontWeight: '700', fontSize: '14px', color: 'var(--text)' }}>{a.clientName || 'Company'}</div>
                       <span
                         style={{
                           fontSize: '11px',
@@ -426,19 +423,19 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                       </span>
                     </div>
 
-                    <div style={{ fontSize: '12px', color: '#475569', marginTop: '4px' }}>
+                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
                       {a.financialYear} (PY: {a.precedingFinancialYear}) | In {a.roundingUnit}
                     </div>
 
-                    <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                    <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>
                       Income: {fmtInr(a.totalIncomeCurrent)} | {a.accountingStandard}
                     </div>
 
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px', paddingTop: '6px', borderTop: '1px solid #e2e8f0', fontSize: '12px' }}>
-                      <span style={{ color: a.isRoundingRuleCompliant ? '#16a34a' : '#b91c1c', fontWeight: '600' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px', paddingTop: '6px', borderTop: '1px solid var(--border)', fontSize: '12px' }}>
+                      <span style={{ color: a.isRoundingRuleCompliant ? '#16a34a' : 'var(--error)', fontWeight: '600' }}>
                         {a.isRoundingRuleCompliant ? '● Rounding OK' : '▲ Rounding Issue'}
                       </span>
-                      <span style={{ fontWeight: '700', color: a.significantVariancesCount > 0 ? '#d97706' : '#16a34a' }}>
+                      <span style={{ fontWeight: '700', color: a.significantVariancesCount > 0 ? 'var(--warning)' : '#16a34a' }}>
                         {a.significantVariancesCount} &ge;25% Variances ({a.missingExplanationsCount} missing)
                       </span>
                     </div>
@@ -451,12 +448,12 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
 
         {/* Right Column: Active Workbench */}
         {selectedAssessment && (
-          <div style={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0', padding: '20px' }}>
+          <div style={{ backgroundColor: 'var(--card)', borderRadius: '8px', border: '1px solid var(--border)', padding: '20px' }}>
             {/* Header Banner */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', paddingBottom: '16px', borderBottom: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', paddingBottom: '16px', borderBottom: '1px solid var(--border)' }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: '#0f172a' }}>
+                  <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: 'var(--text)' }}>
                     {selectedAssessment.clientName}
                   </h2>
                   <span
@@ -465,8 +462,8 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                       padding: '2px 8px',
                       borderRadius: '4px',
                       fontWeight: '700',
-                      backgroundColor: '#e0e7ff',
-                      color: '#3730a3'
+                      backgroundColor: 'var(--accent-subtle)',
+                      color: 'var(--accent)'
                     }}
                   >
                     {selectedAssessment.accountingStandard}
@@ -477,17 +474,17 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                       padding: '2px 8px',
                       borderRadius: '4px',
                       fontWeight: '600',
-                      backgroundColor: selectedAssessment.isRoundingRuleCompliant ? '#dcfce7' : '#fee2e2',
-                      color: selectedAssessment.isRoundingRuleCompliant ? '#166534' : '#991b1b'
+                      backgroundColor: selectedAssessment.isRoundingRuleCompliant ? 'var(--success-bg)' : 'var(--error-bg)',
+                      color: selectedAssessment.isRoundingRuleCompliant ? 'var(--success-text)' : 'var(--error-text)'
                     }}
                   >
                     {selectedAssessment.isRoundingRuleCompliant ? 'Rounding Rule Compliant' : 'Rounding Non-Compliant'}
                   </span>
                 </div>
-                <div style={{ fontSize: '13px', color: '#64748b', marginTop: '6px' }}>
+                <div style={{ fontSize: '13px', color: 'var(--muted)', marginTop: '6px' }}>
                   Financial Year: <strong>{selectedAssessment.financialYear}</strong> (Preceding: {selectedAssessment.precedingFinancialYear}) | Unit: <strong>In {selectedAssessment.roundingUnit}</strong>
                 </div>
-                <div style={{ fontSize: '12px', color: '#475569', marginTop: '2px' }}>
+                <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
                   Total Income: <strong>{fmtInr(selectedAssessment.totalIncomeCurrent)}</strong> ({selectedAssessment.roundingRuleRecommendation})
                 </div>
               </div>
@@ -497,8 +494,9 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                   onClick={handleRegenerateNote}
                   style={{
                     padding: '8px 12px',
-                    backgroundColor: '#f1f5f9',
-                    border: '1px solid #cbd5e1',
+                    backgroundColor: 'var(--card-subtle)',
+                    color: 'var(--text)',
+                    border: '1px solid var(--border-subtle)',
                     borderRadius: '6px',
                     fontSize: '13px',
                     cursor: 'pointer',
@@ -531,47 +529,47 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
             </div>
 
             {/* Quick Metrics Bar */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px', padding: '14px 0', borderBottom: '1px solid #e2e8f0', fontSize: '13px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px', padding: '14px 0', borderBottom: '1px solid var(--border)', fontSize: '13px' }}>
               <div>
-                <span style={{ color: '#64748b' }}>Revenue: </span>
+                <span style={{ color: 'var(--muted)' }}>Revenue: </span>
                 <strong>{fmtInr(selectedAssessment.revenueFromOperationsCurrent)}</strong>
               </div>
               <div>
-                <span style={{ color: '#64748b' }}>Net Profit: </span>
+                <span style={{ color: 'var(--muted)' }}>Net Profit: </span>
                 <strong>{fmtInr(selectedAssessment.netProfitAfterTaxesCurrent)}</strong>
               </div>
               <div>
-                <span style={{ color: '#64748b' }}>Current Assets: </span>
+                <span style={{ color: 'var(--muted)' }}>Current Assets: </span>
                 <strong>{fmtInr(selectedAssessment.currentAssetsCurrent)}</strong>
               </div>
               <div>
-                <span style={{ color: '#64748b' }}>Current Liab: </span>
+                <span style={{ color: 'var(--muted)' }}>Current Liab: </span>
                 <strong>{fmtInr(selectedAssessment.currentLiabilitiesCurrent)}</strong>
               </div>
               <div>
-                <span style={{ color: '#64748b' }}>Significant Variances: </span>
-                <strong style={{ color: selectedAssessment.significantVariancesCount > 0 ? '#d97706' : '#16a34a' }}>
+                <span style={{ color: 'var(--muted)' }}>Significant Variances: </span>
+                <strong style={{ color: selectedAssessment.significantVariancesCount > 0 ? 'var(--warning)' : '#16a34a' }}>
                   {selectedAssessment.significantVariancesCount}
                 </strong>
               </div>
               <div>
-                <span style={{ color: '#64748b' }}>Missing Notes: </span>
-                <strong style={{ color: selectedAssessment.missingExplanationsCount > 0 ? '#b91c1c' : '#16a34a' }}>
+                <span style={{ color: 'var(--muted)' }}>Missing Notes: </span>
+                <strong style={{ color: selectedAssessment.missingExplanationsCount > 0 ? 'var(--error)' : '#16a34a' }}>
                   {selectedAssessment.missingExplanationsCount}
                 </strong>
               </div>
             </div>
 
             {/* Tabs */}
-            <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid #e2e8f0', margin: '16px 0 20px' }}>
+            <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid var(--border)', margin: '16px 0 20px' }}>
               <button
                 onClick={() => setActiveTab('ratios')}
                 style={{
                   padding: '10px 18px',
                   border: 'none',
-                  borderBottom: activeTab === 'ratios' ? '2px solid #2563eb' : 'none',
+                  borderBottom: activeTab === 'ratios' ? '2px solid var(--accent)' : 'none',
                   backgroundColor: 'transparent',
-                  color: activeTab === 'ratios' ? '#2563eb' : '#64748b',
+                  color: activeTab === 'ratios' ? 'var(--accent)' : 'var(--muted)',
                   fontWeight: activeTab === 'ratios' ? '700' : '500',
                   cursor: 'pointer',
                   fontSize: '14px'
@@ -584,9 +582,9 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                 style={{
                   padding: '10px 18px',
                   border: 'none',
-                  borderBottom: activeTab === 'ageing' ? '2px solid #2563eb' : 'none',
+                  borderBottom: activeTab === 'ageing' ? '2px solid var(--accent)' : 'none',
                   backgroundColor: 'transparent',
-                  color: activeTab === 'ageing' ? '#2563eb' : '#64748b',
+                  color: activeTab === 'ageing' ? 'var(--accent)' : 'var(--muted)',
                   fontWeight: activeTab === 'ageing' ? '700' : '500',
                   cursor: 'pointer',
                   fontSize: '14px'
@@ -599,9 +597,9 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                 style={{
                   padding: '10px 18px',
                   border: 'none',
-                  borderBottom: activeTab === 'note' ? '2px solid #2563eb' : 'none',
+                  borderBottom: activeTab === 'note' ? '2px solid var(--accent)' : 'none',
                   backgroundColor: 'transparent',
-                  color: activeTab === 'note' ? '#2563eb' : '#64748b',
+                  color: activeTab === 'note' ? 'var(--accent)' : 'var(--muted)',
                   fontWeight: activeTab === 'note' ? '700' : '500',
                   cursor: 'pointer',
                   fontSize: '14px'
@@ -614,10 +612,10 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
             {/* Tab 1: 11 Ratios Table */}
             {activeTab === 'ratios' && (
               <div>
-                <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '6px' }}>
+                <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: '6px' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
                     <thead>
-                      <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: '600' }}>
+                      <tr style={{ backgroundColor: 'var(--card-subtle)', borderBottom: '1px solid var(--border)', color: 'var(--text-secondary)', fontWeight: '600' }}>
                         <th style={{ padding: '10px 12px' }}>Code</th>
                         <th style={{ padding: '10px 12px' }}>Ratio Name & Formula</th>
                         <th style={{ padding: '10px 12px', textAlign: 'right' }}>{selectedAssessment.financialYear}</th>
@@ -632,21 +630,21 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                         <tr
                           key={r.id}
                           style={{
-                            borderBottom: '1px solid #f1f5f9',
-                            backgroundColor: r.isVarianceSignificant ? '#fffbeb' : '#fff'
+                            borderBottom: '1px solid var(--border)',
+                            backgroundColor: r.isVarianceSignificant ? 'var(--warning-bg)' : 'var(--card)'
                           }}
                         >
                           <td style={{ padding: '10px 12px', fontWeight: '700' }}>{r.ratioCode}</td>
                           <td style={{ padding: '10px 12px' }}>
-                            <div style={{ fontWeight: '600', color: '#0f172a' }}>{r.ratioName}</div>
-                            <div style={{ fontSize: '11px', color: '#64748b' }}>
+                            <div style={{ fontWeight: '600', color: 'var(--text)' }}>{r.ratioName}</div>
+                            <div style={{ fontSize: '11px', color: 'var(--muted)' }}>
                               [{r.numeratorDescription}] / [{r.denominatorDescription}]
                             </div>
                           </td>
                           <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: '700' }}>
                             {r.currentYearValue.toFixed(2)}
                           </td>
-                          <td style={{ padding: '10px 12px', textAlign: 'right', color: '#64748b' }}>
+                          <td style={{ padding: '10px 12px', textAlign: 'right', color: 'var(--muted)' }}>
                             {r.precedingYearValue.toFixed(2)}
                           </td>
                           <td
@@ -654,7 +652,7 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                               padding: '10px 12px',
                               textAlign: 'right',
                               fontWeight: '700',
-                              color: r.isVarianceSignificant ? '#b91c1c' : '#16a34a'
+                              color: r.isVarianceSignificant ? 'var(--error)' : '#16a34a'
                             }}
                           >
                             {r.variancePercent > 0 ? `+${r.variancePercent.toFixed(2)}%` : `${r.variancePercent.toFixed(2)}%`}
@@ -662,16 +660,16 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                           <td style={{ padding: '10px 12px', maxWidth: '300px' }}>
                             {r.isVarianceSignificant ? (
                               r.isExplanationProvided ? (
-                                <div style={{ fontSize: '12px', color: '#166534' }}>
+                                <div style={{ fontSize: '12px', color: 'var(--success-text)' }}>
                                   <strong>Note: </strong> {r.varianceExplanation}
                                 </div>
                               ) : (
-                                <span style={{ fontSize: '11px', padding: '2px 6px', backgroundColor: '#fee2e2', color: '#991b1b', borderRadius: '4px', fontWeight: '700' }}>
+                                <span style={{ fontSize: '11px', padding: '2px 6px', backgroundColor: 'var(--error-bg)', color: 'var(--error-text)', borderRadius: '4px', fontWeight: '700' }}>
                                   MANDATORY EXPLANATION MISSING (&ge; 25%)
                                 </span>
                               )
                             ) : (
-                              <span style={{ fontSize: '11px', color: '#64748b' }}>Variance &lt; 25% (Normal)</span>
+                              <span style={{ fontSize: '11px', color: 'var(--muted)' }}>Variance &lt; 25% (Normal)</span>
                             )}
                           </td>
                           <td style={{ padding: '10px 12px', textAlign: 'center' }}>
@@ -683,8 +681,8 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                                 }}
                                 style={{
                                   padding: '4px 10px',
-                                  backgroundColor: '#f1f5f9',
-                                  border: '1px solid #cbd5e1',
+                                  backgroundColor: 'var(--card-subtle)',
+                                  border: '1px solid var(--border-subtle)',
                                   borderRadius: '4px',
                                   cursor: 'pointer',
                                   fontSize: '12px',
@@ -694,7 +692,7 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                                 {r.isExplanationProvided ? 'Edit Note' : 'Add Note'}
                               </button>
                             ) : (
-                              <span style={{ color: '#94a3b8', fontSize: '12px' }}>Locked</span>
+                              <span style={{ color: 'var(--muted)', fontSize: '12px' }}>Locked</span>
                             )}
                           </td>
                         </tr>
@@ -714,9 +712,9 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                     style={{
                       padding: '8px 14px',
                       borderRadius: '6px',
-                      border: '1px solid #cbd5e1',
-                      backgroundColor: ageingSubTab === 'TradeReceivables' ? '#2563eb' : '#f8fafc',
-                      color: ageingSubTab === 'TradeReceivables' ? '#fff' : '#475569',
+                      border: '1px solid var(--border-subtle)',
+                      backgroundColor: ageingSubTab === 'TradeReceivables' ? '#2563eb' : 'var(--card-subtle)',
+                      color: ageingSubTab === 'TradeReceivables' ? '#fff' : 'var(--text-secondary)',
                       fontWeight: '600',
                       fontSize: '13px',
                       cursor: 'pointer'
@@ -729,9 +727,9 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                     style={{
                       padding: '8px 14px',
                       borderRadius: '6px',
-                      border: '1px solid #cbd5e1',
-                      backgroundColor: ageingSubTab === 'TradePayables' ? '#2563eb' : '#f8fafc',
-                      color: ageingSubTab === 'TradePayables' ? '#fff' : '#475569',
+                      border: '1px solid var(--border-subtle)',
+                      backgroundColor: ageingSubTab === 'TradePayables' ? '#2563eb' : 'var(--card-subtle)',
+                      color: ageingSubTab === 'TradePayables' ? '#fff' : 'var(--text-secondary)',
                       fontWeight: '600',
                       fontSize: '13px',
                       cursor: 'pointer'
@@ -744,9 +742,9 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                     style={{
                       padding: '8px 14px',
                       borderRadius: '6px',
-                      border: '1px solid #cbd5e1',
-                      backgroundColor: ageingSubTab === 'CWIP' ? '#2563eb' : '#f8fafc',
-                      color: ageingSubTab === 'CWIP' ? '#fff' : '#475569',
+                      border: '1px solid var(--border-subtle)',
+                      backgroundColor: ageingSubTab === 'CWIP' ? '#2563eb' : 'var(--card-subtle)',
+                      color: ageingSubTab === 'CWIP' ? '#fff' : 'var(--text-secondary)',
                       fontWeight: '600',
                       fontSize: '13px',
                       cursor: 'pointer'
@@ -756,10 +754,10 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                   </button>
                 </div>
 
-                <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '6px' }}>
+                <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: '6px' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
                     <thead>
-                      <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#475569', fontWeight: '600' }}>
+                      <tr style={{ backgroundColor: 'var(--card-subtle)', borderBottom: '1px solid var(--border)', color: 'var(--text-secondary)', fontWeight: '600' }}>
                         <th style={{ padding: '10px 12px' }}>Category / Particulars</th>
                         <th style={{ padding: '10px 12px', textAlign: 'right' }}>&lt; 6m / 1y</th>
                         <th style={{ padding: '10px 12px', textAlign: 'right' }}>1 - 2 years</th>
@@ -772,8 +770,8 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                     </thead>
                     <tbody>
                       {activeAgeingItems.map(item => (
-                        <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                          <td style={{ padding: '10px 12px', fontWeight: '600', color: '#0f172a' }}>
+                        <tr key={item.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                          <td style={{ padding: '10px 12px', fontWeight: '600', color: 'var(--text)' }}>
                             {item.particularsCategory}
                           </td>
                           <td style={{ padding: '10px 12px', textAlign: 'right' }}>{fmtInr(item.less6MonthsOr1Year)}</td>
@@ -781,7 +779,7 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                           <td style={{ padding: '10px 12px', textAlign: 'right' }}>{fmtInr(item.twoToThreeYears)}</td>
                           <td style={{ padding: '10px 12px', textAlign: 'right' }}>{fmtInr(item.moreThanThreeYears)}</td>
                           <td style={{ padding: '10px 12px', textAlign: 'right' }}>{fmtInr(item.unbilledDues)}</td>
-                          <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: '700', color: '#0f172a' }}>
+                          <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: '700', color: 'var(--text)' }}>
                             {fmtInr(item.total)}
                           </td>
                           <td style={{ padding: '10px 12px', textAlign: 'center' }}>
@@ -790,8 +788,8 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                                 onClick={() => openEditAgeing(item)}
                                 style={{
                                   padding: '4px 10px',
-                                  backgroundColor: '#f1f5f9',
-                                  border: '1px solid #cbd5e1',
+                                  backgroundColor: 'var(--card-subtle)',
+                                  border: '1px solid var(--border-subtle)',
                                   borderRadius: '4px',
                                   cursor: 'pointer',
                                   fontSize: '12px',
@@ -801,7 +799,7 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                                 Edit Buckets
                               </button>
                             ) : (
-                              <span style={{ color: '#94a3b8', fontSize: '12px' }}>Locked</span>
+                              <span style={{ color: 'var(--muted)', fontSize: '12px' }}>Locked</span>
                             )}
                           </td>
                         </tr>
@@ -816,7 +814,7 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
             {activeTab === 'note' && (
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                  <h3 style={{ margin: 0, fontSize: '16px', color: '#0f172a' }}>
+                  <h3 style={{ margin: 0, fontSize: '16px', color: 'var(--text)' }}>
                     Schedule III Financial Statement Note Draft
                   </h3>
                   <button
@@ -868,7 +866,7 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
       {/* Modal: New Schedule III Ratios */}
       {showNewModal && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '8px', maxWidth: '780px', width: '90%', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div style={{ backgroundColor: 'var(--card)', padding: '24px', borderRadius: '8px', maxWidth: '780px', width: '90%', maxHeight: '90vh', overflowY: 'auto' }}>
             <h2 style={{ margin: '0 0 16px', fontSize: '18px', fontWeight: '700' }}>New Schedule III Financial Ratios Analysis</h2>
             <form onSubmit={handleCreateAssessment} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div>
@@ -877,7 +875,7 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                   required
                   value={newForm.clientId}
                   onChange={e => setNewForm({ ...newForm, clientId: e.target.value })}
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 >
                   <option value="">-- Select Client --</option>
                   {clients.map(c => (
@@ -894,7 +892,7 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                   <select
                     value={newForm.financialYear}
                     onChange={e => setNewForm({ ...newForm, financialYear: e.target.value })}
-                    style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   >
                     <option value="2024-25">2024-25</option>
                     <option value="2023-24">2023-24</option>
@@ -905,7 +903,7 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                   <select
                     value={newForm.precedingFinancialYear}
                     onChange={e => setNewForm({ ...newForm, precedingFinancialYear: e.target.value })}
-                    style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   >
                     <option value="2023-24">2023-24</option>
                     <option value="2022-23">2022-23</option>
@@ -916,7 +914,7 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                   <select
                     value={newForm.accountingStandard}
                     onChange={e => setNewForm({ ...newForm, accountingStandard: e.target.value })}
-                    style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   >
                     <option value="Division I - AS (Non-Ind AS)">Division I - AS</option>
                     <option value="Division II - Ind AS">Division II - Ind AS</option>
@@ -928,7 +926,7 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                   <select
                     value={newForm.roundingUnit}
                     onChange={e => setNewForm({ ...newForm, roundingUnit: e.target.value })}
-                    style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   >
                     <option value="Hundreds">Hundreds (&lt; ₹100 Cr)</option>
                     <option value="Thousands">Thousands (&lt; ₹100 Cr)</option>
@@ -940,8 +938,8 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
               </div>
 
               {/* Key Financial Inputs Table */}
-              <div style={{ backgroundColor: '#f8fafc', padding: '12px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                <div style={{ fontWeight: '700', fontSize: '13px', color: '#1e293b', marginBottom: '10px' }}>
+              <div style={{ backgroundColor: 'var(--card-subtle)', padding: '12px', borderRadius: '6px', border: '1px solid var(--border)' }}>
+                <div style={{ fontWeight: '700', fontSize: '13px', color: 'var(--text)', marginBottom: '10px' }}>
                   Financial Statement Line Items (Current vs Preceding FY)
                 </div>
 
@@ -955,13 +953,13 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                     type="number"
                     value={newForm.totalIncomeCurrent}
                     onChange={e => setNewForm({ ...newForm, totalIncomeCurrent: Number(e.target.value) })}
-                    style={{ padding: '4px 6px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                    style={{ padding: '4px 6px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}
                   />
                   <input
                     type="number"
                     value={newForm.totalIncomePreceding}
                     onChange={e => setNewForm({ ...newForm, totalIncomePreceding: Number(e.target.value) })}
-                    style={{ padding: '4px 6px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                    style={{ padding: '4px 6px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}
                   />
 
                   <div>Current Assets (Current Ratio)</div>
@@ -969,13 +967,13 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                     type="number"
                     value={newForm.currentAssetsCurrent}
                     onChange={e => setNewForm({ ...newForm, currentAssetsCurrent: Number(e.target.value) })}
-                    style={{ padding: '4px 6px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                    style={{ padding: '4px 6px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}
                   />
                   <input
                     type="number"
                     value={newForm.currentAssetsPreceding}
                     onChange={e => setNewForm({ ...newForm, currentAssetsPreceding: Number(e.target.value) })}
-                    style={{ padding: '4px 6px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                    style={{ padding: '4px 6px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}
                   />
 
                   <div>Current Liabilities (Current Ratio)</div>
@@ -983,13 +981,13 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                     type="number"
                     value={newForm.currentLiabilitiesCurrent}
                     onChange={e => setNewForm({ ...newForm, currentLiabilitiesCurrent: Number(e.target.value) })}
-                    style={{ padding: '4px 6px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                    style={{ padding: '4px 6px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}
                   />
                   <input
                     type="number"
                     value={newForm.currentLiabilitiesPreceding}
                     onChange={e => setNewForm({ ...newForm, currentLiabilitiesPreceding: Number(e.target.value) })}
-                    style={{ padding: '4px 6px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                    style={{ padding: '4px 6px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}
                   />
 
                   <div>Total Debt (Short + Long term borrowings)</div>
@@ -997,13 +995,13 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                     type="number"
                     value={newForm.totalDebtCurrent}
                     onChange={e => setNewForm({ ...newForm, totalDebtCurrent: Number(e.target.value) })}
-                    style={{ padding: '4px 6px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                    style={{ padding: '4px 6px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}
                   />
                   <input
                     type="number"
                     value={newForm.totalDebtPreceding}
                     onChange={e => setNewForm({ ...newForm, totalDebtPreceding: Number(e.target.value) })}
-                    style={{ padding: '4px 6px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                    style={{ padding: '4px 6px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}
                   />
 
                   <div>Shareholder's Equity (Capital + Reserves)</div>
@@ -1011,13 +1009,13 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                     type="number"
                     value={newForm.shareholdersEquityCurrent}
                     onChange={e => setNewForm({ ...newForm, shareholdersEquityCurrent: Number(e.target.value) })}
-                    style={{ padding: '4px 6px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                    style={{ padding: '4px 6px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}
                   />
                   <input
                     type="number"
                     value={newForm.shareholdersEquityPreceding}
                     onChange={e => setNewForm({ ...newForm, shareholdersEquityPreceding: Number(e.target.value) })}
-                    style={{ padding: '4px 6px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                    style={{ padding: '4px 6px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}
                   />
 
                   <div>Revenue from Operations</div>
@@ -1025,13 +1023,13 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                     type="number"
                     value={newForm.revenueFromOperationsCurrent}
                     onChange={e => setNewForm({ ...newForm, revenueFromOperationsCurrent: Number(e.target.value) })}
-                    style={{ padding: '4px 6px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                    style={{ padding: '4px 6px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}
                   />
                   <input
                     type="number"
                     value={newForm.revenueFromOperationsPreceding}
                     onChange={e => setNewForm({ ...newForm, revenueFromOperationsPreceding: Number(e.target.value) })}
-                    style={{ padding: '4px 6px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                    style={{ padding: '4px 6px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}
                   />
 
                   <div>Net Profit after Taxes</div>
@@ -1039,13 +1037,13 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                     type="number"
                     value={newForm.netProfitAfterTaxesCurrent}
                     onChange={e => setNewForm({ ...newForm, netProfitAfterTaxesCurrent: Number(e.target.value) })}
-                    style={{ padding: '4px 6px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                    style={{ padding: '4px 6px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}
                   />
                   <input
                     type="number"
                     value={newForm.netProfitAfterTaxesPreceding}
                     onChange={e => setNewForm({ ...newForm, netProfitAfterTaxesPreceding: Number(e.target.value) })}
-                    style={{ padding: '4px 6px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                    style={{ padding: '4px 6px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}
                   />
 
                   <div>Cost of Goods Sold / Materials Consumed</div>
@@ -1053,13 +1051,13 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                     type="number"
                     value={newForm.costOfGoodsSoldCurrent}
                     onChange={e => setNewForm({ ...newForm, costOfGoodsSoldCurrent: Number(e.target.value) })}
-                    style={{ padding: '4px 6px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                    style={{ padding: '4px 6px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}
                   />
                   <input
                     type="number"
                     value={newForm.costOfGoodsSoldPreceding}
                     onChange={e => setNewForm({ ...newForm, costOfGoodsSoldPreceding: Number(e.target.value) })}
-                    style={{ padding: '4px 6px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                    style={{ padding: '4px 6px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}
                   />
 
                   <div>Average Inventory</div>
@@ -1067,13 +1065,13 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                     type="number"
                     value={newForm.averageInventoryCurrent}
                     onChange={e => setNewForm({ ...newForm, averageInventoryCurrent: Number(e.target.value) })}
-                    style={{ padding: '4px 6px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                    style={{ padding: '4px 6px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}
                   />
                   <input
                     type="number"
                     value={newForm.averageInventoryPreceding}
                     onChange={e => setNewForm({ ...newForm, averageInventoryPreceding: Number(e.target.value) })}
-                    style={{ padding: '4px 6px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                    style={{ padding: '4px 6px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}
                   />
 
                   <div>Average Trade Receivables</div>
@@ -1081,13 +1079,13 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                     type="number"
                     value={newForm.averageTradeReceivablesCurrent}
                     onChange={e => setNewForm({ ...newForm, averageTradeReceivablesCurrent: Number(e.target.value) })}
-                    style={{ padding: '4px 6px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                    style={{ padding: '4px 6px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}
                   />
                   <input
                     type="number"
                     value={newForm.averageTradeReceivablesPreceding}
                     onChange={e => setNewForm({ ...newForm, averageTradeReceivablesPreceding: Number(e.target.value) })}
-                    style={{ padding: '4px 6px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                    style={{ padding: '4px 6px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}
                   />
 
                   <div>Net Credit Purchases</div>
@@ -1095,13 +1093,13 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                     type="number"
                     value={newForm.netCreditPurchasesCurrent}
                     onChange={e => setNewForm({ ...newForm, netCreditPurchasesCurrent: Number(e.target.value) })}
-                    style={{ padding: '4px 6px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                    style={{ padding: '4px 6px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}
                   />
                   <input
                     type="number"
                     value={newForm.netCreditPurchasesPreceding}
                     onChange={e => setNewForm({ ...newForm, netCreditPurchasesPreceding: Number(e.target.value) })}
-                    style={{ padding: '4px 6px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                    style={{ padding: '4px 6px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}
                   />
 
                   <div>Average Trade Payables</div>
@@ -1109,13 +1107,13 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                     type="number"
                     value={newForm.averageTradePayablesCurrent}
                     onChange={e => setNewForm({ ...newForm, averageTradePayablesCurrent: Number(e.target.value) })}
-                    style={{ padding: '4px 6px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                    style={{ padding: '4px 6px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}
                   />
                   <input
                     type="number"
                     value={newForm.averageTradePayablesPreceding}
                     onChange={e => setNewForm({ ...newForm, averageTradePayablesPreceding: Number(e.target.value) })}
-                    style={{ padding: '4px 6px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                    style={{ padding: '4px 6px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}
                   />
 
                   <div>EBIT (Operating Earnings)</div>
@@ -1123,13 +1121,13 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                     type="number"
                     value={newForm.ebitCurrent}
                     onChange={e => setNewForm({ ...newForm, ebitCurrent: Number(e.target.value) })}
-                    style={{ padding: '4px 6px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                    style={{ padding: '4px 6px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}
                   />
                   <input
                     type="number"
                     value={newForm.ebitPreceding}
                     onChange={e => setNewForm({ ...newForm, ebitPreceding: Number(e.target.value) })}
-                    style={{ padding: '4px 6px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                    style={{ padding: '4px 6px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}
                   />
 
                   <div>Debt Service (Interest + Principal Repayment)</div>
@@ -1137,13 +1135,13 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                     type="number"
                     value={newForm.debtServiceCurrent}
                     onChange={e => setNewForm({ ...newForm, debtServiceCurrent: Number(e.target.value) })}
-                    style={{ padding: '4px 6px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                    style={{ padding: '4px 6px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}
                   />
                   <input
                     type="number"
                     value={newForm.debtServicePreceding}
                     onChange={e => setNewForm({ ...newForm, debtServicePreceding: Number(e.target.value) })}
-                    style={{ padding: '4px 6px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                    style={{ padding: '4px 6px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}
                   />
 
                   <div>Capital Employed</div>
@@ -1151,13 +1149,13 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                     type="number"
                     value={newForm.capitalEmployedCurrent}
                     onChange={e => setNewForm({ ...newForm, capitalEmployedCurrent: Number(e.target.value) })}
-                    style={{ padding: '4px 6px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                    style={{ padding: '4px 6px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}
                   />
                   <input
                     type="number"
                     value={newForm.capitalEmployedPreceding}
                     onChange={e => setNewForm({ ...newForm, capitalEmployedPreceding: Number(e.target.value) })}
-                    style={{ padding: '4px 6px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                    style={{ padding: '4px 6px', border: '1px solid var(--border-subtle)', borderRadius: '4px' }}
                   />
                 </div>
               </div>
@@ -1166,7 +1164,7 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                 <button
                   type="button"
                   onClick={() => setShowNewModal(false)}
-                  style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid #cbd5e1', backgroundColor: '#fff', cursor: 'pointer' }}
+                  style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid var(--border-subtle)', backgroundColor: 'var(--card)', cursor: 'pointer' }}
                 >
                   Cancel
                 </button>
@@ -1186,12 +1184,12 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
       {/* Modal: Edit Ratio Explanation */}
       {editingRatio && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '8px', maxWidth: '580px', width: '90%' }}>
+          <div style={{ backgroundColor: 'var(--card)', padding: '24px', borderRadius: '8px', maxWidth: '580px', width: '90%' }}>
             <h2 style={{ margin: '0 0 8px', fontSize: '18px', fontWeight: '700' }}>
               {editingRatio.ratioCode}: {editingRatio.ratioName}
             </h2>
-            <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '14px' }}>
-              Variance: <strong style={{ color: editingRatio.isVarianceSignificant ? '#b91c1c' : '#16a34a' }}>{editingRatio.variancePercent.toFixed(2)}%</strong> (Formula: [{editingRatio.numeratorDescription}] / [{editingRatio.denominatorDescription}])
+            <div style={{ fontSize: '13px', color: 'var(--muted)', marginBottom: '14px' }}>
+              Variance: <strong style={{ color: editingRatio.isVarianceSignificant ? 'var(--error)' : '#16a34a' }}>{editingRatio.variancePercent.toFixed(2)}%</strong> (Formula: [{editingRatio.numeratorDescription}] / [{editingRatio.denominatorDescription}])
             </div>
 
             <form onSubmit={handleSaveRatioExplanation} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -1205,7 +1203,7 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                   placeholder="Explain the underlying business reasons for the variance as required under Schedule III..."
                   value={ratioExplanationInput}
                   onChange={e => setRatioExplanationInput(e.target.value)}
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)', fontSize: '13px' }}
                 />
               </div>
 
@@ -1213,7 +1211,7 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                 <button
                   type="button"
                   onClick={() => setEditingRatio(null)}
-                  style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid #cbd5e1', backgroundColor: '#fff', cursor: 'pointer' }}
+                  style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid var(--border-subtle)', backgroundColor: 'var(--card)', cursor: 'pointer' }}
                 >
                   Cancel
                 </button>
@@ -1233,11 +1231,11 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
       {/* Modal: Edit Ageing Buckets */}
       {editingAgeing && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '8px', maxWidth: '580px', width: '90%' }}>
+          <div style={{ backgroundColor: 'var(--card)', padding: '24px', borderRadius: '8px', maxWidth: '580px', width: '90%' }}>
             <h2 style={{ margin: '0 0 8px', fontSize: '18px', fontWeight: '700' }}>
               Edit Ageing: {editingAgeing.particularsCategory}
             </h2>
-            <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '14px' }}>
+            <div style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '14px' }}>
               Schedule Type: {editingAgeing.scheduleType}
             </div>
 
@@ -1249,7 +1247,7 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                     type="number"
                     value={ageingForm.less6MonthsOr1Year}
                     onChange={e => setAgeingForm({ ...ageingForm, less6MonthsOr1Year: Number(e.target.value) })}
-                    style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
                 <div>
@@ -1258,7 +1256,7 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                     type="number"
                     value={ageingForm.oneToTwoYears}
                     onChange={e => setAgeingForm({ ...ageingForm, oneToTwoYears: Number(e.target.value) })}
-                    style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
               </div>
@@ -1270,7 +1268,7 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                     type="number"
                     value={ageingForm.twoToThreeYears}
                     onChange={e => setAgeingForm({ ...ageingForm, twoToThreeYears: Number(e.target.value) })}
-                    style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
                 <div>
@@ -1279,7 +1277,7 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                     type="number"
                     value={ageingForm.moreThanThreeYears}
                     onChange={e => setAgeingForm({ ...ageingForm, moreThanThreeYears: Number(e.target.value) })}
-                    style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
               </div>
@@ -1290,7 +1288,7 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                   type="number"
                   value={ageingForm.unbilledDues}
                   onChange={e => setAgeingForm({ ...ageingForm, unbilledDues: Number(e.target.value) })}
-                  style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
 
@@ -1298,7 +1296,7 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                 <button
                   type="button"
                   onClick={() => setEditingAgeing(null)}
-                  style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid #cbd5e1', backgroundColor: '#fff', cursor: 'pointer' }}
+                  style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid var(--border-subtle)', backgroundColor: 'var(--card)', cursor: 'pointer' }}
                 >
                   Cancel
                 </button>
@@ -1318,19 +1316,19 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
       {/* Modal: Rounding Off Rules Guide */}
       {showRoundingGuide && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '8px', maxWidth: '600px', width: '90%' }}>
+          <div style={{ backgroundColor: 'var(--card)', padding: '24px', borderRadius: '8px', maxWidth: '600px', width: '90%' }}>
             <h2 style={{ margin: '0 0 12px', fontSize: '18px', fontWeight: '700' }}>Schedule III Rounding Off Instructions</h2>
-            <div style={{ fontSize: '13px', color: '#334155', lineHeight: '1.6' }}>
+            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
               <p>Under the General Instructions of Schedule III (Paragraph 4), rounding off is strictly governed by the company's <strong>Total Income</strong>:</p>
-              <div style={{ backgroundColor: '#f8fafc', padding: '12px', borderRadius: '6px', border: '1px solid #e2e8f0', marginBottom: '12px' }}>
-                <div style={{ fontWeight: '700', color: '#0f172a' }}>1. Total Income &lt; ₹100 Crores:</div>
+              <div style={{ backgroundColor: 'var(--card-subtle)', padding: '12px', borderRadius: '6px', border: '1px solid var(--border)', marginBottom: '12px' }}>
+                <div style={{ fontWeight: '700', color: 'var(--text)' }}>1. Total Income &lt; ₹100 Crores:</div>
                 <div>May round off to the nearest <strong>Hundreds, Thousands, Lakhs, or Millions</strong>, or decimals thereof.</div>
               </div>
-              <div style={{ backgroundColor: '#f8fafc', padding: '12px', borderRadius: '6px', border: '1px solid #e2e8f0', marginBottom: '12px' }}>
-                <div style={{ fontWeight: '700', color: '#0f172a' }}>2. Total Income &ge; ₹100 Crores:</div>
+              <div style={{ backgroundColor: 'var(--card-subtle)', padding: '12px', borderRadius: '6px', border: '1px solid var(--border)', marginBottom: '12px' }}>
+                <div style={{ fontWeight: '700', color: 'var(--text)' }}>2. Total Income &ge; ₹100 Crores:</div>
                 <div>May round off to the nearest <strong>Lakhs, Millions, or Crores</strong>, or decimals thereof. (Rounding in Hundreds or Thousands is prohibited!)</div>
               </div>
-              <p style={{ fontSize: '12px', color: '#64748b' }}>
+              <p style={{ fontSize: '12px', color: 'var(--muted)' }}>
                 Note: Once a unit of measurement is chosen, it must be used consistently across all components of the financial statements and notes.
               </p>
             </div>
@@ -1338,7 +1336,7 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
               <button
                 type="button"
                 onClick={() => setShowRoundingGuide(false)}
-                style={{ padding: '6px 14px', borderRadius: '4px', border: '1px solid #cbd5e1', backgroundColor: '#fff', cursor: 'pointer' }}
+                style={{ padding: '6px 14px', borderRadius: '4px', border: '1px solid var(--border-subtle)', backgroundColor: 'var(--card)', cursor: 'pointer' }}
               >
                 Close
               </button>
@@ -1350,11 +1348,11 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
       {/* Modal: Finalize Assessment */}
       {showFinalizeModal && selectedAssessment && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '8px', maxWidth: '520px', width: '90%' }}>
-            <h2 style={{ margin: '0 0 12px', fontSize: '18px', fontWeight: '700', color: '#0f172a' }}>
+          <div style={{ backgroundColor: 'var(--card)', padding: '24px', borderRadius: '8px', maxWidth: '520px', width: '90%' }}>
+            <h2 style={{ margin: '0 0 12px', fontSize: '18px', fontWeight: '700', color: 'var(--text)' }}>
               Finalize Schedule III Financial Ratios
             </h2>
-            <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#64748b' }}>
+            <p style={{ margin: '0 0 16px', fontSize: '13px', color: 'var(--muted)' }}>
               Finalizing will permanently lock all 11 analytical ratios, variance explanations, and ageing schedules. The disclosure note draft will be frozen for publication.
             </p>
 
@@ -1367,7 +1365,7 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
                 value={finalizeRemarks}
                 onChange={e => setFinalizeRemarks(e.target.value)}
                 placeholder="Enter audit sign-off remarks on ratio variance reasonableness..."
-                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '13px' }}
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)', fontSize: '13px' }}
               />
             </div>
 
@@ -1375,7 +1373,7 @@ export function Schedule3DeskPage({ can }: { can: (p: string) => boolean }) {
               <button
                 type="button"
                 onClick={() => setShowFinalizeModal(false)}
-                style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid #cbd5e1', backgroundColor: '#fff', cursor: 'pointer' }}
+                style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid var(--border-subtle)', backgroundColor: 'var(--card)', cursor: 'pointer' }}
               >
                 Cancel
               </button>

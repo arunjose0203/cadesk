@@ -128,7 +128,7 @@ function Workspace() {
   const [showTour, setShowTour] = useState<boolean>(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
-  const [collapsed, setCollapsed] = useStored<Record<string, boolean>>('cadesk.nav.collapsed', {})
+  const [collapsed, setCollapsed] = useStored<Record<string, boolean>>('cadesk.nav.collapsed', { audit: true, corporate: true, admin: true })
   const [pinned, setPinned] = useStored<Page[]>('cadesk.nav.pinned', [])
   const [recents, setRecents] = useStored<Page[]>('cadesk.nav.recent', [])
   const [theme, cycleTheme] = useTheme()
@@ -256,23 +256,50 @@ function Workspace() {
           />
         )}
         {publicView === 'auth' && (
-          <main className="page" style={{ maxWidth: '480px', margin: '40px auto' }}>
-            <button
-              className="ghost small"
-              onClick={() => setPublicView('landing')}
-              style={{ marginBottom: '16px', cursor: 'pointer' }}
-            >
-              ← Back to the CaDesk home page
-            </button>
-            <div style={{ textAlign: 'center', margin: '20px 0 24px' }}>
-              <div className="brand-icon" style={{ margin: '0 auto 16px', width: '56px', height: '56px', fontSize: '24px' }}>CA</div>
-              <h1 style={{ fontSize: '2rem', letterSpacing: '-0.02em', marginBottom: '8px' }}>CaDesk</h1>
-              <p className="muted" style={{ fontSize: '1rem', maxWidth: '460px', margin: '0 auto' }}>
-                Practice management and compliance for CA firms
-              </p>
+          <main className="auth-shell">
+            <div className="auth-split">
+              <div className="auth-brand-panel">
+                <div className="stack" style={{ gap: '18px' }}>
+                  <div className="row" style={{ gap: '12px' }}>
+                    <div className="brand-icon">CA</div>
+                    <div>
+                      <div style={{ fontSize: '1.15rem', fontWeight: 700, letterSpacing: '-0.02em' }}>CaDesk</div>
+                      <div style={{ fontSize: '0.76rem', color: '#93c5fd', fontWeight: 500 }}>Practice Software for Indian CAs</div>
+                    </div>
+                  </div>
+                  <div>
+                    <h1 style={{ fontSize: '1.65rem', lineHeight: 1.25, margin: '8px 0 12px' }}>
+                      One disciplined ledger for your entire practice
+                    </h1>
+                    <p style={{ fontSize: '0.88rem', color: '#cbd5e1', lineHeight: 1.6, margin: 0 }}>
+                      Manage client registrations, GSTR-1 &amp; 3B exports, CBDT ITR &amp; Form 3CD filings, TDS RPU returns, statutory audit dossiers, and online fee collection in one workspace.
+                    </p>
+                  </div>
+                </div>
+                <div className="auth-trust-box">
+                  <div style={{ fontWeight: 700, color: '#7dd3fc', textTransform: 'uppercase', fontSize: '0.72rem', letterSpacing: '0.06em', marginBottom: '8px' }}>
+                    Security &amp; Data Residency
+                  </div>
+                  <div style={{ color: '#e2e8f0' }}>
+                    Hosted in India &middot; Two-Lock PostgreSQL Row-Level Isolation &middot; Authenticator 2FA &middot; DPDP Act 2023 Aligned
+                  </div>
+                </div>
+              </div>
+              <div className="auth-form-panel">
+                <div className="row spread" style={{ marginBottom: '18px' }}>
+                  <button
+                    className="ghost small"
+                    onClick={() => setPublicView('landing')}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    ← Back to the CaDesk home page
+                  </button>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--muted)', fontWeight: 500 }}>India GST / ITR / TDS</span>
+                </div>
+                {notice && <p className="notice small" style={{ marginBottom: '16px' }}>{notice}</p>}
+                <AuthScreens onSignedIn={signedIn} />
+              </div>
             </div>
-            {notice && <p className="notice small" style={{ maxWidth: '440px', margin: '0 auto 16px' }}>{notice}</p>}
-            <AuthScreens onSignedIn={signedIn} />
           </main>
         )}
         <ProductTourModal
@@ -367,11 +394,14 @@ function Workspace() {
       <aside className={`app-sidebar ${sidebarOpen ? 'open' : ''}`} aria-label="Desks">
         <div className="app-sidebar-header">
           <div className="sidebar-brand">
-            <div className="sidebar-brand-icon" aria-hidden="true">CA</div>
-            <div className="sidebar-brand-text">
-              <span className="sidebar-brand-title">CaDesk</span>
-              <span className="sidebar-brand-subtitle">Practice software for CA firms</span>
+            <div className="sidebar-brand-left">
+              <div className="sidebar-brand-icon" aria-hidden="true">CA</div>
+              <div className="sidebar-brand-text">
+                <span className="sidebar-brand-title">CaDesk</span>
+                <span className="sidebar-brand-subtitle">Practice OS</span>
+              </div>
             </div>
+            <span className="sidebar-pro-pill">{plan?.planTier ?? 'PRO'}</span>
           </div>
           <div className="sidebar-firm-card" title={user.firmName}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -475,7 +505,14 @@ function Workspace() {
           <div className="app-header-right">
             <span className="fy-badge" title={`Assessment year ${ay}`}>FY <b>{fy}</b></span>
             <button type="button" className="header-find-btn" onClick={() => setPaletteOpen(true)}>
-              Find a desk <span className="kbd">Ctrl K</span>
+              <span className="row" style={{ gap: 8 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <span>Find a desk</span>
+              </span>
+              <span className="kbd">Ctrl K</span>
             </button>
           </div>
         </header>

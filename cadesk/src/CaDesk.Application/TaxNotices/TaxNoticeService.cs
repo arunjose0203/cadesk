@@ -168,7 +168,7 @@ public sealed class TaxNoticeService(IAppDbContext db, ITenantContext tenant) : 
     {
         var q = db.NoticeHearings
             .AsNoTracking()
-            .Include(h => h.Notice)!.ThenInclude(n => n.Client)
+            .Include(h => h.Notice!).ThenInclude(n => n.Client)
             .AsQueryable();
 
         if (noticeId.HasValue) q = q.Where(h => h.NoticeId == noticeId.Value);
@@ -247,7 +247,7 @@ public sealed class TaxNoticeService(IAppDbContext db, ITenantContext tenant) : 
     public async Task<NoticeHearingDto> UpdateHearingStatusAsync(Guid hearingId, UpdateHearingStatusRequest req, CancellationToken ct = default)
     {
         var hearing = await db.NoticeHearings
-            .Include(h => h.Notice)!.ThenInclude(n => n.Client)
+            .Include(h => h.Notice!).ThenInclude(n => n.Client)
             .FirstOrDefaultAsync(h => h.Id == hearingId, ct)
             ?? throw new KeyNotFoundException($"Hearing '{hearingId}' not found.");
 

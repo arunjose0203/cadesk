@@ -52,11 +52,11 @@ export const JsonExportPanel: React.FC<Props> = ({
   }
 
   return (
-    <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: '#f8fafc', padding: '16px', marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+    <div style={{ border: '1px solid var(--border-subtle)', borderRadius: '8px', backgroundColor: 'var(--card-subtle)', padding: '16px', marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px' }}>
         <div>
-          <div style={{ fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>{title}</div>
-          {subtitle && <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>{subtitle}</div>}
+          <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)' }}>{title}</div>
+          {subtitle && <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px' }}>{subtitle}</div>}
         </div>
         <button
           type="button"
@@ -80,7 +80,7 @@ export const JsonExportPanel: React.FC<Props> = ({
       {children}
 
       {result && (
-        <div style={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: '6px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <span
@@ -89,13 +89,13 @@ export const JsonExportPanel: React.FC<Props> = ({
                   borderRadius: '999px',
                   fontSize: '11px',
                   fontWeight: 700,
-                  backgroundColor: result.validAgainstSchema ? '#dcfce7' : '#fee2e2',
-                  color: result.validAgainstSchema ? '#15803d' : '#b91c1c',
+                  backgroundColor: result.validAgainstSchema ? 'var(--success-bg)' : 'var(--error-bg)',
+                  color: result.validAgainstSchema ? 'var(--success)' : 'var(--error)',
                 }}
               >
                 {result.validAgainstSchema ? 'CBDT Schema Validated (0 errors)' : `Blocked (${result.issues.filter(i => i.severity === 'error').length} error(s))`}
               </span>
-              <span style={{ fontSize: '12px', color: '#334155', fontWeight: 600 }}>
+              <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600 }}>
                 {result.formType} • {result.schemaVersion} • {result.fileName}
               </span>
             </div>
@@ -103,7 +103,7 @@ export const JsonExportPanel: React.FC<Props> = ({
               <button
                 type="button"
                 onClick={() => download(result.fileName, result.jsonContent, 'application/json')}
-                style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #2563eb', background: '#eff6ff', color: '#1d4ed8', fontWeight: 600, fontSize: '12px', cursor: 'pointer' }}
+                style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--accent)', background: 'var(--accent-subtle)', color: 'var(--accent)', fontWeight: 600, fontSize: '12px', cursor: 'pointer' }}
               >
                 Download {result.fileName}
               </button>
@@ -118,8 +118,8 @@ export const JsonExportPanel: React.FC<Props> = ({
             </div>
           </div>
 
-          {vaultMsg && <div style={{ padding: '6px 10px', backgroundColor: '#ecfdf5', color: '#065f46', borderRadius: '6px', fontSize: '12px' }}>{vaultMsg}</div>}
-          {vaultErr && <div style={{ padding: '6px 10px', backgroundColor: '#fee2e2', color: '#b91c1c', borderRadius: '6px', fontSize: '12px' }}>{vaultErr}</div>}
+          {vaultMsg && <div style={{ padding: '6px 10px', backgroundColor: 'var(--success-bg)', color: 'var(--success-text)', borderRadius: '6px', fontSize: '12px' }}>{vaultMsg}</div>}
+          {vaultErr && <div style={{ padding: '6px 10px', backgroundColor: 'var(--error-bg)', color: 'var(--error)', borderRadius: '6px', fontSize: '12px' }}>{vaultErr}</div>}
 
           {result.issues.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -130,8 +130,8 @@ export const JsonExportPanel: React.FC<Props> = ({
                     padding: '6px 10px',
                     borderRadius: '4px',
                     fontSize: '12px',
-                    backgroundColor: issue.severity === 'error' ? '#fef2f2' : '#fffbeb',
-                    color: issue.severity === 'error' ? '#b91c1c' : '#b45309',
+                    backgroundColor: issue.severity === 'error' ? 'var(--error-bg)' : 'var(--warning-bg)',
+                    color: issue.severity === 'error' ? 'var(--error)' : 'var(--warning)',
                   }}
                 >
                   <strong>{issue.severity.toUpperCase()} [{issue.code}]</strong> {issue.message}{' '}

@@ -252,7 +252,7 @@ export default function ConnectedBankingDesk({ accounts, onRefreshAccounts }: Co
   }
 
   return (
-    <div style={{ marginTop: '1.5rem', color: '#f8fafc' }}>
+    <div style={{ marginTop: '1.5rem', color: 'var(--text)' }}>
       {/* Toast */}
       {toast && (
         <div style={{
@@ -279,8 +279,8 @@ export default function ConnectedBankingDesk({ accounts, onRefreshAccounts }: Co
 
       {/* Header Banner */}
       <div style={{
-        backgroundColor: '#0f172a',
-        border: '1px solid #1e293b',
+        backgroundColor: 'var(--card)',
+        border: '1px solid var(--border)',
         borderRadius: '16px',
         padding: '1.25rem',
         marginBottom: '1.5rem',
@@ -306,11 +306,11 @@ export default function ConnectedBankingDesk({ accounts, onRefreshAccounts }: Co
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700 }}>Direct Connected Banking &amp; Payout Desk</h2>
-              <span style={{ backgroundColor: 'rgba(2, 132, 199, 0.15)', color: '#38bdf8', padding: '2px 8px', borderRadius: '9999px', fontSize: '0.7rem', fontWeight: 600 }}>
+              <span style={{ backgroundColor: 'rgba(2, 132, 199, 0.15)', color: 'var(--accent)', padding: '2px 8px', borderRadius: '9999px', fontSize: '0.7rem', fontWeight: 600 }}>
                 API Gateway Live
               </span>
             </div>
-            <p style={{ margin: '2px 0 0', color: '#94a3b8', fontSize: '0.85rem' }}>
+            <p style={{ margin: '2px 0 0', color: 'var(--muted)', fontSize: '0.85rem' }}>
               Open Banking real-time statement syncs &amp; Maker-Checker payment disbursements (ICICI / HDFC / Axis / Open)
             </p>
           </div>
@@ -351,9 +351,9 @@ export default function ConnectedBankingDesk({ accounts, onRefreshAccounts }: Co
             onClick={loadData}
             disabled={loading}
             style={{
-              backgroundColor: '#1e293b',
-              color: '#f8fafc',
-              border: '1px solid #334155',
+              backgroundColor: 'var(--card-subtle)',
+              color: 'var(--text)',
+              border: '1px solid var(--border-subtle)',
               padding: '0.55rem 0.9rem',
               borderRadius: '8px',
               fontSize: '0.85rem',
@@ -366,12 +366,12 @@ export default function ConnectedBankingDesk({ accounts, onRefreshAccounts }: Co
       </div>
 
       {/* Sub Tabs */}
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', borderBottom: '1px solid #1e293b', paddingBottom: '0.5rem' }}>
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>
         <button
           onClick={() => setActiveTab('feeds')}
           style={{
             backgroundColor: activeTab === 'feeds' ? '#0284c7' : 'transparent',
-            color: activeTab === 'feeds' ? '#ffffff' : '#94a3b8',
+            color: activeTab === 'feeds' ? '#ffffff' : 'var(--muted)',
             border: 'none',
             padding: '0.5rem 1rem',
             borderRadius: '8px',
@@ -386,7 +386,7 @@ export default function ConnectedBankingDesk({ accounts, onRefreshAccounts }: Co
           onClick={() => setActiveTab('payouts')}
           style={{
             backgroundColor: activeTab === 'payouts' ? '#0284c7' : 'transparent',
-            color: activeTab === 'payouts' ? '#ffffff' : '#94a3b8',
+            color: activeTab === 'payouts' ? '#ffffff' : 'var(--muted)',
             border: 'none',
             padding: '0.5rem 1rem',
             borderRadius: '8px',
@@ -401,7 +401,7 @@ export default function ConnectedBankingDesk({ accounts, onRefreshAccounts }: Co
           onClick={() => setActiveTab('challans')}
           style={{
             backgroundColor: activeTab === 'challans' ? '#0284c7' : 'transparent',
-            color: activeTab === 'challans' ? '#ffffff' : '#94a3b8',
+            color: activeTab === 'challans' ? '#ffffff' : 'var(--muted)',
             border: 'none',
             padding: '0.5rem 1rem',
             borderRadius: '8px',
@@ -418,9 +418,9 @@ export default function ConnectedBankingDesk({ accounts, onRefreshAccounts }: Co
       {activeTab === 'feeds' && (
         <div>
           {connectedList.length === 0 ? (
-            <div style={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '14px', padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>
+            <div style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: '14px', padding: '3rem', textAlign: 'center', color: 'var(--muted)' }}>
               <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🏛️</div>
-              <h3 style={{ color: '#f8fafc', margin: '0 0 0.5rem' }}>No Bank Accounts Connected via API</h3>
+              <h3 style={{ color: 'var(--text)', margin: '0 0 0.5rem' }}>No Bank Accounts Connected via API</h3>
               <p style={{ margin: '0 0 1.25rem', fontSize: '0.9rem' }}>
                 Connect client accounts to ICICI Corporate, HDFC SmartHub, Axis Open, or Open Neobank for real-time transaction streaming.
               </p>
@@ -437,8 +437,8 @@ export default function ConnectedBankingDesk({ accounts, onRefreshAccounts }: Co
                 <div
                   key={c.id}
                   style={{
-                    backgroundColor: '#0f172a',
-                    border: '1px solid #1e293b',
+                    backgroundColor: 'var(--card)',
+                    border: '1px solid var(--border)',
                     borderRadius: '14px',
                     padding: '1.25rem',
                     display: 'flex',
@@ -449,8 +449,8 @@ export default function ConnectedBankingDesk({ accounts, onRefreshAccounts }: Co
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
                       <div>
-                        <div style={{ fontWeight: 700, fontSize: '1.05rem', color: '#f8fafc' }}>{c.bankName}</div>
-                        <div style={{ color: '#94a3b8', fontSize: '0.8rem' }}>{c.clientName} • {c.accountNumber}</div>
+                        <div style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--text)' }}>{c.bankName}</div>
+                        <div style={{ color: 'var(--muted)', fontSize: '0.8rem' }}>{c.clientName} • {c.accountNumber}</div>
                       </div>
                       <span style={{
                         backgroundColor: 'rgba(16, 185, 129, 0.15)',
@@ -464,17 +464,17 @@ export default function ConnectedBankingDesk({ accounts, onRefreshAccounts }: Co
                       </span>
                     </div>
 
-                    <div style={{ backgroundColor: '#1e293b', borderRadius: '8px', padding: '0.75rem', margin: '0.75rem 0' }}>
-                      <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Live Bank Balance</div>
+                    <div style={{ backgroundColor: 'var(--card-subtle)', borderRadius: '8px', padding: '0.75rem', margin: '0.75rem 0' }}>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>Live Bank Balance</div>
                       <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#10b981' }}>
                         ₹{c.currentBalance.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                       </div>
-                      <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '2px' }}>
-                        Gateway: <strong style={{ color: '#38bdf8' }}>{c.provider}</strong> • Corp ID: {c.corporateId}
+                      <div style={{ fontSize: '0.7rem', color: 'var(--muted)', marginTop: '2px' }}>
+                        Gateway: <strong style={{ color: 'var(--accent)' }}>{c.provider}</strong> • Corp ID: {c.corporateId}
                       </div>
                     </div>
 
-                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
                       Last API Sync: {c.lastSyncAt ? new Date(c.lastSyncAt).toLocaleString() : 'Never'}
                     </div>
                   </div>
@@ -483,9 +483,9 @@ export default function ConnectedBankingDesk({ accounts, onRefreshAccounts }: Co
                     <button
                       onClick={() => handleSyncFeed(c.bankAccountId, c.bankName)}
                       style={{
-                        backgroundColor: '#1e293b',
-                        color: '#38bdf8',
-                        border: '1px solid #334155',
+                        backgroundColor: 'var(--card-subtle)',
+                        color: 'var(--accent)',
+                        border: '1px solid var(--border-subtle)',
                         padding: '0.45rem 0.9rem',
                         borderRadius: '6px',
                         fontSize: '0.8rem',
@@ -510,7 +510,7 @@ export default function ConnectedBankingDesk({ accounts, onRefreshAccounts }: Co
       {activeTab === 'payouts' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {payouts.length === 0 ? (
-            <div style={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '14px', padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>
+            <div style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: '14px', padding: '3rem', textAlign: 'center', color: 'var(--muted)' }}>
               ✓ No payout batches created yet. Click "+ New Payout Batch" to draft vendor disbursements or salary batches.
             </div>
           ) : (
@@ -518,8 +518,8 @@ export default function ConnectedBankingDesk({ accounts, onRefreshAccounts }: Co
               <div
                 key={b.id}
                 style={{
-                  backgroundColor: '#0f172a',
-                  border: '1px solid #1e293b',
+                  backgroundColor: 'var(--card)',
+                  border: '1px solid var(--border)',
                   borderRadius: '14px',
                   padding: '1.25rem',
                   display: 'flex',
@@ -535,13 +535,13 @@ export default function ConnectedBankingDesk({ accounts, onRefreshAccounts }: Co
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <span style={{ fontWeight: 800, fontSize: '1rem', color: '#38bdf8' }}>#{b.batchNumber}</span>
+                      <span style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--accent)' }}>#{b.batchNumber}</span>
                       <span style={{ fontWeight: 700, fontSize: '1rem' }}>{b.title}</span>
                     </div>
-                    <div style={{ color: '#94a3b8', fontSize: '0.8rem', marginTop: '2px' }}>
+                    <div style={{ color: 'var(--muted)', fontSize: '0.8rem', marginTop: '2px' }}>
                       Debit Bank: <strong>{b.bankName}</strong> ({b.accountNumber}) • Client: {b.clientName}
                     </div>
-                    <div style={{ color: '#64748b', fontSize: '0.75rem', marginTop: '2px' }}>
+                    <div style={{ color: 'var(--muted)', fontSize: '0.75rem', marginTop: '2px' }}>
                       Maker: {b.makerName} • Created: {new Date(b.createdAt).toLocaleDateString()}
                       {b.checkerName && <span> • Checker (Partner): <strong style={{ color: '#10b981' }}>{b.checkerName}</strong></span>}
                     </div>
@@ -570,10 +570,10 @@ export default function ConnectedBankingDesk({ accounts, onRefreshAccounts }: Co
                 </div>
 
                 {/* Items preview table */}
-                <div style={{ backgroundColor: '#1e293b', borderRadius: '8px', padding: '0.6rem 0.8rem', overflowX: 'auto' }}>
+                <div style={{ backgroundColor: 'var(--card-subtle)', borderRadius: '8px', padding: '0.6rem 0.8rem', overflowX: 'auto' }}>
                   <table style={{ width: '100%', fontSize: '0.8rem', borderCollapse: 'collapse' }}>
                     <thead>
-                      <tr style={{ color: '#94a3b8', textAlign: 'left', borderBottom: '1px solid #334155' }}>
+                      <tr style={{ color: 'var(--muted)', textAlign: 'left', borderBottom: '1px solid var(--border)' }}>
                         <th style={{ paddingBottom: '4px' }}>Beneficiary</th>
                         <th style={{ paddingBottom: '4px' }}>A/C &amp; IFSC</th>
                         <th style={{ paddingBottom: '4px' }}>Mode</th>
@@ -586,11 +586,11 @@ export default function ConnectedBankingDesk({ accounts, onRefreshAccounts }: Co
                       {b.items.map(item => (
                         <tr key={item.id} style={{ borderBottom: '1px solid rgba(51, 65, 85, 0.4)' }}>
                           <td style={{ padding: '6px 0', fontWeight: 600 }}>{item.beneficiaryName}</td>
-                          <td style={{ padding: '6px 0', color: '#94a3b8' }}>{item.beneficiaryAccountNumber} • {item.beneficiaryIfsc}</td>
-                          <td style={{ padding: '6px 0' }}><span style={{ backgroundColor: '#0f172a', padding: '1px 6px', borderRadius: '4px', fontSize: '0.7rem' }}>{item.paymentMode}</span></td>
-                          <td style={{ padding: '6px 0', color: '#cbd5e1' }}>{item.narration}</td>
-                          <td style={{ padding: '6px 0', textAlign: 'right', fontWeight: 700, color: '#f8fafc' }}>₹{item.amount.toLocaleString('en-IN')}</td>
-                          <td style={{ padding: '6px 0', textAlign: 'right', color: '#38bdf8', fontFamily: 'monospace', fontSize: '0.75rem' }}>{item.utrNumber || '—'}</td>
+                          <td style={{ padding: '6px 0', color: 'var(--muted)' }}>{item.beneficiaryAccountNumber} • {item.beneficiaryIfsc}</td>
+                          <td style={{ padding: '6px 0' }}><span style={{ backgroundColor: 'var(--card)', padding: '1px 6px', borderRadius: '4px', fontSize: '0.7rem' }}>{item.paymentMode}</span></td>
+                          <td style={{ padding: '6px 0', color: 'var(--text-secondary)' }}>{item.narration}</td>
+                          <td style={{ padding: '6px 0', textAlign: 'right', fontWeight: 700, color: 'var(--text)' }}>₹{item.amount.toLocaleString('en-IN')}</td>
+                          <td style={{ padding: '6px 0', textAlign: 'right', color: 'var(--accent)', fontFamily: 'monospace', fontSize: '0.75rem' }}>{item.utrNumber || '—'}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -669,25 +669,25 @@ export default function ConnectedBankingDesk({ accounts, onRefreshAccounts }: Co
 
       {/* TAB 3: 1-CLICK STATUTORY TAX CHALLAN PAYMENTS */}
       {activeTab === 'challans' && (
-        <div style={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '16px', padding: '1.5rem', maxWidth: '800px' }}>
+        <div style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: '16px', padding: '1.5rem', maxWidth: '800px' }}>
           <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.15rem', fontWeight: 700 }}>
             1-Click Statutory Tax Challan Direct Debit (ITNS 280 / 281 / PMT-06)
           </h3>
-          <p style={{ color: '#94a3b8', fontSize: '0.85rem', margin: '0 0 1.25rem' }}>
+          <p style={{ color: 'var(--muted)', fontSize: '0.85rem', margin: '0 0 1.25rem' }}>
             Compiles a statutory tax challan directly into the Maker-Checker payout queue for automatic direct debit from client corporate bank account.
           </p>
 
           <form onSubmit={handleScheduleTaxChallan}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', color: '#94a3b8', marginBottom: '4px' }}>
+                <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--muted)', marginBottom: '4px' }}>
                   Debit Client Bank Account *
                 </label>
                 <select
                   value={challanAccount}
                   onChange={e => setChallanAccount(e.target.value)}
                   required
-                  style={{ width: '100%', backgroundColor: '#1e293b', border: '1px solid #334155', color: '#ffffff', padding: '0.6rem', borderRadius: '8px' }}
+                  style={{ width: '100%', backgroundColor: 'var(--card-subtle)', border: '1px solid var(--border-subtle)', color: 'var(--text)', padding: '0.6rem', borderRadius: '8px' }}
                 >
                   <option value="">-- Select Bank Account --</option>
                   {accounts.map(a => (
@@ -697,7 +697,7 @@ export default function ConnectedBankingDesk({ accounts, onRefreshAccounts }: Co
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', color: '#94a3b8', marginBottom: '4px' }}>
+                <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--muted)', marginBottom: '4px' }}>
                   Statutory Challan Type *
                 </label>
                 <select
@@ -713,7 +713,7 @@ export default function ConnectedBankingDesk({ accounts, onRefreshAccounts }: Co
                       setMajorHead('0005')
                     }
                   }}
-                  style={{ width: '100%', backgroundColor: '#1e293b', border: '1px solid #334155', color: '#ffffff', padding: '0.6rem', borderRadius: '8px' }}
+                  style={{ width: '100%', backgroundColor: 'var(--card-subtle)', border: '1px solid var(--border-subtle)', color: 'var(--text)', padding: '0.6rem', borderRadius: '8px' }}
                 >
                   <option value="AdvanceTax_ITNS280">ITNS 280 — Advance Tax / Self-Assessment</option>
                   <option value="TDS_ITNS281">ITNS 281 — TDS / TCS Withholding Tax</option>
@@ -724,94 +724,94 @@ export default function ConnectedBankingDesk({ accounts, onRefreshAccounts }: Co
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem', marginBottom: '1rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', color: '#94a3b8', marginBottom: '4px' }}>Financial Year</label>
+                <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--muted)', marginBottom: '4px' }}>Financial Year</label>
                 <input
                   type="text"
                   value={fy}
                   onChange={e => setFy(e.target.value)}
-                  style={{ width: '100%', backgroundColor: '#1e293b', border: '1px solid #334155', color: '#ffffff', padding: '0.6rem', borderRadius: '8px' }}
+                  style={{ width: '100%', backgroundColor: 'var(--card-subtle)', border: '1px solid var(--border-subtle)', color: 'var(--text)', padding: '0.6rem', borderRadius: '8px' }}
                 />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', color: '#94a3b8', marginBottom: '4px' }}>Assessment Year</label>
+                <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--muted)', marginBottom: '4px' }}>Assessment Year</label>
                 <input
                   type="text"
                   value={ay}
                   onChange={e => setAy(e.target.value)}
-                  style={{ width: '100%', backgroundColor: '#1e293b', border: '1px solid #334155', color: '#ffffff', padding: '0.6rem', borderRadius: '8px' }}
+                  style={{ width: '100%', backgroundColor: 'var(--card-subtle)', border: '1px solid var(--border-subtle)', color: 'var(--text)', padding: '0.6rem', borderRadius: '8px' }}
                 />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', color: '#94a3b8', marginBottom: '4px' }}>Major Head</label>
+                <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--muted)', marginBottom: '4px' }}>Major Head</label>
                 <input
                   type="text"
                   value={majorHead}
                   onChange={e => setMajorHead(e.target.value)}
-                  style={{ width: '100%', backgroundColor: '#1e293b', border: '1px solid #334155', color: '#ffffff', padding: '0.6rem', borderRadius: '8px' }}
+                  style={{ width: '100%', backgroundColor: 'var(--card-subtle)', border: '1px solid var(--border-subtle)', color: 'var(--text)', padding: '0.6rem', borderRadius: '8px' }}
                 />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.75rem', color: '#94a3b8', marginBottom: '4px' }}>PAN / TAN / GSTIN</label>
+                <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--muted)', marginBottom: '4px' }}>PAN / TAN / GSTIN</label>
                 <input
                   type="text"
                   value={panTanGstin}
                   onChange={e => setPanTanGstin(e.target.value)}
-                  style={{ width: '100%', backgroundColor: '#1e293b', border: '1px solid #334155', color: '#38bdf8', fontWeight: 600, padding: '0.6rem', borderRadius: '8px' }}
+                  style={{ width: '100%', backgroundColor: 'var(--card-subtle)', border: '1px solid var(--border-subtle)', color: 'var(--accent)', fontWeight: 600, padding: '0.6rem', borderRadius: '8px' }}
                 />
               </div>
             </div>
 
             {/* Tax Amount Breakup */}
-            <div style={{ backgroundColor: '#1e293b', borderRadius: '8px', padding: '1rem', marginBottom: '1rem' }}>
-              <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#f8fafc', marginBottom: '0.5rem' }}>Tax Breakup (₹)</div>
+            <div style={{ backgroundColor: 'var(--card-subtle)', borderRadius: '8px', padding: '1rem', marginBottom: '1rem' }}>
+              <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text)', marginBottom: '0.5rem' }}>Tax Breakup (₹)</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
                 <div>
-                  <label style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Tax Amount</label>
+                  <label style={{ fontSize: '0.7rem', color: 'var(--muted)' }}>Tax Amount</label>
                   <input
                     type="number"
                     value={taxAmount}
                     onChange={e => setTaxAmount(parseFloat(e.target.value) || 0)}
-                    style={{ width: '100%', backgroundColor: '#0f172a', border: '1px solid #334155', color: '#ffffff', padding: '0.5rem', borderRadius: '6px' }}
+                    style={{ width: '100%', backgroundColor: 'var(--card)', border: '1px solid var(--border-subtle)', color: 'var(--text)', padding: '0.5rem', borderRadius: '6px' }}
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Surcharge</label>
+                  <label style={{ fontSize: '0.7rem', color: 'var(--muted)' }}>Surcharge</label>
                   <input
                     type="number"
                     value={surcharge}
                     onChange={e => setSurcharge(parseFloat(e.target.value) || 0)}
-                    style={{ width: '100%', backgroundColor: '#0f172a', border: '1px solid #334155', color: '#ffffff', padding: '0.5rem', borderRadius: '6px' }}
+                    style={{ width: '100%', backgroundColor: 'var(--card)', border: '1px solid var(--border-subtle)', color: 'var(--text)', padding: '0.5rem', borderRadius: '6px' }}
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Health &amp; Edu Cess (4%)</label>
+                  <label style={{ fontSize: '0.7rem', color: 'var(--muted)' }}>Health &amp; Edu Cess (4%)</label>
                   <input
                     type="number"
                     value={cess}
                     onChange={e => setCess(parseFloat(e.target.value) || 0)}
-                    style={{ width: '100%', backgroundColor: '#0f172a', border: '1px solid #334155', color: '#ffffff', padding: '0.5rem', borderRadius: '6px' }}
+                    style={{ width: '100%', backgroundColor: 'var(--card)', border: '1px solid var(--border-subtle)', color: 'var(--text)', padding: '0.5rem', borderRadius: '6px' }}
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Interest (234A/B/C or 201(1A))</label>
+                  <label style={{ fontSize: '0.7rem', color: 'var(--muted)' }}>Interest (234A/B/C or 201(1A))</label>
                   <input
                     type="number"
                     value={interest}
                     onChange={e => setInterest(parseFloat(e.target.value) || 0)}
-                    style={{ width: '100%', backgroundColor: '#0f172a', border: '1px solid #334155', color: '#ffffff', padding: '0.5rem', borderRadius: '6px' }}
+                    style={{ width: '100%', backgroundColor: 'var(--card)', border: '1px solid var(--border-subtle)', color: 'var(--text)', padding: '0.5rem', borderRadius: '6px' }}
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Fee / Penalty</label>
+                  <label style={{ fontSize: '0.7rem', color: 'var(--muted)' }}>Fee / Penalty</label>
                   <input
                     type="number"
                     value={feePenalty}
                     onChange={e => setFeePenalty(parseFloat(e.target.value) || 0)}
-                    style={{ width: '100%', backgroundColor: '#0f172a', border: '1px solid #334155', color: '#ffffff', padding: '0.5rem', borderRadius: '6px' }}
+                    style={{ width: '100%', backgroundColor: 'var(--card)', border: '1px solid var(--border-subtle)', color: 'var(--text)', padding: '0.5rem', borderRadius: '6px' }}
                   />
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                  <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Total Challan Debit</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>Total Challan Debit</div>
                   <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#10b981' }}>
                     ₹{(taxAmount + surcharge + cess + interest + feePenalty).toLocaleString('en-IN')}
                   </div>
@@ -853,23 +853,23 @@ export default function ConnectedBankingDesk({ accounts, onRefreshAccounts }: Co
           zIndex: 9995,
           padding: '1rem'
         }}>
-          <div style={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '16px', maxWidth: '500px', width: '100%', padding: '1.5rem', color: '#f8fafc' }}>
+          <div style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-subtle)', borderRadius: '16px', maxWidth: '500px', width: '100%', padding: '1.5rem', color: 'var(--text)' }}>
             <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: '0 0 0.5rem' }}>
               Connect Corporate Bank API Feed
             </h3>
-            <p style={{ color: '#94a3b8', fontSize: '0.85rem', margin: '0 0 1rem' }}>
+            <p style={{ color: 'var(--muted)', fontSize: '0.85rem', margin: '0 0 1rem' }}>
               Register API gateway credentials for real-time statement fetch and Maker-Checker payouts.
             </p>
 
             <form onSubmit={handleConnectBank}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.25rem' }}>
                 <div>
-                  <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Bank Account *</label>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--muted)', display: 'block', marginBottom: '4px' }}>Bank Account *</label>
                   <select
                     value={connectForm.bankAccountId}
                     onChange={e => setConnectForm({ ...connectForm, bankAccountId: e.target.value })}
                     required
-                    style={{ width: '100%', backgroundColor: '#1e293b', border: '1px solid #334155', color: '#ffffff', padding: '0.6rem', borderRadius: '8px' }}
+                    style={{ width: '100%', backgroundColor: 'var(--card-subtle)', border: '1px solid var(--border-subtle)', color: 'var(--text)', padding: '0.6rem', borderRadius: '8px' }}
                   >
                     <option value="">-- Select Bank Account --</option>
                     {accounts.map(a => (
@@ -879,11 +879,11 @@ export default function ConnectedBankingDesk({ accounts, onRefreshAccounts }: Co
                 </div>
 
                 <div>
-                  <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Banking Gateway / Provider *</label>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--muted)', display: 'block', marginBottom: '4px' }}>Banking Gateway / Provider *</label>
                   <select
                     value={connectForm.provider}
                     onChange={e => setConnectForm({ ...connectForm, provider: e.target.value })}
-                    style={{ width: '100%', backgroundColor: '#1e293b', border: '1px solid #334155', color: '#ffffff', padding: '0.6rem', borderRadius: '8px' }}
+                    style={{ width: '100%', backgroundColor: 'var(--card-subtle)', border: '1px solid var(--border-subtle)', color: 'var(--text)', padding: '0.6rem', borderRadius: '8px' }}
                   >
                     <option value="ICICI_Corporate">ICICI Bank Corporate API / Eazypay</option>
                     <option value="HDFC_SmartHub">HDFC Bank SmartHub / Corporate Banking</option>
@@ -894,50 +894,50 @@ export default function ConnectedBankingDesk({ accounts, onRefreshAccounts }: Co
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                   <div>
-                    <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Corporate ID *</label>
+                    <label style={{ fontSize: '0.75rem', color: 'var(--muted)', display: 'block', marginBottom: '4px' }}>Corporate ID *</label>
                     <input
                       type="text"
                       required
                       placeholder="e.g. CORP100452"
                       value={connectForm.corporateId}
                       onChange={e => setConnectForm({ ...connectForm, corporateId: e.target.value })}
-                      style={{ width: '100%', backgroundColor: '#1e293b', border: '1px solid #334155', color: '#ffffff', padding: '0.6rem', borderRadius: '8px' }}
+                      style={{ width: '100%', backgroundColor: 'var(--card-subtle)', border: '1px solid var(--border-subtle)', color: 'var(--text)', padding: '0.6rem', borderRadius: '8px' }}
                     />
                   </div>
                   <div>
-                    <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>User ID *</label>
+                    <label style={{ fontSize: '0.75rem', color: 'var(--muted)', display: 'block', marginBottom: '4px' }}>User ID *</label>
                     <input
                       type="text"
                       required
                       placeholder="e.g. USER_AUDIT"
                       value={connectForm.userId}
                       onChange={e => setConnectForm({ ...connectForm, userId: e.target.value })}
-                      style={{ width: '100%', backgroundColor: '#1e293b', border: '1px solid #334155', color: '#ffffff', padding: '0.6rem', borderRadius: '8px' }}
+                      style={{ width: '100%', backgroundColor: 'var(--card-subtle)', border: '1px solid var(--border-subtle)', color: 'var(--text)', padding: '0.6rem', borderRadius: '8px' }}
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>API Client Key *</label>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--muted)', display: 'block', marginBottom: '4px' }}>API Client Key *</label>
                   <input
                     type="password"
                     required
                     placeholder="Enter API Key"
                     value={connectForm.apiKey}
                     onChange={e => setConnectForm({ ...connectForm, apiKey: e.target.value })}
-                    style={{ width: '100%', backgroundColor: '#1e293b', border: '1px solid #334155', color: '#ffffff', padding: '0.6rem', borderRadius: '8px' }}
+                    style={{ width: '100%', backgroundColor: 'var(--card-subtle)', border: '1px solid var(--border-subtle)', color: 'var(--text)', padding: '0.6rem', borderRadius: '8px' }}
                   />
                 </div>
 
                 <div>
-                  <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>API Secret / RSA Key *</label>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--muted)', display: 'block', marginBottom: '4px' }}>API Secret / RSA Key *</label>
                   <input
                     type="password"
                     required
                     placeholder="Enter API Secret"
                     value={connectForm.apiSecret}
                     onChange={e => setConnectForm({ ...connectForm, apiSecret: e.target.value })}
-                    style={{ width: '100%', backgroundColor: '#1e293b', border: '1px solid #334155', color: '#ffffff', padding: '0.6rem', borderRadius: '8px' }}
+                    style={{ width: '100%', backgroundColor: 'var(--card-subtle)', border: '1px solid var(--border-subtle)', color: 'var(--text)', padding: '0.6rem', borderRadius: '8px' }}
                   />
                 </div>
               </div>
@@ -946,7 +946,7 @@ export default function ConnectedBankingDesk({ accounts, onRefreshAccounts }: Co
                 <button
                   type="button"
                   onClick={() => setShowConnectModal(false)}
-                  style={{ backgroundColor: 'transparent', color: '#94a3b8', border: '1px solid #334155', padding: '0.6rem 1rem', borderRadius: '8px', cursor: 'pointer' }}
+                  style={{ backgroundColor: 'transparent', color: 'var(--muted)', border: '1px solid var(--border-subtle)', padding: '0.6rem 1rem', borderRadius: '8px', cursor: 'pointer' }}
                 >
                   Cancel
                 </button>
@@ -975,23 +975,23 @@ export default function ConnectedBankingDesk({ accounts, onRefreshAccounts }: Co
           zIndex: 9995,
           padding: '1rem'
         }}>
-          <div style={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '16px', maxWidth: '750px', width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: '1.5rem', color: '#f8fafc' }}>
+          <div style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-subtle)', borderRadius: '16px', maxWidth: '750px', width: '100%', maxHeight: '90vh', overflowY: 'auto', padding: '1.5rem', color: 'var(--text)' }}>
             <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: '0 0 0.5rem' }}>
               Create Disbursement Payout Batch (Maker)
             </h3>
-            <p style={{ color: '#94a3b8', fontSize: '0.85rem', margin: '0 0 1rem' }}>
+            <p style={{ color: 'var(--muted)', fontSize: '0.85rem', margin: '0 0 1rem' }}>
               Bundle vendor invoices or employee salaries for partner approval and direct corporate banking debit.
             </p>
 
             <form onSubmit={handleCreatePayoutBatch}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
                 <div>
-                  <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Debit Bank Account *</label>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--muted)', display: 'block', marginBottom: '4px' }}>Debit Bank Account *</label>
                   <select
                     value={selectedDebitAccountId}
                     onChange={e => setSelectedDebitAccountId(e.target.value)}
                     required
-                    style={{ width: '100%', backgroundColor: '#1e293b', border: '1px solid #334155', color: '#ffffff', padding: '0.6rem', borderRadius: '8px' }}
+                    style={{ width: '100%', backgroundColor: 'var(--card-subtle)', border: '1px solid var(--border-subtle)', color: 'var(--text)', padding: '0.6rem', borderRadius: '8px' }}
                   >
                     <option value="">-- Select Bank Account --</option>
                     {accounts.map(a => (
@@ -1000,23 +1000,23 @@ export default function ConnectedBankingDesk({ accounts, onRefreshAccounts }: Co
                   </select>
                 </div>
                 <div>
-                  <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Batch Title</label>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--muted)', display: 'block', marginBottom: '4px' }}>Batch Title</label>
                   <input
                     type="text"
                     value={payoutTitle}
                     onChange={e => setPayoutTitle(e.target.value)}
                     placeholder="e.g. Apex Global Vendor Batch Q3"
-                    style={{ width: '100%', backgroundColor: '#1e293b', border: '1px solid #334155', color: '#ffffff', padding: '0.6rem', borderRadius: '8px' }}
+                    style={{ width: '100%', backgroundColor: 'var(--card-subtle)', border: '1px solid var(--border-subtle)', color: 'var(--text)', padding: '0.6rem', borderRadius: '8px' }}
                   />
                 </div>
                 <div style={{ gridColumn: 'span 2' }}>
-                  <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Maker Remarks</label>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--muted)', display: 'block', marginBottom: '4px' }}>Maker Remarks</label>
                   <input
                     type="text"
                     value={payoutRemarks}
                     onChange={e => setPayoutRemarks(e.target.value)}
                     placeholder="e.g. Verified against purchase invoice register and GST 2B ITC."
-                    style={{ width: '100%', backgroundColor: '#1e293b', border: '1px solid #334155', color: '#ffffff', padding: '0.6rem', borderRadius: '8px' }}
+                    style={{ width: '100%', backgroundColor: 'var(--card-subtle)', border: '1px solid var(--border-subtle)', color: 'var(--text)', padding: '0.6rem', borderRadius: '8px' }}
                   />
                 </div>
               </div>
@@ -1028,16 +1028,16 @@ export default function ConnectedBankingDesk({ accounts, onRefreshAccounts }: Co
                   <button
                     type="button"
                     onClick={handleAddPayoutItem}
-                    style={{ backgroundColor: '#1e293b', color: '#38bdf8', border: '1px solid #334155', padding: '2px 8px', borderRadius: '6px', fontSize: '0.75rem', cursor: 'pointer' }}
+                    style={{ backgroundColor: 'var(--card-subtle)', color: 'var(--accent)', border: '1px solid var(--border-subtle)', padding: '2px 8px', borderRadius: '6px', fontSize: '0.75rem', cursor: 'pointer' }}
                   >
                     + Add Item
                   </button>
                 </div>
 
                 {payoutItems.map((item, idx) => (
-                  <div key={idx} style={{ backgroundColor: '#1e293b', borderRadius: '8px', padding: '0.75rem', marginBottom: '0.5rem', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
+                  <div key={idx} style={{ backgroundColor: 'var(--card-subtle)', borderRadius: '8px', padding: '0.75rem', marginBottom: '0.5rem', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
                     <div>
-                      <label style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Beneficiary Name *</label>
+                      <label style={{ fontSize: '0.7rem', color: 'var(--muted)' }}>Beneficiary Name *</label>
                       <input
                         type="text"
                         required
@@ -1048,11 +1048,11 @@ export default function ConnectedBankingDesk({ accounts, onRefreshAccounts }: Co
                           setPayoutItems(copy)
                         }}
                         placeholder="Vendor / Employee"
-                        style={{ width: '100%', backgroundColor: '#0f172a', border: '1px solid #334155', color: '#ffffff', padding: '0.4rem', borderRadius: '6px', fontSize: '0.8rem' }}
+                        style={{ width: '100%', backgroundColor: 'var(--card)', border: '1px solid var(--border-subtle)', color: 'var(--text)', padding: '0.4rem', borderRadius: '6px', fontSize: '0.8rem' }}
                       />
                     </div>
                     <div>
-                      <label style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Account Number *</label>
+                      <label style={{ fontSize: '0.7rem', color: 'var(--muted)' }}>Account Number *</label>
                       <input
                         type="text"
                         required
@@ -1063,11 +1063,11 @@ export default function ConnectedBankingDesk({ accounts, onRefreshAccounts }: Co
                           setPayoutItems(copy)
                         }}
                         placeholder="11-18 digits"
-                        style={{ width: '100%', backgroundColor: '#0f172a', border: '1px solid #334155', color: '#ffffff', padding: '0.4rem', borderRadius: '6px', fontSize: '0.8rem' }}
+                        style={{ width: '100%', backgroundColor: 'var(--card)', border: '1px solid var(--border-subtle)', color: 'var(--text)', padding: '0.4rem', borderRadius: '6px', fontSize: '0.8rem' }}
                       />
                     </div>
                     <div>
-                      <label style={{ fontSize: '0.7rem', color: '#94a3b8' }}>IFSC Code *</label>
+                      <label style={{ fontSize: '0.7rem', color: 'var(--muted)' }}>IFSC Code *</label>
                       <input
                         type="text"
                         required
@@ -1078,11 +1078,11 @@ export default function ConnectedBankingDesk({ accounts, onRefreshAccounts }: Co
                           setPayoutItems(copy)
                         }}
                         placeholder="e.g. HDFC0000123"
-                        style={{ width: '100%', backgroundColor: '#0f172a', border: '1px solid #334155', color: '#ffffff', padding: '0.4rem', borderRadius: '6px', fontSize: '0.8rem' }}
+                        style={{ width: '100%', backgroundColor: 'var(--card)', border: '1px solid var(--border-subtle)', color: 'var(--text)', padding: '0.4rem', borderRadius: '6px', fontSize: '0.8rem' }}
                       />
                     </div>
                     <div>
-                      <label style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Amount (₹) *</label>
+                      <label style={{ fontSize: '0.7rem', color: 'var(--muted)' }}>Amount (₹) *</label>
                       <input
                         type="number"
                         required
@@ -1092,11 +1092,11 @@ export default function ConnectedBankingDesk({ accounts, onRefreshAccounts }: Co
                           copy[idx].amount = parseFloat(e.target.value) || 0
                           setPayoutItems(copy)
                         }}
-                        style={{ width: '100%', backgroundColor: '#0f172a', border: '1px solid #334155', color: '#ffffff', padding: '0.4rem', borderRadius: '6px', fontSize: '0.8rem' }}
+                        style={{ width: '100%', backgroundColor: 'var(--card)', border: '1px solid var(--border-subtle)', color: 'var(--text)', padding: '0.4rem', borderRadius: '6px', fontSize: '0.8rem' }}
                       />
                     </div>
                     <div>
-                      <label style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Payment Mode</label>
+                      <label style={{ fontSize: '0.7rem', color: 'var(--muted)' }}>Payment Mode</label>
                       <select
                         value={item.paymentMode}
                         onChange={e => {
@@ -1104,7 +1104,7 @@ export default function ConnectedBankingDesk({ accounts, onRefreshAccounts }: Co
                           copy[idx].paymentMode = e.target.value
                           setPayoutItems(copy)
                         }}
-                        style={{ width: '100%', backgroundColor: '#0f172a', border: '1px solid #334155', color: '#ffffff', padding: '0.4rem', borderRadius: '6px', fontSize: '0.8rem' }}
+                        style={{ width: '100%', backgroundColor: 'var(--card)', border: '1px solid var(--border-subtle)', color: 'var(--text)', padding: '0.4rem', borderRadius: '6px', fontSize: '0.8rem' }}
                       >
                         <option value="NEFT">NEFT</option>
                         <option value="RTGS">RTGS (&ge; ₹2,00,000)</option>
@@ -1113,7 +1113,7 @@ export default function ConnectedBankingDesk({ accounts, onRefreshAccounts }: Co
                       </select>
                     </div>
                     <div>
-                      <label style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Narration</label>
+                      <label style={{ fontSize: '0.7rem', color: 'var(--muted)' }}>Narration</label>
                       <input
                         type="text"
                         value={item.narration}
@@ -1123,7 +1123,7 @@ export default function ConnectedBankingDesk({ accounts, onRefreshAccounts }: Co
                           setPayoutItems(copy)
                         }}
                         placeholder="Invoice # or Salary"
-                        style={{ width: '100%', backgroundColor: '#0f172a', border: '1px solid #334155', color: '#ffffff', padding: '0.4rem', borderRadius: '6px', fontSize: '0.8rem' }}
+                        style={{ width: '100%', backgroundColor: 'var(--card)', border: '1px solid var(--border-subtle)', color: 'var(--text)', padding: '0.4rem', borderRadius: '6px', fontSize: '0.8rem' }}
                       />
                     </div>
                   </div>
@@ -1138,7 +1138,7 @@ export default function ConnectedBankingDesk({ accounts, onRefreshAccounts }: Co
                   <button
                     type="button"
                     onClick={() => setShowPayoutModal(false)}
-                    style={{ backgroundColor: 'transparent', color: '#94a3b8', border: '1px solid #334155', padding: '0.6rem 1rem', borderRadius: '8px', cursor: 'pointer' }}
+                    style={{ backgroundColor: 'transparent', color: 'var(--muted)', border: '1px solid var(--border-subtle)', padding: '0.6rem 1rem', borderRadius: '8px', cursor: 'pointer' }}
                   >
                     Cancel
                   </button>
@@ -1168,21 +1168,21 @@ export default function ConnectedBankingDesk({ accounts, onRefreshAccounts }: Co
           zIndex: 9995,
           padding: '1rem'
         }}>
-          <div style={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '16px', maxWidth: '520px', width: '100%', padding: '1.5rem', color: '#f8fafc' }}>
+          <div style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-subtle)', borderRadius: '16px', maxWidth: '520px', width: '100%', padding: '1.5rem', color: 'var(--text)' }}>
             <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: '0 0 0.5rem' }}>
               Authorize Bank Payout Batch #{authorizingBatch.batchNumber}
             </h3>
-            <p style={{ color: '#94a3b8', fontSize: '0.85rem', margin: '0 0 1rem' }}>
+            <p style={{ color: 'var(--muted)', fontSize: '0.85rem', margin: '0 0 1rem' }}>
               You are authorizing <strong>₹{authorizingBatch.totalAmount.toLocaleString('en-IN')}</strong> across {authorizingBatch.totalCount} payment(s) from <strong>{authorizingBatch.bankName}</strong>.
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.25rem' }}>
               <div>
-                <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Authorization Method</label>
+                <label style={{ fontSize: '0.75rem', color: 'var(--muted)', display: 'block', marginBottom: '4px' }}>Authorization Method</label>
                 <select
                   value={authMethod}
                   onChange={e => setAuthMethod(e.target.value as 'OTP' | 'DSC_SHA256' | 'Biometric')}
-                  style={{ width: '100%', backgroundColor: '#1e293b', border: '1px solid #334155', color: '#ffffff', padding: '0.6rem', borderRadius: '8px' }}
+                  style={{ width: '100%', backgroundColor: 'var(--card-subtle)', border: '1px solid var(--border-subtle)', color: 'var(--text)', padding: '0.6rem', borderRadius: '8px' }}
                 >
                   <option value="OTP">Corporate Banking 6-Digit OTP</option>
                   <option value="DSC_SHA256">Class 3 USB DSC Cryptographic Attestation</option>
@@ -1191,24 +1191,24 @@ export default function ConnectedBankingDesk({ accounts, onRefreshAccounts }: Co
               </div>
 
               <div>
-                <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>
+                <label style={{ fontSize: '0.75rem', color: 'var(--muted)', display: 'block', marginBottom: '4px' }}>
                   {authMethod === 'OTP' ? 'Enter Bank Security OTP' : authMethod === 'DSC_SHA256' ? 'DSC Token PIN / SHA-256 Hash' : 'Biometric Sensor Credential'}
                 </label>
                 <input
                   type="text"
                   value={otpToken}
                   onChange={e => setOtpToken(e.target.value)}
-                  style={{ width: '100%', backgroundColor: '#1e293b', border: '1px solid #334155', color: '#38bdf8', fontFamily: 'monospace', padding: '0.6rem', borderRadius: '8px' }}
+                  style={{ width: '100%', backgroundColor: 'var(--card-subtle)', border: '1px solid var(--border-subtle)', color: 'var(--accent)', fontFamily: 'monospace', padding: '0.6rem', borderRadius: '8px' }}
                 />
               </div>
 
               <div>
-                <label style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginBottom: '4px' }}>Partner Audit Sign-off Remarks</label>
+                <label style={{ fontSize: '0.75rem', color: 'var(--muted)', display: 'block', marginBottom: '4px' }}>Partner Audit Sign-off Remarks</label>
                 <textarea
                   value={partnerRemarks}
                   onChange={e => setPartnerRemarks(e.target.value)}
                   rows={2}
-                  style={{ width: '100%', backgroundColor: '#1e293b', border: '1px solid #334155', color: '#ffffff', padding: '0.6rem', borderRadius: '8px' }}
+                  style={{ width: '100%', backgroundColor: 'var(--card-subtle)', border: '1px solid var(--border-subtle)', color: 'var(--text)', padding: '0.6rem', borderRadius: '8px' }}
                 />
               </div>
             </div>
@@ -1216,7 +1216,7 @@ export default function ConnectedBankingDesk({ accounts, onRefreshAccounts }: Co
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
               <button
                 onClick={() => setAuthorizingBatch(null)}
-                style={{ backgroundColor: 'transparent', color: '#94a3b8', border: '1px solid #334155', padding: '0.6rem 1rem', borderRadius: '8px', cursor: 'pointer' }}
+                style={{ backgroundColor: 'transparent', color: 'var(--muted)', border: '1px solid var(--border-subtle)', padding: '0.6rem 1rem', borderRadius: '8px', cursor: 'pointer' }}
               >
                 Cancel
               </button>
@@ -1244,11 +1244,11 @@ export default function ConnectedBankingDesk({ accounts, onRefreshAccounts }: Co
           zIndex: 9995,
           padding: '1rem'
         }}>
-          <div style={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '16px', maxWidth: '440px', width: '100%', padding: '1.5rem', color: '#f8fafc' }}>
+          <div style={{ backgroundColor: 'var(--card)', border: '1px solid var(--border-subtle)', borderRadius: '16px', maxWidth: '440px', width: '100%', padding: '1.5rem', color: 'var(--text)' }}>
             <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: '0 0 0.5rem', color: '#ef4444' }}>
               Reject Payout Batch #{rejectingBatch.batchNumber}
             </h3>
-            <p style={{ color: '#94a3b8', fontSize: '0.85rem', margin: '0 0 1rem' }}>
+            <p style={{ color: 'var(--muted)', fontSize: '0.85rem', margin: '0 0 1rem' }}>
               Specify the reason for returning this batch to the staff maker.
             </p>
 
@@ -1257,13 +1257,13 @@ export default function ConnectedBankingDesk({ accounts, onRefreshAccounts }: Co
               onChange={e => setRejectReason(e.target.value)}
               placeholder="e.g. Vendor invoice not attached or IFSC mismatch."
               rows={3}
-              style={{ width: '100%', backgroundColor: '#1e293b', border: '1px solid #334155', color: '#ffffff', padding: '0.6rem', borderRadius: '8px', marginBottom: '1rem' }}
+              style={{ width: '100%', backgroundColor: 'var(--card-subtle)', border: '1px solid var(--border-subtle)', color: 'var(--text)', padding: '0.6rem', borderRadius: '8px', marginBottom: '1rem' }}
             />
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
               <button
                 onClick={() => setRejectingBatch(null)}
-                style={{ backgroundColor: 'transparent', color: '#94a3b8', border: '1px solid #334155', padding: '0.6rem 1rem', borderRadius: '8px', cursor: 'pointer' }}
+                style={{ backgroundColor: 'transparent', color: 'var(--muted)', border: '1px solid var(--border-subtle)', padding: '0.6rem 1rem', borderRadius: '8px', cursor: 'pointer' }}
               >
                 Cancel
               </button>

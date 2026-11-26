@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
-import { toError,
+import { useCallback, useEffect, useRef, useState } from 'react'
+import {
+  toError,
   type BranchAuditEngagementDto,
   type BranchAuditOfficeDto,
   type BranchAuditSummaryDto,
@@ -112,30 +113,30 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
     caroReportSummary: 'Clean CARO return submitted for branch assets and inventories.'
   })
 
+  const selectedEngagementIdRef = useRef<string | null>(null)
   useEffect(() => {
-    loadData()
-    loadClients()
-  }, [filterFy, filterStatus])
+    selectedEngagementIdRef.current = selectedEngagement?.id ?? null
+  }, [selectedEngagement])
 
   const showToast = (msg: string) => {
     setToastMsg(msg)
     setTimeout(() => setToastMsg(null), 4000)
   }
 
-  const loadClients = async () => {
+  const loadClients = useCallback(async () => {
     try {
       const res = await api<ClientPage>('/api/clients?pageSize=100')
       setClients(res.items || [])
-      if (res.items && res.items.length > 0 && !engForm.clientId) {
-        setEngForm(f => ({ ...f, clientId: res.items[0].id }))
+      if (res.items && res.items.length > 0) {
+        setEngForm(f => (f.clientId ? f : { ...f, clientId: res.items[0].id }))
       }
     } catch (caught) {
       const err = toError(caught)
       console.error('Failed to load clients', err)
     }
-  }
+  }, [])
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -147,14 +148,12 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
       setEngagements(engRes)
 
       if (engRes.length > 0) {
-        if (!selectedEngagement || !engRes.find(e => e.id === selectedEngagement.id)) {
-          setSelectedEngagement(engRes[0])
-        } else {
-          // Refresh selected engagement
-          const updated = engRes.find(e => e.id === selectedEngagement.id)
-          if (updated) setSelectedEngagement(updated)
-        }
+        const prevId = selectedEngagementIdRef.current
+        const next = (prevId && engRes.find(e => e.id === prevId)) || engRes[0]
+        selectedEngagementIdRef.current = next.id
+        setSelectedEngagement(next)
       } else {
+        selectedEngagementIdRef.current = null
         setSelectedEngagement(null)
       }
     } catch (caught) {
@@ -163,7 +162,12 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [filterFy, filterStatus])
+
+  useEffect(() => {
+    loadData()
+    loadClients()
+  }, [loadData, loadClients])
 
   const handleCreateEngagement = async () => {
     try {
@@ -381,7 +385,7 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
               Multi-Firm Collaborative Audit & Branch Consolidation Desk
             </h1>
             <span style={{
-              background: '#ede9fe',
+              background: 'var(--purple-bg)',
               color: '#6d28d9',
               fontSize: '0.75rem',
               fontWeight: 700,
@@ -391,22 +395,22 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
             }}>
               Sprint 33
             </span>
-            {loading && <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 500 }}>Refreshing...</span>}
+            {loading && <span style={{ fontSize: '0.8rem', color: 'var(--muted)', fontWeight: 500 }}>Refreshing...</span>}
           </div>
           <p className="muted" style={{ margin: '6px 0 0', fontSize: '0.95rem' }}>
             Statutory Branch Audits under <strong>Companies Act, 2013 Sec 143(8)</strong> & <strong>ICAI SA 600</strong> ("Using the Work of Another Auditor")
           </p>
           <div style={{ display: 'flex', gap: '8px', marginTop: '10px', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.78rem', background: '#f1f5f9', color: '#475569', padding: '2px 8px', borderRadius: '4px' }}>
+            <span style={{ fontSize: '0.78rem', background: 'var(--card-subtle)', color: 'var(--text-secondary)', padding: '2px 8px', borderRadius: '4px' }}>
               ⚖️ Sec 143(8) & Rule 12 Mandate
             </span>
-            <span style={{ fontSize: '0.78rem', background: '#f1f5f9', color: '#475569', padding: '2px 8px', borderRadius: '4px' }}>
+            <span style={{ fontSize: '0.78rem', background: 'var(--card-subtle)', color: 'var(--text-secondary)', padding: '2px 8px', borderRadius: '4px' }}>
               📋 SA 600 Magnitude of Operations (% Assets / Revenues)
             </span>
-            <span style={{ fontSize: '0.78rem', background: '#f1f5f9', color: '#475569', padding: '2px 8px', borderRadius: '4px' }}>
+            <span style={{ fontSize: '0.78rem', background: 'var(--card-subtle)', color: 'var(--text-secondary)', padding: '2px 8px', borderRadius: '4px' }}>
               🔐 Delegated Branch Auditor Portal
             </span>
-            <span style={{ fontSize: '0.78rem', background: '#f1f5f9', color: '#475569', padding: '2px 8px', borderRadius: '4px' }}>
+            <span style={{ fontSize: '0.78rem', background: 'var(--card-subtle)', color: 'var(--text-secondary)', padding: '2px 8px', borderRadius: '4px' }}>
               📑 Statutory "Other Matter" Paragraph Draft
             </span>
           </div>
@@ -452,9 +456,9 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
 
       {error && (
         <div style={{
-          background: '#fee2e2',
-          border: '1px solid #fca5a5',
-          color: '#b91c1c',
+          background: 'var(--error-bg)',
+          border: '1px solid var(--error-border)',
+          color: 'var(--error)',
           padding: '12px 16px',
           borderRadius: '6px',
           marginBottom: '18px',
@@ -463,15 +467,15 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
           alignItems: 'center'
         }}>
           <span>{error}</span>
-          <button onClick={() => setError(null)} style={{ background: 'none', border: 'none', color: '#b91c1c', cursor: 'pointer', fontWeight: 700 }}>✕</button>
+          <button onClick={() => setError(null)} style={{ background: 'none', border: 'none', color: 'var(--error)', cursor: 'pointer', fontWeight: 700 }}>✕</button>
         </div>
       )}
 
       {/* KPI Cards Row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-        <div style={{ background: '#fff', padding: '16px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-          <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Total Engagements</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0f172a', marginTop: '4px' }}>
+        <div style={{ background: 'var(--card)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border)', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+          <div style={{ fontSize: '0.8rem', color: 'var(--muted)', fontWeight: 600 }}>Total Engagements</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text)', marginTop: '4px' }}>
             {summary?.totalEngagements ?? 0}
           </div>
           <div style={{ fontSize: '0.75rem', color: '#10b981', marginTop: '4px' }}>
@@ -479,42 +483,42 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
           </div>
         </div>
 
-        <div style={{ background: '#fff', padding: '16px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-          <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Branch Offices Tracked</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0f172a', marginTop: '4px' }}>
+        <div style={{ background: 'var(--card)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border)', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+          <div style={{ fontSize: '0.8rem', color: 'var(--muted)', fontWeight: 600 }}>Branch Offices Tracked</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text)', marginTop: '4px' }}>
             {summary?.totalBranches ?? 0}
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: '4px' }}>
             {summary?.branchesAccepted ?? 0} Accepted · {summary?.branchesSubmitted ?? 0} Submitted
           </div>
         </div>
 
-        <div style={{ background: '#fff', padding: '16px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-          <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Total Branch Assets Audited</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#059669', marginTop: '4px' }}>
+        <div style={{ background: 'var(--card)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border)', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+          <div style={{ fontSize: '0.8rem', color: 'var(--muted)', fontWeight: 600 }}>Total Branch Assets Audited</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--success)', marginTop: '4px' }}>
             {fmtInr(summary?.totalBranchAssetsAudited ?? 0)}
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: '4px' }}>
             Audited by independent branch auditors
           </div>
         </div>
 
-        <div style={{ background: '#fff', padding: '16px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-          <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Avg. Branch Assets Magnitude</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#4f46e5', marginTop: '4px' }}>
+        <div style={{ background: 'var(--card)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border)', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+          <div style={{ fontSize: '0.8rem', color: 'var(--muted)', fontWeight: 600 }}>Avg. Branch Assets Magnitude</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--accent)', marginTop: '4px' }}>
             {summary?.averageBranchAssetsPercentage ?? 0}%
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: '4px' }}>
             SA 600 Magnitude of Operations
           </div>
         </div>
 
-        <div style={{ background: '#fff', padding: '16px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-          <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Branch Qualifications</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: (summary?.totalBranchQualifications ?? 0) > 0 ? '#b91c1c' : '#059669', marginTop: '4px' }}>
+        <div style={{ background: 'var(--card)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border)', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+          <div style={{ fontSize: '0.8rem', color: 'var(--muted)', fontWeight: 600 }}>Branch Qualifications</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 700, color: (summary?.totalBranchQualifications ?? 0) > 0 ? 'var(--error)' : 'var(--success)', marginTop: '4px' }}>
             {summary?.totalBranchQualifications ?? 0}
           </div>
-          <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: '4px' }}>
             Tracked for SA 600 Other Matter notes
           </div>
         </div>
@@ -522,10 +526,10 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
 
       {/* Engagement Selection & Filter Strip */}
       <div style={{
-        background: '#fff',
+        background: 'var(--card)',
         padding: '16px 20px',
         borderRadius: '8px',
-        border: '1px solid #e2e8f0',
+        border: '1px solid var(--border)',
         marginBottom: '24px',
         display: 'flex',
         justifyContent: 'space-between',
@@ -535,7 +539,7 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
           <div>
-            <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>
+            <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--muted)', display: 'block', marginBottom: '4px' }}>
               Active Engagement
             </label>
             <select
@@ -547,7 +551,7 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
               style={{
                 padding: '7px 12px',
                 borderRadius: '6px',
-                border: '1px solid #cbd5e1',
+                border: '1px solid var(--border-subtle)',
                 fontSize: '0.88rem',
                 minWidth: '320px',
                 fontWeight: 600
@@ -563,13 +567,13 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
           </div>
 
           <div>
-            <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>
+            <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--muted)', display: 'block', marginBottom: '4px' }}>
               Financial Year
             </label>
             <select
               value={filterFy}
               onChange={e => setFilterFy(e.target.value)}
-              style={{ padding: '7px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.88rem' }}
+              style={{ padding: '7px 12px', borderRadius: '6px', border: '1px solid var(--border-subtle)', fontSize: '0.88rem' }}
             >
               <option value="all">All FYs</option>
               <option value="2024-25">2024-25</option>
@@ -578,13 +582,13 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
           </div>
 
           <div>
-            <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>
+            <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--muted)', display: 'block', marginBottom: '4px' }}>
               Status
             </label>
             <select
               value={filterStatus}
               onChange={e => setFilterStatus(e.target.value)}
-              style={{ padding: '7px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.88rem' }}
+              style={{ padding: '7px 12px', borderRadius: '6px', border: '1px solid var(--border-subtle)', fontSize: '0.88rem' }}
             >
               <option value="all">All Statuses</option>
               <option value="draft">Draft</option>
@@ -603,12 +607,12 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
               padding: '4px 10px',
               borderRadius: '9999px',
               textTransform: 'uppercase',
-              background: selectedEngagement.consolidationStatus === 'finalized' ? '#dcfce7' :
-                          selectedEngagement.consolidationStatus === 'consolidated' ? '#ede9fe' :
-                          selectedEngagement.consolidationStatus === 'branches_in_progress' ? '#fef3c7' : '#f1f5f9',
-              color: selectedEngagement.consolidationStatus === 'finalized' ? '#166534' :
-                     selectedEngagement.consolidationStatus === 'consolidated' ? '#6d28d9' :
-                     selectedEngagement.consolidationStatus === 'branches_in_progress' ? '#92400e' : '#475569'
+              background: selectedEngagement.consolidationStatus === 'finalized' ? 'var(--success-bg)' :
+                selectedEngagement.consolidationStatus === 'consolidated' ? '#ede9fe' :
+                  selectedEngagement.consolidationStatus === 'branches_in_progress' ? '#fef3c7' : '#f1f5f9',
+              color: selectedEngagement.consolidationStatus === 'finalized' ? 'var(--success-text)' :
+                selectedEngagement.consolidationStatus === 'consolidated' ? '#6d28d9' :
+                  selectedEngagement.consolidationStatus === 'branches_in_progress' ? '#92400e' : '#475569'
             }}>
               {selectedEngagement.consolidationStatus.replace('_', ' ')}
             </span>
@@ -654,12 +658,12 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
 
       {/* Main Content Area */}
       {selectedEngagement ? (
-        <div style={{ background: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+        <div style={{ background: 'var(--card)', borderRadius: '8px', border: '1px solid var(--border)', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
           {/* Tabs navigation */}
           <div style={{
             display: 'flex',
-            borderBottom: '1px solid #e2e8f0',
-            background: '#f8fafc',
+            borderBottom: '1px solid var(--border)',
+            background: 'var(--card-subtle)',
             padding: '0 16px'
           }}>
             <button
@@ -671,8 +675,8 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                 fontWeight: 600,
                 fontSize: '0.88rem',
                 cursor: 'pointer',
-                color: activeTab === 'branches' ? '#4f46e5' : '#64748b',
-                borderBottom: activeTab === 'branches' ? '2px solid #4f46e5' : '2px solid transparent'
+                color: activeTab === 'branches' ? 'var(--accent)' : 'var(--muted)',
+                borderBottom: activeTab === 'branches' ? '2px solid var(--accent)' : '2px solid transparent'
               }}
             >
               🏢 Branch Offices & Delegated Portals ({selectedEngagement.branches?.length || 0})
@@ -686,8 +690,8 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                 fontWeight: 600,
                 fontSize: '0.88rem',
                 cursor: 'pointer',
-                color: activeTab === 'comparison' ? '#4f46e5' : '#64748b',
-                borderBottom: activeTab === 'comparison' ? '2px solid #4f46e5' : '2px solid transparent'
+                color: activeTab === 'comparison' ? 'var(--accent)' : 'var(--muted)',
+                borderBottom: activeTab === 'comparison' ? '2px solid var(--accent)' : '2px solid transparent'
               }}
             >
               📊 Financials Comparison & Magnitude (% Assets/Revenue)
@@ -701,8 +705,8 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                 fontWeight: 600,
                 fontSize: '0.88rem',
                 cursor: 'pointer',
-                color: activeTab === 'sa600' ? '#4f46e5' : '#64748b',
-                borderBottom: activeTab === 'sa600' ? '2px solid #4f46e5' : '2px solid transparent'
+                color: activeTab === 'sa600' ? 'var(--accent)' : 'var(--muted)',
+                borderBottom: activeTab === 'sa600' ? '2px solid var(--accent)' : '2px solid transparent'
               }}
             >
               ⚖️ ICAI SA 600 Other Matter Paragraph Draft
@@ -740,9 +744,9 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
               </div>
 
               {(!selectedEngagement.branches || selectedEngagement.branches.length === 0) ? (
-                <div style={{ textAlign: 'center', padding: '48px 24px', color: '#64748b' }}>
+                <div style={{ textAlign: 'center', padding: '48px 24px', color: 'var(--muted)' }}>
                   <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>🏢</div>
-                  <div style={{ fontWeight: 600, fontSize: '1rem', color: '#1e293b' }}>No Branch Offices Added Yet</div>
+                  <div style={{ fontWeight: 600, fontSize: '1rem', color: 'var(--text)' }}>No Branch Offices Added Yet</div>
                   <p style={{ maxWidth: '420px', margin: '8px auto 16px', fontSize: '0.85rem' }}>
                     Add branch locations to track external branch auditors, generate secure access tokens, and consolidate figures under ICAI SA 600.
                   </p>
@@ -767,7 +771,7 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.84rem' }}>
                     <thead>
-                      <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', textAlign: 'left', color: '#475569' }}>
+                      <tr style={{ background: 'var(--card-subtle)', borderBottom: '2px solid var(--border)', textAlign: 'left', color: 'var(--text-secondary)' }}>
                         <th style={{ padding: '10px 12px' }}>Code & Branch</th>
                         <th style={{ padding: '10px 12px' }}>Location / Scope</th>
                         <th style={{ padding: '10px 12px' }}>Branch Auditor Firm</th>
@@ -781,18 +785,18 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                     </thead>
                     <tbody>
                       {selectedEngagement.branches.map(b => (
-                        <tr key={b.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                        <tr key={b.id} style={{ borderBottom: '1px solid var(--border)' }}>
                           <td style={{ padding: '12px' }}>
-                            <div style={{ fontWeight: 600, color: '#0f172a' }}>{b.branchName}</div>
-                            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Code: {b.branchCode}</div>
+                            <div style={{ fontWeight: 600, color: 'var(--text)' }}>{b.branchName}</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>Code: {b.branchCode}</div>
                           </td>
                           <td style={{ padding: '12px' }}>
                             <div>{b.branchLocation || '—'}</div>
                             <span style={{
                               fontSize: '0.7rem',
                               fontWeight: 600,
-                              color: b.isForeignBranch ? '#9333ea' : '#0369a1',
-                              background: b.isForeignBranch ? '#f3e8ff' : '#e0f2fe',
+                              color: b.isForeignBranch ? '#9333ea' : 'var(--accent)',
+                              background: b.isForeignBranch ? 'var(--purple-bg)' : 'var(--accent-subtle)',
                               padding: '1px 6px',
                               borderRadius: '4px'
                             }}>
@@ -801,19 +805,19 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                           </td>
                           <td style={{ padding: '12px' }}>
                             <div style={{ fontWeight: 500 }}>{b.auditorFirmName || 'Unassigned'}</div>
-                            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
                               {b.auditorFirmRegistrationNumber ? `FRN: ${b.auditorFirmRegistrationNumber}` : ''}
                               {b.auditorName ? ` · ${b.auditorName}` : ''}
                             </div>
                             {b.auditorEmail && <div style={{ fontSize: '0.72rem', color: '#3b82f6' }}>{b.auditorEmail}</div>}
                           </td>
-                          <td style={{ padding: '12px', textAlign: 'right', fontWeight: 600, color: '#0f172a' }}>
+                          <td style={{ padding: '12px', textAlign: 'right', fontWeight: 600, color: 'var(--text)' }}>
                             {fmtInr(b.totalAssets)}
                           </td>
-                          <td style={{ padding: '12px', textAlign: 'right', fontWeight: 600, color: '#0f172a' }}>
+                          <td style={{ padding: '12px', textAlign: 'right', fontWeight: 600, color: 'var(--text)' }}>
                             {fmtInr(b.totalRevenue)}
                           </td>
-                          <td style={{ padding: '12px', textAlign: 'right', fontWeight: 600, color: b.netProfit >= 0 ? '#059669' : '#dc2626' }}>
+                          <td style={{ padding: '12px', textAlign: 'right', fontWeight: 600, color: b.netProfit >= 0 ? 'var(--success)' : 'var(--error)' }}>
                             {fmtInr(b.netProfit)}
                           </td>
                           <td style={{ padding: '12px' }}>
@@ -822,13 +826,13 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                               fontWeight: 700,
                               padding: '2px 8px',
                               borderRadius: '4px',
-                              background: b.branchReportType === 'Clean' ? '#dcfce7' : '#fee2e2',
-                              color: b.branchReportType === 'Clean' ? '#15803d' : '#b91c1c'
+                              background: b.branchReportType === 'Clean' ? 'var(--success-bg)' : 'var(--error-bg)',
+                              color: b.branchReportType === 'Clean' ? 'var(--success)' : 'var(--error)'
                             }}>
                               {b.branchReportType.toUpperCase()}
                             </span>
                             {b.hasQualifications && (
-                              <div style={{ fontSize: '0.7rem', color: '#b91c1c', marginTop: '3px' }}>
+                              <div style={{ fontSize: '0.7rem', color: 'var(--error)', marginTop: '3px' }}>
                                 ⚠️ Qualified
                               </div>
                             )}
@@ -839,12 +843,12 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                               fontWeight: 600,
                               padding: '2px 8px',
                               borderRadius: '4px',
-                              background: b.status === 'Accepted' ? '#dcfce7' :
-                                          b.status === 'SubmittedByBranch' ? '#fef3c7' :
-                                          b.status === 'PackageSent' ? '#e0f2fe' : '#f1f5f9',
-                              color: b.status === 'Accepted' ? '#15803d' :
-                                     b.status === 'SubmittedByBranch' ? '#92400e' :
-                                     b.status === 'PackageSent' ? '#0369a1' : '#475569'
+                              background: b.status === 'Accepted' ? 'var(--success-bg)' :
+                                b.status === 'SubmittedByBranch' ? '#fef3c7' :
+                                  b.status === 'PackageSent' ? '#e0f2fe' : '#f1f5f9',
+                              color: b.status === 'Accepted' ? 'var(--success)' :
+                                b.status === 'SubmittedByBranch' ? '#92400e' :
+                                  b.status === 'PackageSent' ? '#0369a1' : '#475569'
                             }}>
                               {b.status}
                             </span>
@@ -856,8 +860,8 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                                   onClick={() => handleGenerateToken(b)}
                                   title="Generate & copy delegated external submission token"
                                   style={{
-                                    background: '#f1f5f9',
-                                    border: '1px solid #cbd5e1',
+                                    background: 'var(--card-subtle)',
+                                    border: '1px solid var(--border-subtle)',
                                     borderRadius: '4px',
                                     padding: '4px 8px',
                                     fontSize: '0.72rem',
@@ -877,8 +881,8 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                                   }}
                                   title="Simulate external auditor submission"
                                   style={{
-                                    background: '#e0f2fe',
-                                    color: '#0369a1',
+                                    background: 'var(--accent-subtle)',
+                                    color: 'var(--accent)',
                                     border: '1px solid #bae6fd',
                                     borderRadius: '4px',
                                     padding: '4px 8px',
@@ -895,7 +899,7 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                                   onClick={() => handleOpenReview(b)}
                                   title="Review branch audit returns"
                                   style={{
-                                    background: '#ede9fe',
+                                    background: 'var(--purple-bg)',
                                     color: '#6d28d9',
                                     border: '1px solid #ddd6fe',
                                     borderRadius: '4px',
@@ -913,8 +917,8 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                                   onClick={() => openEditBranchModal(b)}
                                   title="Edit branch details"
                                   style={{
-                                    background: '#f1f5f9',
-                                    border: '1px solid #cbd5e1',
+                                    background: 'var(--card-subtle)',
+                                    border: '1px solid var(--border-subtle)',
                                     borderRadius: '4px',
                                     padding: '4px 8px',
                                     fontSize: '0.72rem',
@@ -930,9 +934,9 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                                   onClick={() => handleDeleteBranch(b.id)}
                                   title="Remove branch"
                                   style={{
-                                    background: '#fee2e2',
-                                    color: '#b91c1c',
-                                    border: '1px solid #fecaca',
+                                    background: 'var(--error-bg)',
+                                    color: 'var(--error)',
+                                    border: '1px solid var(--error-border)',
                                     borderRadius: '4px',
                                     padding: '4px 8px',
                                     fontSize: '0.72rem',
@@ -965,52 +969,52 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
 
               {/* Magnitude Metrics Banner */}
               <div style={{
-                background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+                background: 'var(--card-subtle)',
                 padding: '20px',
                 borderRadius: '8px',
-                border: '1px solid #cbd5e1',
+                border: '1px solid var(--border-subtle)',
                 marginBottom: '24px'
               }}>
-                <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0f172a', marginBottom: '12px' }}>
+                <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text)', marginBottom: '12px' }}>
                   ICAI SA 600 Magnitude of Operations Audited by Other Auditors
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
                   <div>
-                    <div style={{ fontSize: '0.78rem', color: '#64748b' }}>Branch Assets Magnitude</div>
-                    <div style={{ fontSize: '1.3rem', fontWeight: 700, color: '#4f46e5' }}>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--muted)' }}>Branch Assets Magnitude</div>
+                    <div style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--accent)' }}>
                       {selectedEngagement.branchAssetsPercentage}%
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
                       {fmtInr(selectedEngagement.totalBranchAssets)} of {fmtInr(selectedEngagement.totalConsolidatedAssets)}
                     </div>
                   </div>
 
                   <div>
-                    <div style={{ fontSize: '0.78rem', color: '#64748b' }}>Branch Revenue Magnitude</div>
-                    <div style={{ fontSize: '1.3rem', fontWeight: 700, color: '#0284c7' }}>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--muted)' }}>Branch Revenue Magnitude</div>
+                    <div style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--accent)' }}>
                       {selectedEngagement.branchRevenuePercentage}%
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
                       {fmtInr(selectedEngagement.totalBranchRevenue)} of {fmtInr(selectedEngagement.totalConsolidatedRevenue)}
                     </div>
                   </div>
 
                   <div>
-                    <div style={{ fontSize: '0.78rem', color: '#64748b' }}>Branch Net Profit Magnitude</div>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--muted)' }}>Branch Net Profit Magnitude</div>
                     <div style={{ fontSize: '1.3rem', fontWeight: 700, color: '#10b981' }}>
                       {selectedEngagement.branchNetProfitPercentage}%
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
                       {fmtInr(selectedEngagement.totalBranchNetProfit)} of {fmtInr(selectedEngagement.totalConsolidatedNetProfit)}
                     </div>
                   </div>
 
                   <div>
-                    <div style={{ fontSize: '0.78rem', color: '#64748b' }}>Independent Branch Auditors</div>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--muted)' }}>Independent Branch Auditors</div>
                     <div style={{ fontSize: '1.3rem', fontWeight: 700, color: '#6d28d9' }}>
                       {selectedEngagement.branchAuditorsCount} Firms
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
                       Across {selectedEngagement.branchesAuditedCount} audited branches
                     </div>
                   </div>
@@ -1021,7 +1025,7 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.88rem' }}>
                   <thead>
-                    <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', textAlign: 'left', color: '#475569' }}>
+                    <tr style={{ background: 'var(--card-subtle)', borderBottom: '2px solid var(--border)', textAlign: 'left', color: 'var(--text-secondary)' }}>
                       <th style={{ padding: '12px 14px' }}>Financial Metric</th>
                       <th style={{ padding: '12px 14px', textAlign: 'right' }}>Head Office (Standalone)</th>
                       <th style={{ padding: '12px 14px', textAlign: 'right' }}>Branches Total (Audited)</th>
@@ -1030,17 +1034,17 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                     </tr>
                   </thead>
                   <tbody>
-                    <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                    <tr style={{ borderBottom: '1px solid var(--border)' }}>
                       <td style={{ padding: '12px 14px', fontWeight: 600 }}>Total Assets</td>
                       <td style={{ padding: '12px 14px', textAlign: 'right' }}>{fmtInr(selectedEngagement.headOfficeAssets)}</td>
-                      <td style={{ padding: '12px 14px', textAlign: 'right', color: '#4f46e5', fontWeight: 600 }}>{fmtInr(selectedEngagement.totalBranchAssets)}</td>
+                      <td style={{ padding: '12px 14px', textAlign: 'right', color: 'var(--accent)', fontWeight: 600 }}>{fmtInr(selectedEngagement.totalBranchAssets)}</td>
                       <td style={{ padding: '12px 14px', textAlign: 'right', fontWeight: 700 }}>{fmtInr(selectedEngagement.totalConsolidatedAssets)}</td>
                       <td style={{ padding: '12px 14px', textAlign: 'right', fontWeight: 600 }}>{selectedEngagement.branchAssetsPercentage}%</td>
                     </tr>
-                    <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                    <tr style={{ borderBottom: '1px solid var(--border)' }}>
                       <td style={{ padding: '12px 14px', fontWeight: 600 }}>Total Liabilities</td>
                       <td style={{ padding: '12px 14px', textAlign: 'right' }}>{fmtInr(selectedEngagement.headOfficeLiabilities)}</td>
-                      <td style={{ padding: '12px 14px', textAlign: 'right', color: '#4f46e5', fontWeight: 600 }}>{fmtInr(selectedEngagement.totalConsolidatedLiabilities - selectedEngagement.headOfficeLiabilities)}</td>
+                      <td style={{ padding: '12px 14px', textAlign: 'right', color: 'var(--accent)', fontWeight: 600 }}>{fmtInr(selectedEngagement.totalConsolidatedLiabilities - selectedEngagement.headOfficeLiabilities)}</td>
                       <td style={{ padding: '12px 14px', textAlign: 'right', fontWeight: 700 }}>{fmtInr(selectedEngagement.totalConsolidatedLiabilities)}</td>
                       <td style={{ padding: '12px 14px', textAlign: 'right', fontWeight: 600 }}>
                         {selectedEngagement.totalConsolidatedLiabilities > 0
@@ -1048,17 +1052,17 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                           : '0%'}
                       </td>
                     </tr>
-                    <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                    <tr style={{ borderBottom: '1px solid var(--border)' }}>
                       <td style={{ padding: '12px 14px', fontWeight: 600 }}>Total Revenues / Turnover</td>
                       <td style={{ padding: '12px 14px', textAlign: 'right' }}>{fmtInr(selectedEngagement.headOfficeRevenue)}</td>
-                      <td style={{ padding: '12px 14px', textAlign: 'right', color: '#0284c7', fontWeight: 600 }}>{fmtInr(selectedEngagement.totalBranchRevenue)}</td>
+                      <td style={{ padding: '12px 14px', textAlign: 'right', color: 'var(--accent)', fontWeight: 600 }}>{fmtInr(selectedEngagement.totalBranchRevenue)}</td>
                       <td style={{ padding: '12px 14px', textAlign: 'right', fontWeight: 700 }}>{fmtInr(selectedEngagement.totalConsolidatedRevenue)}</td>
                       <td style={{ padding: '12px 14px', textAlign: 'right', fontWeight: 600 }}>{selectedEngagement.branchRevenuePercentage}%</td>
                     </tr>
-                    <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                    <tr style={{ borderBottom: '1px solid var(--border)' }}>
                       <td style={{ padding: '12px 14px', fontWeight: 600 }}>Total Expenses</td>
                       <td style={{ padding: '12px 14px', textAlign: 'right' }}>{fmtInr(selectedEngagement.headOfficeExpenses)}</td>
-                      <td style={{ padding: '12px 14px', textAlign: 'right', color: '#4f46e5', fontWeight: 600 }}>{fmtInr(selectedEngagement.totalConsolidatedExpenses - selectedEngagement.headOfficeExpenses)}</td>
+                      <td style={{ padding: '12px 14px', textAlign: 'right', color: 'var(--accent)', fontWeight: 600 }}>{fmtInr(selectedEngagement.totalConsolidatedExpenses - selectedEngagement.headOfficeExpenses)}</td>
                       <td style={{ padding: '12px 14px', textAlign: 'right', fontWeight: 700 }}>{fmtInr(selectedEngagement.totalConsolidatedExpenses)}</td>
                       <td style={{ padding: '12px 14px', textAlign: 'right', fontWeight: 600 }}>
                         {selectedEngagement.totalConsolidatedExpenses > 0
@@ -1066,7 +1070,7 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                           : '0%'}
                       </td>
                     </tr>
-                    <tr style={{ background: '#f8fafc', fontWeight: 700 }}>
+                    <tr style={{ background: 'var(--card-subtle)', fontWeight: 700 }}>
                       <td style={{ padding: '12px 14px' }}>Net Profit / (Loss)</td>
                       <td style={{ padding: '12px 14px', textAlign: 'right' }}>{fmtInr(selectedEngagement.headOfficeNetProfit)}</td>
                       <td style={{ padding: '12px 14px', textAlign: 'right', color: '#10b981' }}>{fmtInr(selectedEngagement.totalBranchNetProfit)}</td>
@@ -1097,8 +1101,9 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                     <button
                       onClick={copySa600Text}
                       style={{
-                        background: '#f1f5f9',
-                        border: '1px solid #cbd5e1',
+                        background: 'var(--card-subtle)',
+                        color: 'var(--text)',
+                        border: '1px solid var(--border-subtle)',
                         borderRadius: '6px',
                         padding: '7px 14px',
                         fontSize: '0.82rem',
@@ -1145,10 +1150,10 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                   {selectedEngagement.generatedSa600ReportText}
                 </div>
               ) : (
-                <div style={{ textAlign: 'center', padding: '48px 24px', background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
+                <div style={{ textAlign: 'center', padding: '48px 24px', background: 'var(--card-subtle)', borderRadius: '8px', border: '1px dashed var(--border-subtle)' }}>
                   <div style={{ fontSize: '2rem', marginBottom: '8px' }}>📑</div>
-                  <div style={{ fontWeight: 600, color: '#1e293b' }}>SA 600 Report Text Not Yet Generated</div>
-                  <p style={{ maxWidth: '400px', margin: '8px auto 16px', fontSize: '0.84rem', color: '#64748b' }}>
+                  <div style={{ fontWeight: 600, color: 'var(--text)' }}>SA 600 Report Text Not Yet Generated</div>
+                  <p style={{ maxWidth: '400px', margin: '8px auto 16px', fontSize: '0.84rem', color: 'var(--muted)' }}>
                     Click the button below to consolidate submitted branch returns and generate the official statutory disclosure paragraph.
                   </p>
                   <button
@@ -1171,9 +1176,9 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
           )}
         </div>
       ) : (
-        <div style={{ textAlign: 'center', padding: '64px 24px', background: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+        <div style={{ textAlign: 'center', padding: '64px 24px', background: 'var(--card)', borderRadius: '8px', border: '1px solid var(--border)' }}>
           <div style={{ fontSize: '3rem', marginBottom: '12px' }}>🏢</div>
-          <h2 style={{ margin: 0, fontWeight: 700, fontSize: '1.25rem', color: '#0f172a' }}>No Engagement Selected</h2>
+          <h2 style={{ margin: 0, fontWeight: 700, fontSize: '1.25rem', color: 'var(--text)' }}>No Engagement Selected</h2>
           <p className="muted" style={{ maxWidth: '480px', margin: '8px auto 20px', fontSize: '0.9rem' }}>
             Select an existing branch audit engagement from the dropdown above, or create a new multi-branch consolidation workspace for your corporate audit clients.
           </p>
@@ -1209,7 +1214,7 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
           padding: '20px'
         }}>
           <div style={{
-            background: '#fff',
+            background: 'var(--card)',
             borderRadius: '10px',
             width: '100%',
             maxWidth: '640px',
@@ -1224,13 +1229,13 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
               <div>
-                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
                   Client Organization *
                 </label>
                 <select
                   value={engForm.clientId}
                   onChange={e => setEngForm(f => ({ ...f, clientId: e.target.value }))}
-                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}
                 >
                   {clients.map(c => (
                     <option key={c.id} value={c.id}>{c.name} ({c.code})</option>
@@ -1239,99 +1244,99 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
               </div>
 
               <div>
-                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
                   Financial Year *
                 </label>
                 <input
                   type="text"
                   value={engForm.financialYear}
                   onChange={e => setEngForm(f => ({ ...f, financialYear: e.target.value }))}
-                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
             </div>
 
             <div style={{ marginBottom: '14px' }}>
-              <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
+              <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
                 Engagement Title *
               </label>
               <input
                 type="text"
                 value={engForm.title}
                 onChange={e => setEngForm(f => ({ ...f, title: e.target.value }))}
-                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}
               />
             </div>
 
-            <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '6px', border: '1px solid #e2e8f0', marginBottom: '16px' }}>
-              <div style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: '10px', color: '#0f172a' }}>
+            <div style={{ background: 'var(--card-subtle)', padding: '14px', borderRadius: '6px', border: '1px solid var(--border)', marginBottom: '16px' }}>
+              <div style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: '10px', color: 'var(--text)' }}>
                 Head Office Standalone Financials (INR)
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
-                  <label style={{ fontSize: '0.75rem', color: '#64748b' }}>Head Office Assets</label>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>Head Office Assets</label>
                   <input
                     type="number"
                     value={engForm.headOfficeAssets}
                     onChange={e => setEngForm(f => ({ ...f, headOfficeAssets: parseFloat(e.target.value) || 0 }))}
-                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '0.75rem', color: '#64748b' }}>Head Office Liabilities</label>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>Head Office Liabilities</label>
                   <input
                     type="number"
                     value={engForm.headOfficeLiabilities}
                     onChange={e => setEngForm(f => ({ ...f, headOfficeLiabilities: parseFloat(e.target.value) || 0 }))}
-                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '0.75rem', color: '#64748b' }}>Head Office Revenue</label>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>Head Office Revenue</label>
                   <input
                     type="number"
                     value={engForm.headOfficeRevenue}
                     onChange={e => setEngForm(f => ({ ...f, headOfficeRevenue: parseFloat(e.target.value) || 0 }))}
-                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '0.75rem', color: '#64748b' }}>Head Office Expenses</label>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>Head Office Expenses</label>
                   <input
                     type="number"
                     value={engForm.headOfficeExpenses}
                     onChange={e => setEngForm(f => ({ ...f, headOfficeExpenses: parseFloat(e.target.value) || 0 }))}
-                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '0.75rem', color: '#64748b' }}>Head Office Net Profit</label>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>Head Office Net Profit</label>
                   <input
                     type="number"
                     value={engForm.headOfficeNetProfit}
                     onChange={e => setEngForm(f => ({ ...f, headOfficeNetProfit: parseFloat(e.target.value) || 0 }))}
-                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
               </div>
             </div>
 
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
+              <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
                 Principal Auditor Notes
               </label>
               <textarea
                 rows={2}
                 value={engForm.principalAuditorNotes || ''}
                 onChange={e => setEngForm(f => ({ ...f, principalAuditorNotes: e.target.value }))}
-                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}
               />
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
               <button
                 onClick={() => setShowNewEngModal(false)}
-                style={{ padding: '8px 16px', background: '#f1f5f9', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer' }}
+                style={{ padding: '8px 16px', background: 'var(--card-subtle)', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer' }}
               >
                 Cancel
               </button>
@@ -1359,7 +1364,7 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
           padding: '20px'
         }}>
           <div style={{
-            background: '#fff',
+            background: 'var(--card)',
             borderRadius: '10px',
             width: '100%',
             maxWidth: '680px',
@@ -1374,7 +1379,7 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '12px', marginBottom: '14px' }}>
               <div>
-                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
                   Branch Code *
                 </label>
                 <input
@@ -1382,11 +1387,11 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                   placeholder="BR-MUM"
                   value={branchForm.branchCode}
                   onChange={e => setBranchForm(f => ({ ...f, branchCode: e.target.value }))}
-                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
               <div>
-                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
                   Branch Name *
                 </label>
                 <input
@@ -1394,14 +1399,14 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                   placeholder="Mumbai Port Logistics Branch"
                   value={branchForm.branchName}
                   onChange={e => setBranchForm(f => ({ ...f, branchName: e.target.value }))}
-                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px', marginBottom: '14px' }}>
               <div>
-                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
                   Branch Location
                 </label>
                 <input
@@ -1409,17 +1414,17 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                   placeholder="Navi Mumbai, Maharashtra"
                   value={branchForm.branchLocation}
                   onChange={e => setBranchForm(f => ({ ...f, branchLocation: e.target.value }))}
-                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
               <div>
-                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
+                <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
                   Foreign Branch?
                 </label>
                 <select
                   value={branchForm.isForeignBranch ? 'true' : 'false'}
                   onChange={e => setBranchForm(f => ({ ...f, isForeignBranch: e.target.value === 'true' }))}
-                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}
                 >
                   <option value="false">Domestic (India)</option>
                   <option value="true">Foreign Branch</option>
@@ -1427,122 +1432,122 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
               </div>
             </div>
 
-            <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '6px', border: '1px solid #e2e8f0', marginBottom: '16px' }}>
-              <div style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: '10px', color: '#0f172a' }}>
+            <div style={{ background: 'var(--card-subtle)', padding: '14px', borderRadius: '6px', border: '1px solid var(--border)', marginBottom: '16px' }}>
+              <div style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: '10px', color: 'var(--text)' }}>
                 Independent Branch Auditor Details (Section 143(8))
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px', marginBottom: '10px' }}>
                 <div>
-                  <label style={{ fontSize: '0.75rem', color: '#64748b' }}>Branch Auditor Firm Name</label>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>Branch Auditor Firm Name</label>
                   <input
                     type="text"
                     placeholder="Desai & Associates"
                     value={branchForm.auditorFirmName}
                     onChange={e => setBranchForm(f => ({ ...f, auditorFirmName: e.target.value }))}
-                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '0.75rem', color: '#64748b' }}>Firm Reg. Number (FRN)</label>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>Firm Reg. Number (FRN)</label>
                   <input
                     type="text"
                     placeholder="104562W"
                     value={branchForm.auditorFirmRegistrationNumber}
                     onChange={e => setBranchForm(f => ({ ...f, auditorFirmRegistrationNumber: e.target.value }))}
-                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px', marginBottom: '10px' }}>
                 <div>
-                  <label style={{ fontSize: '0.75rem', color: '#64748b' }}>Auditor Partner Name</label>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>Auditor Partner Name</label>
                   <input
                     type="text"
                     placeholder="CA Sunil Desai"
                     value={branchForm.auditorName}
                     onChange={e => setBranchForm(f => ({ ...f, auditorName: e.target.value }))}
-                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '0.75rem', color: '#64748b' }}>Membership Number</label>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>Membership Number</label>
                   <input
                     type="text"
                     placeholder="045612"
                     value={branchForm.auditorMembershipNumber}
                     onChange={e => setBranchForm(f => ({ ...f, auditorMembershipNumber: e.target.value }))}
-                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
-                  <label style={{ fontSize: '0.75rem', color: '#64748b' }}>Auditor Email</label>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>Auditor Email</label>
                   <input
                     type="email"
                     placeholder="sunil@desai-ca.in"
                     value={branchForm.auditorEmail}
                     onChange={e => setBranchForm(f => ({ ...f, auditorEmail: e.target.value }))}
-                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '0.75rem', color: '#64748b' }}>Auditor Phone</label>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>Auditor Phone</label>
                   <input
                     type="text"
                     placeholder="9820011223"
                     value={branchForm.auditorPhone || ''}
                     onChange={e => setBranchForm(f => ({ ...f, auditorPhone: e.target.value }))}
-                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
               </div>
             </div>
 
             {/* Optional Initial Financial Figures */}
-            <div style={{ background: '#f8fafc', padding: '14px', borderRadius: '6px', border: '1px solid #e2e8f0', marginBottom: '16px' }}>
-              <div style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: '10px', color: '#0f172a' }}>
+            <div style={{ background: 'var(--card-subtle)', padding: '14px', borderRadius: '6px', border: '1px solid var(--border)', marginBottom: '16px' }}>
+              <div style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: '10px', color: 'var(--text)' }}>
                 Branch Financial Returns (Can also be submitted by branch auditor via portal)
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '10px' }}>
                 <div>
-                  <label style={{ fontSize: '0.75rem', color: '#64748b' }}>Branch Assets (INR)</label>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>Branch Assets (INR)</label>
                   <input
                     type="number"
                     value={branchForm.totalAssets}
                     onChange={e => setBranchForm(f => ({ ...f, totalAssets: parseFloat(e.target.value) || 0 }))}
-                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '0.75rem', color: '#64748b' }}>Branch Revenue (INR)</label>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>Branch Revenue (INR)</label>
                   <input
                     type="number"
                     value={branchForm.totalRevenue}
                     onChange={e => setBranchForm(f => ({ ...f, totalRevenue: parseFloat(e.target.value) || 0 }))}
-                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '0.75rem', color: '#64748b' }}>Net Profit (INR)</label>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>Net Profit (INR)</label>
                   <input
                     type="number"
                     value={branchForm.netProfit}
                     onChange={e => setBranchForm(f => ({ ...f, netProfit: parseFloat(e.target.value) || 0 }))}
-                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <div>
-                  <label style={{ fontSize: '0.75rem', color: '#64748b' }}>Report Type</label>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>Report Type</label>
                   <select
                     value={branchForm.branchReportType}
                     onChange={e => setBranchForm(f => ({ ...f, branchReportType: e.target.value }))}
-                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   >
                     <option value="Clean">Clean (Unmodified)</option>
                     <option value="Qualified">Qualified</option>
@@ -1551,11 +1556,11 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                   </select>
                 </div>
                 <div>
-                  <label style={{ fontSize: '0.75rem', color: '#64748b' }}>Has Qualifications?</label>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>Has Qualifications?</label>
                   <select
                     value={branchForm.hasQualifications ? 'true' : 'false'}
                     onChange={e => setBranchForm(f => ({ ...f, hasQualifications: e.target.value === 'true' }))}
-                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   >
                     <option value="false">No (Unmodified)</option>
                     <option value="true">Yes (Disclose in SA 600)</option>
@@ -1565,12 +1570,12 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
 
               {branchForm.hasQualifications && (
                 <div style={{ marginTop: '10px' }}>
-                  <label style={{ fontSize: '0.75rem', color: '#b91c1c', fontWeight: 600 }}>Qualification Summary (disclosed in SA 600 Other Matter)</label>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--error)', fontWeight: 600 }}>Qualification Summary (disclosed in SA 600 Other Matter)</label>
                   <textarea
                     rows={2}
                     value={branchForm.qualificationsSummary || ''}
                     onChange={e => setBranchForm(f => ({ ...f, qualificationsSummary: e.target.value }))}
-                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #fca5a5' }}
+                    style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--error-border)' }}
                   />
                 </div>
               )}
@@ -1579,7 +1584,7 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
               <button
                 onClick={() => { setShowAddBranchModal(false); setEditingBranch(null); }}
-                style={{ padding: '8px 16px', background: '#f1f5f9', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer' }}
+                style={{ padding: '8px 16px', background: 'var(--card-subtle)', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer' }}
               >
                 Cancel
               </button>
@@ -1607,7 +1612,7 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
           padding: '20px'
         }}>
           <div style={{
-            background: '#fff',
+            background: 'var(--card)',
             borderRadius: '10px',
             width: '100%',
             maxWidth: '540px',
@@ -1621,12 +1626,12 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
               Verify certified branch auditor report under SA 600 procedures before incorporating into consolidated numbers.
             </p>
 
-            <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '6px', marginBottom: '16px', fontSize: '0.84rem' }}>
+            <div style={{ background: 'var(--card-subtle)', padding: '12px', borderRadius: '6px', marginBottom: '16px', fontSize: '0.84rem' }}>
               <div><strong>Auditor Firm:</strong> {reviewingBranch.auditorFirmName || '—'}</div>
               <div><strong>Assets:</strong> {fmtInr(reviewingBranch.totalAssets)} · <strong>Revenue:</strong> {fmtInr(reviewingBranch.totalRevenue)}</div>
               <div><strong>Report:</strong> {reviewingBranch.branchReportType} {reviewingBranch.hasQualifications ? '⚠️ Qualified' : '✓ Clean'}</div>
               {reviewingBranch.qualificationsSummary && (
-                <div style={{ marginTop: '4px', color: '#b91c1c' }}><strong>Notes:</strong> {reviewingBranch.qualificationsSummary}</div>
+                <div style={{ marginTop: '4px', color: 'var(--error)' }}><strong>Notes:</strong> {reviewingBranch.qualificationsSummary}</div>
               )}
             </div>
 
@@ -1643,7 +1648,7 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                     checked={reviewDecision === 'accept'}
                     onChange={() => setReviewDecision('accept')}
                   />
-                  <span style={{ color: '#15803d', fontWeight: 600 }}>Accept (Include in Consolidation)</span>
+                  <span style={{ color: 'var(--success)', fontWeight: 600 }}>Accept (Include in Consolidation)</span>
                 </label>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
                   <input
@@ -1653,7 +1658,7 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                     checked={reviewDecision === 'reject'}
                     onChange={() => setReviewDecision('reject')}
                   />
-                  <span style={{ color: '#b91c1c', fontWeight: 600 }}>Reject / Request Clarification</span>
+                  <span style={{ color: 'var(--error)', fontWeight: 600 }}>Reject / Request Clarification</span>
                 </label>
               </div>
             </div>
@@ -1667,14 +1672,14 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                 placeholder="Certified branch returns and CARO memo received and accepted without modification."
                 value={reviewNotes}
                 onChange={e => setReviewNotes(e.target.value)}
-                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
+                style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-subtle)' }}
               />
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
               <button
                 onClick={() => setReviewingBranch(null)}
-                style={{ padding: '8px 16px', background: '#f1f5f9', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer' }}
+                style={{ padding: '8px 16px', background: 'var(--card-subtle)', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer' }}
               >
                 Cancel
               </button>
@@ -1710,7 +1715,7 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
           padding: '20px'
         }}>
           <div style={{
-            background: '#fff',
+            background: 'var(--card)',
             borderRadius: '10px',
             width: '100%',
             maxWidth: '600px',
@@ -1723,7 +1728,7 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
               <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700 }}>
                 Delegated Branch Auditor Portal (Simulator)
               </h2>
-              <span style={{ background: '#e0f2fe', color: '#0369a1', fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: '4px' }}>
+              <span style={{ background: 'var(--accent-subtle)', color: 'var(--accent)', fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: '4px' }}>
                 External Token Mode {simToken ? `(${simToken.slice(0, 8)}…)` : ''}
               </span>
             </div>
@@ -1733,50 +1738,50 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
               <div>
-                <label style={{ fontSize: '0.75rem', color: '#64748b' }}>Total Branch Assets (INR)</label>
+                <label style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>Total Branch Assets (INR)</label>
                 <input
                   type="number"
                   value={portalSimForm.totalAssets}
                   onChange={e => setPortalSimForm(f => ({ ...f, totalAssets: parseFloat(e.target.value) || 0 }))}
-                  style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
               <div>
-                <label style={{ fontSize: '0.75rem', color: '#64748b' }}>Total Branch Revenue (INR)</label>
+                <label style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>Total Branch Revenue (INR)</label>
                 <input
                   type="number"
                   value={portalSimForm.totalRevenue}
                   onChange={e => setPortalSimForm(f => ({ ...f, totalRevenue: parseFloat(e.target.value) || 0 }))}
-                  style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
               <div>
-                <label style={{ fontSize: '0.75rem', color: '#64748b' }}>Total Liabilities (INR)</label>
+                <label style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>Total Liabilities (INR)</label>
                 <input
                   type="number"
                   value={portalSimForm.totalLiabilities}
                   onChange={e => setPortalSimForm(f => ({ ...f, totalLiabilities: parseFloat(e.target.value) || 0 }))}
-                  style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
               <div>
-                <label style={{ fontSize: '0.75rem', color: '#64748b' }}>Net Profit (INR)</label>
+                <label style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>Net Profit (INR)</label>
                 <input
                   type="number"
                   value={portalSimForm.netProfit}
                   onChange={e => setPortalSimForm(f => ({ ...f, netProfit: parseFloat(e.target.value) || 0 }))}
-                  style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
               <div>
-                <label style={{ fontSize: '0.75rem', color: '#64748b' }}>Branch Auditor Report Type</label>
+                <label style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>Branch Auditor Report Type</label>
                 <select
                   value={portalSimForm.branchReportType}
                   onChange={e => setPortalSimForm(f => ({ ...f, branchReportType: e.target.value }))}
-                  style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 >
                   <option value="Clean">Clean (Unmodified)</option>
                   <option value="Qualified">Qualified</option>
@@ -1785,18 +1790,18 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
                 </select>
               </div>
               <div>
-                <label style={{ fontSize: '0.75rem', color: '#64748b' }}>Branch Audit Report Ref</label>
+                <label style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>Branch Audit Report Ref</label>
                 <input
                   type="text"
                   value={portalSimForm.branchAuditReportRef || ''}
                   onChange={e => setPortalSimForm(f => ({ ...f, branchAuditReportRef: e.target.value }))}
-                  style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                  style={{ width: '100%', padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
             </div>
 
-            <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '6px', border: '1px solid #e2e8f0', marginBottom: '14px', fontSize: '0.78rem' }}>
-              <div style={{ fontWeight: 600, color: '#0f172a', marginBottom: '6px' }}>SA 600 Questionnaire Confirmations:</div>
+            <div style={{ background: 'var(--card-subtle)', padding: '12px', borderRadius: '6px', border: '1px solid var(--border)', marginBottom: '14px', fontSize: '0.78rem' }}>
+              <div style={{ fontWeight: 600, color: 'var(--text)', marginBottom: '6px' }}>SA 600 Questionnaire Confirmations:</div>
               <label style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
                 <input
                   type="checkbox"
@@ -1826,7 +1831,7 @@ export function BranchAuditDeskPage({ can }: { can: (p: string) => boolean }) {
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
               <button
                 onClick={() => setShowPortalSimModal(false)}
-                style={{ padding: '8px 16px', background: '#f1f5f9', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer' }}
+                style={{ padding: '8px 16px', background: 'var(--card-subtle)', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer' }}
               >
                 Close
               </button>

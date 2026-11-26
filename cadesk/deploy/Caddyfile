@@ -30,12 +30,29 @@
 	}
 
 	handle /metrics {
-		reverse_proxy api:8080 {
-			header_up Host {host}
-			header_up X-Real-IP {remote_host}
-			header_up X-Forwarded-For {remote_host}
-			header_up X-Forwarded-Proto {scheme}
+		@private_metrics remote_ip private_ranges
+		handle @private_metrics {
+			reverse_proxy api:8080 {
+				header_up Host {host}
+				header_up X-Real-IP {remote_host}
+				header_up X-Forwarded-For {remote_host}
+				header_up X-Forwarded-Proto {scheme}
+			}
 		}
+		respond 403
+	}
+
+	handle /api/metrics {
+		@private_api_metrics remote_ip private_ranges
+		handle @private_api_metrics {
+			reverse_proxy api:8080 {
+				header_up Host {host}
+				header_up X-Real-IP {remote_host}
+				header_up X-Forwarded-For {remote_host}
+				header_up X-Forwarded-Proto {scheme}
+			}
+		}
+		respond 403
 	}
 
 	# --------------------------------------------------------------------------

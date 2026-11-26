@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { TaxCopilotDesk } from './TaxCopilotDesk'
 import { toError,
   taxNoticesApi,
@@ -111,11 +111,7 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
     remarks: ''
   })
 
-  useEffect(() => {
-    loadAll()
-  }, [filterAuthority, filterStatus])
-
-  const loadAll = async () => {
+  const loadAll = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -133,8 +129,8 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
       const cList = cRes.items || []
       setClients(cList)
 
-      if (cList.length > 0 && !noticeForm.clientId) {
-        setNoticeForm(prev => ({ ...prev, clientId: cList[0].id }))
+      if (cList.length > 0) {
+        setNoticeForm(prev => (prev.clientId ? prev : { ...prev, clientId: cList[0].id }))
       }
     } catch (caught) {
       const e = toError(caught)
@@ -142,7 +138,11 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
     } finally {
       setLoading(false)
     }
-  }
+  }, [filterAuthority, filterStatus])
+
+  useEffect(() => {
+    loadAll()
+  }, [loadAll])
 
   const handleSelectNoticeForResponses = async (n: TaxNoticeDto) => {
     setActiveNotice(n)
@@ -306,7 +306,7 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
           <h1 style={{ margin: '0 0 6px 0', fontSize: '24px', fontWeight: 700 }}>
             Tax Notice & Faceless Assessment Desk
           </h1>
-          <p style={{ margin: 0, color: 'var(--muted, #666)', fontSize: '14px' }}>
+          <p style={{ margin: 0, color: 'var(--muted)', fontSize: '14px' }}>
             CBDT/CBIC DIN Verification, Faceless E-Hearings, Maker-Checker Submissions & 30-Day Appeal Tracker (Sprint 22)
           </p>
         </div>
@@ -324,12 +324,12 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
 
       {/* Notifications */}
       {error && (
-        <div style={{ padding: '12px', background: '#ffebee', color: '#c62828', borderRadius: '6px', marginBottom: '16px' }}>
+        <div style={{ padding: '12px', background: 'var(--error-bg)', color: 'var(--error)', borderRadius: '6px', marginBottom: '16px' }}>
           {error}
         </div>
       )}
       {success && (
-        <div style={{ padding: '12px', background: '#e8f5e9', color: '#2e7d32', borderRadius: '6px', marginBottom: '16px' }}>
+        <div style={{ padding: '12px', background: 'var(--success-bg)', color: 'var(--success)', borderRadius: '6px', marginBottom: '16px' }}>
           {success}
         </div>
       )}
@@ -337,48 +337,48 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
       {/* KPI Summary Cards */}
       {summary && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-          <div style={{ padding: '16px', background: 'var(--card-bg, #fff)', border: '1px solid var(--border, #e0e0e0)', borderRadius: '8px' }}>
-            <div style={{ fontSize: '12px', color: 'var(--muted, #666)', textTransform: 'uppercase', fontWeight: 600 }}>Active Notices</div>
+          <div style={{ padding: '16px', background: 'var(--card-bg, #fff)', border: '1px solid var(--border)', borderRadius: '8px' }}>
+            <div style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase', fontWeight: 600 }}>Active Notices</div>
             <div style={{ fontSize: '24px', fontWeight: 700, marginTop: '4px' }}>{summary.totalActiveNotices}</div>
-            <div style={{ fontSize: '12px', color: '#555', marginTop: '4px' }}>
+            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
               IT: {summary.incomeTaxNotices} | GST: {summary.gstNotices}
             </div>
           </div>
 
-          <div style={{ padding: '16px', background: 'var(--card-bg, #fff)', border: '1px solid var(--border, #e0e0e0)', borderRadius: '8px' }}>
-            <div style={{ fontSize: '12px', color: 'var(--muted, #666)', textTransform: 'uppercase', fontWeight: 600 }}>VC Hearings</div>
-            <div style={{ fontSize: '24px', fontWeight: 700, marginTop: '4px', color: '#1976d2' }}>{summary.pendingHearings}</div>
-            <div style={{ fontSize: '12px', color: '#555', marginTop: '4px' }}>Faceless appointments</div>
+          <div style={{ padding: '16px', background: 'var(--card-bg, #fff)', border: '1px solid var(--border)', borderRadius: '8px' }}>
+            <div style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase', fontWeight: 600 }}>VC Hearings</div>
+            <div style={{ fontSize: '24px', fontWeight: 700, marginTop: '4px', color: 'var(--accent)' }}>{summary.pendingHearings}</div>
+            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>Faceless appointments</div>
           </div>
 
-          <div style={{ padding: '16px', background: 'var(--card-bg, #fff)', border: '1px solid var(--border, #e0e0e0)', borderRadius: '8px' }}>
-            <div style={{ fontSize: '12px', color: 'var(--muted, #666)', textTransform: 'uppercase', fontWeight: 600 }}>Partner Approvals</div>
+          <div style={{ padding: '16px', background: 'var(--card-bg, #fff)', border: '1px solid var(--border)', borderRadius: '8px' }}>
+            <div style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase', fontWeight: 600 }}>Partner Approvals</div>
             <div style={{ fontSize: '24px', fontWeight: 700, marginTop: '4px', color: '#ed6c02' }}>{summary.pendingApprovals}</div>
-            <div style={{ fontSize: '12px', color: '#555', marginTop: '4px' }}>Submissions awaiting sign-off</div>
+            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>Submissions awaiting sign-off</div>
           </div>
 
-          <div style={{ padding: '16px', background: 'var(--card-bg, #fff)', border: '1px solid var(--border, #e0e0e0)', borderRadius: '8px' }}>
-            <div style={{ fontSize: '12px', color: 'var(--muted, #666)', textTransform: 'uppercase', fontWeight: 600 }}>Outstanding Demand</div>
+          <div style={{ padding: '16px', background: 'var(--card-bg, #fff)', border: '1px solid var(--border)', borderRadius: '8px' }}>
+            <div style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase', fontWeight: 600 }}>Outstanding Demand</div>
             <div style={{ fontSize: '22px', fontWeight: 700, marginTop: '4px', color: '#d32f2f' }}>{formatCurrency(summary.totalOutstandingDemand)}</div>
-            <div style={{ fontSize: '12px', color: '#555', marginTop: '4px' }}>Total: {formatCurrency(summary.totalDemandAmount)}</div>
+            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>Total: {formatCurrency(summary.totalDemandAmount)}</div>
           </div>
 
-          <div style={{ padding: '16px', background: summary.appealsDueWithin30Days > 0 ? '#fff3e0' : 'var(--card-bg, #fff)', border: '1px solid #ffb74d', borderRadius: '8px' }}>
-            <div style={{ fontSize: '12px', color: '#e65100', textTransform: 'uppercase', fontWeight: 600 }}>30-Day Appeal Alerts</div>
-            <div style={{ fontSize: '24px', fontWeight: 700, marginTop: '4px', color: '#e65100' }}>{summary.appealsDueWithin30Days}</div>
-            <div style={{ fontSize: '12px', color: '#e65100', marginTop: '4px' }}>CIT(A) Form 35 countdown</div>
+          <div style={{ padding: '16px', background: summary.appealsDueWithin30Days > 0 ? 'var(--warning-bg)' : 'var(--card-bg, #fff)', border: '1px solid #ffb74d', borderRadius: '8px' }}>
+            <div style={{ fontSize: '12px', color: 'var(--warning-text)', textTransform: 'uppercase', fontWeight: 600 }}>30-Day Appeal Alerts</div>
+            <div style={{ fontSize: '24px', fontWeight: 700, marginTop: '4px', color: 'var(--warning-text)' }}>{summary.appealsDueWithin30Days}</div>
+            <div style={{ fontSize: '12px', color: 'var(--warning-text)', marginTop: '4px' }}>CIT(A) Form 35 countdown</div>
           </div>
 
-          <div style={{ padding: '16px', background: summary.invalidDinCount > 0 ? '#ffebee' : 'var(--card-bg, #fff)', border: '1px solid #e57373', borderRadius: '8px' }}>
-            <div style={{ fontSize: '12px', color: '#c62828', textTransform: 'uppercase', fontWeight: 600 }}>DIN Defects (Non-Est)</div>
-            <div style={{ fontSize: '24px', fontWeight: 700, marginTop: '4px', color: '#c62828' }}>{summary.invalidDinCount}</div>
-            <div style={{ fontSize: '12px', color: '#c62828', marginTop: '4px' }}>Missing/Invalid CBDT/CBIC DIN</div>
+          <div style={{ padding: '16px', background: summary.invalidDinCount > 0 ? 'var(--error-bg)' : 'var(--card-bg, #fff)', border: '1px solid #e57373', borderRadius: '8px' }}>
+            <div style={{ fontSize: '12px', color: 'var(--error)', textTransform: 'uppercase', fontWeight: 600 }}>DIN Defects (Non-Est)</div>
+            <div style={{ fontSize: '24px', fontWeight: 700, marginTop: '4px', color: 'var(--error)' }}>{summary.invalidDinCount}</div>
+            <div style={{ fontSize: '12px', color: 'var(--error)', marginTop: '4px' }}>Missing/Invalid CBDT/CBIC DIN</div>
           </div>
         </div>
       )}
 
       {/* Tabs */}
-      <div style={{ display: 'flex', borderBottom: '2px solid var(--border, #e0e0e0)', marginBottom: '20px' }}>
+      <div style={{ display: 'flex', borderBottom: '2px solid var(--border)', marginBottom: '20px' }}>
         <button
           onClick={() => setActiveTab('notices')}
           style={{
@@ -403,7 +403,7 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
               cursor: 'pointer',
               fontWeight: activeTab === 'copilot' ? 700 : 400,
               borderBottom: activeTab === 'copilot' ? '3px solid #6366f1' : 'none',
-              color: activeTab === 'copilot' ? '#4f46e5' : 'inherit',
+              color: activeTab === 'copilot' ? 'var(--accent)' : 'inherit',
               display: 'flex',
               alignItems: 'center',
               gap: '6px'
@@ -489,10 +489,10 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
             </select>
           </div>
 
-          <div style={{ overflowX: 'auto', background: 'var(--card-bg, #fff)', border: '1px solid var(--border, #e0e0e0)', borderRadius: '8px' }}>
+          <div style={{ overflowX: 'auto', background: 'var(--card-bg, #fff)', border: '1px solid var(--border)', borderRadius: '8px' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
               <thead>
-                <tr style={{ background: 'var(--table-header, #f9f9f9)', borderBottom: '1px solid var(--border, #e0e0e0)' }}>
+                <tr style={{ background: 'var(--table-header, #f9f9f9)', borderBottom: '1px solid var(--border)' }}>
                   <th style={{ padding: '12px' }}>Client</th>
                   <th style={{ padding: '12px' }}>Authority / Section</th>
                   <th style={{ padding: '12px' }}>Notice # & DIN</th>
@@ -511,7 +511,7 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
                     <tr key={n.id} style={{ borderBottom: '1px solid var(--border, #f0f0f0)' }}>
                       <td style={{ padding: '12px' }}>
                         <div style={{ fontWeight: 600 }}>{n.clientName}</div>
-                        <div style={{ fontSize: '11px', color: 'var(--muted, #666)' }}>{n.clientCode}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--muted)' }}>{n.clientCode}</div>
                       </td>
                       <td style={{ padding: '12px' }}>
                         <span style={{
@@ -519,7 +519,7 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
                           borderRadius: '4px',
                           fontSize: '11px',
                           fontWeight: 600,
-                          background: n.authority === 'IncomeTax' ? '#e3f2fd' : '#f3e5f5',
+                          background: n.authority === 'IncomeTax' ? 'var(--accent-subtle)' : '#f3e5f5',
                           color: n.authority === 'IncomeTax' ? '#1565c0' : '#7b1fa2'
                         }}>
                           {n.authority}
@@ -534,29 +534,29 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
                             borderRadius: '3px',
                             fontSize: '10px',
                             fontWeight: 700,
-                            background: n.dinStatus === 'Valid' ? '#e8f5e9' : (n.dinStatus === 'Invalid' ? '#ffebee' : '#f5f5f5'),
-                            color: n.dinStatus === 'Valid' ? '#2e7d32' : (n.dinStatus === 'Invalid' ? '#c62828' : '#616161')
+                            background: n.dinStatus === 'Valid' ? 'var(--success-bg)' : (n.dinStatus === 'Invalid' ? 'var(--error-bg)' : 'var(--card-subtle)'),
+                            color: n.dinStatus === 'Valid' ? 'var(--success)' : (n.dinStatus === 'Invalid' ? 'var(--error)' : '#616161')
                           }}>
                             DIN: {n.dinStatus}
                           </span>
-                          {n.din && <span style={{ fontSize: '11px', color: '#666', fontFamily: 'monospace' }}>{n.din.slice(0, 15)}…</span>}
+                          {n.din && <span style={{ fontSize: '11px', color: 'var(--muted)', fontFamily: 'monospace' }}>{n.din.slice(0, 15)}…</span>}
                         </div>
                       </td>
                       <td style={{ padding: '12px' }}>
                         <div>AY {n.assessmentYear || '-'}</div>
-                        <div style={{ fontSize: '11px', color: '#666' }}>FY {n.financialYear}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--muted)' }}>FY {n.financialYear}</div>
                       </td>
                       <td style={{ padding: '12px' }}>
                         <div>{n.dueDate}</div>
                         <div style={{
                           fontSize: '11px',
                           fontWeight: 600,
-                          color: isOverdue ? '#d32f2f' : (isUrgent ? '#ed6c02' : '#2e7d32')
+                          color: isOverdue ? '#d32f2f' : (isUrgent ? '#ed6c02' : 'var(--success)')
                         }}>
                           {isOverdue ? `⚠️ Overdue by ${Math.abs(n.daysRemaining)} days` : `${n.daysRemaining} days left`}
                         </div>
                       </td>
-                      <td style={{ padding: '12px', textAlign: 'right', fontWeight: 600, color: n.demandAmount > 0 ? '#c62828' : 'inherit' }}>
+                      <td style={{ padding: '12px', textAlign: 'right', fontWeight: 600, color: n.demandAmount > 0 ? 'var(--error)' : 'inherit' }}>
                         {formatCurrency(n.demandAmount)}
                       </td>
                       <td style={{ padding: '12px' }}>
@@ -565,8 +565,8 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
                           borderRadius: '12px',
                           fontSize: '11px',
                           fontWeight: 600,
-                          background: n.status === 'Submitted' ? '#e8f5e9' : (n.status === 'PartnerApproved' ? '#fff3e0' : '#e0e0e0'),
-                          color: n.status === 'Submitted' ? '#2e7d32' : (n.status === 'PartnerApproved' ? '#e65100' : '#333')
+                          background: n.status === 'Submitted' ? 'var(--success-bg)' : (n.status === 'PartnerApproved' ? 'var(--warning-bg)' : 'var(--bg-subtle)'),
+                          color: n.status === 'Submitted' ? 'var(--success)' : (n.status === 'PartnerApproved' ? 'var(--warning-text)' : 'var(--text)')
                         }}>
                           {n.status}
                         </span>
@@ -575,7 +575,7 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
                         <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
                           <button
                             className="primary small"
-                            style={{ background: '#4f46e5', borderColor: '#4f46e5', color: '#fff', fontWeight: 600 }}
+                            style={{ background: '#4f46e5', borderColor: 'var(--accent)', color: '#fff', fontWeight: 600 }}
                             onClick={() => {
                               setCopilotNoticeId(n.id)
                               setActiveTab('copilot')
@@ -615,7 +615,7 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
                 })}
                 {notices.length === 0 && (
                   <tr>
-                    <td colSpan={8} style={{ padding: '24px', textAlign: 'center', color: '#777' }}>
+                    <td colSpan={8} style={{ padding: '24px', textAlign: 'center', color: 'var(--muted)' }}>
                       No tax notices registered. Click "+ Register Notice" to add one.
                     </td>
                   </tr>
@@ -637,10 +637,10 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
 
       {/* Tab 2: Faceless Hearings & VC Schedule */}
       {activeTab === 'hearings' && (
-        <div style={{ background: 'var(--card-bg, #fff)', border: '1px solid var(--border, #e0e0e0)', borderRadius: '8px', overflowX: 'auto' }}>
+        <div style={{ background: 'var(--card-bg, #fff)', border: '1px solid var(--border)', borderRadius: '8px', overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
             <thead>
-              <tr style={{ background: 'var(--table-header, #f9f9f9)', borderBottom: '1px solid var(--border, #e0e0e0)' }}>
+              <tr style={{ background: 'var(--table-header, #f9f9f9)', borderBottom: '1px solid var(--border)' }}>
                 <th style={{ padding: '12px' }}>Hearing Date & Time</th>
                 <th style={{ padding: '12px' }}>Client & Section</th>
                 <th style={{ padding: '12px' }}>Type</th>
@@ -658,7 +658,7 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
                   </td>
                   <td style={{ padding: '12px' }}>
                     <div style={{ fontWeight: 600 }}>{h.clientName}</div>
-                    <div style={{ fontSize: '11px', color: '#666' }}>{h.noticeSection} ({h.noticeNumber})</div>
+                    <div style={{ fontSize: '11px', color: 'var(--muted)' }}>{h.noticeSection} ({h.noticeNumber})</div>
                   </td>
                   <td style={{ padding: '12px' }}>
                     <span style={{
@@ -666,7 +666,7 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
                       borderRadius: '4px',
                       fontSize: '11px',
                       fontWeight: 600,
-                      background: h.hearingType === 'VideoConference' ? '#e8eaf6' : '#ede7f6',
+                      background: h.hearingType === 'VideoConference' ? 'var(--accent-subtle)' : '#ede7f6',
                       color: h.hearingType === 'VideoConference' ? '#283593' : '#4527a0'
                     }}>
                       {h.hearingType}
@@ -674,15 +674,15 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
                   </td>
                   <td style={{ padding: '12px' }}>
                     <div>{h.officerName || 'Faceless Unit'}</div>
-                    <div style={{ fontSize: '11px', color: '#666' }}>{h.officerDesignation || '-'}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--muted)' }}>{h.officerDesignation || '-'}</div>
                   </td>
                   <td style={{ padding: '12px' }}>
                     {h.meetingLink ? (
-                      <a href={h.meetingLink} target="_blank" rel="noopener noreferrer" style={{ color: '#1976d2', textDecoration: 'underline' }}>
+                      <a href={h.meetingLink} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'underline' }}>
                         🔗 Open VC Room
                       </a>
                     ) : (
-                      <span style={{ color: '#999' }}>None</span>
+                      <span style={{ color: 'var(--muted)' }}>None</span>
                     )}
                   </td>
                   <td style={{ padding: '12px' }}>
@@ -691,20 +691,20 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
                       borderRadius: '12px',
                       fontSize: '11px',
                       fontWeight: 600,
-                      background: h.status === 'Attended' ? '#e8f5e9' : (h.status === 'Scheduled' ? '#e3f2fd' : '#ffebee'),
-                      color: h.status === 'Attended' ? '#2e7d32' : (h.status === 'Scheduled' ? '#1565c0' : '#c62828')
+                      background: h.status === 'Attended' ? 'var(--success-bg)' : (h.status === 'Scheduled' ? 'var(--accent-subtle)' : 'var(--error-bg)'),
+                      color: h.status === 'Attended' ? 'var(--success)' : (h.status === 'Scheduled' ? '#1565c0' : 'var(--error)')
                     }}>
                       {h.status}
                     </span>
                   </td>
-                  <td style={{ padding: '12px', fontSize: '12px', color: '#555' }}>
+                  <td style={{ padding: '12px', fontSize: '12px', color: 'var(--text-secondary)' }}>
                     {h.adjournmentReason ? `⚠️ Adjourned: ${h.adjournmentReason}` : (h.summaryNotes || '-')}
                   </td>
                 </tr>
               ))}
               {hearings.length === 0 && (
                 <tr>
-                  <td colSpan={7} style={{ padding: '24px', textAlign: 'center', color: '#777' }}>
+                  <td colSpan={7} style={{ padding: '24px', textAlign: 'center', color: 'var(--muted)' }}>
                     No faceless hearings scheduled. Click "VC" on any notice to schedule one.
                   </td>
                 </tr>
@@ -730,10 +730,10 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
             )}
           </div>
 
-          <div style={{ background: 'var(--card-bg, #fff)', border: '1px solid var(--border, #e0e0e0)', borderRadius: '8px', overflowX: 'auto' }}>
+          <div style={{ background: 'var(--card-bg, #fff)', border: '1px solid var(--border)', borderRadius: '8px', overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
               <thead>
-                <tr style={{ background: 'var(--table-header, #f9f9f9)', borderBottom: '1px solid var(--border, #e0e0e0)' }}>
+                <tr style={{ background: 'var(--table-header, #f9f9f9)', borderBottom: '1px solid var(--border)' }}>
                   <th style={{ padding: '12px' }}>Ver #</th>
                   <th style={{ padding: '12px' }}>Title & Legal Grounds</th>
                   <th style={{ padding: '12px' }}>Prepared By</th>
@@ -749,7 +749,7 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
                     <td style={{ padding: '12px', fontWeight: 700 }}>v{r.responseVersion}</td>
                     <td style={{ padding: '12px', maxWidth: '350px' }}>
                       <div style={{ fontWeight: 600 }}>{r.submissionTitle}</div>
-                      <div style={{ fontSize: '12px', color: '#555', marginTop: '2px' }}>{r.summaryOfSubmissions}</div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>{r.summaryOfSubmissions}</div>
                       {r.legalGrounds && (
                         <div style={{ fontSize: '11px', color: '#1565c0', marginTop: '4px', fontStyle: 'italic' }}>
                           Grounds: {r.legalGrounds}
@@ -758,13 +758,13 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
                     </td>
                     <td style={{ padding: '12px' }}>
                       <div>{r.preparedByName || 'Staff'}</div>
-                      <div style={{ fontSize: '11px', color: '#666' }}>{new Date(r.createdAt).toLocaleDateString()}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--muted)' }}>{new Date(r.createdAt).toLocaleDateString()}</div>
                     </td>
                     <td style={{ padding: '12px' }}>
                       {r.approvedByName ? (
                         <div>
-                          <div style={{ fontWeight: 600, color: '#2e7d32' }}>✓ {r.approvedByName}</div>
-                          <div style={{ fontSize: '11px', color: '#666' }}>
+                          <div style={{ fontWeight: 600, color: 'var(--success)' }}>✓ {r.approvedByName}</div>
+                          <div style={{ fontSize: '11px', color: 'var(--muted)' }}>
                             {r.approvedAt ? new Date(r.approvedAt).toLocaleDateString() : ''}
                           </div>
                         </div>
@@ -774,11 +774,11 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
                     </td>
                     <td style={{ padding: '12px' }}>
                       {r.portalAckNumber ? (
-                        <div style={{ fontFamily: 'monospace', fontSize: '12px', color: '#1976d2' }}>
+                        <div style={{ fontFamily: 'monospace', fontSize: '12px', color: 'var(--accent)' }}>
                           {r.portalAckNumber}
                         </div>
                       ) : (
-                        <span style={{ color: '#999' }}>Not uploaded</span>
+                        <span style={{ color: 'var(--muted)' }}>Not uploaded</span>
                       )}
                     </td>
                     <td style={{ padding: '12px' }}>
@@ -787,8 +787,8 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
                         borderRadius: '12px',
                         fontSize: '11px',
                         fontWeight: 600,
-                        background: r.status === 'UploadedToPortal' ? '#e8f5e9' : (r.status === 'PartnerApproved' ? '#e3f2fd' : '#fff3e0'),
-                        color: r.status === 'UploadedToPortal' ? '#2e7d32' : (r.status === 'PartnerApproved' ? '#1565c0' : '#e65100')
+                        background: r.status === 'UploadedToPortal' ? 'var(--success-bg)' : (r.status === 'PartnerApproved' ? 'var(--accent-subtle)' : 'var(--warning-bg)'),
+                        color: r.status === 'UploadedToPortal' ? 'var(--success)' : (r.status === 'PartnerApproved' ? '#1565c0' : 'var(--warning-text)')
                       }}>
                         {r.status}
                       </span>
@@ -822,7 +822,7 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
                 ))}
                 {noticeResponses.length === 0 && (
                   <tr>
-                    <td colSpan={7} style={{ padding: '24px', textAlign: 'center', color: '#777' }}>
+                    <td colSpan={7} style={{ padding: '24px', textAlign: 'center', color: 'var(--muted)' }}>
                       {activeNotice ? 'No written submissions prepared yet. Click "+ Draft Written Response".' : 'Select a notice from the Notices tab first.'}
                     </td>
                   </tr>
@@ -835,10 +835,10 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
 
       {/* Tab 4: Demands & CIT(A) Appeals */}
       {activeTab === 'demands' && (
-        <div style={{ background: 'var(--card-bg, #fff)', border: '1px solid var(--border, #e0e0e0)', borderRadius: '8px', overflowX: 'auto' }}>
+        <div style={{ background: 'var(--card-bg, #fff)', border: '1px solid var(--border)', borderRadius: '8px', overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
             <thead>
-              <tr style={{ background: 'var(--table-header, #f9f9f9)', borderBottom: '1px solid var(--border, #e0e0e0)' }}>
+              <tr style={{ background: 'var(--table-header, #f9f9f9)', borderBottom: '1px solid var(--border)' }}>
                 <th style={{ padding: '12px' }}>Client</th>
                 <th style={{ padding: '12px' }}>Section / AY</th>
                 <th style={{ padding: '12px', textAlign: 'right' }}>Original Demand</th>
@@ -858,11 +858,11 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
                   <tr key={d.id} style={{ borderBottom: '1px solid var(--border, #f0f0f0)' }}>
                     <td style={{ padding: '12px' }}>
                       <div style={{ fontWeight: 600 }}>{d.clientName}</div>
-                      <div style={{ fontSize: '11px', color: '#666' }}>{d.clientCode}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--muted)' }}>{d.clientCode}</div>
                     </td>
                     <td style={{ padding: '12px' }}>
                       <div style={{ fontWeight: 600 }}>{d.section}</div>
-                      <div style={{ fontSize: '11px', color: '#666' }}>AY {d.assessmentYear || '-'} | FY {d.financialYear}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--muted)' }}>AY {d.assessmentYear || '-'} | FY {d.financialYear}</div>
                     </td>
                     <td style={{ padding: '12px', textAlign: 'right', fontWeight: 600 }}>
                       {formatCurrency(d.originalDemand)}
@@ -870,10 +870,10 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
                     <td style={{ padding: '12px', textAlign: 'right', color: '#ed6c02' }}>
                       {formatCurrency(d.stayedAmount)}
                     </td>
-                    <td style={{ padding: '12px', textAlign: 'right', color: '#2e7d32' }}>
+                    <td style={{ padding: '12px', textAlign: 'right', color: 'var(--success)' }}>
                       {formatCurrency(d.paidAmount + d.adjustedRefund)}
                     </td>
-                    <td style={{ padding: '12px', textAlign: 'right', fontWeight: 700, color: d.outstandingAmount > 0 ? '#c62828' : '#2e7d32' }}>
+                    <td style={{ padding: '12px', textAlign: 'right', fontWeight: 700, color: d.outstandingAmount > 0 ? 'var(--error)' : 'var(--success)' }}>
                       {formatCurrency(d.outstandingAmount)}
                     </td>
                     <td style={{ padding: '12px' }}>
@@ -881,7 +881,7 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
                       <div style={{
                         fontSize: '11px',
                         fontWeight: 700,
-                        color: isOverdue ? '#d32f2f' : (isUrgent ? '#ed6c02' : '#2e7d32')
+                        color: isOverdue ? '#d32f2f' : (isUrgent ? '#ed6c02' : 'var(--success)')
                       }}>
                         {isOverdue ? `⚠️ EXPIRED (${Math.abs(d.daysUntilAppealDue)}d ago)` : `${d.daysUntilAppealDue} days left`}
                       </div>
@@ -892,13 +892,13 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
                         borderRadius: '12px',
                         fontSize: '11px',
                         fontWeight: 600,
-                        background: d.appealStatus === 'Settled' ? '#e8f5e9' : (d.appealStatus === 'FiledCitA' ? '#e3f2fd' : '#fff3e0'),
-                        color: d.appealStatus === 'Settled' ? '#2e7d32' : (d.appealStatus === 'FiledCitA' ? '#1565c0' : '#e65100')
+                        background: d.appealStatus === 'Settled' ? 'var(--success-bg)' : (d.appealStatus === 'FiledCitA' ? 'var(--accent-subtle)' : 'var(--warning-bg)'),
+                        color: d.appealStatus === 'Settled' ? 'var(--success)' : (d.appealStatus === 'FiledCitA' ? '#1565c0' : 'var(--warning-text)')
                       }}>
                         {d.appealStatus}
                       </span>
                       {d.appealAckNumber && (
-                        <div style={{ fontSize: '10px', fontFamily: 'monospace', color: '#555', marginTop: '2px' }}>
+                        <div style={{ fontSize: '10px', fontFamily: 'monospace', color: 'var(--text-secondary)', marginTop: '2px' }}>
                           ACK: {d.appealAckNumber}
                         </div>
                       )}
@@ -939,7 +939,7 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
               })}
               {demands.length === 0 && (
                 <tr>
-                  <td colSpan={9} style={{ padding: '24px', textAlign: 'center', color: '#777' }}>
+                  <td colSpan={9} style={{ padding: '24px', textAlign: 'center', color: 'var(--muted)' }}>
                     No statutory tax demands registered.
                   </td>
                 </tr>
@@ -952,7 +952,7 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
       {/* Modal 1: Register Tax Notice */}
       {showNoticeModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: '#fff', padding: '24px', borderRadius: '8px', maxWidth: '650px', width: '90%', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div style={{ background: 'var(--card)', padding: '24px', borderRadius: '8px', maxWidth: '650px', width: '90%', maxHeight: '90vh', overflowY: 'auto' }}>
             <h2 style={{ marginTop: 0 }}>Register Statutory Tax Notice</h2>
             <form onSubmit={handleCreateNotice}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
@@ -962,7 +962,7 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
                     value={noticeForm.clientId}
                     onChange={e => setNoticeForm({ ...noticeForm, clientId: e.target.value })}
                     required
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   >
                     {clients.map(c => (
                       <option key={c.id} value={c.id}>{c.name} ({c.code})</option>
@@ -974,7 +974,7 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
                   <select
                     value={noticeForm.authority}
                     onChange={e => setNoticeForm({ ...noticeForm, authority: e.target.value as (typeof noticeForm)['authority'] })}
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   >
                     <option value="IncomeTax">Income Tax (ITBA / NFAC)</option>
                     <option value="Gst">GST (DRC / ASMT)</option>
@@ -992,7 +992,7 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
                     onChange={e => setNoticeForm({ ...noticeForm, section: e.target.value })}
                     placeholder="e.g. Sec 143(1), Sec 142(1), DRC-01"
                     required
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
                 <div>
@@ -1003,7 +1003,7 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
                     onChange={e => setNoticeForm({ ...noticeForm, noticeNumber: e.target.value })}
                     placeholder="e.g. ITBA/AST/S/142(1)/2024-25/..."
                     required
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
               </div>
@@ -1018,9 +1018,9 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
                     value={noticeForm.din || ''}
                     onChange={e => setNoticeForm({ ...noticeForm, din: e.target.value })}
                     placeholder="Mandatory for CBDT/CBIC notices"
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
-                  <span style={{ fontSize: '11px', color: '#666' }}>Post-2019 notices without DIN are non-est</span>
+                  <span style={{ fontSize: '11px', color: 'var(--muted)' }}>Post-2019 notices without DIN are non-est</span>
                 </div>
                 <div>
                   <label style={{ display: 'block', fontWeight: 600, fontSize: '13px', marginBottom: '4px' }}>AY / FY *</label>
@@ -1030,7 +1030,7 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
                       value={noticeForm.assessmentYear || ''}
                       onChange={e => setNoticeForm({ ...noticeForm, assessmentYear: e.target.value })}
                       placeholder="AY (e.g. 2024-25)"
-                      style={{ width: '50%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                      style={{ width: '50%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                     />
                     <input
                       type="text"
@@ -1038,7 +1038,7 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
                       onChange={e => setNoticeForm({ ...noticeForm, financialYear: e.target.value })}
                       placeholder="FY (e.g. 2023-24)"
                       required
-                      style={{ width: '50%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                      style={{ width: '50%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                     />
                   </div>
                 </div>
@@ -1052,7 +1052,7 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
                     value={noticeForm.issueDate}
                     onChange={e => setNoticeForm({ ...noticeForm, issueDate: e.target.value })}
                     required
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
                 <div>
@@ -1062,7 +1062,7 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
                     value={noticeForm.dueDate}
                     onChange={e => setNoticeForm({ ...noticeForm, dueDate: e.target.value })}
                     required
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
               </div>
@@ -1074,7 +1074,7 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
                     type="number"
                     value={noticeForm.demandAmount}
                     onChange={e => setNoticeForm({ ...noticeForm, demandAmount: parseFloat(e.target.value) || 0 })}
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
                 <div>
@@ -1084,7 +1084,7 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
                     value={noticeForm.officerJurisdiction || ''}
                     onChange={e => setNoticeForm({ ...noticeForm, officerJurisdiction: e.target.value })}
                     placeholder="e.g. NFAC Delhi / Ward 1(1)"
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
               </div>
@@ -1097,7 +1097,7 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
                   onChange={e => setNoticeForm({ ...noticeForm, subject: e.target.value })}
                   placeholder="e.g. Discrepancy in Chapter VI-A deductions vs AIS"
                   required
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
 
@@ -1117,9 +1117,9 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
       {/* Modal 2: Schedule VC Hearing */}
       {showHearingModal && activeNotice && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: '#fff', padding: '24px', borderRadius: '8px', maxWidth: '500px', width: '90%' }}>
+          <div style={{ background: 'var(--card)', padding: '24px', borderRadius: '8px', maxWidth: '500px', width: '90%' }}>
             <h2 style={{ marginTop: 0 }}>Schedule Faceless Hearing / VC</h2>
-            <p style={{ color: '#666', fontSize: '13px' }}>
+            <p style={{ color: 'var(--muted)', fontSize: '13px' }}>
               Notice: <strong>{activeNotice.section}</strong> ({activeNotice.clientName})
             </p>
             <form onSubmit={handleCreateHearing}>
@@ -1130,7 +1130,7 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
                   value={hearingForm.hearingDate}
                   onChange={e => setHearingForm({ ...hearingForm, hearingDate: e.target.value })}
                   required
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
 
@@ -1139,7 +1139,7 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
                 <select
                   value={hearingForm.hearingType}
                   onChange={e => setHearingForm({ ...hearingForm, hearingType: e.target.value as (typeof hearingForm)['hearingType'] })}
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 >
                   <option value="VideoConference">Video Conference (WebEx / Portal VC)</option>
                   <option value="WrittenSubmission">Written Submission only</option>
@@ -1154,7 +1154,7 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
                   value={hearingForm.meetingLink || ''}
                   onChange={e => setHearingForm({ ...hearingForm, meetingLink: e.target.value })}
                   placeholder="https://webex.incometax.gov.in/m/..."
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
 
@@ -1165,7 +1165,7 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
                   onChange={e => setHearingForm({ ...hearingForm, summaryNotes: e.target.value })}
                   rows={3}
                   placeholder="Key points and documentation required for hearing"
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
 
@@ -1181,9 +1181,9 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
       {/* Modal 3: Draft Written Submission */}
       {showDraftModal && activeNotice && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: '#fff', padding: '24px', borderRadius: '8px', maxWidth: '600px', width: '90%' }}>
+          <div style={{ background: 'var(--card)', padding: '24px', borderRadius: '8px', maxWidth: '600px', width: '90%' }}>
             <h2 style={{ marginTop: 0 }}>Draft Written Submission / Rebuttal</h2>
-            <p style={{ color: '#666', fontSize: '13px' }}>
+            <p style={{ color: 'var(--muted)', fontSize: '13px' }}>
               For Notice: <strong>{activeNotice.section}</strong> ({activeNotice.clientName})
             </p>
             <form onSubmit={handleDraftResponse}>
@@ -1194,7 +1194,7 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
                   value={draftForm.submissionTitle}
                   onChange={e => setDraftForm({ ...draftForm, submissionTitle: e.target.value })}
                   required
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
 
@@ -1206,7 +1206,7 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
                   rows={4}
                   required
                   placeholder="Detailed explanation answering specific queries raised by assessing officer"
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
 
@@ -1217,7 +1217,7 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
                   onChange={e => setDraftForm({ ...draftForm, legalGrounds: e.target.value })}
                   rows={3}
                   placeholder="Statutory provisions, limitation periods, ITAT/High Court/Supreme Court citations"
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
 
@@ -1228,7 +1228,7 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
                   value={draftForm.attachmentNames || ''}
                   onChange={e => setDraftForm({ ...draftForm, attachmentNames: e.target.value })}
                   placeholder="e.g. Ledger_Copy.pdf, Bank_Certificate.pdf"
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
 
@@ -1244,7 +1244,7 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
       {/* Modal 4: Record Portal Submission */}
       {showSubmitModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: '#fff', padding: '24px', borderRadius: '8px', maxWidth: '450px', width: '90%' }}>
+          <div style={{ background: 'var(--card)', padding: '24px', borderRadius: '8px', maxWidth: '450px', width: '90%' }}>
             <h2 style={{ marginTop: 0 }}>Record E-Filing Portal Submission</h2>
             <form onSubmit={handleSubmitResponse}>
               <div style={{ marginBottom: '14px' }}>
@@ -1257,7 +1257,7 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
                   onChange={e => setSubmitForm({ ...submitForm, portalAckNumber: e.target.value })}
                   placeholder="e.g. ACK-ITBA-2024-XXXXXXXX"
                   required
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
@@ -1272,9 +1272,9 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
       {/* Modal 5: Record Demand Payment / Adjustment */}
       {showPaymentModal && activeDemand && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: '#fff', padding: '24px', borderRadius: '8px', maxWidth: '450px', width: '90%' }}>
+          <div style={{ background: 'var(--card)', padding: '24px', borderRadius: '8px', maxWidth: '450px', width: '90%' }}>
             <h2 style={{ marginTop: 0 }}>Record Demand Payment / Adjustment</h2>
-            <p style={{ color: '#666', fontSize: '13px' }}>
+            <p style={{ color: 'var(--muted)', fontSize: '13px' }}>
               Outstanding: <strong>{formatCurrency(activeDemand.outstandingAmount)}</strong> ({activeDemand.clientName})
             </p>
             <form onSubmit={handleRecordPayment}>
@@ -1283,7 +1283,7 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
                 <select
                   value={paymentForm.isRefundAdjustment ? 'true' : 'false'}
                   onChange={e => setPaymentForm({ ...paymentForm, isRefundAdjustment: e.target.value === 'true' })}
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 >
                   <option value="false">Direct Tax Payment (Challan 280 / PMT-06)</option>
                   <option value="true">Sec 245 Refund Adjustment</option>
@@ -1299,7 +1299,7 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
                   required
                   min={1}
                   max={activeDemand.outstandingAmount}
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
 
@@ -1310,7 +1310,7 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
                   value={paymentForm.remarks || ''}
                   onChange={e => setPaymentForm({ ...paymentForm, remarks: e.target.value })}
                   placeholder="e.g. Challan BSR 0210045 Dt 15/10/24"
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
 
@@ -1326,7 +1326,7 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
       {/* Modal 6: Update Appeal Status */}
       {showAppealModal && activeDemand && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: '#fff', padding: '24px', borderRadius: '8px', maxWidth: '450px', width: '90%' }}>
+          <div style={{ background: 'var(--card)', padding: '24px', borderRadius: '8px', maxWidth: '450px', width: '90%' }}>
             <h2 style={{ marginTop: 0 }}>CIT(A) Appeal & Stay Status</h2>
             <form onSubmit={handleUpdateAppeal}>
               <div style={{ marginBottom: '14px' }}>
@@ -1334,7 +1334,7 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
                 <select
                   value={appealForm.status}
                   onChange={e => setAppealForm({ ...appealForm, status: e.target.value as (typeof appealForm)['status'] })}
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 >
                   <option value="NotAppealed">Not Appealed</option>
                   <option value="AppealDrafted">Appeal Drafted (Form 35 / APL-01)</option>
@@ -1352,7 +1352,7 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
                   value={appealForm.appealAckNumber || ''}
                   onChange={e => setAppealForm({ ...appealForm, appealAckNumber: e.target.value })}
                   placeholder="Form 35 e-filing ACK number"
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
 
@@ -1362,7 +1362,7 @@ export const TaxNoticesPage: React.FC<TaxNoticesPageProps> = ({ can, isFeatureEn
                   type="number"
                   value={appealForm.stayedAmount || 0}
                   onChange={e => setAppealForm({ ...appealForm, stayedAmount: parseFloat(e.target.value) || 0 })}
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
 

@@ -13,14 +13,14 @@ export function LandingPage({ onStartTrial, onSignIn, onOpenTour }: LandingPageP
     <div style={{ fontFamily: 'var(--font-sans)', color: 'var(--text)', background: 'var(--card)', minHeight: '100vh' }}>
       {/* Navigation Header */}
       <header style={{ borderBottom: '1px solid var(--border)', background: 'var(--card)', position: 'sticky', top: 0, zIndex: 100 }}>
-        <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '14px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: 'var(--accent)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '18px' }}>
+            <div style={{ width: '38px', height: '38px', borderRadius: '9px', background: 'linear-gradient(135deg, #09152e 0%, #1d4ed8 100%)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '17px', letterSpacing: '-0.5px', boxShadow: '0 4px 10px -2px rgba(29, 78, 216, 0.35)' }}>
               CA
             </div>
             <div>
               <span style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.5px' }}>CA Desk</span>
-              <span style={{ fontSize: '10px', background: 'var(--accent-subtle)', color: 'var(--accent)', padding: '2px 6px', borderRadius: '4px', fontWeight: 700, marginLeft: '8px' }}>
+              <span style={{ fontSize: '10px', background: 'var(--accent-subtle)', color: 'var(--accent)', padding: '2px 7px', borderRadius: '4px', fontWeight: 700, marginLeft: '8px', letterSpacing: '0.03em' }}>
                 STATUTORY &amp; TAX PRACTICE
               </span>
             </div>
@@ -36,19 +36,22 @@ export function LandingPage({ onStartTrial, onSignIn, onOpenTour }: LandingPageP
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <button
               onClick={onOpenTour}
-              style={{ padding: '8px 16px', background: 'var(--bg)', border: '1px solid var(--border-subtle)', borderRadius: '6px', fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+              style={{ padding: '8px 14px', background: 'var(--card-subtle)', border: '1px solid var(--border)', borderRadius: '7px', fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
             >
-              <span>🎮 Interactive Tour</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <polygon points="5 3 19 12 5 21 5 3" />
+              </svg>
+              <span>Interactive Tour</span>
             </button>
             <button
               onClick={onSignIn}
-              style={{ padding: '8px 16px', background: 'none', border: 'none', fontSize: '14px', fontWeight: 600, color: 'var(--text)', cursor: 'pointer' }}
+              style={{ padding: '8px 14px', background: 'none', border: 'none', fontSize: '14px', fontWeight: 600, color: 'var(--text)', cursor: 'pointer' }}
             >
               Sign In
             </button>
             <button
               onClick={onStartTrial}
-              style={{ padding: '9px 20px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}
+              style={{ padding: '9px 18px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '7px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}
             >
               Start 14-Day Free Trial
             </button>
@@ -57,40 +60,46 @@ export function LandingPage({ onStartTrial, onSignIn, onOpenTour }: LandingPageP
       </header>
 
       {/* Hero Section */}
-      <section style={{ padding: '72px 24px 60px 24px', background: 'linear-gradient(180deg, var(--bg) 0%, var(--card) 100%)', textAlign: 'center' }}>
+      <section style={{ padding: '80px 24px 68px 24px', background: 'linear-gradient(135deg, #09152e 0%, #102a5c 60%, #1d4ed8 100%)', color: '#fff', textAlign: 'center' }}>
         <div style={{ maxWidth: '960px', margin: '0 auto' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'var(--accent-subtle)', border: '1px solid var(--border)', borderRadius: '24px', padding: '6px 16px', marginBottom: '24px' }}>
-            <span style={{ fontSize: '13px', color: 'var(--accent)', fontWeight: 600 }}>
-              🇮🇳 India's Operating System for Chartered Accountants &amp; Statutory Auditors
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(255, 255, 255, 0.1)', border: '1px solid rgba(125, 211, 252, 0.35)', borderRadius: '24px', padding: '6px 16px', marginBottom: '24px' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7dd3fc" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="m9 12 2 2 4-4" />
+            </svg>
+            <span style={{ fontSize: '13px', color: '#e0f2fe', fontWeight: 600 }}>
+              India's Practice Operating System for Chartered Accountants &amp; Auditors
             </span>
           </div>
 
-          <h1 style={{ fontSize: '48px', fontWeight: 800, lineHeight: 1.15, letterSpacing: '-1.5px', color: 'var(--text)', margin: '0 0 20px 0' }}>
+          <h1 style={{ fontSize: '48px', fontWeight: 800, lineHeight: 1.15, letterSpacing: '-1.5px', color: '#ffffff', margin: '0 0 20px 0' }}>
             From Tally &amp; SAP Trial Balance to <br />
-            <span style={{ color: 'var(--accent)' }}>1-Click ICAI Independent Auditor's Reports</span>
+            <span style={{ color: '#7dd3fc' }}>1-Click ICAI Independent Auditor's Reports</span>
           </h1>
 
-          <p style={{ fontSize: '18px', color: 'var(--muted)', lineHeight: 1.6, maxWidth: '780px', margin: '0 auto 36px auto' }}>
+          <p style={{ fontSize: '18px', color: '#cbd5e1', lineHeight: 1.6, maxWidth: '780px', margin: '0 auto 36px auto' }}>
             Replace fragmented desktop software with an all-in-one cloud platform. Automated forensic bank fraud checks, SA 505 balance confirmations, digital working paper dossiers, and ICAI AQMM v1.0 Level 3 compliance.
           </p>
 
           <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', flexWrap: 'wrap' }}>
             <button
               onClick={onStartTrial}
-              style={{ padding: '14px 32px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '15px', fontWeight: 700, cursor: 'pointer' }}
+              style={{ padding: '14px 32px', background: '#ffffff', color: '#09152e', border: 'none', borderRadius: '8px', fontSize: '15px', fontWeight: 700, cursor: 'pointer', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.25)' }}
             >
-              🚀 Start 14-Day Free Trial (No Card Needed)
+              Start 14-Day Free Trial (No Card Needed)
             </button>
             <button
               onClick={onOpenTour}
-              style={{ padding: '14px 28px', background: 'var(--card)', color: 'var(--text)', border: '1px solid var(--border-subtle)', borderRadius: '8px', fontSize: '15px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+              style={{ padding: '14px 28px', background: 'rgba(255, 255, 255, 0.1)', color: '#ffffff', border: '1px solid rgba(255, 255, 255, 0.25)', borderRadius: '8px', fontSize: '15px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
             >
-              <span>🎮 3-Minute Interactive Test Drive</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <polygon points="5 3 19 12 5 21 5 3" />
+              </svg>
+              <span>3-Minute Interactive Test Drive</span>
             </button>
           </div>
 
           {/* Trust Pillars */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '20px', marginTop: '54px', paddingTop: '36px', borderTop: '1px solid var(--border)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '20px', marginTop: '54px', paddingTop: '36px', borderTop: '1px solid rgba(255, 255, 255, 0.14)' }}>
             {[
               { val: '600-Pt AQMM', lbl: 'ICAI CAQ Level 3 Desk' },
               { val: '17 Lead Schedules', lbl: 'SA 230 Workpaper Dossier' },
@@ -99,8 +108,8 @@ export function LandingPage({ onStartTrial, onSignIn, onOpenTour }: LandingPageP
               { val: 'AES-256', lbl: 'Encrypted Daily Backups' }
             ].map((kpi, idx) => (
               <div key={idx}>
-                <div style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text)' }}>{kpi.val}</div>
-                <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: '2px', fontWeight: 500 }}>{kpi.lbl}</div>
+                <div style={{ fontSize: '22px', fontWeight: 800, color: '#ffffff' }}>{kpi.val}</div>
+                <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '2px', fontWeight: 500 }}>{kpi.lbl}</div>
               </div>
             ))}
           </div>
@@ -124,56 +133,82 @@ export function LandingPage({ onStartTrial, onSignIn, onOpenTour }: LandingPageP
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '28px' }}>
           {[
             {
-              icon: '📊',
+              icon: (
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 3v18h18" /><path d="m19 9-5 5-4-4-3 3" />
+                </svg>
+              ),
               title: '1. Universal Trial Balance Importer',
               subtitle: '60-Second Ingestion Hub',
               desc: 'Intelligently ingest data from Tally Prime (XML/CSV), Busy, SAP, or raw Excel clipboard paste. Fuzzy AI auto-maps Chart of Accounts to Schedule III, Form 3CD, and CARO 2020.',
               points: ['Fuzzy column heuristics', 'Auto Schedule III tagging', 'Cascading 6-desk sync']
             },
             {
-              icon: '🔍',
+              icon: (
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
+                </svg>
+              ),
               title: '2. Forensic Bank Analyzer & Fraud Engine',
               subtitle: 'Statutory Violation Detection',
               desc: 'Ingests Indian bank statements (PDF/CSV/Excel) and cross-reconciles against books. Flags Sec 40A(3) cash violations, round-tripping, smurfing, and unusual dormancy surges.',
               points: ['Sec 40A(3) & 269ST alerts', 'Round-trip fund tracking', 'TB vs Bank cross-matching']
             },
             {
-              icon: '✉️',
+              icon: (
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect width="20" height="16" x="2" y="4" rx="2" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                </svg>
+              ),
               title: '3. SA 505 Automated External Confirmations',
               subtitle: 'Tokenized Circularization Portal',
               desc: 'Direct auditor control over third-party circularization. Debtors and Creditors confirm balances via a mobile-friendly public portal. Alternative procedures logged under SA 505.12.',
               points: ['Digital verification links', 'Direct third-party sign-off', 'Alternative audit procedures']
             },
             {
-              icon: '📁',
+              icon: (
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                </svg>
+              ),
               title: '4. SA 230 Digital Workpaper Dossier',
               subtitle: 'SA 230 Archival Workspace',
               desc: 'Complete audit file packager with 17 substantive analytical lead schedules (A to Q), immutable 60-day archival lock under SQC 1, and SHA-256 cryptographic tamper-evident seal.',
               points: ['Lead schedules A to Q', 'Immutable 60-day lock', 'SHA-256 seal & peer-review export']
             },
             {
-              icon: '📜',
+              icon: (
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" />
+                </svg>
+              ),
               title: '5. 1-Click SA 700 Independent Auditor\'s Report',
               subtitle: 'Rule 11(g) & 18-Digit UDIN Validator',
               desc: 'Automated legal verbiage engine generating Unmodified, Qualified, Adverse, or Disclaimer opinions. Verifies accounting software audit trail edit logs under MCA Rule 11(g).',
               points: ['Automated SA 700/701 verbiage', 'Rule 11(g) audit trail check', '18-character UDIN validation']
             },
             {
-              icon: '🛡️',
+              icon: (
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                </svg>
+              ),
               title: '6. ICAI AQMM v1.0 Maturity Desk',
               subtitle: '600-Point Quality Evaluation',
               desc: 'Mandatory standard for firms auditing listed / public interest entities. Auto-evaluates points across Operations (190), HR (110), and Audit Execution (300) from CA Desk telemetry.',
               points: ['Automated Level 1/2/3 grading', 'Dynamic gap analysis roadmap', '1-click peer review dossier']
             }
-          ].map((moat, i) => (
-            <div key={i} style={{ padding: '28px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--card)', display: 'flex', flexDirection: 'column' }}>
-              <div style={{ fontSize: '32px', marginBottom: '14px' }}>{moat.icon}</div>
-              <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{moat.subtitle}</div>
-              <h4 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text)', margin: '4px 0 10px 0' }}>{moat.title}</h4>
-              <p style={{ fontSize: '14px', color: 'var(--muted)', lineHeight: 1.6, margin: '0 0 16px 0', flex: 1 }}>{moat.desc}</p>
+          ].map((cap, i) => (
+            <div key={i} style={{ padding: '28px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--card)', display: 'flex', flexDirection: 'column', boxShadow: '0 4px 12px -4px rgba(15, 23, 42, 0.06)' }}>
+              <div style={{ width: '44px', height: '44px', borderRadius: '10px', background: 'var(--accent-subtle)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px', border: '1px solid rgba(37, 99, 235, 0.18)' }}>
+                {cap.icon}
+              </div>
+              <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{cap.subtitle}</div>
+              <h4 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text)', margin: '4px 0 10px 0' }}>{cap.title}</h4>
+              <p style={{ fontSize: '14px', color: 'var(--muted)', lineHeight: 1.6, margin: '0 0 16px 0', flex: 1 }}>{cap.desc}</p>
               <div style={{ borderTop: '1px solid var(--border)', paddingTop: '14px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                {moat.points.map((pt, pIdx) => (
-                  <div key={pIdx} style={{ fontSize: '12px', color: 'var(--success-text)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {cap.points.map((pt, pIdx) => (
+                  <div key={pIdx} style={{ fontSize: '12px', color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span>✓</span> <strong>{pt}</strong>
                   </div>
                 ))}
@@ -197,7 +232,7 @@ export function LandingPage({ onStartTrial, onSignIn, onOpenTour }: LandingPageP
           </p>
 
           {/* Monthly / Annual Toggle */}
-          <div style={{ display: 'inline-flex', alignItems: 'center', background: 'var(--bg-subtle)', padding: '4px', borderRadius: '8px', marginBottom: '48px' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', background: 'var(--card-subtle)', border: '1px solid var(--border)', padding: '4px', borderRadius: '8px', marginBottom: '48px' }}>
             <button
               onClick={() => setBillingCycle('monthly')}
               style={{ padding: '8px 20px', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: 600, background: billingCycle === 'monthly' ? 'var(--card)' : 'transparent', color: billingCycle === 'monthly' ? 'var(--text)' : 'var(--muted)', cursor: 'pointer' }}
@@ -240,7 +275,7 @@ export function LandingPage({ onStartTrial, onSignIn, onOpenTour }: LandingPageP
             </div>
 
             {/* Growth */}
-            <div style={{ padding: '32px', borderRadius: '12px', border: '2px solid var(--accent)', background: 'var(--card)', position: 'relative', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: '32px', borderRadius: '12px', border: '2px solid var(--accent)', background: 'var(--card)', position: 'relative', display: 'flex', flexDirection: 'column', boxShadow: '0 16px 36px -12px rgba(29, 78, 216, 0.2)' }}>
               <div style={{ position: 'absolute', top: '-12px', right: '24px', background: 'var(--accent)', color: '#fff', padding: '4px 12px', borderRadius: '12px', fontSize: '11px', fontWeight: 800 }}>
                 MOST POPULAR
               </div>
@@ -311,20 +346,32 @@ export function LandingPage({ onStartTrial, onSignIn, onOpenTour }: LandingPageP
         </p>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', textAlign: 'left' }}>
-          <div style={{ padding: '20px', borderRadius: '8px', background: 'var(--bg)', border: '1px solid var(--border)' }}>
-            <div style={{ fontWeight: 700, color: 'var(--text)', marginBottom: '6px' }}>🔒 Row-Level Security</div>
+          <div style={{ padding: '20px', borderRadius: '10px', background: 'var(--card)', border: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, color: 'var(--text)', marginBottom: '6px' }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+              <span>Row-Level Security</span>
+            </div>
             <div style={{ fontSize: '13px', color: 'var(--muted)' }}>PostgreSQL RLS ensures Firm A can never read or query Firm B records.</div>
           </div>
-          <div style={{ padding: '20px', borderRadius: '8px', background: 'var(--bg)', border: '1px solid var(--border)' }}>
-            <div style={{ fontWeight: 700, color: 'var(--text)', marginBottom: '6px' }}>🛡️ AES-256 Backups</div>
+          <div style={{ padding: '20px', borderRadius: '10px', background: 'var(--card)', border: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, color: 'var(--text)', marginBottom: '6px' }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
+              <span>AES-256 Backups</span>
+            </div>
             <div style={{ fontSize: '13px', color: 'var(--muted)' }}>Automated daily pg_dump backups encrypted with OpenSSL AES-256-CBC.</div>
           </div>
-          <div style={{ padding: '20px', borderRadius: '8px', background: 'var(--bg)', border: '1px solid var(--border)' }}>
-            <div style={{ fontWeight: 700, color: 'var(--text)', marginBottom: '6px' }}>🦠 ClamAV Antivirus</div>
+          <div style={{ padding: '20px', borderRadius: '10px', background: 'var(--card)', border: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, color: 'var(--text)', marginBottom: '6px' }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 12 2 2 4-4" /><circle cx="12" cy="12" r="10" /></svg>
+              <span>ClamAV Antivirus</span>
+            </div>
             <div style={{ fontSize: '13px', color: 'var(--muted)' }}>Every client document uploaded to the vault is actively scanned for malware.</div>
           </div>
-          <div style={{ padding: '20px', borderRadius: '8px', background: 'var(--bg)', border: '1px solid var(--border)' }}>
-            <div style={{ fontWeight: 700, color: 'var(--text)', marginBottom: '6px' }}>⚡ TOTP Multi-Factor</div>
+          <div style={{ padding: '20px', borderRadius: '10px', background: 'var(--card)', border: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, color: 'var(--text)', marginBottom: '6px' }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 18v3c0 .6.4 1 1 1h4v-3h3v-3h2l1.4-1.4a6.5 6.5 0 1 0-4-4Z" /><circle cx="16.5" cy="7.5" r=".5" fill="currentColor" /></svg>
+              <span>TOTP Multi-Factor</span>
+            </div>
             <div style={{ fontSize: '13px', color: 'var(--muted)' }}>Mandatory authenticator app two-step sign-in for partners and managers.</div>
           </div>
         </div>
@@ -366,31 +413,31 @@ export function LandingPage({ onStartTrial, onSignIn, onOpenTour }: LandingPageP
       </section>
 
       {/* Call to Action Footer Banner */}
-      <section style={{ padding: '60px 24px', background: '#16191d', color: '#fff', textAlign: 'center' }}>
+      <section style={{ padding: '68px 24px', background: 'linear-gradient(135deg, #09152e 0%, #102a5c 100%)', color: '#fff', textAlign: 'center' }}>
         <h3 style={{ fontSize: '32px', fontWeight: 800, margin: '0 0 14px 0' }}>
           Ready to Modernize Your CA Practice?
         </h3>
-        <p style={{ fontSize: '16px', color: '#a0a6ae', margin: '0 0 28px 0' }}>
+        <p style={{ fontSize: '16px', color: '#cbd5e1', margin: '0 0 28px 0' }}>
           Join leading Indian Chartered Accountants transforming their audit, tax, and compliance workflows.
         </p>
         <button
           onClick={onStartTrial}
-          style={{ padding: '14px 36px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '15px', fontWeight: 700, cursor: 'pointer' }}
+          style={{ padding: '14px 36px', background: '#ffffff', color: '#09152e', border: 'none', borderRadius: '8px', fontSize: '15px', fontWeight: 700, cursor: 'pointer', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.25)' }}
         >
-          🚀 Start Your 14-Day Free Trial Now
+          Start Your 14-Day Free Trial Now
         </button>
       </section>
 
       {/* Footer */}
-      <footer style={{ borderTop: '1px solid #2b3038', background: '#0e1115', color: '#a0a6ae', padding: '32px 24px', fontSize: '12px' }}>
+      <footer style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)', background: '#060e1f', color: '#94a3b8', padding: '32px 24px', fontSize: '12px' }}>
         <div style={{ maxWidth: '1280px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
           <div>
             © {new Date().getFullYear()} CA Desk Technologies Pvt Ltd. All rights reserved. Built for Indian Chartered Accountants.
           </div>
           <div style={{ display: 'flex', gap: '20px' }}>
-            <a href="/legal/terms.html" style={{ color: '#a0a6ae' }}>Terms</a>
-            <a href="/legal/privacy.html" style={{ color: '#a0a6ae' }}>Privacy</a>
-            <a href="/help/index.html" style={{ color: '#a0a6ae' }}>Help</a>
+            <a href="/legal/terms.html" style={{ color: '#94a3b8' }}>Terms</a>
+            <a href="/legal/privacy.html" style={{ color: '#94a3b8' }}>Privacy</a>
+            <a href="/help/index.html" style={{ color: '#94a3b8' }}>Help</a>
             <span>SAC 998311</span>
           </div>
         </div>

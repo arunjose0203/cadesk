@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { toError,
   advanceTaxApi,
   api,
@@ -83,57 +83,26 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
     selfAssessmentTaxPaid: 0
   })
 
+  const selectedPlanIdRef = useRef<string | null>(null)
   useEffect(() => {
-    loadClients()
-  }, [])
+    selectedPlanIdRef.current = selectedPlan?.id ?? null
+  }, [selectedPlan])
 
-  useEffect(() => {
-    loadData(selectedClientId || undefined, selectedFy)
-  }, [selectedClientId, selectedFy])
-
-  const loadClients = async () => {
+  const loadClients = useCallback(async () => {
     try {
       const res = await api<ClientPage>('/api/clients?pageSize=100')
       if (res && res.items) {
         setClients(res.items)
-        if (res.items.length > 0 && !selectedClientId) {
-          setPlanForm(f => ({ ...f, clientId: res.items[0].id }))
+        if (res.items.length > 0) {
+          setPlanForm(f => (f.clientId ? f : { ...f, clientId: res.items[0].id }))
         }
       }
     } catch {
       // Non-fatal
     }
-  }
+  }, [])
 
-  const loadData = async (cId?: string, fy?: string) => {
-    setLoading(true)
-    setError(null)
-    try {
-      const [sum, planList] = await Promise.all([
-        advanceTaxApi.getSummary(cId, fy),
-        advanceTaxApi.getPlans(cId, fy)
-      ])
-      setSummary(sum)
-      setPlans(planList)
-
-      if (planList.length > 0) {
-        const cur = selectedPlan ? planList.find(p => p.id === selectedPlan.id) || planList[0] : planList[0]
-        setSelectedPlan(cur)
-        await loadPlanDetails(cur.id)
-      } else {
-        setSelectedPlan(null)
-        setInstallments([])
-        setInterestComputations([])
-      }
-    } catch (caught) {
-      const e = toError(caught)
-      setError(e.message || 'Failed to load advance tax data')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const loadPlanDetails = async (planId: string) => {
+  const loadPlanDetails = useCallback(async (planId: string) => {
     try {
       const [instList, compList] = await Promise.all([
         advanceTaxApi.getInstallments(planId),
@@ -145,7 +114,46 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
       const e = toError(caught)
       setError(e.message || 'Failed to load installment details')
     }
-  }
+  }, [])
+
+  const loadData = useCallback(async (cId?: string, fy?: string) => {
+    setLoading(true)
+    setError(null)
+    try {
+      const [sum, planList] = await Promise.all([
+        advanceTaxApi.getSummary(cId, fy),
+        advanceTaxApi.getPlans(cId, fy)
+      ])
+      setSummary(sum)
+      setPlans(planList)
+
+      if (planList.length > 0) {
+        const prevId = selectedPlanIdRef.current
+        const cur = (prevId && planList.find(p => p.id === prevId)) || planList[0]
+        selectedPlanIdRef.current = cur.id
+        setSelectedPlan(cur)
+        await loadPlanDetails(cur.id)
+      } else {
+        selectedPlanIdRef.current = null
+        setSelectedPlan(null)
+        setInstallments([])
+        setInterestComputations([])
+      }
+    } catch (caught) {
+      const e = toError(caught)
+      setError(e.message || 'Failed to load advance tax data')
+    } finally {
+      setLoading(false)
+    }
+  }, [loadPlanDetails])
+
+  useEffect(() => {
+    loadClients()
+  }, [loadClients])
+
+  useEffect(() => {
+    loadData(selectedClientId || undefined, selectedFy)
+  }, [selectedClientId, selectedFy, loadData])
 
   const handleSelectPlan = async (p: AdvanceTaxPlanDto) => {
     setSelectedPlan(p)
@@ -308,10 +316,10 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
       {/* Top Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: '26px', fontWeight: 700, color: '#1a237e' }}>
+          <h1 style={{ margin: 0, fontSize: '26px', fontWeight: 700, color: 'var(--accent)' }}>
             Advance Tax Planner & Section 234A/B/C Interest Desk
           </h1>
-          <p style={{ margin: '4px 0 0 0', color: '#555', fontSize: '14px' }}>
+          <p style={{ margin: '4px 0 0 0', color: 'var(--text-secondary)', fontSize: '14px' }}>
             Quarterly statutory installments (June 15, Sept 15, Dec 15, March 15), Sec 208 threshold (₹10,000), safe harbors, and Sections 234A/B/C interest engine.
           </p>
         </div>
@@ -324,9 +332,9 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
             style={{
               padding: '8px 12px',
               borderRadius: '6px',
-              border: '1px solid #ccc',
+              border: '1px solid var(--border-subtle)',
               fontSize: '14px',
-              background: '#fff',
+              background: 'var(--card)',
               minWidth: '200px'
             }}
           >
@@ -345,9 +353,9 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
             style={{
               padding: '8px 12px',
               borderRadius: '6px',
-              border: '1px solid #ccc',
+              border: '1px solid var(--border-subtle)',
               fontSize: '14px',
-              background: '#fff',
+              background: 'var(--card)',
               fontWeight: 600
             }}
           >
@@ -362,9 +370,9 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
             style={{
               padding: '8px 14px',
               borderRadius: '6px',
-              border: '1px solid #1a237e',
-              background: '#fff',
-              color: '#1a237e',
+              border: '1px solid var(--accent)',
+              background: 'var(--card)',
+              color: 'var(--accent)',
               fontWeight: 600,
               cursor: 'pointer'
             }}
@@ -381,8 +389,8 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
                   padding: '8px 16px',
                   borderRadius: '6px',
                   border: '1px solid #4338ca',
-                  background: selectedPlan ? '#EEF2FF' : '#F3F4F6',
-                  color: selectedPlan ? '#4338ca' : '#9CA3AF',
+                  background: selectedPlan ? 'var(--accent-subtle)' : 'var(--card-subtle)',
+                  color: selectedPlan ? 'var(--accent)' : 'var(--muted)',
                   fontWeight: 600,
                   cursor: selectedPlan ? 'pointer' : 'not-allowed',
                   display: 'flex',
@@ -438,112 +446,112 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
       {error && (
         <div style={{
           padding: '12px 16px',
-          background: '#ffebee',
-          color: '#c62828',
+          background: 'var(--error-bg)',
+          color: 'var(--error)',
           borderRadius: '6px',
           marginBottom: '20px',
-          border: '1px solid #ffcdd2',
+          border: '1px solid var(--error-border)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center'
         }}>
           <span><strong>Error:</strong> {error}</span>
-          <button onClick={() => setError(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#c62828', fontWeight: 'bold' }}>✕</button>
+          <button onClick={() => setError(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--error)', fontWeight: 'bold' }}>✕</button>
         </div>
       )}
 
       {success && (
         <div style={{
           padding: '12px 16px',
-          background: '#e8f5e9',
-          color: '#2e7d32',
+          background: 'var(--success-bg)',
+          color: 'var(--success)',
           borderRadius: '6px',
           marginBottom: '20px',
-          border: '1px solid #c8e6c9',
+          border: '1px solid var(--success-border)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center'
         }}>
           <span><strong>Success:</strong> {success}</span>
-          <button onClick={() => setSuccess(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#2e7d32', fontWeight: 'bold' }}>✕</button>
+          <button onClick={() => setSuccess(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--success)', fontWeight: 'bold' }}>✕</button>
         </div>
       )}
 
       {/* Metric Cards */}
       {summary && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-          <div style={{ background: '#fff', padding: '16px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', borderLeft: '4px solid #1a237e' }}>
-            <div style={{ fontSize: '12px', color: '#666', textTransform: 'uppercase', fontWeight: 600 }}>Total Plans & Income</div>
-            <div style={{ fontSize: '22px', fontWeight: 700, color: '#1a237e', marginTop: '4px' }}>{summary.totalPlans} Plans</div>
-            <div style={{ fontSize: '11px', color: '#666', marginTop: '4px' }}>
+          <div style={{ background: 'var(--card)', padding: '16px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', borderLeft: '4px solid var(--accent)' }}>
+            <div style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase', fontWeight: 600 }}>Total Plans & Income</div>
+            <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--accent)', marginTop: '4px' }}>{summary.totalPlans} Plans</div>
+            <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '4px' }}>
               Est Income: <strong>{formatCurrency(summary.totalEstimatedIncome)}</strong>
             </div>
           </div>
 
-          <div style={{ background: '#fff', padding: '16px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', borderLeft: '4px solid #00838f' }}>
-            <div style={{ fontSize: '12px', color: '#666', textTransform: 'uppercase', fontWeight: 600 }}>Total Assessed Tax</div>
+          <div style={{ background: 'var(--card)', padding: '16px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', borderLeft: '4px solid #00838f' }}>
+            <div style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase', fontWeight: 600 }}>Total Assessed Tax</div>
             <div style={{ fontSize: '22px', fontWeight: 700, color: '#00838f', marginTop: '4px' }}>
               {formatCurrency(summary.totalAssessedTax)}
             </div>
-            <div style={{ fontSize: '11px', color: '#666', marginTop: '4px' }}>
+            <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '4px' }}>
               Net Advance Tax Liability
             </div>
           </div>
 
-          <div style={{ background: '#fff', padding: '16px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', borderLeft: '4px solid #2e7d32' }}>
-            <div style={{ fontSize: '12px', color: '#666', textTransform: 'uppercase', fontWeight: 600 }}>Advance Tax Collected</div>
-            <div style={{ fontSize: '22px', fontWeight: 700, color: '#2e7d32', marginTop: '4px' }}>
+          <div style={{ background: 'var(--card)', padding: '16px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', borderLeft: '4px solid #2e7d32' }}>
+            <div style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase', fontWeight: 600 }}>Advance Tax Collected</div>
+            <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--success)', marginTop: '4px' }}>
               {formatCurrency(summary.totalAdvanceTaxCollected)}
             </div>
-            <div style={{ fontSize: '11px', color: '#666', marginTop: '4px' }}>
+            <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '4px' }}>
               Challan Payments Made
             </div>
           </div>
 
           <div style={{
-            background: '#fff',
+            background: 'var(--card)',
             padding: '16px',
             borderRadius: '8px',
             boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
             borderLeft: summary.totalShortfall > 0 ? '4px solid #f57f17' : '4px solid #43a047'
           }}>
-            <div style={{ fontSize: '12px', color: '#666', textTransform: 'uppercase', fontWeight: 600 }}>Installment Shortfall</div>
+            <div style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase', fontWeight: 600 }}>Installment Shortfall</div>
             <div style={{ fontSize: '22px', fontWeight: 700, color: summary.totalShortfall > 0 ? '#f57f17' : '#43a047', marginTop: '4px' }}>
               {formatCurrency(summary.totalShortfall)}
             </div>
-            <div style={{ fontSize: '11px', color: '#666', marginTop: '4px' }}>
+            <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '4px' }}>
               Cumulative Deficit
             </div>
           </div>
 
           <div style={{
-            background: '#fff',
+            background: 'var(--card)',
             padding: '16px',
             borderRadius: '8px',
             boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
             borderLeft: summary.totalInterest234c > 0 ? '4px solid #c62828' : '4px solid #2e7d32'
           }}>
-            <div style={{ fontSize: '12px', color: '#666', textTransform: 'uppercase', fontWeight: 600 }}>Sec 234C Interest</div>
-            <div style={{ fontSize: '22px', fontWeight: 700, color: summary.totalInterest234c > 0 ? '#c62828' : '#2e7d32', marginTop: '4px' }}>
+            <div style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase', fontWeight: 600 }}>Sec 234C Interest</div>
+            <div style={{ fontSize: '22px', fontWeight: 700, color: summary.totalInterest234c > 0 ? 'var(--error)' : 'var(--success)', marginTop: '4px' }}>
               {formatCurrency(summary.totalInterest234c)}
             </div>
-            <div style={{ fontSize: '11px', color: '#666', marginTop: '4px' }}>
+            <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '4px' }}>
               Installment Deferment Penalty
             </div>
           </div>
 
           <div style={{
-            background: '#fff',
+            background: 'var(--card)',
             padding: '16px',
             borderRadius: '8px',
             boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
             borderLeft: summary.totalInterest234b > 0 ? '4px solid #d32f2f' : '4px solid #2e7d32'
           }}>
-            <div style={{ fontSize: '12px', color: '#666', textTransform: 'uppercase', fontWeight: 600 }}>Sec 234B Interest</div>
-            <div style={{ fontSize: '22px', fontWeight: 700, color: summary.totalInterest234b > 0 ? '#d32f2f' : '#2e7d32', marginTop: '4px' }}>
+            <div style={{ fontSize: '12px', color: 'var(--muted)', textTransform: 'uppercase', fontWeight: 600 }}>Sec 234B Interest</div>
+            <div style={{ fontSize: '22px', fontWeight: 700, color: summary.totalInterest234b > 0 ? '#d32f2f' : 'var(--success)', marginTop: '4px' }}>
               {formatCurrency(summary.totalInterest234b)}
             </div>
-            <div style={{ fontSize: '11px', color: '#666', marginTop: '4px' }}>
+            <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '4px' }}>
               Shortfall (&lt;90%) Penalty
             </div>
           </div>
@@ -551,7 +559,7 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
       )}
 
       {/* Tabs */}
-      <div style={{ display: 'flex', borderBottom: '2px solid #e0e0e0', marginBottom: '20px' }}>
+      <div style={{ display: 'flex', borderBottom: '2px solid var(--border)', marginBottom: '20px' }}>
         <button
           onClick={() => setActiveTab('plans')}
           style={{
@@ -560,8 +568,8 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
             fontWeight: 600,
             background: 'none',
             border: 'none',
-            borderBottom: activeTab === 'plans' ? '3px solid #1a237e' : 'none',
-            color: activeTab === 'plans' ? '#1a237e' : '#666',
+            borderBottom: activeTab === 'plans' ? '3px solid var(--accent)' : 'none',
+            color: activeTab === 'plans' ? 'var(--accent)' : 'var(--muted)',
             cursor: 'pointer'
           }}
         >
@@ -576,8 +584,8 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
             fontWeight: 600,
             background: 'none',
             border: 'none',
-            borderBottom: activeTab === 'installments' ? '3px solid #1a237e' : 'none',
-            color: activeTab === 'installments' ? '#1a237e' : '#666',
+            borderBottom: activeTab === 'installments' ? '3px solid var(--accent)' : 'none',
+            color: activeTab === 'installments' ? 'var(--accent)' : 'var(--muted)',
             cursor: 'pointer'
           }}
         >
@@ -592,8 +600,8 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
             fontWeight: 600,
             background: 'none',
             border: 'none',
-            borderBottom: activeTab === 'interest' ? '3px solid #1a237e' : 'none',
-            color: activeTab === 'interest' ? '#1a237e' : '#666',
+            borderBottom: activeTab === 'interest' ? '3px solid var(--accent)' : 'none',
+            color: activeTab === 'interest' ? 'var(--accent)' : 'var(--muted)',
             cursor: 'pointer'
           }}
         >
@@ -603,16 +611,16 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
 
       {/* TAB 1: Advance Tax Plans & Estimates */}
       {activeTab === 'plans' && (
-        <div style={{ background: '#fff', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
-          <div style={{ padding: '16px', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ background: 'var(--card)', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+          <div style={{ padding: '16px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600 }}>Active Advance Tax Estimates</h3>
-            <span style={{ fontSize: '12px', color: '#666' }}>Showing {plans.length} advance tax plans</span>
+            <span style={{ fontSize: '12px', color: 'var(--muted)' }}>Showing {plans.length} advance tax plans</span>
           </div>
 
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left' }}>
               <thead>
-                <tr style={{ background: '#f8f9fa', color: '#555', borderBottom: '2px solid #eee' }}>
+                <tr style={{ background: 'var(--card-subtle)', color: 'var(--text-secondary)', borderBottom: '2px solid var(--border)' }}>
                   <th style={{ padding: '12px' }}>Client Details</th>
                   <th style={{ padding: '12px' }}>FY / AY</th>
                   <th style={{ padding: '12px' }}>Tax Regime</th>
@@ -628,7 +636,7 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
               <tbody>
                 {plans.length === 0 ? (
                   <tr>
-                    <td colSpan={10} style={{ padding: '32px', textAlign: 'center', color: '#999' }}>
+                    <td colSpan={10} style={{ padding: '32px', textAlign: 'center', color: 'var(--muted)' }}>
                       No advance tax plans found. Click "+ New Advance Tax Plan" to estimate tax liability and track quarterly challans.
                     </td>
                   </tr>
@@ -638,19 +646,19 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
                     const isPresumptive = p.isPresumptive
 
                     return (
-                      <tr key={p.id} style={{ borderBottom: '1px solid #eee', background: isSelected ? '#f0f4ff' : '#fff' }}>
+                      <tr key={p.id} style={{ borderBottom: '1px solid var(--border)', background: isSelected ? '#f0f4ff' : 'var(--card)' }}>
                         <td style={{ padding: '12px' }}>
-                          <div style={{ fontWeight: 700, color: '#1a237e' }}>{p.clientName}</div>
-                          <div style={{ fontSize: '11px', color: '#666' }}>Code: {p.clientCode}</div>
+                          <div style={{ fontWeight: 700, color: 'var(--accent)' }}>{p.clientName}</div>
+                          <div style={{ fontSize: '11px', color: 'var(--muted)' }}>Code: {p.clientCode}</div>
                           {p.isSeniorCitizen && (
-                            <span style={{ fontSize: '10px', background: '#e3f2fd', color: '#1565c0', padding: '1px 5px', borderRadius: '3px' }}>
+                            <span style={{ fontSize: '10px', background: 'var(--accent-subtle)', color: '#1565c0', padding: '1px 5px', borderRadius: '3px' }}>
                               Senior Citizen
                             </span>
                           )}
                         </td>
                         <td style={{ padding: '12px' }}>
                           <div style={{ fontWeight: 600 }}>FY: {p.financialYear}</div>
-                          <div style={{ fontSize: '11px', color: '#666' }}>AY: {p.assessmentYear}</div>
+                          <div style={{ fontSize: '11px', color: 'var(--muted)' }}>AY: {p.assessmentYear}</div>
                         </td>
                         <td style={{ padding: '12px' }}>
                           <span style={{
@@ -658,8 +666,8 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
                             borderRadius: '4px',
                             fontSize: '11px',
                             fontWeight: 600,
-                            background: p.regime === 'NewRegime' ? '#e8f5e9' : '#ede7f6',
-                            color: p.regime === 'NewRegime' ? '#2e7d32' : '#4527a0'
+                            background: p.regime === 'NewRegime' ? 'var(--success-bg)' : '#ede7f6',
+                            color: p.regime === 'NewRegime' ? 'var(--success)' : '#4527a0'
                           }}>
                             {p.regime === 'NewRegime' ? 'New 115BAC' : 'Old Regime'}
                           </span>
@@ -675,13 +683,13 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
                         <td style={{ padding: '12px', textAlign: 'right', color: '#00838f', fontWeight: 600 }}>
                           {formatCurrency(p.estimatedTdsTcs)}
                         </td>
-                        <td style={{ padding: '12px', textAlign: 'right', fontWeight: 700, color: '#1a237e' }}>
+                        <td style={{ padding: '12px', textAlign: 'right', fontWeight: 700, color: 'var(--accent)' }}>
                           {formatCurrency(p.assessedTax)}
                         </td>
-                        <td style={{ padding: '12px', textAlign: 'right', fontWeight: 600, color: '#2e7d32' }}>
+                        <td style={{ padding: '12px', textAlign: 'right', fontWeight: 600, color: 'var(--success)' }}>
                           {formatCurrency(p.totalAdvanceTaxPaid)}
                         </td>
-                        <td style={{ padding: '12px', textAlign: 'right', fontWeight: 700, color: p.totalInterest234c > 0 ? '#c62828' : '#2e7d32' }}>
+                        <td style={{ padding: '12px', textAlign: 'right', fontWeight: 700, color: p.totalInterest234c > 0 ? 'var(--error)' : 'var(--success)' }}>
                           {formatCurrency(p.totalInterest234c)}
                         </td>
                         <td style={{ padding: '12px' }}>
@@ -690,8 +698,8 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
                             borderRadius: '12px',
                             fontSize: '11px',
                             fontWeight: 700,
-                            background: p.status === 'Active' ? '#e8f5e9' : '#fff3e0',
-                            color: p.status === 'Active' ? '#2e7d32' : '#e65100'
+                            background: p.status === 'Active' ? 'var(--success-bg)' : 'var(--warning-bg)',
+                            color: p.status === 'Active' ? 'var(--success)' : 'var(--warning-text)'
                           }}>
                             {p.status}
                           </span>
@@ -704,9 +712,9 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
                               style={{
                                 padding: '4px 8px',
                                 borderRadius: '4px',
-                                border: '1px solid #1a237e',
-                                background: '#e8eaf6',
-                                color: '#1a237e',
+                                border: '1px solid var(--accent)',
+                                background: 'var(--accent-subtle)',
+                                color: 'var(--accent)',
                                 fontSize: '11px',
                                 fontWeight: 600,
                                 cursor: 'pointer'
@@ -723,8 +731,8 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
                                   padding: '4px 8px',
                                   borderRadius: '4px',
                                   border: '1px solid #555',
-                                  background: '#fff',
-                                  color: '#333',
+                                  background: 'var(--card)',
+                                  color: 'var(--text)',
                                   fontSize: '11px',
                                   fontWeight: 600,
                                   cursor: 'pointer'
@@ -747,13 +755,13 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
 
       {/* TAB 2: Quarterly Installment Schedule & ITNS 280 */}
       {activeTab === 'installments' && (
-        <div style={{ background: '#fff', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
-          <div style={{ padding: '16px', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+        <div style={{ background: 'var(--card)', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+          <div style={{ padding: '16px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
             <div>
               <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600 }}>
                 {selectedPlan ? `Quarterly Installments for ${selectedPlan.clientName} (FY ${selectedPlan.financialYear})` : 'Select a Plan'}
               </h3>
-              <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#666' }}>
+              <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: 'var(--muted)' }}>
                 Section 211 statutory milestones. Section 234C interest applies at 1% per month for 3 months (1 month for March).
               </p>
             </div>
@@ -761,10 +769,10 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
             {selectedPlan && (
               <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                 <span style={{ fontSize: '13px' }}>
-                  Assessed Tax: <strong style={{ color: '#1a237e' }}>{formatCurrency(selectedPlan.assessedTax)}</strong>
+                  Assessed Tax: <strong style={{ color: 'var(--accent)' }}>{formatCurrency(selectedPlan.assessedTax)}</strong>
                 </span>
                 <span style={{ fontSize: '13px' }}>
-                  Paid: <strong style={{ color: '#2e7d32' }}>{formatCurrency(selectedPlan.totalAdvanceTaxPaid)}</strong>
+                  Paid: <strong style={{ color: 'var(--success)' }}>{formatCurrency(selectedPlan.totalAdvanceTaxPaid)}</strong>
                 </span>
               </div>
             )}
@@ -773,7 +781,7 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left' }}>
               <thead>
-                <tr style={{ background: '#f8f9fa', color: '#555', borderBottom: '2px solid #eee' }}>
+                <tr style={{ background: 'var(--card-subtle)', color: 'var(--text-secondary)', borderBottom: '2px solid var(--border)' }}>
                   <th style={{ padding: '12px' }}>Installment</th>
                   <th style={{ padding: '12px' }}>Statutory Due Date</th>
                   <th style={{ padding: '12px', textAlign: 'right' }}>Target %</th>
@@ -788,7 +796,7 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
               <tbody>
                 {!selectedPlan || installments.length === 0 ? (
                   <tr>
-                    <td colSpan={9} style={{ padding: '32px', textAlign: 'center', color: '#999' }}>
+                    <td colSpan={9} style={{ padding: '32px', textAlign: 'center', color: 'var(--muted)' }}>
                       Please select an advance tax plan from the first tab to view its quarterly installment schedule.
                     </td>
                   </tr>
@@ -798,8 +806,8 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
                     const isPaid = inst.isPaid
 
                     return (
-                      <tr key={inst.id} style={{ borderBottom: '1px solid #eee', background: isDeficit ? '#fffdf7' : '#fff' }}>
-                        <td style={{ padding: '12px', fontWeight: 700, color: '#1a237e' }}>
+                      <tr key={inst.id} style={{ borderBottom: '1px solid var(--border)', background: isDeficit ? '#fffdf7' : 'var(--card)' }}>
+                        <td style={{ padding: '12px', fontWeight: 700, color: 'var(--accent)' }}>
                           Installment #{inst.installmentNumber}
                         </td>
                         <td style={{ padding: '12px', fontWeight: 600 }}>
@@ -808,16 +816,16 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
                         <td style={{ padding: '12px', textAlign: 'right', fontWeight: 600 }}>
                           {inst.targetPercentage}%
                         </td>
-                        <td style={{ padding: '12px', textAlign: 'right', fontWeight: 600, color: '#1a237e' }}>
+                        <td style={{ padding: '12px', textAlign: 'right', fontWeight: 600, color: 'var(--accent)' }}>
                           {formatCurrency(inst.cumulativeTargetAmount)}
                         </td>
-                        <td style={{ padding: '12px', textAlign: 'right', fontWeight: 700, color: '#2e7d32' }}>
+                        <td style={{ padding: '12px', textAlign: 'right', fontWeight: 700, color: 'var(--success)' }}>
                           {formatCurrency(inst.amountPaid)}
                         </td>
-                        <td style={{ padding: '12px', textAlign: 'right', fontWeight: 600, color: isDeficit ? '#f57f17' : '#666' }}>
+                        <td style={{ padding: '12px', textAlign: 'right', fontWeight: 600, color: isDeficit ? '#f57f17' : 'var(--muted)' }}>
                           {formatCurrency(inst.shortfallAmount)}
                         </td>
-                        <td style={{ padding: '12px', textAlign: 'right', fontWeight: 700, color: inst.interest234c > 0 ? '#c62828' : '#2e7d32' }}>
+                        <td style={{ padding: '12px', textAlign: 'right', fontWeight: 700, color: inst.interest234c > 0 ? 'var(--error)' : 'var(--success)' }}>
                           {formatCurrency(inst.interest234c)}
                         </td>
                         <td style={{ padding: '12px' }}>
@@ -826,12 +834,12 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
                               <div style={{ fontWeight: 600, fontFamily: 'monospace', fontSize: '12px' }}>
                                 Challan: {inst.challanNumber || '-'}
                               </div>
-                              <div style={{ fontSize: '11px', color: '#666' }}>
+                              <div style={{ fontSize: '11px', color: 'var(--muted)' }}>
                                 BSR: {inst.challanBsrCode || '-'} | Date: {inst.challanDate || '-'}
                               </div>
                             </div>
                           ) : (
-                            <span style={{ color: '#999', fontSize: '11px' }}>Unpaid / Pending Challan</span>
+                            <span style={{ color: 'var(--muted)', fontSize: '11px' }}>Unpaid / Pending Challan</span>
                           )}
                         </td>
                         <td style={{ padding: '12px', textAlign: 'center' }}>
@@ -842,8 +850,8 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
                                 padding: '4px 10px',
                                 borderRadius: '4px',
                                 border: '1px solid #2e7d32',
-                                background: '#e8f5e9',
-                                color: '#2e7d32',
+                                background: 'var(--success-bg)',
+                                color: 'var(--success)',
                                 fontSize: '11px',
                                 fontWeight: 600,
                                 cursor: 'pointer'
@@ -865,13 +873,13 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
 
       {/* TAB 3: Section 234A / 234B / 234C Interest Assessment */}
       {activeTab === 'interest' && (
-        <div style={{ background: '#fff', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
-          <div style={{ padding: '16px', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ background: 'var(--card)', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+          <div style={{ padding: '16px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600 }}>
                 Section 234A, 234B & 234C Statutory Interest Calculations
               </h3>
-              <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#666' }}>
+              <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: 'var(--muted)' }}>
                 Evaluates delay in filing (234A), shortfall in advance tax &lt; 90% (234B), and installment deferment (234C).
               </p>
             </div>
@@ -898,7 +906,7 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left' }}>
               <thead>
-                <tr style={{ background: '#f8f9fa', color: '#555', borderBottom: '2px solid #eee' }}>
+                <tr style={{ background: 'var(--card-subtle)', color: 'var(--text-secondary)', borderBottom: '2px solid var(--border)' }}>
                   <th style={{ padding: '12px' }}>Assessment Year</th>
                   <th style={{ padding: '12px', textAlign: 'right' }}>Assessed Tax</th>
                   <th style={{ padding: '12px', textAlign: 'right' }}>Advance Tax Paid</th>
@@ -914,44 +922,44 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
               <tbody>
                 {interestComputations.length === 0 ? (
                   <tr>
-                    <td colSpan={10} style={{ padding: '32px', textAlign: 'center', color: '#999' }}>
+                    <td colSpan={10} style={{ padding: '32px', textAlign: 'center', color: 'var(--muted)' }}>
                       No statutory interest calculations run yet. Select a plan and click "⚡ Calculate Interest".
                     </td>
                   </tr>
                 ) : (
                   interestComputations.map(c => (
-                    <tr key={c.id} style={{ borderBottom: '1px solid #eee' }}>
-                      <td style={{ padding: '12px', fontWeight: 700, color: '#1a237e' }}>{c.assessmentYear}</td>
+                    <tr key={c.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                      <td style={{ padding: '12px', fontWeight: 700, color: 'var(--accent)' }}>{c.assessmentYear}</td>
                       <td style={{ padding: '12px', textAlign: 'right', fontWeight: 600 }}>{formatCurrency(c.assessedTax)}</td>
-                      <td style={{ padding: '12px', textAlign: 'right', color: '#2e7d32', fontWeight: 600 }}>
+                      <td style={{ padding: '12px', textAlign: 'right', color: 'var(--success)', fontWeight: 600 }}>
                         {formatCurrency(c.advanceTaxPaid)}
                       </td>
                       <td style={{ padding: '12px' }}>
                         <div style={{ fontSize: '12px' }}>Due: {c.returnDueDate}</div>
-                        <div style={{ fontSize: '11px', color: '#666' }}>Filed: {c.actualReturnFilingDate}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--muted)' }}>Filed: {c.actualReturnFilingDate}</div>
                       </td>
-                      <td style={{ padding: '12px', textAlign: 'right', fontWeight: 600, color: '#c62828' }}>
+                      <td style={{ padding: '12px', textAlign: 'right', fontWeight: 600, color: 'var(--error)' }}>
                         {formatCurrency(c.interest234cTotal)}
                       </td>
-                      <td style={{ padding: '12px', textAlign: 'right', fontWeight: 600, color: '#c62828' }}>
+                      <td style={{ padding: '12px', textAlign: 'right', fontWeight: 600, color: 'var(--error)' }}>
                         {formatCurrency(c.interest234b)}
-                        <div style={{ fontSize: '10px', color: '#777' }}>
+                        <div style={{ fontSize: '10px', color: 'var(--muted)' }}>
                           {c.is234bApplicable ? `${c.monthsDelayed234b} mo @ 1%` : 'Exempt'}
                         </div>
                       </td>
-                      <td style={{ padding: '12px', textAlign: 'right', fontWeight: 600, color: '#c62828' }}>
+                      <td style={{ padding: '12px', textAlign: 'right', fontWeight: 600, color: 'var(--error)' }}>
                         {formatCurrency(c.interest234a)}
-                        <div style={{ fontSize: '10px', color: '#777' }}>
+                        <div style={{ fontSize: '10px', color: 'var(--muted)' }}>
                           {c.monthsDelayed234a > 0 ? `${c.monthsDelayed234a} mo @ 1%` : 'No delay'}
                         </div>
                       </td>
-                      <td style={{ padding: '12px', textAlign: 'right', fontWeight: 700, color: '#c62828' }}>
+                      <td style={{ padding: '12px', textAlign: 'right', fontWeight: 700, color: 'var(--error)' }}>
                         {formatCurrency(c.totalStatutoryInterest)}
                       </td>
-                      <td style={{ padding: '12px', textAlign: 'right', fontWeight: 700, color: '#1a237e' }}>
+                      <td style={{ padding: '12px', textAlign: 'right', fontWeight: 700, color: 'var(--accent)' }}>
                         {formatCurrency(c.netTaxPayable)}
                       </td>
-                      <td style={{ padding: '12px', fontSize: '11px', color: '#666' }}>
+                      <td style={{ padding: '12px', fontSize: '11px', color: 'var(--muted)' }}>
                         {new Date(c.computedAt).toLocaleString('en-IN')}
                       </td>
                     </tr>
@@ -979,7 +987,7 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
           padding: '20px'
         }}>
           <div style={{
-            background: '#fff',
+            background: 'var(--card)',
             borderRadius: '8px',
             width: '100%',
             maxWidth: '640px',
@@ -988,14 +996,14 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
             padding: '24px',
             boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #eee', paddingBottom: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid var(--border)', paddingBottom: '12px' }}>
               <div>
-                <h2 style={{ margin: 0, fontSize: '18px', color: '#1a237e' }}>
+                <h2 style={{ margin: 0, fontSize: '18px', color: 'var(--accent)' }}>
                   {editingPlanId ? 'Edit Advance Tax Plan' : 'Create Advance Tax Estimation Plan'}
                 </h2>
-                <div style={{ fontSize: '12px', color: '#666' }}>Income estimation & statutory installment setup</div>
+                <div style={{ fontSize: '12px', color: 'var(--muted)' }}>Income estimation & statutory installment setup</div>
               </div>
-              <button onClick={() => setShowPlanModal(false)} style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: '#666' }}>✕</button>
+              <button onClick={() => setShowPlanModal(false)} style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: 'var(--muted)' }}>✕</button>
             </div>
 
             <form onSubmit={handleSavePlan}>
@@ -1006,7 +1014,7 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
                     value={planForm.clientId}
                     onChange={e => setPlanForm({ ...planForm, clientId: e.target.value })}
                     required
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   >
                     {clients.map(c => (
                       <option key={c.id} value={c.id}>{c.name} ({c.code})</option>
@@ -1024,7 +1032,7 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
                         const ay = fy === '2024-25' ? '2025-26' : fy === '2023-24' ? '2024-25' : '2026-27'
                         setPlanForm({ ...planForm, financialYear: fy, assessmentYear: ay })
                       }}
-                      style={{ flex: 1, padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                      style={{ flex: 1, padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                     >
                       <option value="2024-25">FY 2024-25</option>
                       <option value="2023-24">FY 2023-24</option>
@@ -1034,7 +1042,7 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
                       type="text"
                       readOnly
                       value={planForm.assessmentYear}
-                      style={{ width: '90px', padding: '8px', borderRadius: '4px', border: '1px solid #eee', background: '#f5f5f5', textAlign: 'center' }}
+                      style={{ width: '90px', padding: '8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card-subtle)', textAlign: 'center' }}
                     />
                   </div>
                 </div>
@@ -1044,7 +1052,7 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
                   <select
                     value={planForm.regime}
                     onChange={e => setPlanForm({ ...planForm, regime: e.target.value as (typeof planForm)['regime'] })}
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   >
                     <option value="NewRegime">New Tax Regime (Section 115BAC)</option>
                     <option value="OldRegime">Old Tax Regime</option>
@@ -1077,7 +1085,7 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
                     value={planForm.estimatedGrossIncome}
                     onChange={e => setPlanForm({ ...planForm, estimatedGrossIncome: parseFloat(e.target.value) || 0 })}
                     required
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
 
@@ -1087,7 +1095,7 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
                     type="number"
                     value={planForm.estimatedDeductions}
                     onChange={e => setPlanForm({ ...planForm, estimatedDeductions: parseFloat(e.target.value) || 0 })}
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
 
@@ -1098,7 +1106,7 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
                     value={planForm.estimatedTaxBeforeCredits}
                     onChange={e => setPlanForm({ ...planForm, estimatedTaxBeforeCredits: parseFloat(e.target.value) || 0 })}
                     required
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
 
@@ -1108,7 +1116,7 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
                     type="number"
                     value={planForm.estimatedTdsTcs}
                     onChange={e => setPlanForm({ ...planForm, estimatedTdsTcs: parseFloat(e.target.value) || 0 })}
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
 
@@ -1119,23 +1127,23 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
                     value={planForm.notes || ''}
                     onChange={e => setPlanForm({ ...planForm, notes: e.target.value })}
                     placeholder="e.g. Projected turnover u/s 44AB, expected capital gains in Q3"
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                   />
                 </div>
               </div>
 
               {/* Assessed Tax Summary Banner */}
-              <div style={{ background: '#f5f5f5', padding: '12px', borderRadius: '6px', marginBottom: '16px' }}>
+              <div style={{ background: 'var(--card-subtle)', padding: '12px', borderRadius: '6px', marginBottom: '16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
                   <span>Estimated Taxable Income:</span>
                   <strong>{formatCurrency(estimatedTaxablePreview)}</strong>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', fontWeight: 700, marginTop: '4px' }}>
                   <span>Net Assessed Advance Tax Liability:</span>
-                  <span style={{ color: '#1a237e' }}>{formatCurrency(assessedTaxPreview)}</span>
+                  <span style={{ color: 'var(--accent)' }}>{formatCurrency(assessedTaxPreview)}</span>
                 </div>
                 {assessedTaxPreview < 10000 && (
-                  <div style={{ fontSize: '11px', color: '#2e7d32', marginTop: '4px' }}>
+                  <div style={{ fontSize: '11px', color: 'var(--success)', marginTop: '4px' }}>
                     ✓ Assessed tax is under ₹10,000 threshold (Section 208). Advance tax is optional / not mandatory.
                   </div>
                 )}
@@ -1145,7 +1153,7 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
                 <button
                   type="button"
                   onClick={() => setShowPlanModal(false)}
-                  style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid #ccc', background: '#fff', cursor: 'pointer' }}
+                  style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid var(--border-subtle)', background: 'var(--card)', cursor: 'pointer' }}
                 >
                   Cancel
                 </button>
@@ -1178,19 +1186,19 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
           padding: '20px'
         }}>
           <div style={{
-            background: '#fff',
+            background: 'var(--card)',
             borderRadius: '8px',
             width: '100%',
             maxWidth: '480px',
             padding: '24px',
             boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #eee', paddingBottom: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid var(--border)', paddingBottom: '12px' }}>
               <div>
-                <h2 style={{ margin: 0, fontSize: '18px', color: '#2e7d32' }}>Record ITNS 280 Advance Tax Challan</h2>
-                <div style={{ fontSize: '12px', color: '#666' }}>Installment #{selectedInstallment.installmentNumber} (Due: {selectedInstallment.dueDate})</div>
+                <h2 style={{ margin: 0, fontSize: '18px', color: 'var(--success)' }}>Record ITNS 280 Advance Tax Challan</h2>
+                <div style={{ fontSize: '12px', color: 'var(--muted)' }}>Installment #{selectedInstallment.installmentNumber} (Due: {selectedInstallment.dueDate})</div>
               </div>
-              <button onClick={() => setShowPayModal(false)} style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: '#666' }}>✕</button>
+              <button onClick={() => setShowPayModal(false)} style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: 'var(--muted)' }}>✕</button>
             </div>
 
             <form onSubmit={handleSubmitPayment}>
@@ -1202,7 +1210,7 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
                   value={payForm.amountPaid}
                   onChange={e => setPayForm({ ...payForm, amountPaid: parseFloat(e.target.value) || 0 })}
                   required
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '16px', fontWeight: 600 }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)', fontSize: '16px', fontWeight: 600 }}
                 />
               </div>
 
@@ -1214,7 +1222,7 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
                   value={payForm.challanBsrCode || ''}
                   onChange={e => setPayForm({ ...payForm, challanBsrCode: e.target.value })}
                   placeholder="e.g. 0210045"
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', fontFamily: 'monospace' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)', fontFamily: 'monospace' }}
                 />
               </div>
 
@@ -1225,7 +1233,7 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
                   value={payForm.challanNumber || ''}
                   onChange={e => setPayForm({ ...payForm, challanNumber: e.target.value })}
                   placeholder="e.g. CH-2024-001"
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', fontFamily: 'monospace' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)', fontFamily: 'monospace' }}
                 />
               </div>
 
@@ -1236,7 +1244,7 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
                   value={payForm.challanDate || ''}
                   onChange={e => setPayForm({ ...payForm, challanDate: e.target.value })}
                   required
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
 
@@ -1244,7 +1252,7 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
                 <button
                   type="button"
                   onClick={() => setShowPayModal(false)}
-                  style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid #ccc', background: '#fff', cursor: 'pointer' }}
+                  style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid var(--border-subtle)', background: 'var(--card)', cursor: 'pointer' }}
                 >
                   Cancel
                 </button>
@@ -1277,19 +1285,19 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
           padding: '20px'
         }}>
           <div style={{
-            background: '#fff',
+            background: 'var(--card)',
             borderRadius: '8px',
             width: '100%',
             maxWidth: '520px',
             padding: '24px',
             boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #eee', paddingBottom: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid var(--border)', paddingBottom: '12px' }}>
               <div>
-                <h2 style={{ margin: 0, fontSize: '18px', color: '#c62828' }}>Section 234A, 234B & 234C Calculator</h2>
-                <div style={{ fontSize: '12px', color: '#666' }}>{selectedPlan.clientName} ({selectedPlan.assessmentYear})</div>
+                <h2 style={{ margin: 0, fontSize: '18px', color: 'var(--error)' }}>Section 234A, 234B & 234C Calculator</h2>
+                <div style={{ fontSize: '12px', color: 'var(--muted)' }}>{selectedPlan.clientName} ({selectedPlan.assessmentYear})</div>
               </div>
-              <button onClick={() => setShowCalcModal(false)} style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: '#666' }}>✕</button>
+              <button onClick={() => setShowCalcModal(false)} style={{ background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: 'var(--muted)' }}>✕</button>
             </div>
 
             <form onSubmit={handleSubmitCalcInterest}>
@@ -1300,9 +1308,9 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
                   value={calcForm.returnDueDate}
                   onChange={e => setCalcForm({ ...calcForm, returnDueDate: e.target.value })}
                   required
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 />
-                <div style={{ fontSize: '11px', color: '#777', marginTop: '2px' }}>
+                <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '2px' }}>
                   Default is 31st July (non-audit) or 31st October (tax audit)
                 </div>
               </div>
@@ -1314,7 +1322,7 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
                   value={calcForm.actualReturnFilingDate}
                   onChange={e => setCalcForm({ ...calcForm, actualReturnFilingDate: e.target.value })}
                   required
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
 
@@ -1325,15 +1333,15 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
                   step="0.01"
                   value={calcForm.selfAssessmentTaxPaid}
                   onChange={e => setCalcForm({ ...calcForm, selfAssessmentTaxPaid: parseFloat(e.target.value) || 0 })}
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
                 />
               </div>
 
-              <div style={{ background: '#f5f5f5', padding: '12px', borderRadius: '6px', marginBottom: '16px' }}>
-                <div style={{ fontSize: '12px', color: '#333' }}>
+              <div style={{ background: 'var(--card-subtle)', padding: '12px', borderRadius: '6px', marginBottom: '16px' }}>
+                <div style={{ fontSize: '12px', color: 'var(--text)' }}>
                   Assessed Tax: <strong>{formatCurrency(selectedPlan.assessedTax)}</strong> | Advance Tax Paid: <strong>{formatCurrency(selectedPlan.totalAdvanceTaxPaid)}</strong>
                 </div>
-                <div style={{ fontSize: '11px', color: '#666', marginTop: '2px' }}>
+                <div style={{ fontSize: '11px', color: 'var(--muted)', marginTop: '2px' }}>
                   Section 234B applies if advance tax is &lt; 90% ({formatCurrency(selectedPlan.assessedTax * 0.9)}).
                 </div>
               </div>
@@ -1342,7 +1350,7 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
                 <button
                   type="button"
                   onClick={() => setShowCalcModal(false)}
-                  style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid #ccc', background: '#fff', cursor: 'pointer' }}
+                  style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid var(--border-subtle)', background: 'var(--card)', cursor: 'pointer' }}
                 >
                   Cancel
                 </button>
@@ -1362,22 +1370,22 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
       {/* AIS Import to Advance Tax Plan Modal */}
       {showAisModal && selectedPlan && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-          <div style={{ background: '#FFFFFF', padding: '24px', borderRadius: '12px', width: '600px', maxWidth: '95%' }}>
+          <div style={{ background: 'var(--card)', padding: '24px', borderRadius: '12px', width: '600px', maxWidth: '95%' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#111827' }}>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: 'var(--text)' }}>
                 Import AIS / 26AS JSON to Advance Tax Plan
               </h3>
               <button onClick={() => setShowAisModal(false)} style={{ background: 'transparent', border: 'none', fontSize: '18px', cursor: 'pointer' }}>✕</button>
             </div>
 
-            <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#555' }}>
+            <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: 'var(--text-secondary)' }}>
               Target Plan: <strong>{selectedPlan.clientName} ({selectedPlan.financialYear})</strong>. Paste the CBDT AIS JSON to update estimated income, TDS credits, and advance tax challans directly from the income-tax portal.
             </p>
 
             <form onSubmit={handleImportAis}>
               <div style={{ marginBottom: '16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                  <label style={{ fontSize: '12px', fontWeight: 600, color: '#333' }}>AIS JSON Content</label>
+                  <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text)' }}>AIS JSON Content</label>
                   <button
                     type="button"
                     onClick={() => setAisPayload(`{
@@ -1387,7 +1395,7 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
   "interest": [{ "amount": 75000, "tds": 5000 }],
   "taxPayments": [{ "minorHead": "Advance Tax (100)", "bsrCode": "0210045", "challanNumber": "88192", "tenderDate": "2024-06-14", "amount": 50000 }]
 }`)}
-                    style={{ background: 'transparent', border: 'none', color: '#1a237e', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
+                    style={{ background: 'transparent', border: 'none', color: 'var(--accent)', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
                   >
                     Load Sample JSON
                   </button>
@@ -1397,7 +1405,7 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
                   value={aisPayload}
                   onChange={e => setAisPayload(e.target.value)}
                   placeholder="Paste AIS JSON here..."
-                  style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '12px', fontFamily: 'monospace' }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid var(--border-subtle)', fontSize: '12px', fontFamily: 'monospace' }}
                   required
                 />
               </div>
@@ -1406,7 +1414,7 @@ export const AdvanceTaxPage: React.FC<AdvanceTaxPageProps> = ({ can }) => {
                 <button
                   type="button"
                   onClick={() => setShowAisModal(false)}
-                  style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid #ccc', background: '#fff', cursor: 'pointer' }}
+                  style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid var(--border-subtle)', background: 'var(--card)', cursor: 'pointer' }}
                 >
                   Cancel
                 </button>

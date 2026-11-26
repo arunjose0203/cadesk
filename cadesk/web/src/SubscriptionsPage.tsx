@@ -103,18 +103,18 @@ export function SubscriptionsPage({ onDemoSeeded }: { onDemoSeeded?: () => void 
   }
 
   if (loading) {
-    return <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Loading subscription details...</div>
+    return <div style={{ padding: '40px', textAlign: 'center', color: 'var(--muted)' }}>Loading subscription details...</div>
   }
 
   return (
-    <div style={{ padding: '28px', maxWidth: '1360px', margin: '0 auto', color: '#1e293b' }}>
+    <div style={{ padding: '28px', maxWidth: '1360px', margin: '0 auto', color: 'var(--text)' }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '14px' }}>
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 700, margin: '0 0 4px 0', color: '#0f172a' }}>
+          <h1 style={{ fontSize: '24px', fontWeight: 700, margin: '0 0 4px 0', color: 'var(--text)' }}>
             💳 Subscription, Licensing &amp; Firm Plan
           </h1>
-          <p style={{ fontSize: '13px', color: '#64748b', margin: 0 }}>
+          <p style={{ fontSize: '13px', color: 'var(--muted)', margin: 0 }}>
             Manage your firm's CaDesk SaaS subscription tier, member capacities, and official GST tax invoices (SAC 998311).
           </p>
         </div>
@@ -123,7 +123,7 @@ export function SubscriptionsPage({ onDemoSeeded }: { onDemoSeeded?: () => void 
             <button
               onClick={handlePurgeDemoData}
               disabled={purgingDemo}
-              style={{ padding: '8px 16px', background: '#fee2e2', color: '#b91c1c', border: '1px solid #fca5a5', borderRadius: '6px', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}
+              style={{ padding: '8px 16px', background: 'var(--error-bg)', color: 'var(--error)', border: '1px solid var(--error-border)', borderRadius: '6px', fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}
             >
               {purgingDemo ? 'Clearing...' : '🗑️ Clear Sample Demo Clients'}
             </button>
@@ -131,7 +131,7 @@ export function SubscriptionsPage({ onDemoSeeded }: { onDemoSeeded?: () => void 
             <button
               onClick={handleSeedDemoData}
               disabled={seedingDemo}
-              style={{ padding: '8px 16px', background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', borderRadius: '6px', fontWeight: 600, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+              style={{ padding: '8px 16px', background: 'var(--success-bg)', color: 'var(--success-text)', border: '1px solid var(--success-border)', borderRadius: '6px', fontWeight: 600, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
             >
               <span>{seedingDemo ? 'Seeding Workspace...' : '⚡ Pre-load Sample CA Firm (1-Click Demo)'}</span>
             </button>
@@ -141,17 +141,17 @@ export function SubscriptionsPage({ onDemoSeeded }: { onDemoSeeded?: () => void 
 
       {/* Error notification banner */}
       {error && (
-        <div style={{ padding: '12px 16px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', marginBottom: '20px', color: '#991b1b', fontSize: '13px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ padding: '12px 16px', background: 'var(--error-bg)', border: '1px solid var(--error-border)', borderRadius: '8px', marginBottom: '20px', color: 'var(--error-text)', fontSize: '13px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>⚠️ {error}</div>
-          <button onClick={() => setError(null)} style={{ background: 'none', border: 'none', color: '#991b1b', cursor: 'pointer', fontWeight: 700 }}>✕</button>
+          <button onClick={() => setError(null)} style={{ background: 'none', border: 'none', color: 'var(--error-text)', cursor: 'pointer', fontWeight: 700 }}>✕</button>
         </div>
       )}
 
       {/* Demo notification banner */}
       {demoMessage && (
-        <div style={{ padding: '12px 16px', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '8px', marginBottom: '20px', color: '#166534', fontSize: '13px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ padding: '12px 16px', background: 'var(--success-bg)', border: '1px solid #86efac', borderRadius: '8px', marginBottom: '20px', color: 'var(--success-text)', fontSize: '13px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>{demoMessage}</div>
-          <button onClick={() => setDemoMessage(null)} style={{ background: 'none', border: 'none', color: '#166534', cursor: 'pointer', fontWeight: 700 }}>✕</button>
+          <button onClick={() => setDemoMessage(null)} style={{ background: 'none', border: 'none', color: 'var(--success-text)', cursor: 'pointer', fontWeight: 700 }}>✕</button>
         </div>
       )}
 
@@ -176,7 +176,7 @@ export function SubscriptionsPage({ onDemoSeeded }: { onDemoSeeded?: () => void 
                   fontWeight: 700,
                   textTransform: 'uppercase',
                   background: status.isTrialActive ? '#fef08a' : '#bbf7d0',
-                  color: status.isTrialActive ? '#854d0e' : '#166534'
+                  color: status.isTrialActive ? '#854d0e' : 'var(--success-text)'
                 }}>
                   {status.isTrialActive ? `Free Trial • ${status.daysRemainingInTrial} Days Remaining` : status.status}
                 </span>
@@ -207,36 +207,36 @@ export function SubscriptionsPage({ onDemoSeeded }: { onDemoSeeded?: () => void 
       {/* Usage vs Limits Grid */}
       {status && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '32px' }}>
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '18px' }}>
-            <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Licensed Staff Seats</div>
-            <div style={{ fontSize: '24px', fontWeight: 700, color: '#0f172a', margin: '6px 0 2px 0' }}>
-              {status.currentUsersCount} <span style={{ fontSize: '14px', color: '#94a3b8', fontWeight: 400 }}>/ {status.userLimit === -1 ? 'Unlimited' : status.userLimit}</span>
+          <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '18px' }}>
+            <div style={{ fontSize: '12px', color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase' }}>Licensed Staff Seats</div>
+            <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text)', margin: '6px 0 2px 0' }}>
+              {status.currentUsersCount} <span style={{ fontSize: '14px', color: 'var(--muted)', fontWeight: 400 }}>/ {status.userLimit === -1 ? 'Unlimited' : status.userLimit}</span>
             </div>
-            <div style={{ fontSize: '11px', color: '#64748b' }}>Active firm partners and article assistants</div>
+            <div style={{ fontSize: '11px', color: 'var(--muted)' }}>Active firm partners and article assistants</div>
           </div>
 
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '18px' }}>
-            <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Client Entities Capacity</div>
-            <div style={{ fontSize: '24px', fontWeight: 700, color: '#0f172a', margin: '6px 0 2px 0' }}>
-              {status.currentClientsCount} <span style={{ fontSize: '14px', color: '#94a3b8', fontWeight: 400 }}>/ {status.clientLimit === -1 ? 'Unlimited' : status.clientLimit}</span>
+          <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '18px' }}>
+            <div style={{ fontSize: '12px', color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase' }}>Client Entities Capacity</div>
+            <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text)', margin: '6px 0 2px 0' }}>
+              {status.currentClientsCount} <span style={{ fontSize: '14px', color: 'var(--muted)', fontWeight: 400 }}>/ {status.clientLimit === -1 ? 'Unlimited' : status.clientLimit}</span>
             </div>
-            <div style={{ fontSize: '11px', color: '#64748b' }}>Registered companies, LLPs, and firms</div>
+            <div style={{ fontSize: '11px', color: 'var(--muted)' }}>Registered companies, LLPs, and firms</div>
           </div>
 
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '18px' }}>
-            <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Active Statutory Audits</div>
-            <div style={{ fontSize: '24px', fontWeight: 700, color: '#0f172a', margin: '6px 0 2px 0' }}>
-              {status.activeAuditsCount} <span style={{ fontSize: '14px', color: '#94a3b8', fontWeight: 400 }}>/ {status.activeAuditsLimit === -1 ? 'Unlimited' : status.activeAuditsLimit}</span>
+          <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '18px' }}>
+            <div style={{ fontSize: '12px', color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase' }}>Active Statutory Audits</div>
+            <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text)', margin: '6px 0 2px 0' }}>
+              {status.activeAuditsCount} <span style={{ fontSize: '14px', color: 'var(--muted)', fontWeight: 400 }}>/ {status.activeAuditsLimit === -1 ? 'Unlimited' : status.activeAuditsLimit}</span>
             </div>
-            <div style={{ fontSize: '11px', color: '#64748b' }}>Statutory &amp; tax audit engagements</div>
+            <div style={{ fontSize: '11px', color: 'var(--muted)' }}>Statutory &amp; tax audit engagements</div>
           </div>
 
-          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '18px' }}>
-            <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Sample Workspace</div>
-            <div style={{ fontSize: '16px', fontWeight: 700, color: status.isDemoDataSeeded ? '#15803d' : '#64748b', margin: '10px 0 2px 0' }}>
+          <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '18px' }}>
+            <div style={{ fontSize: '12px', color: 'var(--muted)', fontWeight: 600, textTransform: 'uppercase' }}>Sample Workspace</div>
+            <div style={{ fontSize: '16px', fontWeight: 700, color: status.isDemoDataSeeded ? 'var(--success)' : 'var(--muted)', margin: '10px 0 2px 0' }}>
               {status.isDemoDataSeeded ? '✅ Demo Data Active' : 'Clean Slate (No Demo)'}
             </div>
-            <div style={{ fontSize: '11px', color: '#64748b' }}>Apex Global &amp; Bharat Steel sample audits</div>
+            <div style={{ fontSize: '11px', color: 'var(--muted)' }}>Apex Global &amp; Bharat Steel sample audits</div>
           </div>
         </div>
       )}
@@ -248,9 +248,9 @@ export function SubscriptionsPage({ onDemoSeeded }: { onDemoSeeded?: () => void 
           style={{
             padding: '8px 18px',
             borderRadius: '20px',
-            border: '1px solid #cbd5e1',
-            background: billingInterval === 'Monthly' ? '#2563eb' : '#fff',
-            color: billingInterval === 'Monthly' ? '#fff' : '#64748b',
+            border: '1px solid var(--border-subtle)',
+            background: billingInterval === 'Monthly' ? '#2563eb' : 'var(--card)',
+            color: billingInterval === 'Monthly' ? '#fff' : 'var(--muted)',
             fontWeight: 600,
             fontSize: '13px',
             cursor: 'pointer'
@@ -263,9 +263,9 @@ export function SubscriptionsPage({ onDemoSeeded }: { onDemoSeeded?: () => void 
           style={{
             padding: '8px 18px',
             borderRadius: '20px',
-            border: '1px solid #cbd5e1',
-            background: billingInterval === 'Annual' ? '#2563eb' : '#fff',
-            color: billingInterval === 'Annual' ? '#fff' : '#64748b',
+            border: '1px solid var(--border-subtle)',
+            background: billingInterval === 'Annual' ? '#2563eb' : 'var(--card)',
+            color: billingInterval === 'Annual' ? '#fff' : 'var(--muted)',
             fontWeight: 600,
             fontSize: '13px',
             cursor: 'pointer',
@@ -290,8 +290,8 @@ export function SubscriptionsPage({ onDemoSeeded }: { onDemoSeeded?: () => void 
             <div
               key={p.tierCode}
               style={{
-                background: '#fff',
-                border: p.isPopular ? '2px solid #2563eb' : '1px solid #e2e8f0',
+                background: 'var(--card)',
+                border: p.isPopular ? '2px solid var(--accent)' : '1px solid var(--border)',
                 borderRadius: '12px',
                 padding: '24px',
                 display: 'flex',
@@ -308,13 +308,13 @@ export function SubscriptionsPage({ onDemoSeeded }: { onDemoSeeded?: () => void 
               )}
 
               <div>
-                <h3 style={{ fontSize: '18px', fontWeight: 700, margin: '0 0 6px 0', color: '#0f172a' }}>{p.displayName}</h3>
-                <p style={{ fontSize: '12px', color: '#64748b', minHeight: '36px', margin: '0 0 16px 0' }}>{p.description}</p>
+                <h3 style={{ fontSize: '18px', fontWeight: 700, margin: '0 0 6px 0', color: 'var(--text)' }}>{p.displayName}</h3>
+                <p style={{ fontSize: '12px', color: 'var(--muted)', minHeight: '36px', margin: '0 0 16px 0' }}>{p.description}</p>
 
-                <div style={{ margin: '16px 0', borderBottom: '1px solid #f1f5f9', paddingBottom: '16px' }}>
-                  <div style={{ fontSize: '32px', fontWeight: 800, color: '#0f172a' }}>
+                <div style={{ margin: '16px 0', borderBottom: '1px solid var(--border)', paddingBottom: '16px' }}>
+                  <div style={{ fontSize: '32px', fontWeight: 800, color: 'var(--text)' }}>
                     {fmtInr(perMonthEquiv)}
-                    <span style={{ fontSize: '13px', fontWeight: 400, color: '#64748b' }}> / month</span>
+                    <span style={{ fontSize: '13px', fontWeight: 400, color: 'var(--muted)' }}> / month</span>
                   </div>
                   {billingInterval === 'Annual' && (
                     <div style={{ fontSize: '11px', color: '#16a34a', fontWeight: 600, marginTop: '2px' }}>
@@ -324,8 +324,8 @@ export function SubscriptionsPage({ onDemoSeeded }: { onDemoSeeded?: () => void 
                 </div>
 
                 <div style={{ marginBottom: '20px' }}>
-                  <div style={{ fontSize: '12px', fontWeight: 600, color: '#334155', marginBottom: '8px' }}>Capacity Limits:</div>
-                  <div style={{ fontSize: '12px', color: '#475569', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px' }}>Capacity Limits:</div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                     <div>👥 <strong>{p.userLimit === -1 ? 'Unlimited' : p.userLimit}</strong> staff &amp; partner seats</div>
                     <div>🏢 <strong>{p.clientLimit === -1 ? 'Unlimited' : p.clientLimit}</strong> client entities</div>
                     <div>📑 <strong>{p.activeAuditsLimit === -1 ? 'Unlimited' : p.activeAuditsLimit}</strong> concurrent audit engagements</div>
@@ -333,8 +333,8 @@ export function SubscriptionsPage({ onDemoSeeded }: { onDemoSeeded?: () => void 
                 </div>
 
                 <div>
-                  <div style={{ fontSize: '12px', fontWeight: 600, color: '#334155', marginBottom: '8px' }}>Included Capabilities:</div>
-                  <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '12px', color: '#334155' }}>
+                  <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px' }}>Included Capabilities:</div>
+                  <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '12px', color: 'var(--text-secondary)' }}>
                     {p.includedFeatures.map((f, idx) => (
                       <li key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
                         <span style={{ color: '#16a34a', fontWeight: 700 }}>✓</span>
@@ -354,8 +354,8 @@ export function SubscriptionsPage({ onDemoSeeded }: { onDemoSeeded?: () => void 
                     padding: '12px',
                     borderRadius: '6px',
                     border: 'none',
-                    background: isCurrent && !status?.isTrialActive ? '#f1f5f9' : (p.isPopular ? '#2563eb' : '#0f172a'),
-                    color: isCurrent && !status?.isTrialActive ? '#94a3b8' : '#fff',
+                    background: isCurrent && !status?.isTrialActive ? 'var(--card-subtle)' : (p.isPopular ? '#2563eb' : '#0f172a'),
+                    color: isCurrent && !status?.isTrialActive ? 'var(--muted)' : '#fff',
                     fontWeight: 700,
                     fontSize: '13px',
                     cursor: isCurrent && !status?.isTrialActive ? 'default' : 'pointer'
@@ -370,19 +370,19 @@ export function SubscriptionsPage({ onDemoSeeded }: { onDemoSeeded?: () => void 
       </div>
 
       {/* Subscription Invoices History */}
-      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '20px' }}>
-        <h3 style={{ fontSize: '16px', fontWeight: 600, margin: '0 0 14px 0', color: '#0f172a' }}>
+      <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '20px' }}>
+        <h3 style={{ fontSize: '16px', fontWeight: 600, margin: '0 0 14px 0', color: 'var(--text)' }}>
           📄 Tax Invoices &amp; Payment History (SAC 998311)
         </h3>
         {invoices.length === 0 ? (
-          <div style={{ padding: '24px', textAlign: 'center', color: '#64748b', fontSize: '13px' }}>
+          <div style={{ padding: '24px', textAlign: 'center', color: 'var(--muted)', fontSize: '13px' }}>
             No paid subscription invoices generated yet. Invoices with 18% GST credit will appear here upon plan upgrade.
           </div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
               <thead>
-                <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0', color: '#475569', textAlign: 'left' }}>
+                <tr style={{ background: 'var(--card-subtle)', borderBottom: '2px solid var(--border)', color: 'var(--text-secondary)', textAlign: 'left' }}>
                   <th style={{ padding: '10px 12px' }}>Invoice #</th>
                   <th style={{ padding: '10px 12px' }}>Date</th>
                   <th style={{ padding: '10px 12px' }}>Plan &amp; Interval</th>
@@ -395,16 +395,16 @@ export function SubscriptionsPage({ onDemoSeeded }: { onDemoSeeded?: () => void 
               </thead>
               <tbody>
                 {invoices.map(inv => (
-                  <tr key={inv.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                  <tr key={inv.id} style={{ borderBottom: '1px solid var(--border)' }}>
                     <td style={{ padding: '10px 12px', fontWeight: 600, fontFamily: 'monospace' }}>{inv.invoiceNumber}</td>
                     <td style={{ padding: '10px 12px' }}>{inv.invoiceDate}</td>
                     <td style={{ padding: '10px 12px' }}>{inv.planTier} ({inv.billingInterval})</td>
                     <td style={{ padding: '10px 12px', textAlign: 'right' }}>{fmtInr(inv.baseAmount)}</td>
                     <td style={{ padding: '10px 12px', textAlign: 'right' }}>{fmtInr(inv.cgstAmount + inv.sgstAmount + inv.igstAmount)}</td>
-                    <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: '#0f172a' }}>{fmtInr(inv.totalAmount)}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: 'var(--text)' }}>{fmtInr(inv.totalAmount)}</td>
                     <td style={{ padding: '10px 12px' }}>{inv.paymentMethod}</td>
                     <td style={{ padding: '10px 12px' }}>
-                      <span style={{ padding: '2px 8px', borderRadius: '10px', background: '#dcfce7', color: '#15803d', fontWeight: 600, fontSize: '11px' }}>
+                      <span style={{ padding: '2px 8px', borderRadius: '10px', background: 'var(--success-bg)', color: 'var(--success)', fontWeight: 600, fontSize: '11px' }}>
                         {inv.paymentStatus}
                       </span>
                     </td>
@@ -419,11 +419,11 @@ export function SubscriptionsPage({ onDemoSeeded }: { onDemoSeeded?: () => void 
       {/* Checkout / Upgrade Modal */}
       {selectedPlanForUpgrade && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: '#fff', borderRadius: '10px', width: '520px', padding: '24px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+          <div style={{ background: 'var(--card)', borderRadius: '10px', width: '520px', padding: '24px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
             <h3 style={{ margin: '0 0 6px 0', fontSize: '18px', color: '#1e3a8a' }}>
               Confirm Plan Upgrade: {selectedPlanForUpgrade.displayName}
             </h3>
-            <p style={{ fontSize: '12px', color: '#64748b', margin: '0 0 16px 0' }}>
+            <p style={{ fontSize: '12px', color: 'var(--muted)', margin: '0 0 16px 0' }}>
               Select payment method to activate your firm's SaaS license with statutory GST tax invoice.
             </p>
 
@@ -433,16 +433,16 @@ export function SubscriptionsPage({ onDemoSeeded }: { onDemoSeeded?: () => void 
               const total = base + gst
 
               return (
-                <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '16px', fontSize: '13px' }}>
+                <div style={{ background: 'var(--card-subtle)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border)', marginBottom: '16px', fontSize: '13px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                     <span>Base Subscription ({billingInterval}):</span>
                     <strong>{fmtInr(base)}</strong>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', color: '#64748b' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', color: 'var(--muted)' }}>
                     <span>GST @ 18% (SAC 998311 IT Software):</span>
                     <span>{fmtInr(gst)}</span>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #cbd5e1', paddingTop: '8px', marginTop: '6px', fontSize: '15px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border-subtle)', paddingTop: '8px', marginTop: '6px', fontSize: '15px' }}>
                     <span style={{ fontWeight: 700 }}>Total Payable:</span>
                     <strong style={{ color: '#1e3a8a' }}>{fmtInr(total)}</strong>
                   </div>
@@ -455,7 +455,7 @@ export function SubscriptionsPage({ onDemoSeeded }: { onDemoSeeded?: () => void 
               <select
                 value={paymentMethod}
                 onChange={e => setPaymentMethod(e.target.value)}
-                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}
               >
                 <option value="UPI AutoPay">UPI AutoPay (Google Pay / PhonePe / Paytm) - Recommended</option>
                 <option value="NetBanking">NetBanking (HDFC / ICICI / SBI / Axis)</option>
@@ -474,12 +474,12 @@ export function SubscriptionsPage({ onDemoSeeded }: { onDemoSeeded?: () => void 
                 value={firmGstin}
                 onChange={e => setFirmGstin(e.target.value.toUpperCase())}
                 placeholder="27AABCS1234F1Z8"
-                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #cbd5e1', fontFamily: 'monospace' }}
+                style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-subtle)', fontFamily: 'monospace' }}
               />
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-              <button onClick={() => setSelectedPlanForUpgrade(null)} style={{ padding: '8px 16px', background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={() => setSelectedPlanForUpgrade(null)} style={{ padding: '8px 16px', background: 'var(--card-subtle)', border: '1px solid var(--border-subtle)', borderRadius: '4px', cursor: 'pointer' }}>Cancel</button>
               <button
                 onClick={handleUpgrade}
                 disabled={upgrading}

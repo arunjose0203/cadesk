@@ -159,7 +159,7 @@ public class NotificationTests(ApiFactory api) : IClassFixture<ApiFactory>
         Assert.Single(digests);
         Assert.Contains("GSTR", digests[0].Body);
         await Run(c);
-        Assert.Single((await Log(c)).Where(n => n.TemplateKey == "staff.daily_digest"));
+        Assert.Single(await Log(c), n => n.TemplateKey == "staff.daily_digest");
     }
 
     [Fact]

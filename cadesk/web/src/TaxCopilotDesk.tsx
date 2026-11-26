@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   toError,
   taxCopilotApi,
@@ -133,11 +133,54 @@ export function TaxCopilotDesk({ can, initialNoticeId, onOpenNoticeLedger }: Tax
   const [showPreviewModal, setShowPreviewModal] = useState(false)
   const [previewHtml, setPreviewHtml] = useState('')
 
+  const loadClients = useCallback(async () => {
+    try {
+      const res = await api<ClientPage>('/api/clients?pageSize=100')
+      setClients(res.items || [])
+      if (res.items && res.items.length > 0) {
+        setSelectedClientId(prev => prev || res.items[0].id)
+      }
+    } catch {
+      // client load optional
+    }
+  }, [])
+
+  const populateDraftFields = useCallback((draft: TaxDefenseDraftDto) => {
+    setDraftTitle(draft.title)
+    setDraftSubject(draft.subject)
+    setDraftAddressedTo(draft.addressedTo)
+    setDraftObjections(draft.preliminaryObjections || [])
+    setDraftFacts(draft.factualMatrix || [])
+    setDraftGrounds(draft.meritGrounds || [])
+    setDraftPrecedents(draft.citedPrecedents || [])
+    setDraftPrayer(draft.prayerForRelief)
+    setDraftAnnexures(draft.annexureIndex || [])
+  }, [])
+
+  const loadDraftsForNotice = useCallback(async (noticeId: string) => {
+    if (!noticeId) return
+    setLoading(true)
+    try {
+      const drafts = await taxCopilotApi.getNoticeDrafts(noticeId)
+      setNoticeDrafts(drafts)
+      if (drafts.length > 0) {
+        setActiveDraft(drafts[0])
+        populateDraftFields(drafts[0])
+      } else {
+        setActiveDraft(null)
+      }
+    } catch (err) {
+      setError(toError(err).message)
+    } finally {
+      setLoading(false)
+    }
+  }, [populateDraftFields])
+
   useEffect(() => {
     loadClients()
     loadNotices()
     loadPrecedents()
-  }, [])
+  }, [loadClients])
 
   useEffect(() => {
     if (initialNoticeId) {
@@ -145,19 +188,7 @@ export function TaxCopilotDesk({ can, initialNoticeId, onOpenNoticeLedger }: Tax
       loadDraftsForNotice(initialNoticeId)
       setActiveTab('drafter')
     }
-  }, [initialNoticeId])
-
-  async function loadClients() {
-    try {
-      const res = await api<ClientPage>('/api/clients?pageSize=100')
-      setClients(res.items || [])
-      if (res.items && res.items.length > 0 && !selectedClientId) {
-        setSelectedClientId(res.items[0].id)
-      }
-    } catch {
-      // client load optional
-    }
-  }
+  }, [initialNoticeId, loadDraftsForNotice])
 
   async function loadNotices() {
     try {
@@ -273,37 +304,6 @@ export function TaxCopilotDesk({ can, initialNoticeId, onOpenNoticeLedger }: Tax
     } finally {
       setLoading(false)
     }
-  }
-
-  async function loadDraftsForNotice(noticeId: string) {
-    if (!noticeId) return
-    setLoading(true)
-    try {
-      const drafts = await taxCopilotApi.getNoticeDrafts(noticeId)
-      setNoticeDrafts(drafts)
-      if (drafts.length > 0) {
-        setActiveDraft(drafts[0])
-        populateDraftFields(drafts[0])
-      } else {
-        setActiveDraft(null)
-      }
-    } catch (err) {
-      setError(toError(err).message)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  function populateDraftFields(draft: TaxDefenseDraftDto) {
-    setDraftTitle(draft.title)
-    setDraftSubject(draft.subject)
-    setDraftAddressedTo(draft.addressedTo)
-    setDraftObjections(draft.preliminaryObjections || [])
-    setDraftFacts(draft.factualMatrix || [])
-    setDraftGrounds(draft.meritGrounds || [])
-    setDraftPrecedents(draft.citedPrecedents || [])
-    setDraftPrayer(draft.prayerForRelief)
-    setDraftAnnexures(draft.annexureIndex || [])
   }
 
   async function handleCreateNewDraftForNotice() {

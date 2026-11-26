@@ -138,8 +138,6 @@ public static class SystemEndpoints
             var gen2 = GC.CollectionCount(2);
 
             var dbConnected = 0;
-            int totalFirms = 0;
-            int totalClients = 0;
 
             try
             {
@@ -148,8 +146,6 @@ public static class SystemEndpoints
                 if (await db.Database.CanConnectAsync(ct))
                 {
                     dbConnected = 1;
-                    totalFirms = await db.Firms.CountAsync(ct);
-                    totalClients = await db.Clients.CountAsync(ct);
                 }
             }
             catch
@@ -190,15 +186,6 @@ public static class SystemEndpoints
             sb.AppendLine("# HELP cadesk_database_up Indicates if the primary database is reachable (1 for up, 0 for down)");
             sb.AppendLine("# TYPE cadesk_database_up gauge");
             sb.AppendLine($"cadesk_database_up {dbConnected}");
-
-            // Business platform metrics
-            sb.AppendLine("# HELP cadesk_tenants_total Total registered CA accounting firms");
-            sb.AppendLine("# TYPE cadesk_tenants_total gauge");
-            sb.AppendLine($"cadesk_tenants_total {totalFirms}");
-
-            sb.AppendLine("# HELP cadesk_clients_total Total client entities managed on platform");
-            sb.AppendLine("# TYPE cadesk_clients_total gauge");
-            sb.AppendLine($"cadesk_clients_total {totalClients}");
 
             context.Response.ContentType = "text/plain; version=0.0.4; charset=utf-8";
             await context.Response.WriteAsync(sb.ToString(), ct);

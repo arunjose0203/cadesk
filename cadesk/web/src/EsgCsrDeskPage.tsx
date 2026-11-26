@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, type FormEvent } from 'react'
+import { useState, useEffect, useMemo, useCallback, type FormEvent } from 'react'
 import {
   esgCsrApi,
   errorMessage,
@@ -136,48 +136,36 @@ export function EsgCsrDeskPage() {
   const [certMembershipNo, setCertMembershipNo] = useState('094832')
   const [certUdin, setCertUdin] = useState('25094832AAAAES2025')
 
-  // Initial load
-  useEffect(() => {
-    loadClients()
-    loadAssessments()
-    loadBrsrReports()
-  }, [])
-
-  useEffect(() => {
-    if (selectedAssessmentId) {
-      loadAssessmentDetail(selectedAssessmentId)
-    }
-  }, [selectedAssessmentId])
-
-  async function loadClients() {
+  const loadClients = useCallback(async () => {
     try {
       const res = await api<ClientPage>('/api/clients?pageSize=100')
       setClients(res.items || [])
-      if (res.items && res.items.length > 0 && !formAssessmentClient) {
-        setFormAssessmentClient(res.items[0].id)
-        setBrsrClient(res.items[0].id)
+      if (res.items && res.items.length > 0) {
+        const firstId = res.items[0].id
+        setFormAssessmentClient(prev => prev || firstId)
+        setBrsrClient(prev => prev || firstId)
       }
     } catch (err: unknown) {
       console.error('Error loading clients:', err)
     }
-  }
+  }, [])
 
-  async function loadAssessments(clientId?: string) {
+  const loadAssessments = useCallback(async (clientId?: string) => {
     setLoading(true)
     try {
       const res = await esgCsrApi.getAssessments(clientId)
       setAssessments(res)
-      if (res.length > 0 && !selectedAssessmentId) {
-        setSelectedAssessmentId(res[0].id)
+      if (res.length > 0) {
+        setSelectedAssessmentId(prev => prev || res[0].id)
       }
     } catch (err: unknown) {
       setErrorMsg(errorMessage(err, 'Failed to load CSR assessments'))
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  async function loadAssessmentDetail(id: string) {
+  const loadAssessmentDetail = async (id: string) => {
     setLoading(true)
     try {
       const res = await esgCsrApi.getAssessment(id)
@@ -189,17 +177,30 @@ export function EsgCsrDeskPage() {
     }
   }
 
-  async function loadBrsrReports(clientId?: string) {
+  const loadBrsrReports = useCallback(async (clientId?: string) => {
     try {
       const res = await esgCsrApi.getBrsrReports(clientId)
       setBrsrReports(res)
-      if (res.length > 0 && !currentBrsrReport) {
-        setCurrentBrsrReport(res[0])
+      if (res.length > 0) {
+        setCurrentBrsrReport(prev => prev || res[0])
       }
     } catch (err: unknown) {
       console.error('Failed to load BRSR reports:', err)
     }
-  }
+  }, [])
+
+  // Initial load
+  useEffect(() => {
+    loadClients()
+    loadAssessments()
+    loadBrsrReports()
+  }, [loadClients, loadAssessments, loadBrsrReports])
+
+  useEffect(() => {
+    if (selectedAssessmentId) {
+      loadAssessmentDetail(selectedAssessmentId)
+    }
+  }, [selectedAssessmentId])
 
   async function handleRunInteractiveCalc(e?: FormEvent) {
     if (e) e.preventDefault()
