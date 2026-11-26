@@ -49,7 +49,7 @@ type ClientPage = {
   total: number
 }
 
-export function ForeignRemittancePage() {
+export function ForeignRemittancePage({ can: _can }: { can?: (p: string) => boolean }) {
   // Main Desk Tabs
   const [deskTab, setDeskTab] = useState<'remittances' | 'form15cb-vault' | 'dtaa-mfn-pe' | 'rbi-firms' | 'rbi-fla'>('remittances')
 
@@ -1186,7 +1186,7 @@ export function ForeignRemittancePage() {
                   onChange={e => {
                     const t = e.target.value as FirmsFilingType | ''
                     setSelectedFirmsType(t)
-                    foreignRemittanceApi.getFirmsFilings(undefined, t || undefined).then(setFirmsFilings).catch(() => {})
+                    foreignRemittanceApi.getFirmsFilings(undefined, t || undefined).then(setFirmsFilings).catch(() => { })
                   }}
                   className="p-1.5 border rounded text-xs bg-slate-50"
                 >
