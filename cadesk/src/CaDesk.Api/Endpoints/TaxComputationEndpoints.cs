@@ -70,6 +70,38 @@ public static class TaxComputationEndpoints
             return Results.Ok(result);
         }).RequirePermission(Perms.ComputationsRun);
 
+        // Business Tax (ITR-5 Firm/LLP & ITR-6 Company) Prefill, Preview, Save & Official Schema Exports
+        g.MapPost("/business/prefill", async (BusinessPrefillRequest req, TaxComputationService svc, CancellationToken ct) =>
+        {
+            var prefill = await svc.PrefillBusinessAsync(req.ClientId, req.FinancialYear, req.AssessmentYear, req.EntityType, ct);
+            return Results.Ok(prefill);
+        }).RequirePermission(Perms.ComputationsRun);
+
+        g.MapPost("/business/preview", async (CalculateBusinessTaxRequest req, TaxComputationService svc) =>
+        {
+            var result = await svc.PreviewBusinessAsync(req);
+            return Results.Ok(result);
+        }).RequirePermission(Perms.ComputationsRun);
+
+        g.MapPost("/business/computations", async (CalculateBusinessTaxRequest req, ClaimsPrincipal user, TaxComputationService svc, CancellationToken ct) =>
+        {
+            var userId = user.RequiredUserId();
+            var saved = await svc.SaveBusinessComputationAsync(req, userId, ct);
+            return Results.Created($"/api/tax/computations/{saved.Id}", saved);
+        }).RequirePermission(Perms.ComputationsRun);
+
+        g.MapPost("/computations/{id:guid}/export-itr5", async (Guid id, ExportItrJsonRequest? req, TaxComputationService svc, CancellationToken ct) =>
+        {
+            var result = await svc.ExportItr5JsonAsync(id, req, ct);
+            return Results.Ok(result);
+        }).RequirePermission(Perms.ComputationsRun);
+
+        g.MapPost("/computations/{id:guid}/export-itr6", async (Guid id, ExportItrJsonRequest? req, TaxComputationService svc, CancellationToken ct) =>
+        {
+            var result = await svc.ExportItr6JsonAsync(id, req, ct);
+            return Results.Ok(result);
+        }).RequirePermission(Perms.ComputationsRun);
+
         // Delete computation
         g.MapDelete("/computations/{id:guid}", async (Guid id, TaxComputationService svc, CancellationToken ct) =>
         {

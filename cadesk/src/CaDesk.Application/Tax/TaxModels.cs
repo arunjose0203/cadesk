@@ -123,7 +123,8 @@ public record TaxComputationDto(
     RegimeComparisonDto Comparison,
     string? Notes,
     DateTime CreatedAt,
-    DateTime? UpdatedAt
+    DateTime? UpdatedAt,
+    BusinessTaxComputationResultDto? BusinessComputation = null
 );
 
 public record ImportAisToComputationRequest(Guid ClientId, string AisJson);

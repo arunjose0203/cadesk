@@ -126,5 +126,84 @@ public class ItrAndForm3CdExportTests(ApiFactory api) : IClassFixture<ApiFactory
             name = "ITR-1 AY 2026-27 Official JSON"
         });
         Assert.Equal(HttpStatusCode.Created, vaultRes.StatusCode);
+
+        // 4. Corporate ITR-6 prefill (pulling Form 3CD disallowances) -> save -> export-itr6 -> Vault Save
+        var prefillCoRes = await http.PostAsJsonAsync("/api/tax/business/prefill", new BusinessPrefillRequest(coClient.Id, "2025-26", "2026-27", "company"));
+        Assert.Equal(HttpStatusCode.OK, prefillCoRes.StatusCode);
+        var prefillCo = (await prefillCoRes.Content.ReadFromJsonAsync<BusinessPrefillResponseDto>())!;
+        Assert.Contains(prefillCo.Sources, s => s.Module == "TaxAudit3CD" && s.Found);
+
+        var coTaxReq = prefillCo.PrefilledRequest with
+        {
+            RevenueFromOperations = 45_000_000m,
+            PurchasesAndDirectCost = 30_000_000m,
+            EmployeeBenefitExpense = 6_000_000m,
+            DepreciationPerBooks = 700_000m,
+            IncomeTaxDepreciationSec32 = 850_000m,
+            OtherExpenses = 2_300_000m,
+            TaxProvisionCurrent = 1_400_000m,
+            AdvanceTaxPaid = 900_000m,
+            TdsCredit = 120_000m,
+            KeyPersons = [new KeyPersonInput("Rajan Varma", "MD", "ABCPV1234Q", "01234567")],
+        };
+
+        var coSaveRes = await http.PostAsJsonAsync("/api/tax/business/computations", coTaxReq);
+        Assert.Equal(HttpStatusCode.Created, coSaveRes.StatusCode);
+        var coTaxComp = (await coSaveRes.Content.ReadFromJsonAsync<TaxComputationDto>())!;
+        Assert.Equal(TaxpayerCategory.Company, coTaxComp.TaxpayerCategory);
+        Assert.NotNull(coTaxComp.BusinessComputation);
+
+        var itr6Http = await http.PostAsJsonAsync($"/api/tax/computations/{coTaxComp.Id}/export-itr6",
+            new ExportItrJsonRequest(VerificationName: "Rajan Varma", VerificationPan: "ABCPV1234Q", Capacity: "MD", City: "Kochi", PinCode: "682031"));
+        Assert.Equal(HttpStatusCode.OK, itr6Http.StatusCode);
+        var itr6 = (await itr6Http.Content.ReadFromJsonAsync<IncomeTaxJsonExportResult>())!;
+        Assert.Equal("ITR-6", itr6.FormType);
+        Assert.True(itr6.ValidAgainstSchema, string.Join("; ", itr6.Issues.Select(i => i.Message)));
+        Assert.Equal(0, itr6.SchemaErrorCount);
+        Assert.Equal("ITR-6", JsonNode.Parse(itr6.JsonContent)!["ITR"]!["ITR6"]!["Form_ITR6"]!["FormName"]!.GetValue<string>());
+
+        // 5. Firm ITR-5 Sec 40(b) computation -> save -> export-itr5
+        var firmRes = await http.PostAsJsonAsync("/api/clients", new SaveClientRequest(
+            null, "Kochi Pepper LLP", null, null, "LLP",
+            new Dictionary<string, string> { ["PAN"] = "AAAFK5555B" },
+            "partners@pepperllp.test", "9847099887", null, null));
+        firmRes.EnsureSuccessStatusCode();
+        var firmClient = (await firmRes.Content.ReadFromJsonAsync<ClientDto>())!;
+
+        var firmReq = new CalculateBusinessTaxRequest(
+            ClientId: firmClient.Id,
+            AssessmentYear: "2026-27",
+            FinancialYear: "2025-26",
+            EntityType: "firm",
+            SubType: "LLP",
+            RevenueFromOperations: 18_000_000m,
+            PurchasesAndDirectCost: 11_000_000m,
+            EmployeeBenefitExpense: 2_500_000m,
+            PartnerRemunerationDebited: 1_400_000m,
+            PartnerInterestDebited: 240_000m,
+            DepreciationPerBooks: 250_000m,
+            IncomeTaxDepreciationSec32: 280_000m,
+            OtherExpenses: 1_200_000m,
+            AdvanceTaxPaid: 200_000m,
+            Partners:
+            [
+                new PartnerShareInput("Arun Menon", "ABCPM1111K", "IND_WORKING", 50m, 1_000_000m, 12m, 120_000m, 700_000m),
+                new PartnerShareInput("Meera Nair", "ABCPN2222L", "IND_WORKING", 50m, 1_000_000m, 12m, 120_000m, 700_000m),
+            ]
+        );
+
+        var firmSaveRes = await http.PostAsJsonAsync("/api/tax/business/computations", firmReq);
+        Assert.Equal(HttpStatusCode.Created, firmSaveRes.StatusCode);
+        var firmComp = (await firmSaveRes.Content.ReadFromJsonAsync<TaxComputationDto>())!;
+        Assert.Equal(TaxpayerCategory.Firm, firmComp.TaxpayerCategory);
+
+        var itr5Http = await http.PostAsJsonAsync($"/api/tax/computations/{firmComp.Id}/export-itr5",
+            new ExportItrJsonRequest(VerificationName: "Arun Menon", VerificationPan: "ABCPM1111K", Capacity: "DP", City: "Kochi", PinCode: "682031"));
+        Assert.Equal(HttpStatusCode.OK, itr5Http.StatusCode);
+        var itr5 = (await itr5Http.Content.ReadFromJsonAsync<IncomeTaxJsonExportResult>())!;
+        Assert.Equal("ITR-5", itr5.FormType);
+        Assert.True(itr5.ValidAgainstSchema, string.Join("; ", itr5.Issues.Select(i => i.Message)));
+        Assert.Equal(0, itr5.SchemaErrorCount);
+        Assert.Equal("ITR-5", JsonNode.Parse(itr5.JsonContent)!["ITR"]!["ITR5"]!["Form_ITR5"]!["FormName"]!.GetValue<string>());
     }
 }

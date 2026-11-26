@@ -42,7 +42,13 @@ public record ExportItrJsonRequest(
     decimal? OtherSourcesIncome = null,
     decimal? ChapterVia80C = null,
     decimal? TdsPaid = null,
-    decimal? AdvanceTaxPaid = null
+    decimal? AdvanceTaxPaid = null,
+    string? Capacity = null,
+    string? VerificationName = null,
+    string? VerificationPan = null,
+    string? DateOfIncorporation = null,
+    bool? UseIndAs = null,
+    string? ItrFilingDueDate = null
 );
 
 public record ExportForm3CdJsonRequest(

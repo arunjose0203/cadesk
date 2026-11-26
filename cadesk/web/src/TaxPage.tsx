@@ -11,12 +11,13 @@ import {
   api
 } from './api'
 import { JsonExportPanel } from './components/JsonExportPanel'
+import { BusinessTaxDeskTab } from './tax/BusinessTaxDeskTab'
 
 const fmtInr = (n: number) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n)
 
 export function TaxPage() {
-  const [activeTab, setActiveTab] = useState<'calculator' | 'history'>('calculator')
+  const [activeTab, setActiveTab] = useState<'calculator' | 'business' | 'history'>('calculator')
   const [clients, setClients] = useState<Client[]>([])
   const [computations, setComputations] = useState<TaxComputationDto[]>([])
   const [loading, setLoading] = useState(false)
@@ -238,7 +239,7 @@ export function TaxPage() {
             Direct Tax Computation Engine
           </h1>
           <p style={{ margin: 0, color: 'var(--muted)', fontSize: '14px' }}>
-            AY 2025-26 &amp; FY 2024-25 Income Tax Calculator, 5 Heads Analysis &amp; Old vs New (Sec 115BAC) Comparison
+            AY 2026-27 &amp; FY 2025-26 Direct Tax Suite — Individual (ITR-1), Firm / LLP (ITR-5) &amp; Company (ITR-6)
           </p>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
@@ -274,7 +275,21 @@ export function TaxPage() {
               cursor: 'pointer'
             }}
           >
-            Tax Calculator &amp; Simulator
+            Individual / HUF (ITR-1)
+          </button>
+          <button
+            onClick={() => setActiveTab('business')}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '6px',
+              background: activeTab === 'business' ? 'var(--accent)' : 'var(--card-subtle)',
+              color: activeTab === 'business' ? '#fff' : 'var(--text-secondary)',
+              fontWeight: 500,
+              border: activeTab === 'business' ? '1px solid var(--accent)' : '1px solid var(--border)',
+              cursor: 'pointer'
+            }}
+          >
+            Firm (ITR-5) &amp; Company (ITR-6)
           </button>
           <button
             onClick={() => setActiveTab('history')}
@@ -733,7 +748,17 @@ export function TaxPage() {
         </div>
       )}
 
-      {/* Tab 2: Saved Computations Records */}
+      {/* Tab 2: Corporate (ITR-6) & Firm / LLP (ITR-5) */}
+      {activeTab === 'business' && (
+        <BusinessTaxDeskTab
+          clients={clients}
+          onSaved={loadComputations}
+          onError={setError}
+          onSuccess={setSuccessMsg}
+        />
+      )}
+
+      {/* Tab 3: Saved Computations Records */}
       {activeTab === 'history' && (
         <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -898,7 +923,13 @@ export function TaxPage() {
                 </div>
 
                 <JsonExportPanel
-                  title="Official ITR-1 (Sahaj) JSON Export (AY 2026-27 V1.1)"
+                  title={
+                    selectedComputation.taxpayerCategory === 'firm'
+                      ? 'Official ITR-5 (Firm/LLP) JSON Export (AY 2026-27 V1.1)'
+                      : selectedComputation.taxpayerCategory === 'company'
+                        ? 'Official ITR-6 (Company) JSON Export (AY 2026-27 V1.0)'
+                        : 'Official ITR-1 (Sahaj) JSON Export (AY 2026-27 V1.1)'
+                  }
                   subtitle="Generates schema-validated Income Tax e-Filing JSON from this computation."
                   clientId={selectedComputation.clientId}
                   fy={selectedComputation.financialYear}
@@ -909,23 +940,48 @@ export function TaxPage() {
                     try {
                       setExportingItr1(true)
                       setError(null)
-                      const res = await taxApi.exportItr1(selectedComputation.id, itr1Opts)
+                      const res =
+                        selectedComputation.taxpayerCategory === 'firm'
+                          ? await taxApi.exportItr5(selectedComputation.id, itr1Opts)
+                          : selectedComputation.taxpayerCategory === 'company'
+                            ? await taxApi.exportItr6(selectedComputation.id, itr1Opts)
+                            : await taxApi.exportItr1(selectedComputation.id, itr1Opts)
                       setItr1Export(res)
                     } catch (err: unknown) {
-                      setError(err instanceof Error ? err.message : 'ITR-1 JSON export failed.')
+                      setError(err instanceof Error ? err.message : 'ITR JSON export failed.')
                     } finally {
                       setExportingItr1(false)
                     }
                   }}
                 >
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '8px' }}>
-                    <input
-                      type="text"
-                      placeholder="Father's Name"
-                      value={itr1Opts.fatherName || ''}
-                      onChange={e => setItr1Opts(p => ({ ...p, fatherName: e.target.value }))}
-                      style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)', fontSize: '12px' }}
-                    />
+                    {(selectedComputation.taxpayerCategory === 'firm' || selectedComputation.taxpayerCategory === 'company') ? (
+                      <>
+                        <input
+                          type="text"
+                          placeholder="Signatory Name"
+                          value={itr1Opts.verificationName || ''}
+                          onChange={e => setItr1Opts(p => ({ ...p, verificationName: e.target.value }))}
+                          style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)', fontSize: '12px' }}
+                        />
+                        <input
+                          type="text"
+                          maxLength={10}
+                          placeholder="Signer Personal PAN"
+                          value={itr1Opts.verificationPan || ''}
+                          onChange={e => setItr1Opts(p => ({ ...p, verificationPan: e.target.value.toUpperCase() }))}
+                          style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)', fontSize: '12px' }}
+                        />
+                      </>
+                    ) : (
+                      <input
+                        type="text"
+                        placeholder="Father's Name"
+                        value={itr1Opts.fatherName || ''}
+                        onChange={e => setItr1Opts(p => ({ ...p, fatherName: e.target.value }))}
+                        style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)', fontSize: '12px' }}
+                      />
+                    )}
                     <input
                       type="text"
                       placeholder="City (e.g. Kochi)"

@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CaDesk.Application.Tax;
 
-public class TaxComputationService(IAppDbContext db, ITenantContext tenant)
+public partial class TaxComputationService(IAppDbContext db, ITenantContext tenant)
 {
     private static readonly JsonSerializerOptions JsonOpts = new(JsonSerializerDefaults.Web);
 
@@ -212,8 +212,17 @@ public class TaxComputationService(IAppDbContext db, ITenantContext tenant)
         return Itr1JsonBuilder.Build(comp, client, req);
     }
 
-    private static TaxComputationDto ToDto(TaxComputation x, RegimeComparisonDto comp) =>
-        new(
+    private static TaxComputationDto ToDto(TaxComputation x, RegimeComparisonDto comp)
+    {
+        BusinessTaxComputationResultDto? business = null;
+        if ((x.TaxpayerCategory == TaxpayerCategory.Firm || x.TaxpayerCategory == TaxpayerCategory.Company)
+            && !string.IsNullOrWhiteSpace(x.ComputationBreakdown)
+            && x.ComputationBreakdown.Contains("\"selectedRegimeCode\"", StringComparison.OrdinalIgnoreCase))
+        {
+            business = JsonSerializer.Deserialize<BusinessTaxComputationResultDto>(x.ComputationBreakdown, JsonOpts);
+        }
+
+        return new(
             x.Id,
             x.ClientId,
             x.Client?.Name,
@@ -245,6 +254,8 @@ public class TaxComputationService(IAppDbContext db, ITenantContext tenant)
             comp,
             x.Notes,
             x.CreatedAt,
-            x.UpdatedAt
+            x.UpdatedAt,
+            business
         );
+    }
 }

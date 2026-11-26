@@ -111,6 +111,11 @@ public static class JsonSchemaValidator
                     if (excl ? numVal >= max : numVal > max)
                         errors.Add(new(path, "maximum", $"Value {numVal} exceeds maximum {max}."));
                 }
+                if (TryGetDecimalProp(nodeSchema, "multipleOf", out var mult) && mult > 0m)
+                {
+                    if (numVal % mult != 0m)
+                        errors.Add(new(path, "multipleOf", $"Value {numVal} is not a multiple of {mult}."));
+                }
                 // CBDT Draft-04 schemas sometimes attach string regex patterns to integer types (e.g. PinCode/Status)
                 if (nodeSchema.TryGetPropertyValue("pattern", out var patNode) && patNode?.GetValue<string>() is { } pat)
                 {
